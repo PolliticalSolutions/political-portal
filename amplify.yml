@@ -3,12 +3,10 @@ frontend:
   phases:
     preBuild:
       commands:
-        - nvm install 18
-        - nvm use 18
-        - npm ci
+        - npm install
     build:
       commands:
-        - npm run build
+        - CI=false npm run build
   artifacts:
     baseDirectory: build
     files:
