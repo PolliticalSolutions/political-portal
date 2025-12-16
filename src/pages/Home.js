@@ -94,6 +94,28 @@ export default function Home() {
           Email: <a href="mailto:paul@politicalsolutions.uk">paul@politicalsolutions.uk</a>
         </p>
       </div>
+<div className="section">
+  <h2 className="sectionTitle">Designed for serious local operations</h2>
+  <p className="lead">
+    Built by practitioners with experience in local campaigns, data operations,
+    and regulated environments — designed to scale without chaos.
+  </p>
+
+  <div className="grid">
+    <div className="card">
+      <h3>UK-focused</h3>
+      <p>Designed around UK electoral structures, associations and federations.</p>
+    </div>
+    <div className="card">
+      <h3>Apolitical by design</h3>
+      <p>Tools and insights without ideology — usable by any organisation.</p>
+    </div>
+    <div className="card">
+      <h3>Security-first</h3>
+      <p>Hosted on AWS with a roadmap to role-based access and audit trails.</p>
+    </div>
+  </div>
+</div>
 
       <div className="footer">
         <div>© {new Date().getFullYear()} Political Solutions Ltd</div>
