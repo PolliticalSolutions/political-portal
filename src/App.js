@@ -1,13 +1,10 @@
 import React from "react";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { Authenticator } from "@aws-amplify/ui-react";
+
 import Home from "./pages/Home";
 import Login from "./pages/Login";
 import Portal from "./pages/Portal";
-
-function RequireAuth({ children }) {
-  const loggedIn = localStorage.getItem("ps_logged_in") === "true";
-  return loggedIn ? children : <Navigate to="/login" replace />;
-}
 
 export default function App() {
   return (
@@ -15,14 +12,16 @@ export default function App() {
       <Routes>
         <Route path="/" element={<Home />} />
         <Route path="/login" element={<Login />} />
+
         <Route
           path="/portal"
           element={
-            <RequireAuth>
+            <Authenticator>
               <Portal />
-            </RequireAuth>
+            </Authenticator>
           }
         />
+
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </BrowserRouter>
