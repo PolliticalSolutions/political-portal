@@ -18,9 +18,10 @@ export default function Home() {
       </div>
 
       <div className="hero">
-        <h1 className="h1">
-          Modern, apolitical campaign operations — built for local organisations.
-        </h1>
+        <div className="badge" style={{ display: "inline-block", marginBottom: 12 }}>
+  Built for local operations • Secure • AWS hosted
+</div>
+
 
         <p className="lead">
           We help local political teams and federations streamline admin, automate repetitive work,
