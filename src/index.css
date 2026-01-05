@@ -544,3 +544,55 @@ img {
     padding: var(--space-4);
   }
 }
+
+.idle-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(7, 11, 18, 0.72);
+  backdrop-filter: blur(6px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-5);
+  z-index: 999;
+}
+
+.idle-modal {
+  width: 100%;
+  max-width: 520px;
+}
+
+.idle-card {
+  background: linear-gradient(150deg, var(--surface), var(--surface-muted));
+  border-color: rgba(75, 130, 225, 0.45);
+  box-shadow: 0 26px 60px rgba(0, 0, 0, 0.55);
+}
+
+.idle-countdown {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  margin: var(--space-4) 0 var(--space-2);
+}
+
+.idle-timer {
+  min-width: 110px;
+  text-align: center;
+  padding: var(--space-3);
+  border-radius: var(--radius-md);
+  border: 1px solid rgba(75, 130, 225, 0.45);
+  background: var(--accent-soft);
+  color: var(--text);
+  font-weight: 800;
+  font-size: 28px;
+  letter-spacing: -0.02em;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05);
+}
+
+.idle-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: var(--space-3);
+  margin-top: var(--space-4);
+}
