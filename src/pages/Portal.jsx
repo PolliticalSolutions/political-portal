@@ -1,20 +1,75 @@
-export default function Portal({ tokens }) {
+import Badge from "../components/Badge.jsx";
+import Button from "../components/Button.jsx";
+import Card from "../components/Card.jsx";
+
+const navItems = ["Overview", "Federations", "Data processing", "Insights", "Reporting"];
+const moduleCards = [
+  {
+    title: "Federations",
+    body: "Structure teams, permissions, and regions with clear ownership and access control.",
+  },
+  {
+    title: "Data processing",
+    body: "Validate, transform, and route data with audit-friendly checkpoints.",
+  },
+  {
+    title: "Insights",
+    body: "Surface operational trends without exposing sensitive records.",
+  },
+  {
+    title: "Reporting",
+    body: "Export-ready summaries for oversight and compliance reviews.",
+  },
+];
+
+export default function Portal({ tokens, onLogout }) {
   const hasTokens = Boolean(tokens);
 
   return (
-    <div className="stack">
-      <h1>Portal</h1>
-      <div className="card">
-        <p>Protected area. Replace this with the real portal once auth is fully wired.</p>
-        <p>Access token present: {hasTokens ? "yes" : "no"}</p>
-        {tokens?.id_token && (
-          <details>
-            <summary>View token payload (truncated)</summary>
-            <code style={{ wordBreak: "break-all", display: "block", marginTop: 8 }}>
-              {tokens.id_token.slice(0, 80)}...
-            </code>
-          </details>
-        )}
+    <div className="page stack">
+      <Card>
+        <div className="card-header">
+          <div>
+            <Badge tone="accent">Portal</Badge>
+            <h1 style={{ margin: "6px 0 4px", fontSize: 22 }}>Operational tools and reporting</h1>
+            <p className="muted">You&rsquo;re signed in.</p>
+          </div>
+          {onLogout && (
+            <Button variant="ghost" onClick={onLogout}>
+              Logout
+            </Button>
+          )}
+        </div>
+      </Card>
+
+      <div className="portal-shell">
+        <div className="portal-nav">
+          {navItems.map((item, index) => (
+            <span key={item} className={`portal-link ${index === 0 ? "active" : ""}`}>
+              {item}
+            </span>
+          ))}
+        </div>
+
+        <div className="portal-main">
+          <Card title="Session status" action={<Badge tone="accent">{hasTokens ? "Active" : "Inactive"}</Badge>}>
+            <p>Access token present: {hasTokens ? "yes" : "no"}</p>
+            {tokens?.id_token && (
+              <details style={{ marginTop: 12 }}>
+                <summary style={{ cursor: "pointer" }}>View token payload (truncated)</summary>
+                <div className="token-block">{tokens.id_token.slice(0, 140)}...</div>
+              </details>
+            )}
+          </Card>
+
+          <div className="card-grid">
+            {moduleCards.map((item) => (
+              <Card key={item.title} title={item.title}>
+                <p>{item.body}</p>
+              </Card>
+            ))}
+          </div>
+        </div>
       </div>
     </div>
   );
