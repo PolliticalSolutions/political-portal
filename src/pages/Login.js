@@ -1,14 +1,15 @@
-import authConfig from "../authConfig";
+import React from "react";
+import { startLogin } from "../auth";
 
 export default function Login() {
-  const loginUrl =
-    `${authConfig.domain}/login` +
-    `?client_id=${authConfig.clientId}` +
-    `&response_type=${authConfig.responseType}` +
-    `&scope=${encodeURIComponent(authConfig.scope)}` +
-    `&redirect_uri=${encodeURIComponent(authConfig.redirectUri)}`;
+  return (
+    <div className="container" style={{ padding: 24 }}>
+      <h1>Login</h1>
+      <p className="lead">Use your Cognito account to sign in.</p>
 
-  window.location.href = loginUrl;
-
-  return null;
+      <button className="btn" onClick={startLogin}>
+        Continue to secure login
+      </button>
+    </div>
+  );
 }
