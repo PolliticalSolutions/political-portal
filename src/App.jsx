@@ -1,19 +1,12 @@
 import { useState } from "react";
-import { NavLink, Navigate, Route, Routes, useLocation } from "react-router-dom";
-import { clearStoredSession, getStoredTokens } from "./lib/cognito.js";
+import { NavLink, Navigate, Route, Routes } from "react-router-dom";
+import { getStoredTokens, startLogout } from "./lib/cognito.js";
 import Button from "./components/Button.jsx";
+import ProtectedRoute from "./components/ProtectedRoute.jsx";
 import Callback from "./pages/Callback.jsx";
 import Home from "./pages/Home.jsx";
 import Login from "./pages/Login.jsx";
 import Portal from "./pages/Portal.jsx";
-
-function ProtectedRoute({ authed, children }) {
-  const location = useLocation();
-  if (!authed) {
-    return <Navigate to="/login" replace state={{ from: location.pathname + location.search }} />;
-  }
-  return children;
-}
 
 function TopNav({ authed, onLogout }) {
   const navClass = ({ isActive }) => (isActive ? "navLink active" : "navLink");
@@ -36,9 +29,6 @@ function TopNav({ authed, onLogout }) {
         <NavLink className={navClass} to="/login">
           Login
         </NavLink>
-        <NavLink className={navClass} to="/callback?code=TEST">
-          Callback
-        </NavLink>
         <NavLink className={navClass} to="/portal">
           Portal
         </NavLink>
@@ -57,8 +47,8 @@ export default function App() {
   const authed = Boolean(tokens?.access_token);
 
   const handleLogout = () => {
-    clearStoredSession();
     setTokens(null);
+    startLogout();
   };
 
   return (
@@ -70,14 +60,9 @@ export default function App() {
             <Route path="/" element={<Home />} />
             <Route path="/login" element={<Login authed={authed} />} />
             <Route path="/callback" element={<Callback onAuth={setTokens} />} />
-            <Route
-              path="/portal"
-              element={
-                <ProtectedRoute authed={authed}>
-                  <Portal tokens={tokens} onLogout={handleLogout} />
-                </ProtectedRoute>
-              }
-            />
+            <Route element={<ProtectedRoute authed={authed} />}>
+              <Route path="/portal/*" element={<Portal tokens={tokens} onLogout={handleLogout} />} />
+            </Route>
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
         </div>

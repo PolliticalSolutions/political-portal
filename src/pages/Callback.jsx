@@ -1,13 +1,13 @@
 import { useEffect, useState } from "react";
-import { useLocation } from "react-router-dom";
-import { clearStoredSession, exchangeCodeForTokens } from "../lib/cognito.js";
+import { useLocation, useNavigate } from "react-router-dom";
+import { clearStoredSession, exchangeCodeForTokens, consumePostLoginRedirect, getStoredTokens } from "../lib/cognito.js";
 import Badge from "../components/Badge.jsx";
 import Card from "../components/Card.jsx";
 
 export default function Callback({ onAuth }) {
   const location = useLocation();
-  const fullPath = `${location.pathname}${location.search}`;
-  const [status, setStatus] = useState("idle");
+  const navigate = useNavigate();
+  const [status, setStatus] = useState("exchanging");
   const [error, setError] = useState(null);
 
   useEffect(() => {
@@ -21,19 +21,18 @@ export default function Callback({ onAuth }) {
       return;
     }
 
-    if (!code) {
-      setStatus("no-code");
-      setError("No authorization code found in callback.");
+    // If we already have tokens or no code, bounce straight to portal.
+    if (getStoredTokens() || !code) {
+      navigate(consumePostLoginRedirect("/portal"), { replace: true });
       return;
     }
 
     let cancelled = false;
-    setStatus("exchanging");
     exchangeCodeForTokens(code)
       .then((tokens) => {
         if (cancelled) return;
         onAuth?.(tokens);
-        setStatus("success");
+        navigate(consumePostLoginRedirect("/portal"), { replace: true });
       })
       .catch((err) => {
         if (cancelled) return;
@@ -45,28 +44,30 @@ export default function Callback({ onAuth }) {
     return () => {
       cancelled = true;
     };
-  }, [location.search, onAuth]);
+  }, [location.search, navigate, onAuth]);
+
+  // Silent redirect unless there's an error.
+  if (!error) {
+    return (
+      <div className="page centered">
+        <Card>
+          <div className="stack">
+            <Badge tone="accent">Secure handoff</Badge>
+            <p className="muted">Signing you in…</p>
+            <div className="spinner" aria-label="Loading" />
+          </div>
+        </Card>
+      </div>
+    );
+  }
 
   return (
-    <div className="page stack">
+    <div className="page centered">
       <Card>
         <div className="stack">
-          <div className="card-header">
-            <div>
-              <Badge tone="accent">Secure handoff</Badge>
-              <h1 style={{ margin: "6px 0 4px", fontSize: 22 }}>Completing sign-in</h1>
-              <p className="muted">Signing you in and checking your session.</p>
-            </div>
-            {status === "exchanging" && <div className="spinner" aria-label="Loading" />}
-          </div>
-
-          <div className={`status ${status === "error" ? "error" : ""}`}>
-            <span>Status: {status}</span>
-            <span style={{ opacity: 0.7 }}>Path: {fullPath}</span>
-          </div>
-
-          {error && <div className="status error">{error}</div>}
-          {status === "success" && <p className="helper">Tokens stored in sessionStorage.</p>}
+          <Badge tone="accent">Secure handoff</Badge>
+          <div className="status error">{error}</div>
+          <p className="helper">Please restart login.</p>
         </div>
       </Card>
     </div>

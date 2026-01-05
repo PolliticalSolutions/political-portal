@@ -2,6 +2,7 @@ import { cognitoConfig } from "../cognitoConfig.js";
 
 const verifierKey = "cognito_code_verifier";
 const tokensKey = "cognito_tokens";
+const redirectKey = "cognito_post_login_redirect";
 
 const hasWindow = typeof window !== "undefined";
 
@@ -44,6 +45,22 @@ function persistTokens(tokens) {
   }
 }
 
+function persistRedirectPath(path) {
+  if (hasWindow && path) {
+    sessionStorage.setItem(redirectKey, path);
+  }
+}
+
+export function consumePostLoginRedirect(defaultPath = "/portal") {
+  if (!hasWindow) return defaultPath;
+  const stored = sessionStorage.getItem(redirectKey);
+  if (stored) {
+    sessionStorage.removeItem(redirectKey);
+    return stored;
+  }
+  return defaultPath;
+}
+
 export function getStoredTokens() {
   if (!hasWindow) return null;
   const raw = sessionStorage.getItem(tokensKey);
@@ -59,6 +76,7 @@ export function clearStoredSession() {
   if (!hasWindow) return;
   sessionStorage.removeItem(tokensKey);
   sessionStorage.removeItem(verifierKey);
+  sessionStorage.removeItem(redirectKey);
 }
 
 function buildAuthorizeUrl(codeChallenge) {
@@ -72,15 +90,39 @@ function buildAuthorizeUrl(codeChallenge) {
   return url.toString();
 }
 
-export async function startLogin() {
+export async function startLogin(redirectPath = "/portal") {
   if (!cognitoConfig.domain || !cognitoConfig.clientId || !cognitoConfig.redirectUri) {
     throw new Error("Configure cognitoConfig.domain, clientId, and redirectUri before logging in.");
   }
 
   const { verifier, challenge } = await createPkcePair();
   persistVerifier(verifier);
+  persistRedirectPath(redirectPath);
   const authorizeUrl = buildAuthorizeUrl(challenge);
   window.location.assign(authorizeUrl);
+}
+
+function buildLogoutUrl() {
+  const logoutUri = cognitoConfig.logoutUri || cognitoConfig.redirectUri;
+  if (!logoutUri) {
+    throw new Error("Configure cognitoConfig.logoutUri (or redirectUri) before logging out.");
+  }
+
+  const url = new URL("/logout", cognitoConfig.domain);
+  url.searchParams.set("client_id", cognitoConfig.clientId);
+  url.searchParams.set("logout_uri", logoutUri);
+  return url.toString();
+}
+
+export function startLogout() {
+  if (!cognitoConfig.domain || !cognitoConfig.clientId) {
+    throw new Error("Configure cognitoConfig.domain and clientId before logging out.");
+  }
+
+  clearStoredSession();
+  if (hasWindow) {
+    window.location.assign(buildLogoutUrl());
+  }
 }
 
 export async function exchangeCodeForTokens(code) {
