@@ -9,6 +9,7 @@ export default function Login({ authed }) {
   const [error, setError] = useState(null);
   const location = useLocation();
   const redirectedFrom = location.state?.from;
+  const redirectMessage = location.state?.message;
 
   const handleLogin = async () => {
     setError(null);
@@ -36,7 +37,8 @@ export default function Login({ authed }) {
               {authed ? "Already signed in" : "Continue to sign in"}
             </Button>
             <p className="helper">Hosted by AWS Cognito with PKCE for security.</p>
-            {redirectedFrom && <div className="status">Please sign in to continue.</div>}
+            {redirectedFrom && !redirectMessage && <div className="status">Please sign in to continue.</div>}
+            {redirectMessage && <div className="status">{redirectMessage}</div>}
             {error && <div className="status error">{error}</div>}
           </div>
         </Card>

@@ -6,6 +6,26 @@ const redirectKey = "cognito_post_login_redirect";
 
 const hasWindow = typeof window !== "undefined";
 
+function decodeJwtPayload(token) {
+  if (!token || typeof token !== "string") return null;
+  const parts = token.split(".");
+  if (parts.length < 2) return null;
+
+  const normalized = parts[1].replace(/-/g, "+").replace(/_/g, "/");
+  const padding = (4 - (normalized.length % 4)) % 4;
+  try {
+    const json = atob(normalized + "=".repeat(padding));
+    return JSON.parse(json);
+  } catch {
+    return null;
+  }
+}
+
+function getExpiryMs(payload) {
+  if (!payload?.exp) return null;
+  return payload.exp * 1000;
+}
+
 function base64UrlEncode(bytes) {
   return btoa(String.fromCharCode(...bytes))
     .replace(/\+/g, "-")
@@ -77,6 +97,40 @@ export function clearStoredSession() {
   sessionStorage.removeItem(tokensKey);
   sessionStorage.removeItem(verifierKey);
   sessionStorage.removeItem(redirectKey);
+}
+
+export function isTokenValid(token) {
+  const payload = decodeJwtPayload(token);
+  const expiresAt = getExpiryMs(payload);
+  if (!expiresAt) return false;
+  return expiresAt > Date.now();
+}
+
+export function getSession(providedTokens) {
+  const tokens = providedTokens || getStoredTokens();
+  if (!tokens || !tokens.id_token || !tokens.access_token) {
+    return { isAuthed: false, user: null, expiresAt: null, tokens: null, reason: "missing" };
+  }
+
+  const idPayload = decodeJwtPayload(tokens.id_token);
+  const accessPayload = decodeJwtPayload(tokens.access_token);
+
+  const idExpired = !isTokenValid(tokens.id_token);
+  const accessExpired = !isTokenValid(tokens.access_token);
+  const expired = idExpired || accessExpired;
+
+  const expiresAt = Math.min(
+    getExpiryMs(idPayload) ?? Number.POSITIVE_INFINITY,
+    getExpiryMs(accessPayload) ?? Number.POSITIVE_INFINITY
+  );
+
+  return {
+    isAuthed: !expired,
+    user: idPayload || null,
+    expiresAt: Number.isFinite(expiresAt) ? expiresAt : null,
+    tokens,
+    reason: expired ? "expired" : null,
+  };
 }
 
 function buildAuthorizeUrl(codeChallenge) {

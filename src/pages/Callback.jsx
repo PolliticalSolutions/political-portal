@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
-import { clearStoredSession, exchangeCodeForTokens, consumePostLoginRedirect, getStoredTokens } from "../lib/cognito.js";
+import { clearStoredSession, exchangeCodeForTokens, consumePostLoginRedirect, getSession } from "../lib/cognito.js";
 import Badge from "../components/Badge.jsx";
 import Card from "../components/Card.jsx";
 
@@ -21,10 +21,15 @@ export default function Callback({ onAuth }) {
       return;
     }
 
-    // If we already have tokens or no code, bounce straight to portal.
-    if (getStoredTokens() || !code) {
+    const existingSession = getSession();
+    // If we already have a valid session or no code, bounce straight to portal.
+    if (existingSession.isAuthed || !code) {
       navigate(consumePostLoginRedirect("/portal"), { replace: true });
       return;
+    }
+
+    if (existingSession.reason === "expired") {
+      clearStoredSession();
     }
 
     let cancelled = false;

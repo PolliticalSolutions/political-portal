@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { NavLink, Navigate, Route, Routes } from "react-router-dom";
-import { getStoredTokens, startLogout } from "./lib/cognito.js";
+import { clearStoredSession, getSession, startLogout } from "./lib/cognito.js";
 import Button from "./components/Button.jsx";
 import IdleWarning from "./components/IdleWarning.jsx";
 import ProtectedRoute from "./components/ProtectedRoute.jsx";
@@ -48,7 +48,7 @@ function TopNav({ authed, onLogout }) {
 }
 
 export default function App() {
-  const [tokens, setTokens] = useState(() => getStoredTokens());
+  const [session, setSession] = useState(() => getSession());
   const [showIdleWarning, setShowIdleWarning] = useState(false);
   const [warningSecondsLeft, setWarningSecondsLeft] = useState(WARNING_SECONDS);
 
@@ -56,10 +56,15 @@ export default function App() {
   const logoutTimeoutRef = useRef(null);
   const countdownIntervalRef = useRef(null);
 
-  const authed = Boolean(tokens?.access_token);
+  const authed = session.isAuthed;
+  const tokens = authed ? session.tokens : null;
+
+  const refreshSession = useCallback(() => {
+    setSession(getSession());
+  }, []);
 
   const handleLogout = useCallback(() => {
-    setTokens(null);
+    setSession({ isAuthed: false, user: null, expiresAt: null, tokens: null, reason: null });
     startLogout();
   }, []);
 
@@ -127,6 +132,32 @@ export default function App() {
     };
   }, [authed, clearTimers, resetIdleTimers]);
 
+  useEffect(() => {
+    if (session.reason === "expired") {
+      clearStoredSession();
+    }
+  }, [session.reason]);
+
+  useEffect(() => {
+    refreshSession();
+    const intervalId = window.setInterval(refreshSession, 30000);
+    const handleFocus = () => refreshSession();
+
+    window.addEventListener("focus", handleFocus);
+
+    return () => {
+      clearInterval(intervalId);
+      window.removeEventListener("focus", handleFocus);
+    };
+  }, [refreshSession]);
+
+  const handleAuthSuccess = useCallback(
+    (newTokens) => {
+      setSession(getSession(newTokens));
+    },
+    []
+  );
+
   return (
     <div className="app">
       <TopNav authed={authed} onLogout={handleLogout} />
@@ -135,8 +166,8 @@ export default function App() {
           <Routes>
             <Route path="/" element={<Home />} />
             <Route path="/login" element={<Login authed={authed} />} />
-            <Route path="/callback" element={<Callback onAuth={setTokens} />} />
-            <Route element={<ProtectedRoute authed={authed} />}>
+            <Route path="/callback" element={<Callback onAuth={handleAuthSuccess} />} />
+            <Route element={<ProtectedRoute authed={authed} session={session} />}>
               <Route path="/portal/*" element={<Portal tokens={tokens} onLogout={handleLogout} />} />
             </Route>
             <Route path="*" element={<Navigate to="/" replace />} />
