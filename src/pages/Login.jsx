@@ -9,7 +9,9 @@ export default function Login({ authed }) {
   const [error, setError] = useState(null);
   const location = useLocation();
   const redirectedFrom = location.state?.from;
-  const redirectMessage = location.state?.message;
+  const reason = location.state?.reason;
+  const redirectMessage =
+    reason === "expired" ? "Session expired, please sign in again." : location.state?.message;
 
   const handleLogin = async () => {
     setError(null);

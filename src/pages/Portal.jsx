@@ -1,3 +1,4 @@
+import { Link } from "react-router-dom";
 import Badge from "../components/Badge.jsx";
 import Button from "../components/Button.jsx";
 import Card from "../components/Card.jsx";
@@ -60,6 +61,18 @@ export default function Portal({ tokens, onLogout }) {
                 <div className="token-block">{tokens.id_token.slice(0, 140)}...</div>
               </details>
             )}
+          </Card>
+          <Card title="Session tools">
+            <p>Check token claims, expiry, and Cognito config.</p>
+            <Button as={Link} to="/portal/session" variant="secondary" style={{ marginTop: 8 }}>
+              View session
+            </Button>
+          </Card>
+          <Card title="Pricing">
+            <p>Preview how federation add-ons affect the subscription total.</p>
+            <Button as={Link} to="/portal/pricing" variant="secondary" style={{ marginTop: 8 }}>
+              View pricing
+            </Button>
           </Card>
 
           <div className="card-grid">

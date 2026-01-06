@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { NavLink, Navigate, Route, Routes } from "react-router-dom";
-import { clearStoredSession, getSession, startLogout } from "./lib/cognito.js";
+import { clearStoredSession, startLogout } from "./lib/cognito.js";
+import { getSession } from "./auth/session.js";
 import Button from "./components/Button.jsx";
 import IdleWarning from "./components/IdleWarning.jsx";
 import ProtectedRoute from "./components/ProtectedRoute.jsx";
@@ -8,6 +9,8 @@ import Callback from "./pages/Callback.jsx";
 import Home from "./pages/Home.jsx";
 import Login from "./pages/Login.jsx";
 import Portal from "./pages/Portal.jsx";
+import Pricing from "./pages/Pricing.jsx";
+import Session from "./pages/Session.jsx";
 
 const WARNING_DELAY_MS = 4 * 60 * 1000; // 4 minutes before showing the warning
 const WARNING_WINDOW_MS = 60 * 1000; // 1 minute countdown before auto-logout
@@ -61,6 +64,11 @@ export default function App() {
 
   const refreshSession = useCallback(() => {
     setSession(getSession());
+  }, []);
+
+  const handleClearSession = useCallback(() => {
+    clearStoredSession();
+    setSession({ isAuthed: false, user: null, expiresAt: null, tokens: null, reason: "cleared" });
   }, []);
 
   const handleLogout = useCallback(() => {
@@ -152,8 +160,8 @@ export default function App() {
   }, [refreshSession]);
 
   const handleAuthSuccess = useCallback(
-    (newTokens) => {
-      setSession(getSession(newTokens));
+    () => {
+      setSession(getSession());
     },
     []
   );
@@ -168,6 +176,11 @@ export default function App() {
             <Route path="/login" element={<Login authed={authed} />} />
             <Route path="/callback" element={<Callback onAuth={handleAuthSuccess} />} />
             <Route element={<ProtectedRoute authed={authed} session={session} />}>
+              <Route
+                path="/portal/session"
+                element={<Session session={session} onClear={handleClearSession} />}
+              />
+              <Route path="/portal/pricing" element={<Pricing />} />
               <Route path="/portal/*" element={<Portal tokens={tokens} onLogout={handleLogout} />} />
             </Route>
             <Route path="*" element={<Navigate to="/" replace />} />
