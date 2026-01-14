@@ -10,7 +10,11 @@ import Home from "./pages/Home.jsx";
 import Login from "./pages/Login.jsx";
 import Portal from "./pages/Portal.jsx";
 import Pricing from "./pages/Pricing.jsx";
+import PortalLayout from "./pages/portal/PortalLayout.jsx";
+import PortalNotFound from "./pages/portal/PortalNotFound.jsx";
+import PricingRules from "./pages/portal/PricingRules.jsx";
 import Session from "./pages/Session.jsx";
+import SignUp from "./pages/SignUp.jsx";
 
 const WARNING_DELAY_MS = 4 * 60 * 1000; // 4 minutes before showing the warning
 const WARNING_WINDOW_MS = 60 * 1000; // 1 minute countdown before auto-logout
@@ -142,7 +146,7 @@ export default function App() {
 
   useEffect(() => {
     if (session.reason === "expired") {
-      clearStoredSession();
+      clearStoredSession({ preserveRedirect: true });
     }
   }, [session.reason]);
 
@@ -175,13 +179,18 @@ export default function App() {
             <Route path="/" element={<Home />} />
             <Route path="/login" element={<Login authed={authed} />} />
             <Route path="/callback" element={<Callback onAuth={handleAuthSuccess} />} />
+            <Route path="/signup" element={<SignUp />} />
             <Route element={<ProtectedRoute authed={authed} session={session} />}>
-              <Route
-                path="/portal/session"
-                element={<Session session={session} onClear={handleClearSession} />}
-              />
-              <Route path="/portal/pricing" element={<Pricing />} />
-              <Route path="/portal/*" element={<Portal tokens={tokens} onLogout={handleLogout} />} />
+              <Route path="/portal" element={<PortalLayout />}>
+                <Route index element={<Portal tokens={tokens} onLogout={handleLogout} />} />
+                <Route
+                  path="session"
+                  element={<Session session={session} onClear={handleClearSession} />}
+                />
+                <Route path="pricing" element={<Pricing />} />
+                <Route path="pricing-rules" element={<PricingRules />} />
+                <Route path="*" element={<PortalNotFound />} />
+              </Route>
             </Route>
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>

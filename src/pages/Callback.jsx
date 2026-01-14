@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
-import { clearStoredSession, exchangeCodeForTokens, consumePostLoginRedirect, getSession } from "../lib/cognito.js";
+import { getSession } from "../auth/session.js";
+import { clearStoredSession, exchangeCodeForTokens, consumePostLoginRedirect } from "../lib/cognito.js";
 import Badge from "../components/Badge.jsx";
 import Card from "../components/Card.jsx";
 
@@ -29,7 +30,7 @@ export default function Callback({ onAuth }) {
     }
 
     if (existingSession.reason === "expired") {
-      clearStoredSession();
+      clearStoredSession({ preserveRedirect: true });
     }
 
     let cancelled = false;

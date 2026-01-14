@@ -70,9 +70,14 @@ export default function Portal({ tokens, onLogout }) {
           </Card>
           <Card title="Pricing">
             <p>Preview how federation add-ons affect the subscription total.</p>
-            <Button as={Link} to="/portal/pricing" variant="secondary" style={{ marginTop: 8 }}>
-              View pricing
-            </Button>
+            <div style={{ marginTop: 8, display: "flex", gap: 8, flexWrap: "wrap" }}>
+              <Button as={Link} to="/portal/pricing" variant="secondary">
+                View pricing
+              </Button>
+              <Button as={Link} to="/portal/pricing-rules" variant="secondary">
+                Pricing rules
+              </Button>
+            </div>
           </Card>
 
           <div className="card-grid">

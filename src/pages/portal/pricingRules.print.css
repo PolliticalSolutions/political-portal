@@ -1,0 +1,29 @@
+@media print {
+  body {
+    margin: 14mm;
+  }
+
+  .no-print {
+    display: none !important;
+  }
+
+  .pricing-rules-controls,
+  .pricing-rules-actions {
+    display: none !important;
+  }
+
+  .pricing-rules-table {
+    width: 100%;
+    border-collapse: collapse;
+  }
+
+  .pricing-rules-table th,
+  .pricing-rules-table td {
+    border: 1px solid #000;
+    padding: 6px 8px;
+  }
+
+  .pricing-rules-totals {
+    page-break-inside: avoid;
+  }
+}

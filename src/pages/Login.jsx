@@ -8,14 +8,20 @@ import Card from "../components/Card.jsx";
 export default function Login({ authed }) {
   const [error, setError] = useState(null);
   const location = useLocation();
-  const redirectedFrom = location.state?.from;
+  const fromState = location.state?.from;
+  const redirectedFrom = typeof fromState === "string" ? fromState : fromState?.pathname;
   const reason = location.state?.reason;
   const redirectMessage =
     reason === "expired" ? "Session expired, please sign in again." : location.state?.message;
 
   const handleLogin = async () => {
     setError(null);
-    const redirectPath = location.state?.from || "/portal";
+    const redirectPath =
+      typeof fromState === "string"
+        ? fromState
+        : fromState?.pathname
+          ? `${fromState.pathname}${fromState.search || ""}`
+          : "/portal";
     try {
       await startLogin(redirectPath);
     } catch (err) {

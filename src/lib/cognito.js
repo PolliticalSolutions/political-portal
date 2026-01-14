@@ -60,11 +60,13 @@ export function consumePostLoginRedirect(defaultPath = "/portal") {
   return defaultPath;
 }
 
-export function clearStoredSession() {
+export function clearStoredSession({ preserveRedirect = false } = {}) {
   if (!hasWindow) return;
-  clearSession();
+  clearSession(window.sessionStorage, { preserveRedirect });
   sessionStorage.removeItem(verifierKey);
-  sessionStorage.removeItem(redirectKey);
+  if (!preserveRedirect) {
+    sessionStorage.removeItem(redirectKey);
+  }
 }
 
 function buildAuthorizeUrl(codeChallenge) {

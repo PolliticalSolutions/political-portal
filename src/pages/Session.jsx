@@ -16,7 +16,8 @@ export default function Session({ session, onClear }) {
   const authed = !!session?.isAuthed;
   const expired = session?.reason === "expired";
   const tokens = session?.tokens;
-  const claims = session?.user || {};
+  const claims = session?.user || null;
+  const hasClaims = Boolean(claims);
 
   return (
     <div className="page stack">
@@ -37,8 +38,14 @@ export default function Session({ session, onClear }) {
             <p>Expires at: {formatExpiry(session?.expiresAt)}</p>
           </Card>
           <Card title="User claims">
-            <p>sub: {claims.sub || "Unknown"}</p>
-            <p>email: {claims.email || "Unknown"}</p>
+            {hasClaims ? (
+              <>
+                <p>sub: {claims.sub || "Unknown"}</p>
+                <p>email: {claims.email || "Unknown"}</p>
+              </>
+            ) : (
+              <p>Signed in with access token only.</p>
+            )}
           </Card>
           <Card title="Cognito config">
             <p>Domain: {cognitoConfig.domain || "Unknown"}</p>

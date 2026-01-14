@@ -9,7 +9,8 @@
     "preview": "vite preview",
     "test": "vitest",
     "test:run": "vitest run",
-    "test:ui": "vitest --ui"
+    "test:ui": "vitest --ui",
+    "data:build": "node scripts/generateAssociationsJson.mjs"
   },
   "dependencies": {
     "react": "^19.2.3",
@@ -21,7 +22,8 @@
     "@testing-library/react": "^16.1.0",
     "@vitejs/plugin-react": "^4.3.4",
     "jsdom": "^24.1.3",
-    "vitest": "^1.6.1",
-    "vite": "^7.3.0"
+    "vite": "^7.3.0",
+    "vitest": "^4.0.16",
+    "xlsx": "^0.18.5"
   }
 }

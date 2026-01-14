@@ -1,0 +1,2028 @@
+{
+  "byAssociation": {
+    "Aldershot": [
+      "Aldershot"
+    ],
+    "Aldridge-Brownhills": [
+      "Aldridge-Brownhills"
+    ],
+    "Altrincham and Sale West": [
+      "Altrincham and Sale West"
+    ],
+    "Amber Valley": [
+      "Amber Valley"
+    ],
+    "Arundel and South Downs": [
+      "Arundel and South Downs"
+    ],
+    "Ashfield and Mansfield": [
+      "Ashfield",
+      "Mansfield"
+    ],
+    "Ashford": [
+      "Ashford"
+    ],
+    "Aylesbury": [
+      "Aylesbury"
+    ],
+    "Barking": [
+      "Barking"
+    ],
+    "Barnsley, Penistone & Stocksbridge": [
+      "Barnsley North",
+      "Barnsley South",
+      "Penistone and Stocksbridge"
+    ],
+    "Barrow and Furness": [
+      "Barrow and Furness"
+    ],
+    "Basildon and Billericay": [
+      "Basildon and Billericay"
+    ],
+    "Basildon and Thurrock": [
+      "South Basildon and East Thurrock",
+      "Thurrock"
+    ],
+    "Basingstoke": [
+      "Basingstoke"
+    ],
+    "Bassetlaw": [
+      "Bassetlaw"
+    ],
+    "Bath": [
+      "Bath"
+    ],
+    "Battersea": [
+      "Battersea"
+    ],
+    "Beaconsfield": [
+      "Beaconsfield"
+    ],
+    "Beckenham and Penge": [
+      "Beckenham and Penge"
+    ],
+    "Bedford": [
+      "Bedford"
+    ],
+    "Bethnal Green and Stepney": [
+      "Bethnal Green and Stepney"
+    ],
+    "Beverley and Holderness": [
+      "Beverley and Holderness"
+    ],
+    "Bexhill and Battle": [
+      "Bexhill and Battle"
+    ],
+    "Bexleyheath and Crayford": [
+      "Bexleyheath and Crayford"
+    ],
+    "Birmingham Edgbaston": [
+      "Birmingham Edgbaston"
+    ],
+    "Birmingham Erdington": [
+      "Birmingham Erdington"
+    ],
+    "Birmingham Hall Green and Moseley": [
+      "Birmingham Hall Green and Moseley"
+    ],
+    "Birmingham Hodge Hill and Solihull North": [
+      "Birmingham Hodge Hill and Solihull North"
+    ],
+    "Birmingham Ladywood": [
+      "Birmingham Ladywood"
+    ],
+    "Birmingham Northfield": [
+      "Birmingham Northfield"
+    ],
+    "Birmingham Perry Barr": [
+      "Birmingham Perry Barr"
+    ],
+    "Birmingham Selly Oak": [
+      "Birmingham Selly Oak"
+    ],
+    "Birmingham Yardley": [
+      "Birmingham Yardley"
+    ],
+    "Blackburn": [
+      "Blackburn"
+    ],
+    "Blackpool North and Fleetwood": [
+      "Blackpool North and Fleetwood"
+    ],
+    "Blackpool South": [
+      "Blackpool South"
+    ],
+    "Bognor Regis and Littlehampton": [
+      "Bognor Regis and Littlehampton"
+    ],
+    "Bolton North East": [
+      "Bolton North East"
+    ],
+    "Bolton South and Walkden": [
+      "Bolton South and Walkden"
+    ],
+    "Bolton West": [
+      "Bolton West"
+    ],
+    "Boston and Skegness": [
+      "Boston and Skegness"
+    ],
+    "Bournemouth East": [
+      "Bournemouth East"
+    ],
+    "Bournemouth West": [
+      "Bournemouth West"
+    ],
+    "Bracknell": [
+      "Bracknell"
+    ],
+    "Bradford": [
+      "Bradford East",
+      "Bradford South",
+      "Bradford West"
+    ],
+    "Braintree": [
+      "Braintree"
+    ],
+    "Brecon, Radnor and Cwm-tawe": [
+      "Brecon, Radnor and Cwm-Tawe"
+    ],
+    "Brent East": [
+      "Brent East"
+    ],
+    "Brent West": [
+      "Brent West"
+    ],
+    "Brentford and Isleworth": [
+      "Brentford and Isleworth"
+    ],
+    "Brentwood and Ongar": [
+      "Brentwood and Ongar"
+    ],
+    "Bridgend and Maesteg": [
+      "Aberafan Maesteg",
+      "Bridgend"
+    ],
+    "Bridgwater": [
+      "Bridgwater"
+    ],
+    "Bridlington and The Wolds": [
+      "Bridlington and The Wolds"
+    ],
+    "Brigg and Immingham": [
+      "Brigg and Immingham"
+    ],
+    "Brighton Kemptown and Peacehaven": [
+      "Brighton Kemptown and Peacehaven"
+    ],
+    "Brighton, Hove and Portslade": [
+      "Brighton Pavilion",
+      "Hove and Portslade"
+    ],
+    "Bristol and South Gloucestershire": [
+      "Bristol Central",
+      "Bristol East",
+      "Bristol North East",
+      "Bristol North West",
+      "Bristol South",
+      "Filton and Bradley Stoke"
+    ],
+    "Broadland and Fakenham": [
+      "Broadland and Fakenham"
+    ],
+    "Bromley and Biggin Hill": [
+      "Bromley and Biggin Hill"
+    ],
+    "Bromsgrove": [
+      "Bromsgrove"
+    ],
+    "Broxbourne": [
+      "Broxbourne"
+    ],
+    "Broxtowe": [
+      "Broxtowe"
+    ],
+    "Buckingham and Bletchley and Mid Buckingham": [
+      "Buckingham and Bletchley",
+      "Mid Buckinghamshire"
+    ],
+    "Burnley": [
+      "Burnley"
+    ],
+    "Bury North and South Conservative Federation": [
+      "Bury North",
+      "Bury South"
+    ],
+    "Bury St Edmunds and Stowmarket Conservative Association": [
+      "Bury St Edmunds and Stowmarket"
+    ],
+    "Caerphilly": [
+      "Caerphilly"
+    ],
+    "Calder Valley": [
+      "Calder Valley"
+    ],
+    "Camborne and Redruth": [
+      "Camborne and Redruth"
+    ],
+    "Cambridge": [
+      "Cambridge"
+    ],
+    "Cannock Chase": [
+      "Cannock Chase"
+    ],
+    "Canterbury": [
+      "Canterbury"
+    ],
+    "Carlisle": [
+      "Carlisle"
+    ],
+    "Carmarthenshire": [
+      "Caerfyrddin",
+      "Llanelli"
+    ],
+    "Castle Point": [
+      "Castle Point"
+    ],
+    "Central Devon": [
+      "Central Devon"
+    ],
+    "Central Staffordshire Conservative Federation": [
+      "Stafford",
+      "Stone, Great Wyrley and Penkridge"
+    ],
+    "Central Suffolk and North Ipswich": [
+      "Central Suffolk and North Ipswich"
+    ],
+    "Chatham and Aylesford": [
+      "Chatham and Aylesford"
+    ],
+    "Cheadle": [
+      "Cheadle"
+    ],
+    "Chelmsford": [
+      "Chelmsford"
+    ],
+    "Cheltenham": [
+      "Cheltenham"
+    ],
+    "Chesham and Amersham": [
+      "Chesham and Amersham"
+    ],
+    "Chester South and Eddisbury": [
+      "Chester South and Eddisbury"
+    ],
+    "Chichester": [
+      "Chichester"
+    ],
+    "Chingford and Woodford Green": [
+      "Chingford and Woodford Green"
+    ],
+    "Chippenham": [
+      "Chippenham"
+    ],
+    "Chipping Barnet": [
+      "Chipping Barnet"
+    ],
+    "Chorley": [
+      "Chorley"
+    ],
+    "Christchurch": [
+      "Christchurch"
+    ],
+    "Cities of London and Westminster": [
+      "Cities Of London and Westminster"
+    ],
+    "City of Coventry": [
+      "Coventry East",
+      "Coventry North West",
+      "Coventry South"
+    ],
+    "City of Liverpool Conservatives": [
+      "Knowsley",
+      "Liverpool Garston",
+      "Liverpool Riverside",
+      "Liverpool Walton",
+      "Liverpool Wavertree",
+      "Liverpool West Derby"
+    ],
+    "City of Manchester": [
+      "Ashton-under-Lyne",
+      "Blackley and Middleton South",
+      "Gorton and Denton",
+      "Manchester Central",
+      "Manchester Rusholme",
+      "Manchester Withington"
+    ],
+    "Clacton": [
+      "Clacton"
+    ],
+    "Clwyd East": [
+      "Clwyd East"
+    ],
+    "Clwyd North": [
+      "Clwyd North"
+    ],
+    "Colchester": [
+      "Colchester"
+    ],
+    "Congleton": [
+      "Congleton"
+    ],
+    "Corby and East Northamptonshire": [
+      "Corby and East Northamptonshire"
+    ],
+    "Crawley": [
+      "Crawley"
+    ],
+    "Crewe and Nantwich": [
+      "Crewe and Nantwich"
+    ],
+    "Dagenham and Rainham": [
+      "Dagenham and Rainham"
+    ],
+    "Darlington": [
+      "Darlington"
+    ],
+    "Dartford": [
+      "Dartford"
+    ],
+    "Daventry": [
+      "Daventry"
+    ],
+    "Derbyshire Dales": [
+      "Derbyshire Dales"
+    ],
+    "Dewsbury and Batley": [
+      "Dewsbury and Batley"
+    ],
+    "Didcot and Wantage": [
+      "Didcot and Wantage"
+    ],
+    "Doncaster": [
+      "Doncaster Central",
+      "Doncaster East and The Isle Of Axholme",
+      "Doncaster North"
+    ],
+    "Dorking and Horley": [
+      "Dorking and Horley"
+    ],
+    "Dover and Deal": [
+      "Dover and Deal"
+    ],
+    "Droitwich and Evesham": [
+      "Droitwich and Evesham"
+    ],
+    "Dudley": [
+      "Dudley"
+    ],
+    "Dunstable and Leighton Buzzard": [
+      "Dunstable and Leighton Buzzard"
+    ],
+    "Durham and Blaydon": [
+      "Bishop Auckland",
+      "Blaydon and Consett",
+      "City Of Durham",
+      "Easington",
+      "Newton Aycliffe and Spennymoor",
+      "North Durham"
+    ],
+    "Dwyfor Meirionnydd": [
+      "Dwyfor Meirionnydd"
+    ],
+    "Ealing MCA": [
+      "Ealing Central and Acton",
+      "Ealing North",
+      "Ealing Southall"
+    ],
+    "Earley and Woodley": [
+      "Earley and Woodley"
+    ],
+    "East Grinstead and Uckfield": [
+      "East Grinstead and Uckfield"
+    ],
+    "East Ham": [
+      "East Ham"
+    ],
+    "East Hampshire": [
+      "East Hampshire"
+    ],
+    "East Staffordshire Conservative Association": [
+      "Burton and Uttoxeter"
+    ],
+    "East Surrey": [
+      "East Surrey"
+    ],
+    "East Thanet": [
+      "East Thanet"
+    ],
+    "East Wiltshire": [
+      "East Wiltshire"
+    ],
+    "East Worthing and Shoreham": [
+      "East Worthing and Shoreham"
+    ],
+    "Eastbourne": [
+      "Eastbourne"
+    ],
+    "Eastleigh": [
+      "Eastleigh"
+    ],
+    "Edmonton and Winchmore Hill": [
+      "Edmonton and Winchmore Hill"
+    ],
+    "Ely and East Cambridgeshire": [
+      "Ely and East Cambridgeshire"
+    ],
+    "Enfield North": [
+      "Enfield North"
+    ],
+    "Epping Forest": [
+      "Epping Forest"
+    ],
+    "Epsom and Ewell": [
+      "Epsom and Ewell"
+    ],
+    "Erewash": [
+      "Erewash"
+    ],
+    "Erith and Thamesmead": [
+      "Erith and Thamesmead"
+    ],
+    "Esher and Walton": [
+      "Esher and Walton"
+    ],
+    "Exeter": [
+      "Exeter"
+    ],
+    "Exmouth and Exeter East": [
+      "Exmouth and Exeter East"
+    ],
+    "Fareham and Waterlooville": [
+      "Fareham and Waterlooville"
+    ],
+    "Farnham and Bordon": [
+      "Farnham and Bordon"
+    ],
+    "Faversham and Mid Kent": [
+      "Faversham and Mid Kent"
+    ],
+    "Feltham and Heston": [
+      "Feltham and Heston"
+    ],
+    "Finchley and Golders Green": [
+      "Finchley and Golders Green"
+    ],
+    "Folkestone and Hythe": [
+      "Folkestone and Hythe"
+    ],
+    "Forest of Dean": [
+      "Forest Of Dean"
+    ],
+    "Frome and East Somerset": [
+      "Frome and East Somerset"
+    ],
+    "Fylde": [
+      "Fylde"
+    ],
+    "Gainsborough": [
+      "Gainsborough"
+    ],
+    "Gedling": [
+      "Gedling"
+    ],
+    "Gillingham and Rainham": [
+      "Gillingham and Rainham"
+    ],
+    "Glastonbury and Somerton": [
+      "Glastonbury and Somerton"
+    ],
+    "Gloucester": [
+      "Gloucester"
+    ],
+    "Godalming and Ash": [
+      "Godalming and Ash"
+    ],
+    "Goole and Pocklington": [
+      "Goole and Pocklington"
+    ],
+    "Gosport": [
+      "Gosport"
+    ],
+    "Gower and Swansea": [
+      "Gower",
+      "Neath and Swansea East",
+      "Swansea West"
+    ],
+    "Grantham and Bourne": [
+      "Grantham and Bourne"
+    ],
+    "Gravesham": [
+      "Gravesham"
+    ],
+    "Great Grimsby and Cleethorpes": [
+      "Great Grimsby and Cleethorpes"
+    ],
+    "Great Yarmouth": [
+      "Great Yarmouth"
+    ],
+    "Greenwich, Eltham & Chislehurst Federation": [
+      "Eltham and Chislehurst",
+      "Greenwich and Woolwich"
+    ],
+    "Guildford": [
+      "Guildford"
+    ],
+    "Hackney": [
+      "Hackney North and Stoke Newington",
+      "Hackney South and Shoreditch"
+    ],
+    "Halesowen": [
+      "Halesowen"
+    ],
+    "Halifax": [
+      "Halifax"
+    ],
+    "Hamble Valley": [
+      "Hamble Valley"
+    ],
+    "Hammersmith and Chiswick": [
+      "Hammersmith and Chiswick"
+    ],
+    "Hampstead and Highgate": [
+      "Hampstead and Highgate"
+    ],
+    "Harborough, Oadby and Wigston": [
+      "Harborough, Oadby and Wigston"
+    ],
+    "Harlow": [
+      "Harlow"
+    ],
+    "Harpenden and Berkhamsted": [
+      "Harpenden and Berkhamsted"
+    ],
+    "Harrogate and Knaresborough": [
+      "Harrogate and Knaresborough"
+    ],
+    "Harrow East": [
+      "Harrow East"
+    ],
+    "Harrow West": [
+      "Harrow West"
+    ],
+    "Hartlepool": [
+      "Hartlepool"
+    ],
+    "Harwich and North Essex": [
+      "Harwich and North Essex"
+    ],
+    "Hastings and Rye": [
+      "Hastings and Rye"
+    ],
+    "Havant": [
+      "Havant"
+    ],
+    "Hayes and Harlington": [
+      "Hayes and Harlington"
+    ],
+    "Hazel Grove": [
+      "Hazel Grove"
+    ],
+    "Heads of the Valleys": [
+      "Blaenau Gwent and Rhymney",
+      "Merthyr Tydfil and Aberdare"
+    ],
+    "Hemel Hempstead": [
+      "Hemel Hempstead"
+    ],
+    "Hendon": [
+      "Hendon"
+    ],
+    "Henley and Thame": [
+      "Henley and Thame"
+    ],
+    "Hereford and South Herefordshire": [
+      "Hereford and South Herefordshire"
+    ],
+    "Herne Bay and Sandwich": [
+      "Herne Bay and Sandwich"
+    ],
+    "Hertford and Stortford": [
+      "Hertford and Stortford"
+    ],
+    "Hertsmere": [
+      "Hertsmere"
+    ],
+    "Heywood, Middleton North & Rochdale": [
+      "Heywood and Middleton North",
+      "Rochdale"
+    ],
+    "High Peak": [
+      "High Peak"
+    ],
+    "Hinckley and Bosworth": [
+      "Hinckley and Bosworth"
+    ],
+    "Hitchin": [
+      "Hitchin"
+    ],
+    "Holborn and St Pancras": [
+      "Holborn and St Pancras"
+    ],
+    "Honiton and Sidmouth": [
+      "Honiton and Sidmouth"
+    ],
+    "Hornchurch and Upminster": [
+      "Hornchurch and Upminster"
+    ],
+    "Hornsey and Friern Barnet": [
+      "Hornsey and Friern Barnet"
+    ],
+    "Horsham": [
+      "Horsham"
+    ],
+    "Huddersfield and the Valleys": [
+      "Colne Valley",
+      "Huddersfield"
+    ],
+    "Hull East and North": [
+      "Kingston Upon Hull East",
+      "Kingston Upon Hull North and Cottingham"
+    ],
+    "Huntingdon": [
+      "Huntingdon"
+    ],
+    "Hyndburn": [
+      "Hyndburn"
+    ],
+    "Ilford North": [
+      "Ilford North"
+    ],
+    "Ilford South": [
+      "Ilford South"
+    ],
+    "Ipswich": [
+      "Ipswich"
+    ],
+    "Isle of Wight": [
+      "Isle Of Wight East",
+      "Isle Of Wight West"
+    ],
+    "Islington": [
+      "Islington North",
+      "Islington South and Finsbury"
+    ],
+    "Keighley and Ilkley": [
+      "Keighley and Ilkley"
+    ],
+    "Kensington, Bayswater, Chelsea and Fulham Federation": [
+      "Chelsea and Fulham",
+      "Kensington and Bayswater"
+    ],
+    "Kettering": [
+      "Kettering"
+    ],
+    "Kingston and Surbiton": [
+      "Kingston and Surbiton"
+    ],
+    "Kingston upon Hull West and Haltemprice": [
+      "Kingston Upon Hull West and Haltemprice"
+    ],
+    "Kingswinford and South Staffordshire": [
+      "Kingswinford and South Staffordshire"
+    ],
+    "Lancaster and Wyre": [
+      "Lancaster and Wyre"
+    ],
+    "Leeds": [
+      "Leeds Central and Headingley",
+      "Leeds North West",
+      "Leeds West and Pudsey"
+    ],
+    "Leeds East": [
+      "Leeds East"
+    ],
+    "Leeds North East": [
+      "Leeds North East"
+    ],
+    "Leeds South": [
+      "Leeds South"
+    ],
+    "Leeds South West and Morley": [
+      "Leeds South West and Morley"
+    ],
+    "Leicester": [
+      "Leicester East",
+      "Leicester South",
+      "Leicester West"
+    ],
+    "Lewes": [
+      "Lewes"
+    ],
+    "Leyton and Wanstead": [
+      "Leyton and Wanstead"
+    ],
+    "Lichfield": [
+      "Lichfield"
+    ],
+    "Lincoln": [
+      "Lincoln"
+    ],
+    "Loughborough": [
+      "Loughborough"
+    ],
+    "Louth and Horncastle": [
+      "Louth and Horncastle"
+    ],
+    "Lowestoft": [
+      "Lowestoft"
+    ],
+    "Luton": [
+      "Luton North",
+      "Luton South and South Bedfordshire"
+    ],
+    "Macclesfield": [
+      "Macclesfield"
+    ],
+    "Maidenhead": [
+      "Maidenhead"
+    ],
+    "Maidstone and Malling": [
+      "Maidstone and Malling"
+    ],
+    "Maldon": [
+      "Maldon"
+    ],
+    "Melksham and Devizes": [
+      "Melksham and Devizes"
+    ],
+    "Melton and Syston": [
+      "Melton and Syston"
+    ],
+    "Merton Federation": [
+      "Mitcham and Morden",
+      "Wimbledon"
+    ],
+    "Mid Bedfordshire": [
+      "Mid Bedfordshire"
+    ],
+    "Mid Derbyshire and Derby": [
+      "Derby North",
+      "Derby South",
+      "Mid Derbyshire"
+    ],
+    "Mid Dorset and North Poole": [
+      "Mid Dorset and North Poole"
+    ],
+    "Mid Leicestershire": [
+      "Mid Leicestershire"
+    ],
+    "Mid Norfolk": [
+      "Mid Norfolk"
+    ],
+    "Mid Sussex": [
+      "Mid Sussex"
+    ],
+    "Milton Keynes": [
+      "Milton Keynes Central",
+      "Milton Keynes North"
+    ],
+    "Monmouthshire": [
+      "Monmouthshire"
+    ],
+    "Montgomeryshire and Glyndwr": [
+      "Montgomeryshire and Glyndwr"
+    ],
+    "Morecambe and Lunesdale": [
+      "Morecambe and Lunesdale"
+    ],
+    "New Forest East": [
+      "New Forest East"
+    ],
+    "New Forest West": [
+      "New Forest West"
+    ],
+    "Newark": [
+      "Newark"
+    ],
+    "Newbury": [
+      "Newbury"
+    ],
+    "Newcastle-under-Lyme": [
+      "Newcastle-under-Lyme"
+    ],
+    "Newport and Islwyn": [
+      "Newport East",
+      "Newport West and Islwyn"
+    ],
+    "Newton Abbot": [
+      "Newton Abbot"
+    ],
+    "North Bedfordshire": [
+      "North Bedfordshire"
+    ],
+    "North Cornwall": [
+      "North Cornwall"
+    ],
+    "North Cotswolds": [
+      "North Cotswolds"
+    ],
+    "North Derbyshire": [
+      "Bolsover",
+      "Chesterfield",
+      "North East Derbyshire"
+    ],
+    "North Devon": [
+      "North Devon"
+    ],
+    "North Dorset": [
+      "North Dorset"
+    ],
+    "North East Cambridgeshire": [
+      "North East Cambridgeshire"
+    ],
+    "North East Hampshire": [
+      "North East Hampshire"
+    ],
+    "North East Hertfordshire": [
+      "North East Hertfordshire"
+    ],
+    "North East Somerset and Hanham": [
+      "North East Somerset and Hanham"
+    ],
+    "North Herefordshire": [
+      "North Herefordshire"
+    ],
+    "North Norfolk": [
+      "North Norfolk"
+    ],
+    "North Oxfordshire": [
+      "Banbury",
+      "Bicester and Woodstock"
+    ],
+    "North Shropshire": [
+      "North Shropshire"
+    ],
+    "North Somerset": [
+      "North Somerset"
+    ],
+    "North Warwickshire and Bedworth": [
+      "North Warwickshire and Bedworth"
+    ],
+    "North West Cambridgeshire": [
+      "North West Cambridgeshire"
+    ],
+    "North West Cheshire": [
+      "Chester North and Neston",
+      "Ellesmere Port and Bromborough"
+    ],
+    "North West Essex": [
+      "North West Essex"
+    ],
+    "North West Hampshire": [
+      "North West Hampshire"
+    ],
+    "North West Leicestershire": [
+      "North West Leicestershire"
+    ],
+    "North West Norfolk": [
+      "North West Norfolk"
+    ],
+    "Northampton North": [
+      "Northampton North"
+    ],
+    "Northampton South": [
+      "Northampton South"
+    ],
+    "Northeast Wales": [
+      "Alyn and Deeside",
+      "Wrexham"
+    ],
+    "Northumberland": [
+      "Blyth and Ashington",
+      "Cramlington and Killingworth",
+      "Hexham",
+      "North Northumberland"
+    ],
+    "Northwest Cardiff": [
+      "Cardiff North",
+      "Cardiff West"
+    ],
+    "Northwest Wales": [
+      "Bangor Aberconwy",
+      "Ynys Mon"
+    ],
+    "Norwich": [
+      "Norwich North",
+      "Norwich South"
+    ],
+    "Nottingham City": [
+      "Nottingham East",
+      "Nottingham North and Kimberley",
+      "Nottingham South"
+    ],
+    "Nuneaton": [
+      "Nuneaton"
+    ],
+    "Old Bexley and Sidcup": [
+      "Old Bexley and Sidcup"
+    ],
+    "Oldham and Saddleworth": [
+      "Oldham East and Saddleworth",
+      "Oldham West, Chadderton and Royton"
+    ],
+    "Orpington": [
+      "Orpington"
+    ],
+    "Ossett and Denby Dale": [
+      "Ossett and Denby Dale"
+    ],
+    "Oxford and Abingdon": [
+      "Oxford East",
+      "Oxford West and Abingdon"
+    ],
+    "Pembrokeshire and Ceredigion": [
+      "Ceredigion Preseli",
+      "Mid and South Pembrokeshire"
+    ],
+    "Pendle and Ribble Valley": [
+      "Pendle and Clitheroe",
+      "Ribble Valley"
+    ],
+    "Penrith and Solway": [
+      "Penrith and Solway"
+    ],
+    "Peterborough": [
+      "Peterborough"
+    ],
+    "Plymouth Moor View": [
+      "Plymouth Moor View"
+    ],
+    "Plymouth Sutton and Devonport": [
+      "Plymouth Sutton and Devonport"
+    ],
+    "Pontypridd and Rhondda": [
+      "Pontypridd",
+      "Rhondda and Ogmore"
+    ],
+    "Poole": [
+      "Poole"
+    ],
+    "Poplar and Limehouse": [
+      "Poplar and Limehouse"
+    ],
+    "Portsmouth North": [
+      "Portsmouth North"
+    ],
+    "Portsmouth South": [
+      "Portsmouth South"
+    ],
+    "Preston": [
+      "Preston"
+    ],
+    "Putney": [
+      "Putney"
+    ],
+    "Queen's Park and Maida Vale": [
+      "Queen's Park and Maida Vale"
+    ],
+    "Rayleigh and Wickford": [
+      "Rayleigh and Wickford"
+    ],
+    "Reading Central": [
+      "Reading Central"
+    ],
+    "Reading West and Mid Berkshire": [
+      "Reading West and Mid Berkshire"
+    ],
+    "Redditch": [
+      "Redditch"
+    ],
+    "Reigate": [
+      "Reigate"
+    ],
+    "Richmond Park": [
+      "Richmond Park"
+    ],
+    "Richmond and Northallerton": [
+      "Richmond and Northallerton"
+    ],
+    "Rochester and Strood": [
+      "Rochester and Strood"
+    ],
+    "Romford": [
+      "Romford"
+    ],
+    "Romsey and Southampton North": [
+      "Romsey and Southampton North"
+    ],
+    "Rossendale and Darwen": [
+      "Rossendale and Darwen"
+    ],
+    "Rotherham and District": [
+      "Rawmarsh and Conisbrough",
+      "Rother Valley",
+      "Rotherham"
+    ],
+    "Rugby": [
+      "Rugby"
+    ],
+    "Ruislip, Northwood and Pinner": [
+      "Ruislip, Northwood and Pinner"
+    ],
+    "Runnymede and Weybridge": [
+      "Runnymede and Weybridge"
+    ],
+    "Rushcliffe": [
+      "Rushcliffe"
+    ],
+    "Rutland and Stamford": [
+      "Rutland and Stamford"
+    ],
+    "Salford": [
+      "Salford",
+      "Worsley and Eccles"
+    ],
+    "Salisbury": [
+      "Salisbury"
+    ],
+    "Sandwell": [
+      "Smethwick",
+      "West Bromwich"
+    ],
+    "Scarborough and Whitby": [
+      "Scarborough and Whitby"
+    ],
+    "Scunthorpe": [
+      "Scunthorpe"
+    ],
+    "Sefton": [
+      "Bootle",
+      "Sefton Central"
+    ],
+    "Selby": [
+      "Selby"
+    ],
+    "Sevenoaks": [
+      "Sevenoaks"
+    ],
+    "Sheffield": [
+      "Sheffield Brightside and Hillsborough",
+      "Sheffield Central",
+      "Sheffield Hallam",
+      "Sheffield Heeley",
+      "Sheffield South East"
+    ],
+    "Sherwood Forest": [
+      "Sherwood Forest"
+    ],
+    "Shipley": [
+      "Shipley"
+    ],
+    "Shrewsbury": [
+      "Shrewsbury"
+    ],
+    "Sittingbourne and Sheppey": [
+      "Sittingbourne and Sheppey"
+    ],
+    "Skipton and Ripon": [
+      "Skipton and Ripon"
+    ],
+    "Sleaford and North Hykeham": [
+      "Sleaford and North Hykeham"
+    ],
+    "Slough": [
+      "Slough"
+    ],
+    "Solihull Borough Conservatives": [
+      "Meriden and Solihull East",
+      "Solihull West and Shirley"
+    ],
+    "South Cambridgeshire": [
+      "South Cambridgeshire"
+    ],
+    "South Cotswolds": [
+      "South Cotswolds"
+    ],
+    "South Derbyshire": [
+      "South Derbyshire"
+    ],
+    "South Devon": [
+      "South Devon"
+    ],
+    "South Dorset": [
+      "South Dorset"
+    ],
+    "South East Cornwall": [
+      "South East Cornwall"
+    ],
+    "South Holland and The Deepings": [
+      "South Holland and The Deepings"
+    ],
+    "South Leicestershire": [
+      "South Leicestershire"
+    ],
+    "South Norfolk and Waveney": [
+      "South Norfolk",
+      "Waveney Valley"
+    ],
+    "South Northamptonshire": [
+      "South Northamptonshire"
+    ],
+    "South Ribble": [
+      "South Ribble"
+    ],
+    "South Shropshire": [
+      "South Shropshire"
+    ],
+    "South Suffolk": [
+      "South Suffolk"
+    ],
+    "South Tees": [
+      "Middlesbrough South and East Cleveland",
+      "Middlesbrough and Thornaby East",
+      "Redcar"
+    ],
+    "South Warwickshire": [
+      "Kenilworth and Southam",
+      "Stratford-on-Avon",
+      "Warwick and Leamington"
+    ],
+    "South West Devon": [
+      "South West Devon"
+    ],
+    "South West Hertfordshire": [
+      "South West Hertfordshire"
+    ],
+    "South West Norfolk": [
+      "South West Norfolk"
+    ],
+    "South West Wiltshire": [
+      "South West Wiltshire"
+    ],
+    "Southampton Itchen": [
+      "Southampton Itchen"
+    ],
+    "Southampton Test": [
+      "Southampton Test"
+    ],
+    "Southeast Cardiff and Penarth": [
+      "Cardiff East",
+      "Cardiff South and Penarth"
+    ],
+    "Southend East and Rochford": [
+      "Southend East and Rochford"
+    ],
+    "Southend West and Leigh": [
+      "Southend West and Leigh"
+    ],
+    "Southgate and Wood Green": [
+      "Southgate and Wood Green"
+    ],
+    "Southport": [
+      "Southport"
+    ],
+    "Spelthorne": [
+      "Spelthorne"
+    ],
+    "Spen Valley": [
+      "Spen Valley"
+    ],
+    "St Albans": [
+      "St Albans"
+    ],
+    "St Austell and Newquay": [
+      "St Austell and Newquay"
+    ],
+    "St Helens": [
+      "St Helens North",
+      "St Helens South and Whiston"
+    ],
+    "St Ives": [
+      "St Ives"
+    ],
+    "St Neots and Mid Cambridgeshire": [
+      "St Neots and Mid Cambridgeshire"
+    ],
+    "Staffordshire Moorlands": [
+      "Staffordshire Moorlands"
+    ],
+    "Stalybridge and Hyde": [
+      "Stalybridge and Hyde"
+    ],
+    "Stevenage": [
+      "Stevenage"
+    ],
+    "Stockport": [
+      "Stockport"
+    ],
+    "Stockton-on-Tees": [
+      "Stockton North",
+      "Stockton West"
+    ],
+    "Stoke on Trent": [
+      "Stoke-on-Trent Central",
+      "Stoke-on-Trent North",
+      "Stoke-on-Trent South"
+    ],
+    "Stourbridge": [
+      "Stourbridge"
+    ],
+    "Stratford and Bow": [
+      "Stratford and Bow"
+    ],
+    "Stretford and Urmston": [
+      "Stretford and Urmston"
+    ],
+    "Stroud": [
+      "Stroud"
+    ],
+    "Suffolk Coastal": [
+      "Suffolk Coastal"
+    ],
+    "Sunderland": [
+      "Houghton and Sunderland South",
+      "Sunderland Central",
+      "Washington and Gateshead South"
+    ],
+    "Surrey Heath": [
+      "Surrey Heath"
+    ],
+    "Sussex Weald": [
+      "Sussex Weald"
+    ],
+    "Sutton Coldfield": [
+      "Sutton Coldfield"
+    ],
+    "Sutton Federation": [
+      "Carshalton and Wallington",
+      "Sutton and Cheam"
+    ],
+    "Swindon": [
+      "Swindon North",
+      "Swindon South"
+    ],
+    "Tamworth": [
+      "Tamworth"
+    ],
+    "Tatton": [
+      "Tatton"
+    ],
+    "Taunton and Wellington": [
+      "Taunton and Wellington"
+    ],
+    "Telford": [
+      "Telford"
+    ],
+    "Tewkesbury": [
+      "Tewkesbury"
+    ],
+    "The Five Towns and Hemsworth": [
+      "Normanton and Hemsworth",
+      "Pontefract, Castleford and Knottingley"
+    ],
+    "The Wrekin": [
+      "The Wrekin"
+    ],
+    "Thirsk and Malton": [
+      "Thirsk and Malton"
+    ],
+    "Thornbury and Yate": [
+      "Thornbury and Yate"
+    ],
+    "Tipton and Wednesbury": [
+      "Tipton and Wednesbury"
+    ],
+    "Tiverton and Minehead": [
+      "Tiverton and Minehead"
+    ],
+    "Tonbridge": [
+      "Tonbridge"
+    ],
+    "Tooting": [
+      "Tooting"
+    ],
+    "Torbay": [
+      "Torbay"
+    ],
+    "Torfaen": [
+      "Torfaen"
+    ],
+    "Torridge and Tavistock": [
+      "Torridge and Tavistock"
+    ],
+    "Tottenham": [
+      "Tottenham"
+    ],
+    "Truro and Falmouth": [
+      "Truro and Falmouth"
+    ],
+    "Tunbridge Wells": [
+      "Tunbridge Wells"
+    ],
+    "Twickenham": [
+      "Twickenham"
+    ],
+    "Tyneside": [
+      "Gateshead Central and Whickham",
+      "Jarrow and Gateshead East",
+      "Newcastle Upon Tyne Central and West",
+      "Newcastle Upon Tyne East and Wallsend",
+      "Newcastle Upon Tyne North",
+      "South Shields",
+      "Tynemouth"
+    ],
+    "Uxbridge and South Ruislip": [
+      "Uxbridge and South Ruislip"
+    ],
+    "Vale of Glamorgan": [
+      "Vale Of Glamorgan"
+    ],
+    "Wakefield and Rothwell": [
+      "Wakefield and Rothwell"
+    ],
+    "Wallasey and Birkenhead": [
+      "Birkenhead",
+      "Wallasey"
+    ],
+    "Walsall and Bloxwich": [
+      "Walsall and Bloxwich"
+    ],
+    "Walthamstow": [
+      "Walthamstow"
+    ],
+    "Warrington": [
+      "Warrington North",
+      "Warrington South"
+    ],
+    "Watford": [
+      "Watford"
+    ],
+    "Weald of Kent": [
+      "Weald Of Kent"
+    ],
+    "Weaver Vale": [
+      "Mid Cheshire",
+      "Runcorn and Helsby"
+    ],
+    "Wellingborough and Rushden": [
+      "Wellingborough and Rushden"
+    ],
+    "Wells and Mendip Hills": [
+      "Wells and Mendip Hills"
+    ],
+    "Welwyn Hatfield": [
+      "Welwyn Hatfield"
+    ],
+    "West Dorset": [
+      "West Dorset"
+    ],
+    "West Ham and Beckton": [
+      "West Ham and Beckton"
+    ],
+    "West Lancashire": [
+      "West Lancashire"
+    ],
+    "West Suffolk": [
+      "West Suffolk"
+    ],
+    "West Worcestershire": [
+      "West Worcestershire"
+    ],
+    "Westmorland and Lonsdale": [
+      "Westmorland and Lonsdale"
+    ],
+    "Weston-super-Mare": [
+      "Weston-Super-Mare"
+    ],
+    "Wetherby and Easingwold": [
+      "Wetherby and Easingwold"
+    ],
+    "Whitehaven and Workington": [
+      "Whitehaven and Workington"
+    ],
+    "Widnes and Halewood": [
+      "Widnes and Halewood"
+    ],
+    "Wigan": [
+      "Leigh and Atherton",
+      "Makerfield",
+      "Wigan"
+    ],
+    "Winchester": [
+      "Winchester"
+    ],
+    "Windsor": [
+      "Windsor"
+    ],
+    "Wirral West": [
+      "Wirral West"
+    ],
+    "Witham": [
+      "Witham"
+    ],
+    "Witney": [
+      "Witney"
+    ],
+    "Woking": [
+      "Woking"
+    ],
+    "Wokingham": [
+      "Wokingham"
+    ],
+    "Wolverhampton": [
+      "Wolverhampton North East",
+      "Wolverhampton South East"
+    ],
+    "Wolverhampton West": [
+      "Wolverhampton West"
+    ],
+    "Worcester": [
+      "Worcester"
+    ],
+    "Worthing West": [
+      "Worthing West"
+    ],
+    "Wycombe": [
+      "Wycombe"
+    ],
+    "Wyre Forest": [
+      "Wyre Forest"
+    ],
+    "Wythenshawe and Sale East": [
+      "Wythenshawe and Sale East"
+    ],
+    "Yeovil": [
+      "Yeovil"
+    ],
+    "York": [
+      "York Central",
+      "York Outer"
+    ]
+  },
+  "byConstituency": {
+    "Aberafan Maesteg": "Bridgend and Maesteg",
+    "Aldershot": "Aldershot",
+    "Aldridge-Brownhills": "Aldridge-Brownhills",
+    "Altrincham and Sale West": "Altrincham and Sale West",
+    "Alyn and Deeside": "Northeast Wales",
+    "Amber Valley": "Amber Valley",
+    "Arundel and South Downs": "Arundel and South Downs",
+    "Ashfield": "Ashfield and Mansfield",
+    "Ashford": "Ashford",
+    "Ashton-under-Lyne": "City of Manchester",
+    "Aylesbury": "Aylesbury",
+    "Banbury": "North Oxfordshire",
+    "Bangor Aberconwy": "Northwest Wales",
+    "Barking": "Barking",
+    "Barnsley North": "Barnsley, Penistone & Stocksbridge",
+    "Barnsley South": "Barnsley, Penistone & Stocksbridge",
+    "Barrow and Furness": "Barrow and Furness",
+    "Basildon and Billericay": "Basildon and Billericay",
+    "Basingstoke": "Basingstoke",
+    "Bassetlaw": "Bassetlaw",
+    "Bath": "Bath",
+    "Battersea": "Battersea",
+    "Beaconsfield": "Beaconsfield",
+    "Beckenham and Penge": "Beckenham and Penge",
+    "Bedford": "Bedford",
+    "Bethnal Green and Stepney": "Bethnal Green and Stepney",
+    "Beverley and Holderness": "Beverley and Holderness",
+    "Bexhill and Battle": "Bexhill and Battle",
+    "Bexleyheath and Crayford": "Bexleyheath and Crayford",
+    "Bicester and Woodstock": "North Oxfordshire",
+    "Birkenhead": "Wallasey and Birkenhead",
+    "Birmingham Edgbaston": "Birmingham Edgbaston",
+    "Birmingham Erdington": "Birmingham Erdington",
+    "Birmingham Hall Green and Moseley": "Birmingham Hall Green and Moseley",
+    "Birmingham Hodge Hill and Solihull North": "Birmingham Hodge Hill and Solihull North",
+    "Birmingham Ladywood": "Birmingham Ladywood",
+    "Birmingham Northfield": "Birmingham Northfield",
+    "Birmingham Perry Barr": "Birmingham Perry Barr",
+    "Birmingham Selly Oak": "Birmingham Selly Oak",
+    "Birmingham Yardley": "Birmingham Yardley",
+    "Bishop Auckland": "Durham and Blaydon",
+    "Blackburn": "Blackburn",
+    "Blackley and Middleton South": "City of Manchester",
+    "Blackpool North and Fleetwood": "Blackpool North and Fleetwood",
+    "Blackpool South": "Blackpool South",
+    "Blaenau Gwent and Rhymney": "Heads of the Valleys",
+    "Blaydon and Consett": "Durham and Blaydon",
+    "Blyth and Ashington": "Northumberland",
+    "Bognor Regis and Littlehampton": "Bognor Regis and Littlehampton",
+    "Bolsover": "North Derbyshire",
+    "Bolton North East": "Bolton North East",
+    "Bolton South and Walkden": "Bolton South and Walkden",
+    "Bolton West": "Bolton West",
+    "Bootle": "Sefton",
+    "Boston and Skegness": "Boston and Skegness",
+    "Bournemouth East": "Bournemouth East",
+    "Bournemouth West": "Bournemouth West",
+    "Bracknell": "Bracknell",
+    "Bradford East": "Bradford",
+    "Bradford South": "Bradford",
+    "Bradford West": "Bradford",
+    "Braintree": "Braintree",
+    "Brecon, Radnor and Cwm-Tawe": "Brecon, Radnor and Cwm-tawe",
+    "Brent East": "Brent East",
+    "Brent West": "Brent West",
+    "Brentford and Isleworth": "Brentford and Isleworth",
+    "Brentwood and Ongar": "Brentwood and Ongar",
+    "Bridgend": "Bridgend and Maesteg",
+    "Bridgwater": "Bridgwater",
+    "Bridlington and The Wolds": "Bridlington and The Wolds",
+    "Brigg and Immingham": "Brigg and Immingham",
+    "Brighton Kemptown and Peacehaven": "Brighton Kemptown and Peacehaven",
+    "Brighton Pavilion": "Brighton, Hove and Portslade",
+    "Bristol Central": "Bristol and South Gloucestershire",
+    "Bristol East": "Bristol and South Gloucestershire",
+    "Bristol North East": "Bristol and South Gloucestershire",
+    "Bristol North West": "Bristol and South Gloucestershire",
+    "Bristol South": "Bristol and South Gloucestershire",
+    "Broadland and Fakenham": "Broadland and Fakenham",
+    "Bromley and Biggin Hill": "Bromley and Biggin Hill",
+    "Bromsgrove": "Bromsgrove",
+    "Broxbourne": "Broxbourne",
+    "Broxtowe": "Broxtowe",
+    "Buckingham and Bletchley": "Buckingham and Bletchley and Mid Buckingham",
+    "Burnley": "Burnley",
+    "Burton and Uttoxeter": "East Staffordshire Conservative Association",
+    "Bury North": "Bury North and South Conservative Federation",
+    "Bury South": "Bury North and South Conservative Federation",
+    "Bury St Edmunds and Stowmarket": "Bury St Edmunds and Stowmarket Conservative Association",
+    "Caerfyrddin": "Carmarthenshire",
+    "Caerphilly": "Caerphilly",
+    "Calder Valley": "Calder Valley",
+    "Camborne and Redruth": "Camborne and Redruth",
+    "Cambridge": "Cambridge",
+    "Cannock Chase": "Cannock Chase",
+    "Canterbury": "Canterbury",
+    "Cardiff East": "Southeast Cardiff and Penarth",
+    "Cardiff North": "Northwest Cardiff",
+    "Cardiff South and Penarth": "Southeast Cardiff and Penarth",
+    "Cardiff West": "Northwest Cardiff",
+    "Carlisle": "Carlisle",
+    "Carshalton and Wallington": "Sutton Federation",
+    "Castle Point": "Castle Point",
+    "Central Devon": "Central Devon",
+    "Central Suffolk and North Ipswich": "Central Suffolk and North Ipswich",
+    "Ceredigion Preseli": "Pembrokeshire and Ceredigion",
+    "Chatham and Aylesford": "Chatham and Aylesford",
+    "Cheadle": "Cheadle",
+    "Chelmsford": "Chelmsford",
+    "Chelsea and Fulham": "Kensington, Bayswater, Chelsea and Fulham Federation",
+    "Cheltenham": "Cheltenham",
+    "Chesham and Amersham": "Chesham and Amersham",
+    "Chester North and Neston": "North West Cheshire",
+    "Chester South and Eddisbury": "Chester South and Eddisbury",
+    "Chesterfield": "North Derbyshire",
+    "Chichester": "Chichester",
+    "Chingford and Woodford Green": "Chingford and Woodford Green",
+    "Chippenham": "Chippenham",
+    "Chipping Barnet": "Chipping Barnet",
+    "Chorley": "Chorley",
+    "Christchurch": "Christchurch",
+    "Cities Of London and Westminster": "Cities of London and Westminster",
+    "City Of Durham": "Durham and Blaydon",
+    "Clacton": "Clacton",
+    "Clwyd East": "Clwyd East",
+    "Clwyd North": "Clwyd North",
+    "Colchester": "Colchester",
+    "Colne Valley": "Huddersfield and the Valleys",
+    "Congleton": "Congleton",
+    "Corby and East Northamptonshire": "Corby and East Northamptonshire",
+    "Coventry East": "City of Coventry",
+    "Coventry North West": "City of Coventry",
+    "Coventry South": "City of Coventry",
+    "Cramlington and Killingworth": "Northumberland",
+    "Crawley": "Crawley",
+    "Crewe and Nantwich": "Crewe and Nantwich",
+    "Dagenham and Rainham": "Dagenham and Rainham",
+    "Darlington": "Darlington",
+    "Dartford": "Dartford",
+    "Daventry": "Daventry",
+    "Derby North": "Mid Derbyshire and Derby",
+    "Derby South": "Mid Derbyshire and Derby",
+    "Derbyshire Dales": "Derbyshire Dales",
+    "Dewsbury and Batley": "Dewsbury and Batley",
+    "Didcot and Wantage": "Didcot and Wantage",
+    "Doncaster Central": "Doncaster",
+    "Doncaster East and The Isle Of Axholme": "Doncaster",
+    "Doncaster North": "Doncaster",
+    "Dorking and Horley": "Dorking and Horley",
+    "Dover and Deal": "Dover and Deal",
+    "Droitwich and Evesham": "Droitwich and Evesham",
+    "Dudley": "Dudley",
+    "Dunstable and Leighton Buzzard": "Dunstable and Leighton Buzzard",
+    "Dwyfor Meirionnydd": "Dwyfor Meirionnydd",
+    "Ealing Central and Acton": "Ealing MCA",
+    "Ealing North": "Ealing MCA",
+    "Ealing Southall": "Ealing MCA",
+    "Earley and Woodley": "Earley and Woodley",
+    "Easington": "Durham and Blaydon",
+    "East Grinstead and Uckfield": "East Grinstead and Uckfield",
+    "East Ham": "East Ham",
+    "East Hampshire": "East Hampshire",
+    "East Surrey": "East Surrey",
+    "East Thanet": "East Thanet",
+    "East Wiltshire": "East Wiltshire",
+    "East Worthing and Shoreham": "East Worthing and Shoreham",
+    "Eastbourne": "Eastbourne",
+    "Eastleigh": "Eastleigh",
+    "Edmonton and Winchmore Hill": "Edmonton and Winchmore Hill",
+    "Ellesmere Port and Bromborough": "North West Cheshire",
+    "Eltham and Chislehurst": "Greenwich, Eltham & Chislehurst Federation",
+    "Ely and East Cambridgeshire": "Ely and East Cambridgeshire",
+    "Enfield North": "Enfield North",
+    "Epping Forest": "Epping Forest",
+    "Epsom and Ewell": "Epsom and Ewell",
+    "Erewash": "Erewash",
+    "Erith and Thamesmead": "Erith and Thamesmead",
+    "Esher and Walton": "Esher and Walton",
+    "Exeter": "Exeter",
+    "Exmouth and Exeter East": "Exmouth and Exeter East",
+    "Fareham and Waterlooville": "Fareham and Waterlooville",
+    "Farnham and Bordon": "Farnham and Bordon",
+    "Faversham and Mid Kent": "Faversham and Mid Kent",
+    "Feltham and Heston": "Feltham and Heston",
+    "Filton and Bradley Stoke": "Bristol and South Gloucestershire",
+    "Finchley and Golders Green": "Finchley and Golders Green",
+    "Folkestone and Hythe": "Folkestone and Hythe",
+    "Forest Of Dean": "Forest of Dean",
+    "Frome and East Somerset": "Frome and East Somerset",
+    "Fylde": "Fylde",
+    "Gainsborough": "Gainsborough",
+    "Gateshead Central and Whickham": "Tyneside",
+    "Gedling": "Gedling",
+    "Gillingham and Rainham": "Gillingham and Rainham",
+    "Glastonbury and Somerton": "Glastonbury and Somerton",
+    "Gloucester": "Gloucester",
+    "Godalming and Ash": "Godalming and Ash",
+    "Goole and Pocklington": "Goole and Pocklington",
+    "Gorton and Denton": "City of Manchester",
+    "Gosport": "Gosport",
+    "Gower": "Gower and Swansea",
+    "Grantham and Bourne": "Grantham and Bourne",
+    "Gravesham": "Gravesham",
+    "Great Grimsby and Cleethorpes": "Great Grimsby and Cleethorpes",
+    "Great Yarmouth": "Great Yarmouth",
+    "Greenwich and Woolwich": "Greenwich, Eltham & Chislehurst Federation",
+    "Guildford": "Guildford",
+    "Hackney North and Stoke Newington": "Hackney",
+    "Hackney South and Shoreditch": "Hackney",
+    "Halesowen": "Halesowen",
+    "Halifax": "Halifax",
+    "Hamble Valley": "Hamble Valley",
+    "Hammersmith and Chiswick": "Hammersmith and Chiswick",
+    "Hampstead and Highgate": "Hampstead and Highgate",
+    "Harborough, Oadby and Wigston": "Harborough, Oadby and Wigston",
+    "Harlow": "Harlow",
+    "Harpenden and Berkhamsted": "Harpenden and Berkhamsted",
+    "Harrogate and Knaresborough": "Harrogate and Knaresborough",
+    "Harrow East": "Harrow East",
+    "Harrow West": "Harrow West",
+    "Hartlepool": "Hartlepool",
+    "Harwich and North Essex": "Harwich and North Essex",
+    "Hastings and Rye": "Hastings and Rye",
+    "Havant": "Havant",
+    "Hayes and Harlington": "Hayes and Harlington",
+    "Hazel Grove": "Hazel Grove",
+    "Hemel Hempstead": "Hemel Hempstead",
+    "Hendon": "Hendon",
+    "Henley and Thame": "Henley and Thame",
+    "Hereford and South Herefordshire": "Hereford and South Herefordshire",
+    "Herne Bay and Sandwich": "Herne Bay and Sandwich",
+    "Hertford and Stortford": "Hertford and Stortford",
+    "Hertsmere": "Hertsmere",
+    "Hexham": "Northumberland",
+    "Heywood and Middleton North": "Heywood, Middleton North & Rochdale",
+    "High Peak": "High Peak",
+    "Hinckley and Bosworth": "Hinckley and Bosworth",
+    "Hitchin": "Hitchin",
+    "Holborn and St Pancras": "Holborn and St Pancras",
+    "Honiton and Sidmouth": "Honiton and Sidmouth",
+    "Hornchurch and Upminster": "Hornchurch and Upminster",
+    "Hornsey and Friern Barnet": "Hornsey and Friern Barnet",
+    "Horsham": "Horsham",
+    "Houghton and Sunderland South": "Sunderland",
+    "Hove and Portslade": "Brighton, Hove and Portslade",
+    "Huddersfield": "Huddersfield and the Valleys",
+    "Huntingdon": "Huntingdon",
+    "Hyndburn": "Hyndburn",
+    "Ilford North": "Ilford North",
+    "Ilford South": "Ilford South",
+    "Ipswich": "Ipswich",
+    "Isle Of Wight East": "Isle of Wight",
+    "Isle Of Wight West": "Isle of Wight",
+    "Islington North": "Islington",
+    "Islington South and Finsbury": "Islington",
+    "Jarrow and Gateshead East": "Tyneside",
+    "Keighley and Ilkley": "Keighley and Ilkley",
+    "Kenilworth and Southam": "South Warwickshire",
+    "Kensington and Bayswater": "Kensington, Bayswater, Chelsea and Fulham Federation",
+    "Kettering": "Kettering",
+    "Kingston Upon Hull East": "Hull East and North",
+    "Kingston Upon Hull North and Cottingham": "Hull East and North",
+    "Kingston Upon Hull West and Haltemprice": "Kingston upon Hull West and Haltemprice",
+    "Kingston and Surbiton": "Kingston and Surbiton",
+    "Kingswinford and South Staffordshire": "Kingswinford and South Staffordshire",
+    "Knowsley": "City of Liverpool Conservatives",
+    "Lancaster and Wyre": "Lancaster and Wyre",
+    "Leeds Central and Headingley": "Leeds",
+    "Leeds East": "Leeds East",
+    "Leeds North East": "Leeds North East",
+    "Leeds North West": "Leeds",
+    "Leeds South": "Leeds South",
+    "Leeds South West and Morley": "Leeds South West and Morley",
+    "Leeds West and Pudsey": "Leeds",
+    "Leicester East": "Leicester",
+    "Leicester South": "Leicester",
+    "Leicester West": "Leicester",
+    "Leigh and Atherton": "Wigan",
+    "Lewes": "Lewes",
+    "Leyton and Wanstead": "Leyton and Wanstead",
+    "Lichfield": "Lichfield",
+    "Lincoln": "Lincoln",
+    "Liverpool Garston": "City of Liverpool Conservatives",
+    "Liverpool Riverside": "City of Liverpool Conservatives",
+    "Liverpool Walton": "City of Liverpool Conservatives",
+    "Liverpool Wavertree": "City of Liverpool Conservatives",
+    "Liverpool West Derby": "City of Liverpool Conservatives",
+    "Llanelli": "Carmarthenshire",
+    "Loughborough": "Loughborough",
+    "Louth and Horncastle": "Louth and Horncastle",
+    "Lowestoft": "Lowestoft",
+    "Luton North": "Luton",
+    "Luton South and South Bedfordshire": "Luton",
+    "Macclesfield": "Macclesfield",
+    "Maidenhead": "Maidenhead",
+    "Maidstone and Malling": "Maidstone and Malling",
+    "Makerfield": "Wigan",
+    "Maldon": "Maldon",
+    "Manchester Central": "City of Manchester",
+    "Manchester Rusholme": "City of Manchester",
+    "Manchester Withington": "City of Manchester",
+    "Mansfield": "Ashfield and Mansfield",
+    "Melksham and Devizes": "Melksham and Devizes",
+    "Melton and Syston": "Melton and Syston",
+    "Meriden and Solihull East": "Solihull Borough Conservatives",
+    "Merthyr Tydfil and Aberdare": "Heads of the Valleys",
+    "Mid Bedfordshire": "Mid Bedfordshire",
+    "Mid Buckinghamshire": "Buckingham and Bletchley and Mid Buckingham",
+    "Mid Cheshire": "Weaver Vale",
+    "Mid Derbyshire": "Mid Derbyshire and Derby",
+    "Mid Dorset and North Poole": "Mid Dorset and North Poole",
+    "Mid Leicestershire": "Mid Leicestershire",
+    "Mid Norfolk": "Mid Norfolk",
+    "Mid Sussex": "Mid Sussex",
+    "Mid and South Pembrokeshire": "Pembrokeshire and Ceredigion",
+    "Middlesbrough South and East Cleveland": "South Tees",
+    "Middlesbrough and Thornaby East": "South Tees",
+    "Milton Keynes Central": "Milton Keynes",
+    "Milton Keynes North": "Milton Keynes",
+    "Mitcham and Morden": "Merton Federation",
+    "Monmouthshire": "Monmouthshire",
+    "Montgomeryshire and Glyndwr": "Montgomeryshire and Glyndwr",
+    "Morecambe and Lunesdale": "Morecambe and Lunesdale",
+    "Neath and Swansea East": "Gower and Swansea",
+    "New Forest East": "New Forest East",
+    "New Forest West": "New Forest West",
+    "Newark": "Newark",
+    "Newbury": "Newbury",
+    "Newcastle Upon Tyne Central and West": "Tyneside",
+    "Newcastle Upon Tyne East and Wallsend": "Tyneside",
+    "Newcastle Upon Tyne North": "Tyneside",
+    "Newcastle-under-Lyme": "Newcastle-under-Lyme",
+    "Newport East": "Newport and Islwyn",
+    "Newport West and Islwyn": "Newport and Islwyn",
+    "Newton Abbot": "Newton Abbot",
+    "Newton Aycliffe and Spennymoor": "Durham and Blaydon",
+    "Normanton and Hemsworth": "The Five Towns and Hemsworth",
+    "North Bedfordshire": "North Bedfordshire",
+    "North Cornwall": "North Cornwall",
+    "North Cotswolds": "North Cotswolds",
+    "North Devon": "North Devon",
+    "North Dorset": "North Dorset",
+    "North Durham": "Durham and Blaydon",
+    "North East Cambridgeshire": "North East Cambridgeshire",
+    "North East Derbyshire": "North Derbyshire",
+    "North East Hampshire": "North East Hampshire",
+    "North East Hertfordshire": "North East Hertfordshire",
+    "North East Somerset and Hanham": "North East Somerset and Hanham",
+    "North Herefordshire": "North Herefordshire",
+    "North Norfolk": "North Norfolk",
+    "North Northumberland": "Northumberland",
+    "North Shropshire": "North Shropshire",
+    "North Somerset": "North Somerset",
+    "North Warwickshire and Bedworth": "North Warwickshire and Bedworth",
+    "North West Cambridgeshire": "North West Cambridgeshire",
+    "North West Essex": "North West Essex",
+    "North West Hampshire": "North West Hampshire",
+    "North West Leicestershire": "North West Leicestershire",
+    "North West Norfolk": "North West Norfolk",
+    "Northampton North": "Northampton North",
+    "Northampton South": "Northampton South",
+    "Norwich North": "Norwich",
+    "Norwich South": "Norwich",
+    "Nottingham East": "Nottingham City",
+    "Nottingham North and Kimberley": "Nottingham City",
+    "Nottingham South": "Nottingham City",
+    "Nuneaton": "Nuneaton",
+    "Old Bexley and Sidcup": "Old Bexley and Sidcup",
+    "Oldham East and Saddleworth": "Oldham and Saddleworth",
+    "Oldham West, Chadderton and Royton": "Oldham and Saddleworth",
+    "Orpington": "Orpington",
+    "Ossett and Denby Dale": "Ossett and Denby Dale",
+    "Oxford East": "Oxford and Abingdon",
+    "Oxford West and Abingdon": "Oxford and Abingdon",
+    "Pendle and Clitheroe": "Pendle and Ribble Valley",
+    "Penistone and Stocksbridge": "Barnsley, Penistone & Stocksbridge",
+    "Penrith and Solway": "Penrith and Solway",
+    "Peterborough": "Peterborough",
+    "Plymouth Moor View": "Plymouth Moor View",
+    "Plymouth Sutton and Devonport": "Plymouth Sutton and Devonport",
+    "Pontefract, Castleford and Knottingley": "The Five Towns and Hemsworth",
+    "Pontypridd": "Pontypridd and Rhondda",
+    "Poole": "Poole",
+    "Poplar and Limehouse": "Poplar and Limehouse",
+    "Portsmouth North": "Portsmouth North",
+    "Portsmouth South": "Portsmouth South",
+    "Preston": "Preston",
+    "Putney": "Putney",
+    "Queen's Park and Maida Vale": "Queen's Park and Maida Vale",
+    "Rawmarsh and Conisbrough": "Rotherham and District",
+    "Rayleigh and Wickford": "Rayleigh and Wickford",
+    "Reading Central": "Reading Central",
+    "Reading West and Mid Berkshire": "Reading West and Mid Berkshire",
+    "Redcar": "South Tees",
+    "Redditch": "Redditch",
+    "Reigate": "Reigate",
+    "Rhondda and Ogmore": "Pontypridd and Rhondda",
+    "Ribble Valley": "Pendle and Ribble Valley",
+    "Richmond Park": "Richmond Park",
+    "Richmond and Northallerton": "Richmond and Northallerton",
+    "Rochdale": "Heywood, Middleton North & Rochdale",
+    "Rochester and Strood": "Rochester and Strood",
+    "Romford": "Romford",
+    "Romsey and Southampton North": "Romsey and Southampton North",
+    "Rossendale and Darwen": "Rossendale and Darwen",
+    "Rother Valley": "Rotherham and District",
+    "Rotherham": "Rotherham and District",
+    "Rugby": "Rugby",
+    "Ruislip, Northwood and Pinner": "Ruislip, Northwood and Pinner",
+    "Runcorn and Helsby": "Weaver Vale",
+    "Runnymede and Weybridge": "Runnymede and Weybridge",
+    "Rushcliffe": "Rushcliffe",
+    "Rutland and Stamford": "Rutland and Stamford",
+    "Salford": "Salford",
+    "Salisbury": "Salisbury",
+    "Scarborough and Whitby": "Scarborough and Whitby",
+    "Scunthorpe": "Scunthorpe",
+    "Sefton Central": "Sefton",
+    "Selby": "Selby",
+    "Sevenoaks": "Sevenoaks",
+    "Sheffield Brightside and Hillsborough": "Sheffield",
+    "Sheffield Central": "Sheffield",
+    "Sheffield Hallam": "Sheffield",
+    "Sheffield Heeley": "Sheffield",
+    "Sheffield South East": "Sheffield",
+    "Sherwood Forest": "Sherwood Forest",
+    "Shipley": "Shipley",
+    "Shrewsbury": "Shrewsbury",
+    "Sittingbourne and Sheppey": "Sittingbourne and Sheppey",
+    "Skipton and Ripon": "Skipton and Ripon",
+    "Sleaford and North Hykeham": "Sleaford and North Hykeham",
+    "Slough": "Slough",
+    "Smethwick": "Sandwell",
+    "Solihull West and Shirley": "Solihull Borough Conservatives",
+    "South Basildon and East Thurrock": "Basildon and Thurrock",
+    "South Cambridgeshire": "South Cambridgeshire",
+    "South Cotswolds": "South Cotswolds",
+    "South Derbyshire": "South Derbyshire",
+    "South Devon": "South Devon",
+    "South Dorset": "South Dorset",
+    "South East Cornwall": "South East Cornwall",
+    "South Holland and The Deepings": "South Holland and The Deepings",
+    "South Leicestershire": "South Leicestershire",
+    "South Norfolk": "South Norfolk and Waveney",
+    "South Northamptonshire": "South Northamptonshire",
+    "South Ribble": "South Ribble",
+    "South Shields": "Tyneside",
+    "South Shropshire": "South Shropshire",
+    "South Suffolk": "South Suffolk",
+    "South West Devon": "South West Devon",
+    "South West Hertfordshire": "South West Hertfordshire",
+    "South West Norfolk": "South West Norfolk",
+    "South West Wiltshire": "South West Wiltshire",
+    "Southampton Itchen": "Southampton Itchen",
+    "Southampton Test": "Southampton Test",
+    "Southend East and Rochford": "Southend East and Rochford",
+    "Southend West and Leigh": "Southend West and Leigh",
+    "Southgate and Wood Green": "Southgate and Wood Green",
+    "Southport": "Southport",
+    "Spelthorne": "Spelthorne",
+    "Spen Valley": "Spen Valley",
+    "St Albans": "St Albans",
+    "St Austell and Newquay": "St Austell and Newquay",
+    "St Helens North": "St Helens",
+    "St Helens South and Whiston": "St Helens",
+    "St Ives": "St Ives",
+    "St Neots and Mid Cambridgeshire": "St Neots and Mid Cambridgeshire",
+    "Stafford": "Central Staffordshire Conservative Federation",
+    "Staffordshire Moorlands": "Staffordshire Moorlands",
+    "Stalybridge and Hyde": "Stalybridge and Hyde",
+    "Stevenage": "Stevenage",
+    "Stockport": "Stockport",
+    "Stockton North": "Stockton-on-Tees",
+    "Stockton West": "Stockton-on-Tees",
+    "Stoke-on-Trent Central": "Stoke on Trent",
+    "Stoke-on-Trent North": "Stoke on Trent",
+    "Stoke-on-Trent South": "Stoke on Trent",
+    "Stone, Great Wyrley and Penkridge": "Central Staffordshire Conservative Federation",
+    "Stourbridge": "Stourbridge",
+    "Stratford and Bow": "Stratford and Bow",
+    "Stratford-on-Avon": "South Warwickshire",
+    "Stretford and Urmston": "Stretford and Urmston",
+    "Stroud": "Stroud",
+    "Suffolk Coastal": "Suffolk Coastal",
+    "Sunderland Central": "Sunderland",
+    "Surrey Heath": "Surrey Heath",
+    "Sussex Weald": "Sussex Weald",
+    "Sutton Coldfield": "Sutton Coldfield",
+    "Sutton and Cheam": "Sutton Federation",
+    "Swansea West": "Gower and Swansea",
+    "Swindon North": "Swindon",
+    "Swindon South": "Swindon",
+    "Tamworth": "Tamworth",
+    "Tatton": "Tatton",
+    "Taunton and Wellington": "Taunton and Wellington",
+    "Telford": "Telford",
+    "Tewkesbury": "Tewkesbury",
+    "The Wrekin": "The Wrekin",
+    "Thirsk and Malton": "Thirsk and Malton",
+    "Thornbury and Yate": "Thornbury and Yate",
+    "Thurrock": "Basildon and Thurrock",
+    "Tipton and Wednesbury": "Tipton and Wednesbury",
+    "Tiverton and Minehead": "Tiverton and Minehead",
+    "Tonbridge": "Tonbridge",
+    "Tooting": "Tooting",
+    "Torbay": "Torbay",
+    "Torfaen": "Torfaen",
+    "Torridge and Tavistock": "Torridge and Tavistock",
+    "Tottenham": "Tottenham",
+    "Truro and Falmouth": "Truro and Falmouth",
+    "Tunbridge Wells": "Tunbridge Wells",
+    "Twickenham": "Twickenham",
+    "Tynemouth": "Tyneside",
+    "Uxbridge and South Ruislip": "Uxbridge and South Ruislip",
+    "Vale Of Glamorgan": "Vale of Glamorgan",
+    "Wakefield and Rothwell": "Wakefield and Rothwell",
+    "Wallasey": "Wallasey and Birkenhead",
+    "Walsall and Bloxwich": "Walsall and Bloxwich",
+    "Walthamstow": "Walthamstow",
+    "Warrington North": "Warrington",
+    "Warrington South": "Warrington",
+    "Warwick and Leamington": "South Warwickshire",
+    "Washington and Gateshead South": "Sunderland",
+    "Watford": "Watford",
+    "Waveney Valley": "South Norfolk and Waveney",
+    "Weald Of Kent": "Weald of Kent",
+    "Wellingborough and Rushden": "Wellingborough and Rushden",
+    "Wells and Mendip Hills": "Wells and Mendip Hills",
+    "Welwyn Hatfield": "Welwyn Hatfield",
+    "West Bromwich": "Sandwell",
+    "West Dorset": "West Dorset",
+    "West Ham and Beckton": "West Ham and Beckton",
+    "West Lancashire": "West Lancashire",
+    "West Suffolk": "West Suffolk",
+    "West Worcestershire": "West Worcestershire",
+    "Westmorland and Lonsdale": "Westmorland and Lonsdale",
+    "Weston-Super-Mare": "Weston-super-Mare",
+    "Wetherby and Easingwold": "Wetherby and Easingwold",
+    "Whitehaven and Workington": "Whitehaven and Workington",
+    "Widnes and Halewood": "Widnes and Halewood",
+    "Wigan": "Wigan",
+    "Wimbledon": "Merton Federation",
+    "Winchester": "Winchester",
+    "Windsor": "Windsor",
+    "Wirral West": "Wirral West",
+    "Witham": "Witham",
+    "Witney": "Witney",
+    "Woking": "Woking",
+    "Wokingham": "Wokingham",
+    "Wolverhampton North East": "Wolverhampton",
+    "Wolverhampton South East": "Wolverhampton",
+    "Wolverhampton West": "Wolverhampton West",
+    "Worcester": "Worcester",
+    "Worsley and Eccles": "Salford",
+    "Worthing West": "Worthing West",
+    "Wrexham": "Northeast Wales",
+    "Wycombe": "Wycombe",
+    "Wyre Forest": "Wyre Forest",
+    "Wythenshawe and Sale East": "Wythenshawe and Sale East",
+    "Yeovil": "Yeovil",
+    "Ynys Mon": "Northwest Wales",
+    "York Central": "York",
+    "York Outer": "York"
+  }
+}
