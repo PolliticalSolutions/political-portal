@@ -1,7 +1,9 @@
+import { useState } from "react";
 import { Link } from "react-router-dom";
 import Button from "../components/Button.jsx";
 import Card from "../components/Card.jsx";
 import Footer from "../components/Footer.jsx";
+import heroVisual from "../assets/hero-visual.svg";
 import Seo from "../seo/Seo.jsx";
 import { buildOrganisationSchema, buildWebsiteSchema } from "../seo/structuredData.js";
 
@@ -59,6 +61,8 @@ const steps = [
 ];
 
 export default function Home() {
+  const [visualLoaded, setVisualLoaded] = useState(true);
+
   return (
     <div className="page">
       <Seo
@@ -87,12 +91,26 @@ export default function Home() {
             </div>
           </div>
           <div className="hero-visual">
-            <img
-              className="hero-visual-image"
-              src="/assets/hero-visual.svg"
-              alt="Illustration of secure operations delivery and data insights"
-              loading="lazy"
-            />
+            {visualLoaded ? (
+              <img
+                className="hero-visual-image"
+                src={heroVisual}
+                alt="Illustration of secure operations delivery and data insights"
+                loading="eager"
+                onError={() => setVisualLoaded(false)}
+              />
+            ) : (
+              <div className="hero-visual-fallback" aria-hidden="true">
+                <div className="hero-visual-bars">
+                  <span />
+                  <span />
+                  <span />
+                </div>
+                <div className="hero-visual-chart">
+                  <span />
+                </div>
+              </div>
+            )}
           </div>
         </div>
       </section>

@@ -3,7 +3,6 @@ import { Link, NavLink, Navigate, Route, Routes } from "react-router-dom";
 import { clearStoredSession, startLogout } from "./lib/cognito.js";
 import { useCart } from "./cart/cartStore.jsx";
 import { getSession } from "./auth/session.js";
-import Button from "./components/Button.jsx";
 import CookieNotice from "./components/CookieNotice.jsx";
 import IdleWarning from "./components/IdleWarning.jsx";
 import ProtectedRoute from "./components/ProtectedRoute.jsx";
@@ -40,20 +39,34 @@ const WARNING_DELAY_MS = 4 * 60 * 1000; // 4 minutes before showing the warning
 const WARNING_WINDOW_MS = 60 * 1000; // 1 minute countdown before auto-logout
 const WARNING_SECONDS = WARNING_WINDOW_MS / 1000;
 
+function NavLinkButton({ to, onClick, variant = "ghost", children }) {
+  return (
+    <NavLink
+      to={to}
+      onClick={onClick}
+      className={({ isActive }) =>
+        ["navLink", `navLink--${variant}`, isActive ? "active" : ""].filter(Boolean).join(" ")
+      }
+    >
+      {children}
+    </NavLink>
+  );
+}
+
 function TopNav({ authed, onLogout, cartCount }) {
   const [menuOpen, setMenuOpen] = useState(false);
-  const navClass = ({ isActive }) => (isActive ? "navLink active" : "navLink");
+  const closeMenu = () => setMenuOpen(false);
 
   return (
     <header className="topbar">
       <div className="container topbar-inner">
-        <Link className="brand" to="/" onClick={() => setMenuOpen(false)}>
+        <Link className="brand" to="/" onClick={closeMenu}>
           <img
             className="brand-logo"
             src={brandLogo}
             alt="Political Solutions"
-            width={34}
-            height={34}
+            width={48}
+            height={48}
             loading="eager"
           />
           <div>
@@ -74,39 +87,39 @@ function TopNav({ authed, onLogout, cartCount }) {
         </button>
         <div id="site-nav" className={`nav-panel${menuOpen ? " open" : ""}`}>
           <nav className="nav">
-            <NavLink className={navClass} to="/services" onClick={() => setMenuOpen(false)}>
+            <NavLinkButton to="/services" onClick={closeMenu}>
               Services
-            </NavLink>
-            <NavLink className={navClass} to="/#how-it-works" onClick={() => setMenuOpen(false)}>
+            </NavLinkButton>
+            <NavLinkButton to="/#how-it-works" onClick={closeMenu}>
               How it works
-            </NavLink>
-            <NavLink className={navClass} to="/subscriptions" onClick={() => setMenuOpen(false)}>
+            </NavLinkButton>
+            <NavLinkButton to="/subscriptions" onClick={closeMenu}>
               Pricing
-            </NavLink>
-            <NavLink className={navClass} to="/#resources" onClick={() => setMenuOpen(false)}>
+            </NavLinkButton>
+            <NavLinkButton to="/#resources" onClick={closeMenu}>
               Resources
-            </NavLink>
-            <NavLink className={navClass} to="/#contact" onClick={() => setMenuOpen(false)}>
+            </NavLinkButton>
+            <NavLinkButton to="/#contact" onClick={closeMenu}>
               Contact
-            </NavLink>
+            </NavLinkButton>
           </nav>
           <div className="nav-cta">
-            <Button as={NavLink} to="/login" variant="secondary" onClick={() => setMenuOpen(false)}>
+            <NavLinkButton to="/login" variant="primary" onClick={closeMenu}>
               Client login
-            </Button>
-            <Button as={NavLink} to="/portal" variant="ghost" onClick={() => setMenuOpen(false)}>
+            </NavLinkButton>
+            <NavLinkButton to="/portal" onClick={closeMenu}>
               Portal
-            </Button>
+            </NavLinkButton>
             {cartCount > 0 && (
-              <NavLink className={navClass} to="/cart" onClick={() => setMenuOpen(false)}>
+              <NavLinkButton to="/cart" onClick={closeMenu}>
                 Cart
                 <span className="nav-badge">{cartCount}</span>
-              </NavLink>
+              </NavLinkButton>
             )}
             {authed && (
-              <Button variant="ghost" onClick={onLogout}>
+              <button type="button" className="navLink navLink--ghost" onClick={onLogout}>
                 Log out
-              </Button>
+              </button>
             )}
           </div>
         </div>
