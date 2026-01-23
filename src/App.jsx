@@ -40,45 +40,69 @@ const WARNING_WINDOW_MS = 60 * 1000; // 1 minute countdown before auto-logout
 const WARNING_SECONDS = WARNING_WINDOW_MS / 1000;
 
 function TopNav({ authed, onLogout, cartCount }) {
+  const [menuOpen, setMenuOpen] = useState(false);
   const navClass = ({ isActive }) => (isActive ? "navLink active" : "navLink");
 
   return (
     <header className="topbar">
-      <div className="brand">
-        <span className="brand-mark" aria-hidden="true" />
-        <div>
-          <div style={{ fontWeight: 800 }}>Political Solutions</div>
-          <div className="muted" style={{ fontSize: 13 }}>
-            Operations & insight portal
+      <div className="container topbar-inner">
+        <div className="brand">
+          <span className="brand-mark" aria-hidden="true" />
+          <div>
+            <div style={{ fontWeight: 800 }}>Political Solutions</div>
+            <div className="muted" style={{ fontSize: 13 }}>
+              UK political operations platform
+            </div>
+          </div>
+        </div>
+        <button
+          type="button"
+          className="nav-toggle"
+          onClick={() => setMenuOpen((open) => !open)}
+          aria-expanded={menuOpen}
+          aria-controls="site-nav"
+        >
+          Menu
+        </button>
+        <div id="site-nav" className={`nav-panel${menuOpen ? " open" : ""}`}>
+          <nav className="nav">
+            <NavLink className={navClass} to="/services" onClick={() => setMenuOpen(false)}>
+              Services
+            </NavLink>
+            <NavLink className={navClass} to="/#how-it-works" onClick={() => setMenuOpen(false)}>
+              How it works
+            </NavLink>
+            <NavLink className={navClass} to="/subscriptions" onClick={() => setMenuOpen(false)}>
+              Pricing
+            </NavLink>
+            <NavLink className={navClass} to="/#resources" onClick={() => setMenuOpen(false)}>
+              Resources
+            </NavLink>
+            <NavLink className={navClass} to="/#contact" onClick={() => setMenuOpen(false)}>
+              Contact
+            </NavLink>
+          </nav>
+          <div className="nav-cta">
+            <Button as={NavLink} to="/login" variant="secondary" onClick={() => setMenuOpen(false)}>
+              Client login
+            </Button>
+            <Button as={NavLink} to="/portal" variant="ghost" onClick={() => setMenuOpen(false)}>
+              Portal
+            </Button>
+            {cartCount > 0 && (
+              <NavLink className={navClass} to="/cart" onClick={() => setMenuOpen(false)}>
+                Cart
+                <span className="nav-badge">{cartCount}</span>
+              </NavLink>
+            )}
+            {authed && (
+              <Button variant="ghost" onClick={onLogout}>
+                Log out
+              </Button>
+            )}
           </div>
         </div>
       </div>
-      <nav className="nav">
-        <NavLink className={navClass} to="/">
-          Home
-        </NavLink>
-        <NavLink className={navClass} to="/subscriptions">
-          Subscriptions
-        </NavLink>
-        <NavLink className={navClass} to="/services">
-          Services
-        </NavLink>
-        <NavLink className={navClass} to="/cart">
-          Cart
-          {cartCount > 0 && <span className="nav-badge">{cartCount}</span>}
-        </NavLink>
-        <NavLink className={navClass} to="/login">
-          Log in
-        </NavLink>
-        <NavLink className={navClass} to="/portal">
-          Portal
-        </NavLink>
-        {authed && (
-          <Button variant="ghost" onClick={onLogout}>
-            Log out
-          </Button>
-        )}
-      </nav>
     </header>
   );
 }

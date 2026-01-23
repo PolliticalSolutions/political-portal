@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { useSearchParams } from "react-router-dom";
+import { Link, useSearchParams } from "react-router-dom";
 import Button from "../components/Button.jsx";
 import Card from "../components/Card.jsx";
 import Footer from "../components/Footer.jsx";
@@ -135,7 +135,7 @@ export default function EnquirePage() {
   };
 
   return (
-    <div className="page stack">
+    <div className="page">
       <Seo
         title="Enquire about services"
         description="Ask a question, request a demo, or clarify pricing for Political Solutions services."
@@ -143,91 +143,121 @@ export default function EnquirePage() {
         robots="index,follow"
         jsonLd={[buildOrganisationSchema(), buildWebsiteSchema()]}
       />
-      <Card>
-        <h1 style={{ margin: "0 0 12px", fontSize: 22 }}>Enquire</h1>
-        <p className="muted">
-          Ask a question, request a demo, or clarify pricing. We'll get back to you by email.
-        </p>
-        {hasContext && (
-          <div className="status" style={{ marginTop: 16 }}>
-            <div>
-              <div style={{ fontWeight: 700 }}>Context</div>
-              {constituencyCount ? (
-                <div>
-                  {constituencyCount} constituenc{constituencyCount === 1 ? "y" : "ies"}
-                </div>
-              ) : null}
+
+      <section className="section">
+        <div className="container hero">
+          <div>
+            <h1>Enquire</h1>
+            <p className="muted">
+              Ask a question, request a demo, or clarify pricing. We will get back to you by email.
+            </p>
+            <div className="hero-actions">
+              <Button as={Link} to="/services" variant="secondary">
+                View services
+              </Button>
+              <Button as={Link} to="/subscriptions" variant="ghost">
+                View subscriptions
+              </Button>
             </div>
           </div>
-        )}
-      </Card>
+          <div className="hero-visual" aria-hidden="true">
+            <span>Enquiry workflow preview</span>
+            <p className="muted" style={{ marginTop: 8 }}>
+              Service request placeholder
+            </p>
+          </div>
+        </div>
+      </section>
 
-      <Card>
-        <form className="stack" onSubmit={handleSubmit} noValidate>
-          <label className="field">
-            <span>Name *</span>
-            <input
-              className="input"
-              name="name"
-              value={formValues.name}
-              onChange={handleChange}
-            />
-            {errors.name && <span className="helper">{errors.name}</span>}
-          </label>
-          <label className="field">
-            <span>Email *</span>
-            <input
-              className="input"
-              name="email"
-              type="email"
-              value={formValues.email}
-              onChange={handleChange}
-            />
-            {errors.email && <span className="helper">{errors.email}</span>}
-          </label>
-          <label className="field">
-            <span>Organisation</span>
-            <input
-              className="input"
-              name="organisation"
-              value={formValues.organisation}
-              onChange={handleChange}
-            />
-          </label>
-          <label className="field">
-            <span>Message *</span>
-            <textarea
-              className="input"
-              name="message"
-              rows={6}
-              value={formValues.message}
-              onChange={handleChange}
-            />
-            {errors.message && <span className="helper">{errors.message}</span>}
-          </label>
-          <div className="stack" style={{ gap: 6 }}>
-            <Button type="submit" variant="primary">
-              Send enquiry
-            </Button>
-            {!status.success && (
-              <span className="helper">We'll respond by email. Your email client may open to send this enquiry.</span>
-            )}
-            {autoFallbackNote && <span className="helper">{autoFallbackNote}</span>}
-            {rateLimitMessage && <div className="status">{rateLimitMessage}</div>}
-            {rateLimitMessage && manualMailto && (
-              <a className="helper" href={manualMailto}>
-                Or email us directly instead.
-              </a>
-            )}
-            {status.success && (
-              <div className="status">
-                Enquiry sent. We'll get back to you shortly.
-                {status.requestId && <div className="helper">Reference: {status.requestId}</div>}
+      <section className="section muted">
+        <div className="container">
+          <Card>
+            <p className="muted">
+              Tell us about your operational goals and we will confirm scope, timelines, and next steps.
+            </p>
+            {hasContext && (
+              <div className="status" style={{ marginTop: 16 }}>
+                <div>
+                  <div style={{ fontWeight: 700 }}>Context</div>
+                  {constituencyCount ? (
+                    <div>
+                      {constituencyCount} constituenc{constituencyCount === 1 ? "y" : "ies"}
+                    </div>
+                  ) : null}
+                </div>
               </div>
             )}
-          </div>
-        </form>
-      </Card>
+          </Card>
+        </div>
+      </section>
+
+      <section className="section">
+        <div className="container">
+          <Card>
+            <form className="stack" onSubmit={handleSubmit} noValidate>
+              <label className="field">
+                <span>Name *</span>
+                <input className="input" name="name" value={formValues.name} onChange={handleChange} />
+                {errors.name && <span className="helper">{errors.name}</span>}
+              </label>
+              <label className="field">
+                <span>Email *</span>
+                <input
+                  className="input"
+                  name="email"
+                  type="email"
+                  value={formValues.email}
+                  onChange={handleChange}
+                />
+                {errors.email && <span className="helper">{errors.email}</span>}
+              </label>
+              <label className="field">
+                <span>Organisation</span>
+                <input
+                  className="input"
+                  name="organisation"
+                  value={formValues.organisation}
+                  onChange={handleChange}
+                />
+              </label>
+              <label className="field">
+                <span>Message *</span>
+                <textarea
+                  className="input"
+                  name="message"
+                  rows={6}
+                  value={formValues.message}
+                  onChange={handleChange}
+                />
+                {errors.message && <span className="helper">{errors.message}</span>}
+              </label>
+              <div className="stack" style={{ gap: 6 }}>
+                <Button type="submit" variant="primary">
+                  Send enquiry
+                </Button>
+                {!status.success && (
+                  <span className="helper">
+                    We will respond by email. Your email client may open to send this enquiry.
+                  </span>
+                )}
+                {autoFallbackNote && <span className="helper">{autoFallbackNote}</span>}
+                {rateLimitMessage && <div className="status">{rateLimitMessage}</div>}
+                {rateLimitMessage && manualMailto && (
+                  <a className="helper" href={manualMailto}>
+                    Or email us directly instead.
+                  </a>
+                )}
+                {status.success && (
+                  <div className="status">
+                    Enquiry sent. We will get back to you shortly.
+                    {status.requestId && <div className="helper">Reference: {status.requestId}</div>}
+                  </div>
+                )}
+              </div>
+            </form>
+          </Card>
+        </div>
+      </section>
 
       <Footer />
     </div>

@@ -1,5 +1,5 @@
 import { useEffect, useMemo } from "react";
-import { DEFAULT_DESCRIPTION, SITE_NAME, SITE_URL } from "./seoConfig.js";
+import { DEFAULT_DESCRIPTION, LOGO_PATH, SITE_NAME, SITE_URL } from "./seoConfig.js";
 
 const normalisePath = (path) => {
   if (!path) return "";
@@ -7,6 +7,7 @@ const normalisePath = (path) => {
 };
 
 const buildUrl = (path) => `${SITE_URL}${normalisePath(path)}`;
+const buildAssetUrl = (path) => `${SITE_URL}${normalisePath(path)}`;
 
 const upsertMeta = ({ name, property, content }) => {
   if (!content) return;
@@ -55,6 +56,7 @@ export default function Seo({
 }) {
   const resolvedDescription = description || DEFAULT_DESCRIPTION;
   const canonicalUrl = useMemo(() => buildUrl(path), [path]);
+  const ogImageUrl = useMemo(() => buildAssetUrl(LOGO_PATH), []);
 
   useEffect(() => {
     const resolvedTitle = title ? `${title} | ${SITE_NAME}` : SITE_NAME;
@@ -68,14 +70,16 @@ export default function Seo({
     upsertMeta({ property: "og:url", content: canonicalUrl });
     upsertMeta({ property: "og:type", content: ogType });
     upsertMeta({ property: "og:site_name", content: SITE_NAME });
+    upsertMeta({ property: "og:image", content: ogImageUrl });
 
     upsertMeta({ name: "twitter:card", content: "summary" });
     upsertMeta({ name: "twitter:title", content: resolvedTitle });
     upsertMeta({ name: "twitter:description", content: resolvedDescription });
+    upsertMeta({ name: "twitter:image", content: ogImageUrl });
 
     upsertLink({ rel: "canonical", href: canonicalUrl });
     replaceJsonLd(jsonLd);
-  }, [canonicalUrl, jsonLd, ogType, resolvedDescription, robots, title]);
+  }, [canonicalUrl, jsonLd, ogImageUrl, ogType, resolvedDescription, robots, title]);
 
   return null;
 }

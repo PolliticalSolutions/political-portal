@@ -71,7 +71,7 @@ export default function Login({ authed }) {
   };
 
   return (
-    <div className="page stack">
+    <div className="page">
       <Seo
         title="Secure portal sign-in"
         description="Secure sign-in for the Political Solutions Portal. Access operational tools, reporting, and subscriptions."
@@ -79,39 +79,42 @@ export default function Login({ authed }) {
         robots="index,follow"
         jsonLd={[buildOrganisationSchema(), buildWebsiteSchema()]}
       />
-      <div className="centered">
-        <div className="login-card">
-          <Card>
-            <div className="stack">
-              <Badge tone="accent">Secure sign-in</Badge>
-              <div>
-                <h1 style={{ margin: "4px 0 8px", fontSize: 24 }}>Secure sign-in</h1>
-                <p className="muted">
-                  Use your account to access operational tools and reporting. Authentication is handled by AWS Cognito.
-                </p>
-              </div>
-              {returnLabel && (
-                <div className="status">
-                  After sign-in you'll return to {returnLabel}.
+
+      <section className="section">
+        <div className="container centered">
+          <div className="login-card">
+            <Card>
+              <div className="stack">
+                <Badge tone="accent">Secure sign-in</Badge>
+                <div>
+                  <h1 style={{ margin: "4px 0 8px", fontSize: 24 }}>Secure sign-in</h1>
+                  <p className="muted">
+                    Use your account to access operational tools and reporting. Authentication is handled by AWS Cognito.
+                  </p>
                 </div>
-              )}
-              <Button variant="primary" onClick={handleLogin} disabled={authed}>
-                {authed ? "Already signed in" : "Continue to sign in"}
-              </Button>
-              <Button variant="secondary" onClick={handleSignUp}>
-                Create account
-              </Button>
-              <Button as={Link} to={signupLink} variant="ghost">
-                Create account with pricing selection
-              </Button>
-              <p className="helper">Hosted by AWS Cognito with PKCE for security.</p>
-              {redirectedFrom && !redirectMessage && <div className="status">Please sign in to continue.</div>}
-              {redirectMessage && <div className="status">{redirectMessage}</div>}
-              {error && <div className="status error">{error}</div>}
-            </div>
-          </Card>
+                {returnLabel && (
+                  <div className="status">
+                    After sign-in you'll return to {returnLabel}.
+                  </div>
+                )}
+                <Button variant="primary" onClick={handleLogin} disabled={authed}>
+                  {authed ? "Already signed in" : "Continue to sign in"}
+                </Button>
+                <Button variant="secondary" onClick={handleSignUp}>
+                  Create account
+                </Button>
+                <Button as={Link} to={signupLink} variant="ghost">
+                  Create account with pricing selection
+                </Button>
+                <p className="helper">Hosted by AWS Cognito with PKCE for security.</p>
+                {redirectedFrom && !redirectMessage && <div className="status">Please sign in to continue.</div>}
+                {redirectMessage && <div className="status">{redirectMessage}</div>}
+                {error && <div className="status error">{error}</div>}
+              </div>
+            </Card>
+          </div>
         </div>
-      </div>
+      </section>
       <Footer />
     </div>
   );

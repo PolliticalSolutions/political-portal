@@ -75,7 +75,7 @@ export default function SignUp() {
   };
 
   return (
-    <div className="page stack">
+    <div className="page">
       <Seo
         title="Create a portal account"
         description="Create a Political Solutions Portal account to access subscriptions, operational tools, and reporting."
@@ -83,47 +83,52 @@ export default function SignUp() {
         robots="index,follow"
         jsonLd={[buildOrganisationSchema(), buildWebsiteSchema()]}
       />
-      <Card>
-        <h1 style={{ margin: "0 0 12px", fontSize: 22 }}>Create account</h1>
-        {!association && !constituencyCount ? (
-          <p className="muted">No pricing context selected yet. Choose a plan to capture your pricing context.</p>
-        ) : (
-          <>
-            <div style={{ marginBottom: 16 }}>
-              <div style={{ fontSize: 16, fontWeight: 700 }}>Pricing context captured</div>
-              {constituencyCount ? (
-                <div className="muted" style={{ marginTop: 4 }}>
-                  {constituencyCount} constituenc{constituencyCount === 1 ? "y" : "ies"}
+
+      <section className="section">
+        <div className="container centered">
+          <Card>
+            <h1 style={{ margin: "0 0 12px", fontSize: 22 }}>Create account</h1>
+            {!association && !constituencyCount ? (
+              <p className="muted">No pricing context selected yet. Choose a plan to capture your pricing context.</p>
+            ) : (
+              <>
+                <div style={{ marginBottom: 16 }}>
+                  <div style={{ fontSize: 16, fontWeight: 700 }}>Pricing context captured</div>
+                  {constituencyCount ? (
+                    <div className="muted" style={{ marginTop: 4 }}>
+                      {constituencyCount} constituenc{constituencyCount === 1 ? "y" : "ies"}
+                    </div>
+                  ) : null}
                 </div>
-              ) : null}
-            </div>
-            {pricing && (
-              <div style={{ marginBottom: 16 }}>
-                <div>Total (ex VAT): {gbp.format(pricing.netTotal)}</div>
-                <div>VAT (20%): {gbp.format(pricing.vatTotal)}</div>
-                <div>Total (inc VAT): {gbp.format(pricing.grossTotal)}</div>
-              </div>
+                {pricing && (
+                  <div style={{ marginBottom: 16 }}>
+                    <div>Total (ex VAT): {gbp.format(pricing.netTotal)}</div>
+                    <div>VAT (20%): {gbp.format(pricing.vatTotal)}</div>
+                    <div>Total (inc VAT): {gbp.format(pricing.grossTotal)}</div>
+                  </div>
+                )}
+              </>
             )}
-          </>
-        )}
-        <div className="stack" style={{ marginTop: 16 }}>
-          {returnLabel && (
-            <div className="status">
-              After sign-in you'll return to {returnLabel}.
+            <div className="stack" style={{ marginTop: 16 }}>
+              {returnLabel && (
+                <div className="status">
+                  After sign-in you'll return to {returnLabel}.
+                </div>
+              )}
+              <Button variant="primary" onClick={handleCreateAccount}>
+                Create account
+              </Button>
+              <Button as={Link} to={enquireLink} variant="ghost">
+                Prefer to ask a question first?
+              </Button>
+              <Button as={Link} to={loginLink} variant="ghost">
+                Already have an account? Log in
+              </Button>
+              {error && <div className="status error">{error}</div>}
             </div>
-          )}
-          <Button variant="primary" onClick={handleCreateAccount}>
-            Create account
-          </Button>
-          <Button as={Link} to={enquireLink} variant="ghost">
-            Prefer to ask a question first?
-          </Button>
-          <Button as={Link} to={loginLink} variant="ghost">
-            Already have an account? Log in
-          </Button>
-          {error && <div className="status error">{error}</div>}
+          </Card>
         </div>
-      </Card>
+      </section>
       <Footer />
     </div>
   );

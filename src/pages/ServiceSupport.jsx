@@ -2,9 +2,14 @@ import { useState } from "react";
 import { Link } from "react-router-dom";
 import Button from "../components/Button.jsx";
 import Card from "../components/Card.jsx";
+import Footer from "../components/Footer.jsx";
 import { postServiceEnquiry } from "../lib/quoteApi.js";
 import Seo from "../seo/Seo.jsx";
-import { buildElectionSupportSchema, buildOrganisationSchema, buildWebsiteSchema } from "../seo/structuredData.js";
+import {
+  buildElectionSupportSchema,
+  buildOrganisationSchema,
+  buildWebsiteSchema,
+} from "../seo/structuredData.js";
 
 const MAX_MESSAGE = 1000;
 
@@ -73,7 +78,7 @@ export default function ServiceSupport() {
 
   if (status.referenceId) {
     return (
-      <div className="page stack">
+      <div className="page">
         <Seo
           title="Election and by-election support"
           description="UK-wide election and by-election support for campaign operations, data coordination, and delivery planning. Separate chargeable service with clear scope."
@@ -81,21 +86,26 @@ export default function ServiceSupport() {
           robots="index,follow"
           jsonLd={[buildOrganisationSchema(), buildWebsiteSchema(), buildElectionSupportSchema()]}
         />
-        <Card>
-          <h1 style={{ margin: "0 0 12px", fontSize: 22 }}>Request received</h1>
-          <p className="muted">
-            Thank you. We have received your enquiry and will be in touch shortly.
-          </p>
-          <div className="status" style={{ marginTop: 16 }}>
-            Reference: {status.referenceId}
+        <section className="section">
+          <div className="container">
+            <Card>
+              <h1 style={{ margin: "0 0 12px", fontSize: 22 }}>Request received</h1>
+              <p className="muted">
+                Thank you. We have received your enquiry and will be in touch shortly.
+              </p>
+              <div className="status" style={{ marginTop: 16 }}>
+                Reference: {status.referenceId}
+              </div>
+            </Card>
           </div>
-        </Card>
+        </section>
+        <Footer />
       </div>
     );
   }
 
   return (
-    <div className="page stack">
+    <div className="page">
       <Seo
         title="Election and by-election support"
         description="UK-wide election and by-election support for campaign operations, data coordination, and delivery planning. Separate chargeable service with clear scope."
@@ -103,102 +113,127 @@ export default function ServiceSupport() {
         robots="index,follow"
         jsonLd={[buildOrganisationSchema(), buildWebsiteSchema(), buildElectionSupportSchema()]}
       />
-      <section className="hero">
-        <div>
-          <h1>Request election & by-election support</h1>
-          <p className="muted">
-            This is a separate, chargeable service. Provide a brief outline and we will confirm scope,
-            timelines, and next steps.
-          </p>
+
+      <section className="section">
+        <div className="container hero">
+          <div>
+            <h1>Request election & by-election support</h1>
+            <p className="muted">
+              This is a separate, chargeable service. Provide a brief outline and we will confirm scope,
+              timelines, and next steps.
+            </p>
+            <div className="hero-actions">
+              <Button as={Link} to="/services" variant="secondary">
+                Back to services
+              </Button>
+              <Button as={Link} to="/subscriptions" variant="ghost">
+                View subscriptions
+              </Button>
+            </div>
+          </div>
+          <div className="hero-visual" aria-hidden="true">
+            <span>Campaign delivery snapshot</span>
+            <p className="muted" style={{ marginTop: 8 }}>
+              Operational support visual placeholder
+            </p>
+          </div>
         </div>
       </section>
 
-      <Card title="What we can support">
-        <div className="stack" style={{ gap: 8 }}>
-          <p className="muted" style={{ margin: 0 }}>
-            UK-wide campaign operations support that may include planning, volunteer briefing, data
-            coordination, print logistics, and delivery oversight.
-          </p>
-          <p className="muted" style={{ margin: 0 }}>
-            We will confirm scope and pricing before any work starts. Election and by-election support is not
-            included in subscription capability tiers.
-          </p>
+      <section className="section muted">
+        <div className="container grid">
+          <Card title="What we can support">
+            <div className="stack" style={{ gap: 8 }}>
+              <p className="muted" style={{ margin: 0 }}>
+                UK-wide campaign operations support that may include planning, volunteer briefing, data
+                coordination, print logistics, and delivery oversight.
+              </p>
+              <p className="muted" style={{ margin: 0 }}>
+                We will confirm scope and pricing before any work starts. Election and by-election support is
+                not included in subscription capability tiers.
+              </p>
+            </div>
+          </Card>
+          <Card title="Compliance note">
+            <p className="muted" style={{ margin: 0 }}>
+              This service is separate from subscriptions. Clients remain responsible for compliance with
+              electoral law and regulated spending. We do not provide statutory electoral services.
+            </p>
+          </Card>
         </div>
-      </Card>
+      </section>
 
-      <Card>
-        <form className="stack" onSubmit={handleSubmit} noValidate>
-          <label className="field">
-            <span>Name *</span>
-            <input className="input" name="name" value={formValues.name} onChange={handleChange} />
-            {errors.name && <span className="helper">{errors.name}</span>}
-          </label>
-          <label className="field">
-            <span>Email *</span>
-            <input
-              className="input"
-              name="email"
-              type="email"
-              value={formValues.email}
-              onChange={handleChange}
-            />
-            {errors.email && <span className="helper">{errors.email}</span>}
-          </label>
-          <label className="field">
-            <span>Phone</span>
-            <input className="input" name="phone" value={formValues.phone} onChange={handleChange} />
-          </label>
-          <label className="field">
-            <span>Organisation</span>
-            <input
-              className="input"
-              name="organisation"
-              value={formValues.organisation}
-              onChange={handleChange}
-            />
-          </label>
-          <label className="field">
-            <span>Message</span>
-            <textarea
-              className="input"
-              name="message"
-              rows={5}
-              value={formValues.message}
-              onChange={handleChange}
-            />
-            {errors.message && <span className="helper">{errors.message}</span>}
-          </label>
-          <label className="field">
-            <span style={{ fontWeight: 600 }}>Consent *</span>
-            <label className="muted" style={{ display: "flex", gap: 8, alignItems: "flex-start" }}>
-              <input
-                type="checkbox"
-                name="consent"
-                checked={formValues.consent}
-                onChange={handleChange}
-              />
-              I agree to be contacted about this enquiry.
-            </label>
-            {errors.consent && <span className="helper">{errors.consent}</span>}
-          </label>
-          {status.error && <div className="status error">{status.error}</div>}
-          <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-            <Button type="submit" variant="primary" loading={status.submitting}>
-              Submit enquiry
-            </Button>
-            <Button as={Link} to="/services" variant="ghost">
-              Back to services
-            </Button>
-          </div>
-        </form>
-      </Card>
-
-      <Card title="Compliance note">
-        <p className="muted" style={{ margin: 0 }}>
-          This service is separate from subscriptions. Clients remain responsible for compliance with
-          electoral law and regulated spending. We do not provide statutory electoral services.
-        </p>
-      </Card>
+      <section className="section">
+        <div className="container">
+          <Card>
+            <form className="stack" onSubmit={handleSubmit} noValidate>
+              <label className="field">
+                <span>Name *</span>
+                <input className="input" name="name" value={formValues.name} onChange={handleChange} />
+                {errors.name && <span className="helper">{errors.name}</span>}
+              </label>
+              <label className="field">
+                <span>Email *</span>
+                <input
+                  className="input"
+                  name="email"
+                  type="email"
+                  value={formValues.email}
+                  onChange={handleChange}
+                />
+                {errors.email && <span className="helper">{errors.email}</span>}
+              </label>
+              <label className="field">
+                <span>Phone</span>
+                <input className="input" name="phone" value={formValues.phone} onChange={handleChange} />
+              </label>
+              <label className="field">
+                <span>Organisation</span>
+                <input
+                  className="input"
+                  name="organisation"
+                  value={formValues.organisation}
+                  onChange={handleChange}
+                />
+              </label>
+              <label className="field">
+                <span>Message</span>
+                <textarea
+                  className="input"
+                  name="message"
+                  rows={5}
+                  value={formValues.message}
+                  onChange={handleChange}
+                />
+                {errors.message && <span className="helper">{errors.message}</span>}
+              </label>
+              <label className="field">
+                <span style={{ fontWeight: 600 }}>Consent *</span>
+                <label className="muted" style={{ display: "flex", gap: 8, alignItems: "flex-start" }}>
+                  <input
+                    type="checkbox"
+                    name="consent"
+                    checked={formValues.consent}
+                    onChange={handleChange}
+                  />
+                  I agree to be contacted about this enquiry.
+                </label>
+                {errors.consent && <span className="helper">{errors.consent}</span>}
+              </label>
+              {status.error && <div className="status error">{status.error}</div>}
+              <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                <Button type="submit" variant="primary" loading={status.submitting}>
+                  Submit enquiry
+                </Button>
+                <Button as={Link} to="/services" variant="ghost">
+                  Back to services
+                </Button>
+              </div>
+            </form>
+          </Card>
+        </div>
+      </section>
+      <Footer />
     </div>
   );
 }
