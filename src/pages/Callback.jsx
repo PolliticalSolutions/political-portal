@@ -1,15 +1,26 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { getSession } from "../auth/session.js";
-import { clearStoredSession, exchangeCodeForTokens, consumePostLoginRedirect } from "../lib/cognito.js";
+import { clearStoredSession, exchangeCodeForTokens } from "../lib/cognito.js";
 import Badge from "../components/Badge.jsx";
 import Card from "../components/Card.jsx";
+import { consumePostAuthRedirect, isSafeInternalPath } from "../utils/postAuthRedirect.js";
 
 export default function Callback({ onAuth }) {
   const location = useLocation();
   const navigate = useNavigate();
   const [status, setStatus] = useState("exchanging");
   const [error, setError] = useState(null);
+  const returnLabel = useMemo(() => {
+    const stored =
+      typeof sessionStorage !== "undefined"
+        ? sessionStorage.getItem("ps_post_auth_redirect_v1")
+        : "";
+    if (!isSafeInternalPath(stored)) return "";
+    if (stored.startsWith("/portal/pricing-rules")) return "Pricing Rules";
+    if (stored === "/portal") return "Dashboard";
+    return stored.split("?")[0];
+  }, []);
 
   useEffect(() => {
     const params = new URLSearchParams(location.search);
@@ -25,7 +36,7 @@ export default function Callback({ onAuth }) {
     const existingSession = getSession();
     // If we already have a valid session or no code, bounce straight to portal.
     if (existingSession.isAuthed || !code) {
-      navigate(consumePostLoginRedirect("/portal"), { replace: true });
+      navigate(consumePostAuthRedirect("/portal"), { replace: true });
       return;
     }
 
@@ -38,7 +49,7 @@ export default function Callback({ onAuth }) {
       .then((tokens) => {
         if (cancelled) return;
         onAuth?.(tokens);
-        navigate(consumePostLoginRedirect("/portal"), { replace: true });
+        navigate(consumePostAuthRedirect("/portal"), { replace: true });
       })
       .catch((err) => {
         if (cancelled) return;
@@ -59,7 +70,8 @@ export default function Callback({ onAuth }) {
         <Card>
           <div className="stack">
             <Badge tone="accent">Secure handoff</Badge>
-            <p className="muted">Signing you in…</p>
+            <p className="muted">Signing you in...</p>
+            {returnLabel && <p className="helper">Returning you to {returnLabel}.</p>}
             <div className="spinner" aria-label="Loading" />
           </div>
         </Card>

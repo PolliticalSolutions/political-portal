@@ -1,7 +1,6 @@
 import { Navigate, Outlet, useLocation } from "react-router-dom";
 import { clearSession, getStoredTokens, isSessionValid, isTokenExpired } from "../auth/session.js";
-
-const returnKey = "cognito_post_login_redirect";
+import { setPostAuthRedirect } from "../utils/postAuthRedirect.js";
 
 export default function ProtectedRoute({ authed, session }) {
   const location = useLocation();
@@ -19,7 +18,7 @@ export default function ProtectedRoute({ authed, session }) {
 
   if (!authed || !sessionValid) {
     clearSession();
-    sessionStorage.setItem(returnKey, requestedPath);
+    setPostAuthRedirect(requestedPath);
     const state = { from: location };
     if (sessionExpired) {
       state.reason = "expired";

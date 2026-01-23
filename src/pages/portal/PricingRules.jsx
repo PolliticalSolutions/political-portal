@@ -3,6 +3,7 @@ import { useLocation, useNavigate } from "react-router-dom";
 import Card from "../../components/Card.jsx";
 import associations from "../../data/associations.json";
 import { calculateFederationPricing } from "../../portal/pricing/federationPricing.js";
+import { saveAssociationSelection } from "../../utils/associationStorage.js";
 import "./pricingRules.print.css";
 
 const gbp = new Intl.NumberFormat("en-GB", {
@@ -87,6 +88,15 @@ export default function PricingRules() {
 
   const associationType = constituencyCount > 1 ? "Federation" : "Association";
 
+  useEffect(() => {
+    if (!resolvedAssociation && !selectedConstituency) return;
+    saveAssociationSelection({
+      association: resolvedAssociation,
+      constituency: selectedConstituency,
+      constituencyCount,
+    });
+  }, [resolvedAssociation, selectedConstituency, constituencyCount]);
+
   const handleAssociationChange = (event) => {
     const value = event.target.value;
     setSelectedAssociation(value);
@@ -116,9 +126,18 @@ export default function PricingRules() {
 
   const handleSignUp = () => {
     if (!resolvedAssociation) return;
+    const returnToParams = new URLSearchParams();
+    if (selectedConstituency) {
+      returnToParams.set("constituency", selectedConstituency);
+    } else if (resolvedAssociation) {
+      returnToParams.set("association", resolvedAssociation);
+    }
+    const returnToQuery = returnToParams.toString();
+    const returnTo = `${location.pathname}${returnToQuery ? `?${returnToQuery}` : ""}`;
     const query = new URLSearchParams({
       association: resolvedAssociation,
       count: String(constituencyCount || 1),
+      returnTo,
     });
     navigate(`/signup?${query.toString()}`);
   };

@@ -1,0 +1,503 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Transform: AWS::Serverless-2016-10-31
+Description: Political Solutions enquiry API (HTTP API + Lambda + SES).
+
+Parameters:
+  AllowedOrigins:
+    Type: CommaDelimitedList
+    Description: SPA origins allowed by CORS (e.g. https://www.politicalsolutions.uk,http://localhost:5173).
+  ToEmail:
+    Type: String
+    Default: paul@politicalsolutions.uk
+    Description: Destination email for enquiries.
+  OpsEmailTo:
+    Type: String
+    Default: paul@politicalsolutions.uk
+    Description: Destination email for quote requests (ops inbox).
+  FromEmail:
+    Type: String
+    Description: SES-verified sender email address.
+  FrontendBaseUrl:
+    Type: String
+    Default: https://www.politicalsolutions.uk
+    Description: Base URL for redirecting back to the SPA after Xero connect.
+  XeroClientId:
+    Type: String
+    Default: ""
+    Description: Xero OAuth client ID.
+  XeroClientSecret:
+    Type: String
+    Default: ""
+    NoEcho: true
+    Description: Xero OAuth client secret.
+  XeroRedirectUri:
+    Type: String
+    Default: ""
+    Description: Xero OAuth redirect URI (API /xero/callback).
+  XeroTokenParamName:
+    Type: String
+    Default: /political-solutions/xero
+    Description: SSM SecureString parameter name for Xero token storage.
+  XeroSalesAccountCode:
+    Type: String
+    Default: ""
+    Description: Xero sales account code for invoice line items.
+  XeroTaxType:
+    Type: String
+    Default: ""
+    Description: Xero tax type for invoice line items.
+  XeroInvoiceStatus:
+    Type: String
+    Default: DRAFT
+    AllowedValues:
+      - DRAFT
+      - AUTHORISED
+    Description: Default Xero invoice status.
+  XeroStateSecret:
+    Type: String
+    Default: ""
+    NoEcho: true
+    Description: Optional HMAC secret to sign Xero OAuth state.
+  XeroDueDays:
+    Type: Number
+    Default: 7
+    Description: Invoice due days offset (default 7).
+  XeroEmailInvoice:
+    Type: String
+    Default: "false"
+    AllowedValues:
+      - "true"
+      - "false"
+    Description: Email invoices from Xero after creation.
+  XeroTestInvoiceEnabled:
+    Type: String
+    Default: "false"
+    AllowedValues:
+      - "true"
+      - "false"
+    Description: Enable test invoice creation endpoint.
+  QuoteTtlEnabled:
+    Type: String
+    Default: "false"
+    AllowedValues:
+      - "true"
+      - "false"
+    Description: Enable TTL for quote records.
+  QuoteTtlDays:
+    Type: Number
+    Default: 90
+    Description: TTL retention in days for quote records when enabled.
+  CognitoIssuer:
+    Type: String
+    Default: ""
+    Description: Cognito issuer URL for JWT verification.
+  CognitoAudience:
+    Type: String
+    Default: ""
+    Description: Cognito app client id for JWT verification.
+  AlarmTopicArn:
+    Type: String
+    Default: ""
+    Description: Optional SNS topic ARN for alarms.
+  ThrottlingRateLimit:
+    Type: Number
+    Default: 20
+    Description: Steady-state request rate per second for the HttpApi stage.
+  ThrottlingBurstLimit:
+    Type: Number
+    Default: 40
+    Description: Burst limit for the HttpApi stage.
+  WafEnabled:
+    Type: String
+    Default: "true"
+    AllowedValues:
+      - "true"
+      - "false"
+    Description: Enable or disable AWS WAF protection for the HttpApi stage.
+  WafRateLimit:
+    Type: Number
+    Default: 300
+    Description: WAF rate limit (requests per 5 minutes per IP).
+  WafManagedRulesEnabled:
+    Type: String
+    Default: "true"
+    AllowedValues:
+      - "true"
+      - "false"
+    Description: Enable or disable AWS Managed Rule Groups.
+  WafLoggingEnabled:
+    Type: String
+    Default: "true"
+    AllowedValues:
+      - "true"
+      - "false"
+    Description: Enable or disable WAF logging to CloudWatch Logs.
+  WafLogRetentionDays:
+    Type: Number
+    Default: 14
+    Description: CloudWatch Logs retention in days for WAF logs.
+
+Conditions:
+  WafEnabledCondition: !Equals [!Ref WafEnabled, "true"]
+  WafManagedRulesEnabledCondition: !Equals [!Ref WafManagedRulesEnabled, "true"]
+  WafLoggingOn: !And
+    - !Condition WafEnabledCondition
+    - !Equals [!Ref WafLoggingEnabled, "true"]
+  QuoteTtlEnabledCondition: !Equals [!Ref QuoteTtlEnabled, "true"]
+  AlarmActionsEnabled: !Not [!Equals [!Ref AlarmTopicArn, ""]]
+
+Resources:
+  EnquiryApi:
+    Type: AWS::Serverless::HttpApi
+    Properties:
+      StageName: "$default"
+      CorsConfiguration:
+        AllowOrigins: !Ref AllowedOrigins
+        AllowMethods:
+          - GET
+          - POST
+          - OPTIONS
+        AllowHeaders:
+          - Content-Type
+          - Authorization
+        MaxAge: 600
+      DefaultRouteSettings:
+        ThrottlingRateLimit: !Ref ThrottlingRateLimit
+        ThrottlingBurstLimit: !Ref ThrottlingBurstLimit
+
+  EnquiryWebAcl:
+    Type: AWS::WAFv2::WebACL
+    Condition: WafEnabledCondition
+    Properties:
+      Name: !Sub "${AWS::StackName}-enquiry-waf"
+      Description: WAF protections for the enquiry HttpApi.
+      Scope: REGIONAL
+      DefaultAction:
+        Allow: {}
+      VisibilityConfig:
+        CloudWatchMetricsEnabled: true
+        MetricName: enquiry-waf
+        SampledRequestsEnabled: true
+      Rules:
+        - Name: RateLimitPerIP
+          Priority: 0
+          Action:
+            Block: {}
+          Statement:
+            RateBasedStatement:
+              Limit: !Ref WafRateLimit
+              AggregateKeyType: IP
+          VisibilityConfig:
+            CloudWatchMetricsEnabled: true
+            MetricName: enquiry-waf-rate-limit
+            SampledRequestsEnabled: true
+        - !If
+          - WafManagedRulesEnabledCondition
+          - Name: AWSManagedRulesCommonRuleSet
+            Priority: 1
+            OverrideAction:
+              None: {}
+            Statement:
+              ManagedRuleGroupStatement:
+                VendorName: AWS
+                Name: AWSManagedRulesCommonRuleSet
+            VisibilityConfig:
+              CloudWatchMetricsEnabled: true
+              MetricName: enquiry-waf-common
+              SampledRequestsEnabled: true
+          - !Ref AWS::NoValue
+        - !If
+          - WafManagedRulesEnabledCondition
+          - Name: AWSManagedRulesKnownBadInputsRuleSet
+            Priority: 2
+            OverrideAction:
+              None: {}
+            Statement:
+              ManagedRuleGroupStatement:
+                VendorName: AWS
+                Name: AWSManagedRulesKnownBadInputsRuleSet
+            VisibilityConfig:
+              CloudWatchMetricsEnabled: true
+              MetricName: enquiry-waf-bad-inputs
+              SampledRequestsEnabled: true
+          - !Ref AWS::NoValue
+        - !If
+          - WafManagedRulesEnabledCondition
+          - Name: AWSManagedRulesAmazonIpReputationList
+            Priority: 3
+            OverrideAction:
+              None: {}
+            Statement:
+              ManagedRuleGroupStatement:
+                VendorName: AWS
+                Name: AWSManagedRulesAmazonIpReputationList
+            VisibilityConfig:
+              CloudWatchMetricsEnabled: true
+              MetricName: enquiry-waf-ip-reputation
+              SampledRequestsEnabled: true
+          - !Ref AWS::NoValue
+        - !If
+          - WafManagedRulesEnabledCondition
+          - Name: AWSManagedRulesAnonymousIpList
+            Priority: 4
+            OverrideAction:
+              None: {}
+            Statement:
+              ManagedRuleGroupStatement:
+                VendorName: AWS
+                Name: AWSManagedRulesAnonymousIpList
+            VisibilityConfig:
+              CloudWatchMetricsEnabled: true
+              MetricName: enquiry-waf-anon-ip
+              SampledRequestsEnabled: true
+          - !Ref AWS::NoValue
+
+  EnquiryWebAclAssociation:
+    Type: AWS::WAFv2::WebACLAssociation
+    Condition: WafEnabledCondition
+    Properties:
+      WebACLArn: !GetAtt EnquiryWebAcl.Arn
+      ResourceArn: !Sub "arn:aws:apigateway:${AWS::Region}::/apis/${EnquiryApi}/stages/$default"
+
+  EnquiryWafLogGroup:
+    Type: AWS::Logs::LogGroup
+    Condition: WafLoggingOn
+    Properties:
+      LogGroupName: !Sub "/aws/waf/${AWS::StackName}"
+      RetentionInDays: !Ref WafLogRetentionDays
+
+  EnquiryWafLogging:
+    Type: AWS::WAFv2::LoggingConfiguration
+    Condition: WafLoggingOn
+    Properties:
+      ResourceArn: !GetAtt EnquiryWebAcl.Arn
+      LogDestinationConfigs:
+        - !GetAtt EnquiryWafLogGroup.Arn
+
+  EnquiryFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: src/
+      Handler: handler.handler
+      Runtime: nodejs20.x
+      Timeout: 15
+      MemorySize: 256
+      DeadLetterQueue:
+        Type: SQS
+        TargetArn: !GetAtt QuoteDlqQueue.Arn
+      Environment:
+        Variables:
+          ALLOWED_ORIGINS: !Join [",", !Ref AllowedOrigins]
+          TO_EMAIL: !Ref ToEmail
+          OPS_EMAIL_TO: !Ref OpsEmailTo
+          FROM_EMAIL: !Ref FromEmail
+          FRONTEND_BASE_URL: !Ref FrontendBaseUrl
+          QUOTE_REQUESTS_TABLE: !Ref QuoteRequestsTable
+          IDEMPOTENCY_TABLE: !Ref QuoteIdempotencyTable
+          XERO_CLIENT_ID: !Ref XeroClientId
+          XERO_CLIENT_SECRET: !Ref XeroClientSecret
+          XERO_REDIRECT_URI: !Ref XeroRedirectUri
+          XERO_TOKEN_PARAM_NAME: !Ref XeroTokenParamName
+          XERO_SALES_ACCOUNT_CODE: !Ref XeroSalesAccountCode
+          XERO_TAX_TYPE: !Ref XeroTaxType
+          XERO_INVOICE_STATUS: !Ref XeroInvoiceStatus
+          XERO_STATE_SECRET: !Ref XeroStateSecret
+          XERO_DUE_DAYS: !Ref XeroDueDays
+          XERO_EMAIL_INVOICE: !Ref XeroEmailInvoice
+          XERO_TEST_INVOICE_ENABLED: !Ref XeroTestInvoiceEnabled
+          QUOTE_TTL_ENABLED: !Ref QuoteTtlEnabled
+          QUOTE_TTL_DAYS: !Ref QuoteTtlDays
+          COGNITO_ISSUER: !Ref CognitoIssuer
+          COGNITO_AUDIENCE: !Ref CognitoAudience
+      Policies:
+        - Statement:
+            Effect: Allow
+            Action:
+              - ses:SendEmail
+              - ses:SendRawEmail
+            Resource: "*"
+        - Statement:
+            Effect: Allow
+            Action:
+              - dynamodb:GetItem
+              - dynamodb:PutItem
+              - dynamodb:UpdateItem
+              - dynamodb:Query
+              - dynamodb:Scan
+              - dynamodb:TransactWriteItems
+            Resource:
+              - !GetAtt QuoteRequestsTable.Arn
+              - !GetAtt QuoteIdempotencyTable.Arn
+        - Statement:
+            Effect: Allow
+            Action:
+              - ssm:GetParameter
+              - ssm:PutParameter
+            Resource: !Sub "arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter${XeroTokenParamName}"
+        - Statement:
+            Effect: Allow
+            Action:
+              - kms:Decrypt
+            Resource: !Sub "arn:aws:kms:${AWS::Region}:${AWS::AccountId}:alias/aws/ssm"
+      Events:
+        EnquiryPost:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref EnquiryApi
+            Path: /enquiry
+            Method: POST
+        QuoteRequestPost:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref EnquiryApi
+            Path: /quote-requests
+            Method: POST
+        QuoteRequestGet:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref EnquiryApi
+            Path: /quote-requests/{referenceId}
+            Method: GET
+        QuoteRequestList:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref EnquiryApi
+            Path: /quote-requests
+            Method: GET
+        QuoteRequestAdmin:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref EnquiryApi
+            Path: /quote-requests/{referenceId}/admin
+            Method: GET
+        XeroConnect:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref EnquiryApi
+            Path: /xero/connect
+            Method: GET
+        XeroCallback:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref EnquiryApi
+            Path: /xero/callback
+            Method: GET
+        XeroStatus:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref EnquiryApi
+            Path: /xero/status
+            Method: GET
+        XeroTestInvoice:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref EnquiryApi
+            Path: /xero/test-invoice
+            Method: POST
+
+  QuoteDlqQueue:
+    Type: AWS::SQS::Queue
+    Properties:
+      MessageRetentionPeriod: 1209600
+
+  EnquiryFunctionErrorsAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmDescription: Lambda errors for enquiry API.
+      Namespace: AWS/Lambda
+      MetricName: Errors
+      Dimensions:
+        - Name: FunctionName
+          Value: !Ref EnquiryFunction
+      Statistic: Sum
+      Period: 300
+      EvaluationPeriods: 1
+      Threshold: 1
+      ComparisonOperator: GreaterThanOrEqualToThreshold
+      TreatMissingData: notBreaching
+      AlarmActions: !If
+        - AlarmActionsEnabled
+        - - !Ref AlarmTopicArn
+        - !Ref AWS::NoValue
+
+  EnquiryFunctionThrottlesAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmDescription: Lambda throttles for enquiry API.
+      Namespace: AWS/Lambda
+      MetricName: Throttles
+      Dimensions:
+        - Name: FunctionName
+          Value: !Ref EnquiryFunction
+      Statistic: Sum
+      Period: 300
+      EvaluationPeriods: 1
+      Threshold: 1
+      ComparisonOperator: GreaterThanOrEqualToThreshold
+      TreatMissingData: notBreaching
+      AlarmActions: !If
+        - AlarmActionsEnabled
+        - - !Ref AlarmTopicArn
+        - !Ref AWS::NoValue
+
+  QuoteRequestsTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: !Sub "${AWS::StackName}-quote-requests"
+      BillingMode: PAY_PER_REQUEST
+      TimeToLiveSpecification: !If
+        - QuoteTtlEnabledCondition
+        - AttributeName: ttl
+          Enabled: true
+        - !Ref AWS::NoValue
+      AttributeDefinitions:
+        - AttributeName: referenceId
+          AttributeType: S
+      KeySchema:
+        - AttributeName: referenceId
+          KeyType: HASH
+
+  QuoteIdempotencyTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: !Sub "${AWS::StackName}-quote-idempotency"
+      BillingMode: PAY_PER_REQUEST
+      TimeToLiveSpecification: !If
+        - QuoteTtlEnabledCondition
+        - AttributeName: ttl
+          Enabled: true
+        - !Ref AWS::NoValue
+      AttributeDefinitions:
+        - AttributeName: idempotencyKey
+          AttributeType: S
+      KeySchema:
+        - AttributeName: idempotencyKey
+          KeyType: HASH
+
+Outputs:
+  ApiBaseUrl:
+    Description: Base URL for the API (set in VITE_API_BASE_URL or VITE_ENQUIRY_API_URL).
+    Value: !Sub "https://${EnquiryApi}.execute-api.${AWS::Region}.amazonaws.com"
+  EnquiryEndpoint:
+    Description: Full enquiry endpoint URL.
+    Value: !Sub "https://${EnquiryApi}.execute-api.${AWS::Region}.amazonaws.com/enquiry"
+  WafWebAclArn:
+    Condition: WafEnabledCondition
+    Description: ARN of the WAF Web ACL protecting the enquiry API.
+    Value: !GetAtt EnquiryWebAcl.Arn
+  WafWebAclName:
+    Condition: WafEnabledCondition
+    Description: Name of the WAF Web ACL protecting the enquiry API.
+    Value: !GetAtt EnquiryWebAcl.Name
+  WafRateLimitConfigured:
+    Condition: WafEnabledCondition
+    Description: Configured WAF rate limit (requests per 5 minutes per IP).
+    Value: !Ref WafRateLimit
+  WafLogGroupName:
+    Condition: WafLoggingOn
+    Description: CloudWatch Logs group name for WAF logs.
+    Value: !Ref EnquiryWafLogGroup
+  WafLoggingEnabledEffective:
+    Condition: WafLoggingOn
+    Description: Indicates whether WAF logging is enabled.
+    Value: !Ref WafLoggingEnabled

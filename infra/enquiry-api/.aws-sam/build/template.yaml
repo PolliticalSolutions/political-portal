@@ -1,0 +1,68 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: Political Solutions enquiry API (HTTP API + Lambda + SES).
+Parameters:
+  AllowedOrigin:
+    Type: String
+    Description: SPA origin allowed by CORS (e.g. https://www.politicalsolutions.uk).
+  ToEmail:
+    Type: String
+    Default: paul@politicalsolutions.uk
+    Description: Destination email for enquiries.
+  FromEmail:
+    Type: String
+    Description: SES-verified sender email address.
+Resources:
+  EnquiryApi:
+    Type: AWS::Serverless::HttpApi
+    Properties:
+      CorsConfiguration:
+        AllowOrigins:
+        - Ref: AllowedOrigin
+        AllowMethods:
+        - POST
+        - OPTIONS
+        AllowHeaders:
+        - Content-Type
+        - Origin
+        - Accept
+        - User-Agent
+        MaxAge: 600
+  EnquiryFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: EnquiryFunction
+      Handler: handler.handler
+      Runtime: nodejs20.x
+      Timeout: 15
+      MemorySize: 256
+      Environment:
+        Variables:
+          ALLOWED_ORIGIN:
+            Ref: AllowedOrigin
+          TO_EMAIL:
+            Ref: ToEmail
+          FROM_EMAIL:
+            Ref: FromEmail
+      Policies:
+      - Statement:
+          Effect: Allow
+          Action:
+          - ses:SendEmail
+          - ses:SendRawEmail
+          Resource: '*'
+      Events:
+        EnquiryPost:
+          Type: HttpApi
+          Properties:
+            ApiId:
+              Ref: EnquiryApi
+            Path: /enquiry
+            Method: POST
+    Metadata:
+      SamResourceId: EnquiryFunction
+Outputs:
+  EnquiryApiUrl:
+    Description: Base URL for the enquiry API.
+    Value:
+      Fn::Sub: https://${EnquiryApi}.execute-api.${AWS::Region}.amazonaws.com

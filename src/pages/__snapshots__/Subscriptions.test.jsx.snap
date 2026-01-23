@@ -1,0 +1,730 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`Subscriptions > renders the subscriptions page 1`] = `
+<div>
+  <div
+    class="page stack"
+  >
+    <section
+      class="hero subscription-hero"
+    >
+      <span
+        class="badge accent"
+      >
+        Subscriptions
+      </span>
+      <div>
+        <h1>
+          Association Subscriptions: Campaign Capability as a Service
+        </h1>
+        <p>
+          Build operational readiness with clear workflows, consistent data processing, and insight packs. Select the association or constituency first, then pick the tier that fits your circumstances.
+        </p>
+      </div>
+    </section>
+    <div
+      class="subscription-layout"
+    >
+      <div
+        class="subscription-main"
+      >
+        <div
+          class="card"
+        >
+          <div
+            class="card-header"
+          >
+            <h3
+              class="card-title"
+            >
+              Select your association / constituency area
+            </h3>
+          </div>
+          <div
+            class="association-selector"
+          >
+            <div
+              class="field"
+            >
+              <label
+                class="muted"
+                for="association-filter"
+                style="font-weight: 600;"
+              >
+                Filter associations
+              </label>
+              <div
+                class="filter-row"
+              >
+                <input
+                  aria-label="Filter associations"
+                  class="input"
+                  id="association-filter"
+                  placeholder="Filter associations..."
+                  value=""
+                />
+                <button
+                  aria-label="Clear association filter"
+                  class="button ghost"
+                  type="button"
+                >
+                  Clear
+                </button>
+              </div>
+              <label
+                class="muted"
+                for="association-select"
+                style="font-weight: 600;"
+              >
+                Association/Federation
+              </label>
+              <select
+                class="input"
+                id="association-select"
+              >
+                <option
+                  value=""
+                >
+                  Select an association/federation
+                </option>
+                <option
+                  value="Alpha Association"
+                >
+                  Alpha Association
+                </option>
+                <option
+                  value="Beta Federation"
+                >
+                  Beta Federation
+                </option>
+              </select>
+            </div>
+            <div
+              class="field"
+            >
+              <label
+                class="muted"
+                for="constituency-filter"
+                style="font-weight: 600;"
+              >
+                Filter constituencies
+              </label>
+              <div
+                class="filter-row"
+              >
+                <input
+                  aria-label="Filter constituencies"
+                  class="input"
+                  id="constituency-filter"
+                  placeholder="Filter constituencies..."
+                  value=""
+                />
+                <button
+                  aria-label="Clear constituency filter"
+                  class="button ghost"
+                  type="button"
+                >
+                  Clear
+                </button>
+              </div>
+              <label
+                class="muted"
+                for="constituency-select"
+                style="font-weight: 600;"
+              >
+                Constituency
+              </label>
+              <select
+                class="input"
+                id="constituency-select"
+              >
+                <option
+                  value=""
+                >
+                  Select a constituency
+                </option>
+                <option
+                  value="Seat A"
+                >
+                  Seat A
+                </option>
+                <option
+                  value="Seat B"
+                >
+                  Seat B
+                </option>
+                <option
+                  value="Seat One"
+                >
+                  Seat One
+                </option>
+              </select>
+            </div>
+          </div>
+        </div>
+        <div
+          class="card"
+        >
+          <div
+            class="card-header"
+          >
+            <h3
+              class="card-title"
+            >
+              Find your fit
+            </h3>
+          </div>
+          <div
+            class="circumstance-grid"
+          >
+            <button
+              aria-pressed="false"
+              class="circumstance-card"
+              type="button"
+            >
+              <div
+                style="font-weight: 700;"
+              >
+                Small association / building capability
+              </div>
+              <div
+                class="muted"
+              >
+                Getting the foundations right with clear workflows.
+              </div>
+            </button>
+            <button
+              aria-pressed="false"
+              class="circumstance-card"
+              type="button"
+            >
+              <div
+                style="font-weight: 700;"
+              >
+                Growing team
+              </div>
+              <div
+                class="muted"
+              >
+                Scaling insight, handovers, and operational rhythm.
+              </div>
+            </button>
+            <button
+              aria-pressed="false"
+              class="circumstance-card"
+              type="button"
+            >
+              <div
+                style="font-weight: 700;"
+              >
+                High-pressure association / advanced readiness
+              </div>
+              <div
+                class="muted"
+              >
+                More complex needs and higher operational tempo.
+              </div>
+            </button>
+            <button
+              aria-pressed="false"
+              class="circumstance-card"
+              type="button"
+            >
+              <div
+                style="font-weight: 700;"
+              >
+                Federation / multi-association cluster
+              </div>
+              <div
+                class="muted"
+              >
+                Co-ordinating shared services across areas.
+              </div>
+            </button>
+          </div>
+        </div>
+        <div
+          class="card"
+        >
+          <div
+            class="card-header"
+          >
+            <h3
+              class="card-title"
+            >
+              Subscription tiers
+            </h3>
+            <label
+              class="pill"
+            >
+              <input
+                style="margin: 0px;"
+                type="checkbox"
+              />
+              Pay annually and save 
+              10
+              %
+            </label>
+          </div>
+          <div
+            class="tier-grid"
+          >
+            <div
+              class="tier-card"
+              data-testid="tier-card-foundation"
+            >
+              <div
+                class="tier-header"
+              >
+                <div>
+                  <h3>
+                    Foundation
+                  </h3>
+                  <div
+                    class="price-tag"
+                  >
+                    £50.00/mo
+                  </div>
+                </div>
+              </div>
+              <p
+                class="muted"
+              >
+                Associations building core capability.
+              </p>
+              <ul>
+                <li>
+                  Core operations workspace
+                </li>
+                <li>
+                  Templates and readiness checklists
+                </li>
+                <li>
+                  Monthly insights pack
+                </li>
+                <li>
+                  Email support
+                </li>
+              </ul>
+              <button
+                class="button primary"
+                data-loading="false"
+                type="button"
+              >
+                Select tier
+              </button>
+            </div>
+            <div
+              class="tier-card"
+              data-testid="tier-card-growth"
+            >
+              <div
+                class="tier-header"
+              >
+                <div>
+                  <h3>
+                    Growth
+                  </h3>
+                  <div
+                    class="price-tag"
+                  >
+                    £125.00/mo
+                  </div>
+                </div>
+              </div>
+              <p
+                class="muted"
+              >
+                Teams formalising workflows and reporting.
+              </p>
+              <ul>
+                <li>
+                  Everything in Foundation
+                </li>
+                <li>
+                  Enhanced reporting pack
+                </li>
+                <li>
+                  Quarterly readiness review
+                </li>
+                <li>
+                  Team enablement session
+                </li>
+              </ul>
+              <button
+                class="button primary"
+                data-loading="false"
+                type="button"
+              >
+                Select tier
+              </button>
+            </div>
+            <div
+              class="tier-card"
+              data-testid="tier-card-advanced"
+            >
+              <div
+                class="tier-header"
+              >
+                <div>
+                  <h3>
+                    Advanced
+                  </h3>
+                  <div
+                    class="price-tag"
+                  >
+                    £250.00/mo
+                  </div>
+                </div>
+              </div>
+              <p
+                class="muted"
+              >
+                High-need areas with complex delivery.
+              </p>
+              <ul>
+                <li>
+                  Everything in Growth
+                </li>
+                <li>
+                  Scenario planning support
+                </li>
+                <li>
+                  Operational sprints
+                </li>
+                <li>
+                  Priority support
+                </li>
+              </ul>
+              <button
+                class="button primary"
+                data-loading="false"
+                type="button"
+              >
+                Select tier
+              </button>
+            </div>
+            <div
+              class="tier-card"
+              data-testid="tier-card-federation"
+            >
+              <div
+                class="tier-header"
+              >
+                <div>
+                  <h3>
+                    Federation / Cluster
+                  </h3>
+                  <div
+                    class="price-tag"
+                  >
+                    From £750.00/mo
+                  </div>
+                  <div
+                    class="muted"
+                    style="font-size: 13px;"
+                  >
+                    Pricing varies by cluster size.
+                  </div>
+                </div>
+              </div>
+              <p
+                class="muted"
+              >
+                Federations and clustered associations.
+              </p>
+              <ul>
+                <li>
+                  Multi-association governance view
+                </li>
+                <li>
+                  Cluster-level insight dashboard
+                </li>
+                <li>
+                  Shared data processing support
+                </li>
+                <li>
+                  Dedicated success lead
+                </li>
+              </ul>
+              <label
+                class="field"
+                style="margin-top: 12px;"
+              >
+                <span
+                  class="muted"
+                >
+                  Cluster size
+                </span>
+                <select
+                  class="input"
+                >
+                  <option
+                    value="1-5"
+                  >
+                    1-5 associations
+                  </option>
+                  <option
+                    value="6-10"
+                  >
+                    6-10 associations
+                  </option>
+                  <option
+                    value="11-20"
+                  >
+                    11-20 associations
+                  </option>
+                </select>
+              </label>
+              <button
+                class="button primary"
+                data-loading="false"
+                type="button"
+              >
+                Select tier
+              </button>
+            </div>
+          </div>
+        </div>
+        <div
+          class="card"
+        >
+          <div
+            class="card-header"
+          >
+            <h3
+              class="card-title"
+            >
+              Compare what is included
+            </h3>
+          </div>
+          <div
+            class="comparison-table"
+          >
+            <div
+              class="comparison-row comparison-header"
+            >
+              <div />
+              <div>
+                Foundation
+              </div>
+              <div>
+                Growth
+              </div>
+              <div>
+                Advanced
+              </div>
+              <div>
+                Federation / Cluster
+              </div>
+            </div>
+            <div
+              class="comparison-row"
+            >
+              <div
+                class="muted"
+              >
+                Readiness playbooks
+              </div>
+              <div>
+                Core
+              </div>
+              <div>
+                Enhanced
+              </div>
+              <div>
+                Advanced
+              </div>
+              <div>
+                Cluster-level
+              </div>
+            </div>
+            <div
+              class="comparison-row"
+            >
+              <div
+                class="muted"
+              >
+                Insight reporting
+              </div>
+              <div>
+                Monthly
+              </div>
+              <div>
+                Monthly + review
+              </div>
+              <div>
+                Monthly + sprint
+              </div>
+              <div>
+                Multi-association
+              </div>
+            </div>
+            <div
+              class="comparison-row"
+            >
+              <div
+                class="muted"
+              >
+                Support cadence
+              </div>
+              <div>
+                Email
+              </div>
+              <div>
+                Quarterly
+              </div>
+              <div>
+                Priority
+              </div>
+              <div>
+                Dedicated lead
+              </div>
+            </div>
+          </div>
+        </div>
+        <div
+          class="card"
+        >
+          <div
+            class="card-header"
+          >
+            <h3
+              class="card-title"
+            >
+              Compliance note
+            </h3>
+          </div>
+          <p
+            class="muted"
+          >
+            Subscriptions focus on capability and readiness. They do not include election-specific delivery. Election-specific work is contracted separately at commercial rates and must be declared by the client where required.
+          </p>
+        </div>
+        <div
+          class="card"
+        >
+          <div
+            class="card-header"
+          >
+            <h3
+              class="card-title"
+            >
+              More products
+            </h3>
+          </div>
+          <div
+            class="stack"
+            style="gap: 12px;"
+          >
+            <div
+              class="subtle-row"
+            >
+              <div>
+                <div
+                  style="font-weight: 700;"
+                >
+                  Marked Register Entry
+                </div>
+                <div
+                  class="muted"
+                >
+                  Data processing service for marked registers.
+                </div>
+              </div>
+              <div
+                style="font-weight: 700;"
+              >
+                £65.00
+              </div>
+            </div>
+            <button
+              class="button secondary"
+              data-loading="false"
+              type="button"
+            >
+              Add Marked Register Entry
+            </button>
+          </div>
+        </div>
+        <div
+          class="card cta-card"
+        >
+          <div
+            class="cta-row"
+          >
+            <div>
+              <div
+                style="font-weight: 700;"
+              >
+                Select a tier to continue
+              </div>
+              <div
+                class="muted"
+              >
+                Select an association or constituency to enable checkout.
+              </div>
+            </div>
+            <div
+              class="cta-actions"
+            >
+              <button
+                class="button primary"
+                data-loading="false"
+                disabled=""
+                type="button"
+              >
+                Add to cart
+              </button>
+              <a
+                class="button ghost"
+                data-discover="true"
+                data-loading="false"
+                href="/"
+              >
+                Continue shopping
+              </a>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div
+        class="subscription-aside"
+      >
+        <div
+          class="card cart-summary"
+        >
+          <div
+            class="card-header"
+          >
+            <h3
+              class="card-title"
+            >
+              Cart summary
+            </h3>
+          </div>
+          <p
+            class="muted"
+          >
+            No items yet. Add a subscription or product to start your basket.
+          </p>
+          <div
+            class="cart-total"
+          >
+            <span
+              class="muted"
+            >
+              Subtotal
+            </span>
+            <span
+              style="font-weight: 800;"
+            >
+              £0.00
+            </span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+`;

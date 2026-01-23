@@ -1,26 +1,39 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { NavLink, Navigate, Route, Routes } from "react-router-dom";
 import { clearStoredSession, startLogout } from "./lib/cognito.js";
+import { useCart } from "./cart/cartStore.jsx";
 import { getSession } from "./auth/session.js";
 import Button from "./components/Button.jsx";
+import CookieNotice from "./components/CookieNotice.jsx";
 import IdleWarning from "./components/IdleWarning.jsx";
 import ProtectedRoute from "./components/ProtectedRoute.jsx";
 import Callback from "./pages/Callback.jsx";
+import Cart from "./pages/Cart.jsx";
+import Checkout from "./pages/Checkout.jsx";
+import CheckoutConfirmation from "./pages/CheckoutConfirmation.jsx";
+import EnquirePage from "./pages/EnquirePage.jsx";
 import Home from "./pages/Home.jsx";
 import Login from "./pages/Login.jsx";
-import Portal from "./pages/Portal.jsx";
 import Pricing from "./pages/Pricing.jsx";
+import Subscriptions from "./pages/Subscriptions.jsx";
 import PortalLayout from "./pages/portal/PortalLayout.jsx";
 import PortalNotFound from "./pages/portal/PortalNotFound.jsx";
 import PricingRules from "./pages/portal/PricingRules.jsx";
+import Dashboard from "./pages/portal/Dashboard.jsx";
+import Integrations from "./pages/portal/Integrations.jsx";
+import Quotes from "./pages/portal/Quotes.jsx";
+import QuoteDetail from "./pages/portal/QuoteDetail.jsx";
 import Session from "./pages/Session.jsx";
 import SignUp from "./pages/SignUp.jsx";
+import CookiesPage from "./pages/legal/CookiesPage.jsx";
+import PrivacyPage from "./pages/legal/PrivacyPage.jsx";
+import TermsPage from "./pages/legal/TermsPage.jsx";
 
 const WARNING_DELAY_MS = 4 * 60 * 1000; // 4 minutes before showing the warning
 const WARNING_WINDOW_MS = 60 * 1000; // 1 minute countdown before auto-logout
 const WARNING_SECONDS = WARNING_WINDOW_MS / 1000;
 
-function TopNav({ authed, onLogout }) {
+function TopNav({ authed, onLogout, cartCount }) {
   const navClass = ({ isActive }) => (isActive ? "navLink active" : "navLink");
 
   return (
@@ -37,6 +50,13 @@ function TopNav({ authed, onLogout }) {
       <nav className="nav">
         <NavLink className={navClass} to="/">
           Home
+        </NavLink>
+        <NavLink className={navClass} to="/subscriptions">
+          Subscriptions
+        </NavLink>
+        <NavLink className={navClass} to="/cart">
+          Cart
+          {cartCount > 0 && <span className="nav-badge">{cartCount}</span>}
         </NavLink>
         <NavLink className={navClass} to="/login">
           Login
@@ -55,6 +75,7 @@ function TopNav({ authed, onLogout }) {
 }
 
 export default function App() {
+  const { items } = useCart();
   const [session, setSession] = useState(() => getSession());
   const [showIdleWarning, setShowIdleWarning] = useState(false);
   const [warningSecondsLeft, setWarningSecondsLeft] = useState(WARNING_SECONDS);
@@ -172,7 +193,7 @@ export default function App() {
 
   return (
     <div className="app">
-      <TopNav authed={authed} onLogout={handleLogout} />
+      <TopNav authed={authed} onLogout={handleLogout} cartCount={items.length} />
       <main className="content">
         <div className="app-shell">
           <Routes>
@@ -180,15 +201,26 @@ export default function App() {
             <Route path="/login" element={<Login authed={authed} />} />
             <Route path="/callback" element={<Callback onAuth={handleAuthSuccess} />} />
             <Route path="/signup" element={<SignUp />} />
+            <Route path="/enquire" element={<EnquirePage />} />
+            <Route path="/cart" element={<Cart />} />
+            <Route path="/checkout" element={<Checkout />} />
+            <Route path="/checkout/confirmation" element={<CheckoutConfirmation />} />
+            <Route path="/subscriptions" element={<Subscriptions />} />
+            <Route path="/privacy" element={<PrivacyPage />} />
+            <Route path="/terms" element={<TermsPage />} />
+            <Route path="/cookies" element={<CookiesPage />} />
             <Route element={<ProtectedRoute authed={authed} session={session} />}>
               <Route path="/portal" element={<PortalLayout />}>
-                <Route index element={<Portal tokens={tokens} onLogout={handleLogout} />} />
+                <Route index element={<Dashboard />} />
                 <Route
                   path="session"
                   element={<Session session={session} onClear={handleClearSession} />}
                 />
                 <Route path="pricing" element={<Pricing />} />
                 <Route path="pricing-rules" element={<PricingRules />} />
+                <Route path="settings/integrations" element={<Integrations />} />
+                <Route path="ops/quotes" element={<Quotes />} />
+                <Route path="ops/quotes/:ref" element={<QuoteDetail />} />
                 <Route path="*" element={<PortalNotFound />} />
               </Route>
             </Route>
@@ -203,6 +235,7 @@ export default function App() {
           onLogout={handleLogout}
         />
       )}
+      <CookieNotice />
     </div>
   );
 }

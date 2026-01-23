@@ -120,6 +120,9 @@ img {
   background: transparent;
   font-weight: 600;
   transition: color 180ms ease, background 180ms ease, border-color 180ms ease;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
 }
 
 .navLink:hover {
@@ -133,6 +136,21 @@ img {
   background: rgba(75, 130, 225, 0.16);
   border-color: rgba(75, 130, 225, 0.28);
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05);
+}
+
+.nav-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 22px;
+  height: 22px;
+  padding: 0 6px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--text);
+  background: rgba(75, 130, 225, 0.25);
+  border: 1px solid rgba(75, 130, 225, 0.45);
 }
 
 .content {
@@ -405,6 +423,37 @@ img {
   opacity: 0.8;
 }
 
+.footer-links {
+  display: inline-flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.cookie-banner {
+  position: fixed;
+  left: var(--space-4);
+  right: var(--space-4);
+  bottom: var(--space-4);
+  z-index: 50;
+}
+
+.cookie-banner__content {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  padding: var(--space-4) var(--space-5);
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--border);
+  background: linear-gradient(145deg, var(--surface), var(--surface-muted));
+  box-shadow: var(--shadow-soft);
+  color: var(--text-muted);
+}
+
+.cookie-banner__content a {
+  color: var(--text);
+}
+
 .login-card {
   max-width: 420px;
   margin: 0 auto;
@@ -518,6 +567,7 @@ img {
     grid-auto-flow: column;
     grid-auto-columns: 1fr;
   }
+
 }
 
 @media (max-width: 640px) {
@@ -543,6 +593,12 @@ img {
   .app-shell {
     padding: var(--space-4);
   }
+
+  .cookie-banner__content {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
 }
 
 .idle-overlay {

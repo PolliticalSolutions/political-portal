@@ -56,7 +56,22 @@ describe("ProtectedRoute", () => {
     );
 
     expect(screen.getByText("Session expired, please sign in again.")).toBeInTheDocument();
-    expect(sessionStorage.getItem("cognito_post_login_redirect")).toBe("/portal");
+    expect(sessionStorage.getItem("ps_post_auth_redirect_v1")).toBe("/portal");
+  });
+
+  it("stores the intended path before redirecting to /login", () => {
+    render(
+      <MemoryRouter initialEntries={["/portal/thing?x=1"]}>
+        <Routes>
+          <Route element={<ProtectedRoute authed={false} session={{}} />}>
+            <Route path="/portal/thing" element={<PortalScreen />} />
+          </Route>
+          <Route path="/login" element={<Login authed={false} />} />
+        </Routes>
+      </MemoryRouter>
+    );
+
+    expect(sessionStorage.getItem("ps_post_auth_redirect_v1")).toBe("/portal/thing?x=1");
   });
 
   it("renders outlet content when token is valid", () => {

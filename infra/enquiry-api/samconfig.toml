@@ -1,0 +1,13 @@
+version = 0.1
+
+[default.deploy.parameters]
+stack_name = "enquiry-api"
+resolve_s3 = true
+s3_prefix = "enquiry-api"
+confirm_changeset = true
+capabilities = "CAPABILITY_IAM"
+parameter_overrides = "AllowedOrigins=\"https://www.politicalsolutions.uk,http://localhost:5173\" ToEmail=\"paul@politicalsolutions.uk\" OpsEmailTo=\"paul@politicalsolutions.uk\" FromEmail=\"paul@politicalsolutions.uk\" CognitoIssuer=\"\" CognitoAudience=\"\""
+image_repositories = []
+
+[default.global.parameters]
+region = "eu-west-2"

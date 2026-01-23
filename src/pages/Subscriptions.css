@@ -1,0 +1,234 @@
+.subscription-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 2.2fr) minmax(0, 1fr);
+  gap: var(--space-5);
+  align-items: start;
+}
+
+.subscription-main {
+  display: grid;
+  gap: var(--space-4);
+}
+
+.subscription-aside {
+  position: sticky;
+  top: 110px;
+}
+
+.association-selector {
+  display: grid;
+  gap: var(--space-4);
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+}
+
+.filter-row {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: var(--space-2);
+  align-items: center;
+}
+
+.filter-row .button {
+  padding: 10px 12px;
+}
+
+.circumstance-grid {
+  display: grid;
+  gap: var(--space-3);
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+}
+
+.circumstance-card {
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--border);
+  background: linear-gradient(145deg, var(--surface), var(--surface-muted));
+  padding: var(--space-4);
+  color: var(--text);
+  text-align: left;
+  cursor: pointer;
+  transition: border-color 160ms ease, transform 160ms ease, box-shadow 160ms ease;
+}
+
+.circumstance-card:hover {
+  border-color: rgba(75, 130, 225, 0.5);
+  transform: translateY(-1px);
+}
+
+.circumstance-card.active {
+  border-color: rgba(75, 130, 225, 0.8);
+  box-shadow: inset 0 0 0 1px rgba(75, 130, 225, 0.35);
+}
+
+.tier-grid {
+  display: grid;
+  gap: var(--space-4);
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+}
+
+.tier-card {
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--border);
+  background: linear-gradient(160deg, rgba(18, 26, 39, 0.95), rgba(12, 17, 26, 0.85));
+  padding: var(--space-4);
+  display: grid;
+  gap: var(--space-3);
+  box-shadow: var(--shadow-soft);
+}
+
+.tier-card h3 {
+  margin: 0;
+  font-size: 20px;
+}
+
+.tier-card ul {
+  margin: 0;
+  padding-left: 18px;
+  color: var(--text-muted);
+  display: grid;
+  gap: 6px;
+}
+
+.tier-card.recommended {
+  border-color: rgba(75, 130, 225, 0.75);
+  box-shadow: 0 20px 50px rgba(75, 130, 225, 0.15);
+}
+
+.tier-card.selected {
+  border-color: rgba(255, 255, 255, 0.5);
+}
+
+.tier-header {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--space-3);
+  align-items: flex-start;
+}
+
+.price-tag {
+  font-size: 18px;
+  font-weight: 700;
+}
+
+.comparison-table {
+  display: grid;
+  gap: 10px;
+}
+
+.comparison-row {
+  display: grid;
+  grid-template-columns: minmax(160px, 1.2fr) repeat(4, minmax(0, 1fr));
+  gap: var(--space-3);
+  align-items: center;
+  padding: 10px 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.comparison-row:last-child {
+  border-bottom: none;
+}
+
+.comparison-header {
+  font-weight: 700;
+  color: var(--text);
+}
+
+.subtle-row {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--space-3);
+  align-items: flex-start;
+}
+
+.cta-card {
+  background: linear-gradient(145deg, rgba(75, 130, 225, 0.12), rgba(12, 17, 26, 0.8));
+  border-color: rgba(75, 130, 225, 0.4);
+}
+
+.cta-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+  align-items: center;
+  justify-content: space-between;
+}
+
+.cta-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
+.cart-summary {
+  position: relative;
+}
+
+.cart-list {
+  display: grid;
+  gap: var(--space-3);
+}
+
+.cart-item {
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border);
+  padding: var(--space-3);
+  background: rgba(255, 255, 255, 0.02);
+  display: grid;
+  gap: var(--space-2);
+}
+
+.cart-item-header {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--space-3);
+}
+
+.cart-item-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.cart-meta {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--space-3);
+  font-size: 13px;
+}
+
+.cart-total {
+  display: flex;
+  justify-content: space-between;
+  margin-top: var(--space-4);
+}
+
+.cart-invoice summary {
+  cursor: pointer;
+}
+
+@media (max-width: 960px) {
+  .subscription-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .subscription-aside {
+    position: relative;
+    top: 0;
+  }
+
+  .comparison-row {
+    grid-template-columns: 1fr;
+    gap: 6px;
+  }
+
+  .comparison-row > div:first-child {
+    font-weight: 700;
+  }
+}
+
+@media (max-width: 640px) {
+  .cta-row {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+}

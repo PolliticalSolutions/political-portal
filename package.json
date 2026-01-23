@@ -10,6 +10,7 @@
     "test": "vitest",
     "test:run": "vitest run",
     "test:ui": "vitest --ui",
+    "test:api": "vitest run --config vitest.api.config.js",
     "data:build": "node scripts/generateAssociationsJson.mjs"
   },
   "dependencies": {

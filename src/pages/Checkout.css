@@ -1,0 +1,33 @@
+.checkout-page .stack {
+  gap: var(--space-4);
+}
+
+.checkout-summary {
+  display: grid;
+  gap: var(--space-3);
+}
+
+.checkout-summary-row {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--space-3);
+  padding-bottom: var(--space-2);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.checkout-summary-row:last-child {
+  border-bottom: none;
+}
+
+.checkout-summary-total {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: var(--space-2);
+}
+
+.checkout-actions {
+  display: flex;
+  gap: var(--space-2);
+  flex-wrap: wrap;
+}

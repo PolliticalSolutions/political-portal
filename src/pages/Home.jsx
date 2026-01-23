@@ -2,6 +2,7 @@ import { Link } from "react-router-dom";
 import Badge from "../components/Badge.jsx";
 import Button from "../components/Button.jsx";
 import Card from "../components/Card.jsx";
+import Footer from "../components/Footer.jsx";
 
 const features = [
   {
@@ -76,11 +77,7 @@ export default function Home() {
         ))}
       </div>
 
-      <footer className="footer">
-        <span>Political Solutions - secure, structured, audit-friendly.</span>
-        <span>Contact: ops@politicalsolutions.uk</span>
-        <span>Privacy | Terms</span>
-      </footer>
+      <Footer />
     </div>
   );
 }

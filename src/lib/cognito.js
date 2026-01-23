@@ -69,7 +69,7 @@ export function clearStoredSession({ preserveRedirect = false } = {}) {
   }
 }
 
-function buildAuthorizeUrl(codeChallenge) {
+export function buildAuthorizeUrl(codeChallenge, { screenHint } = {}) {
   const url = new URL("/oauth2/authorize", cognitoConfig.domain);
   url.searchParams.set("response_type", "code");
   url.searchParams.set("client_id", cognitoConfig.clientId);
@@ -77,10 +77,13 @@ function buildAuthorizeUrl(codeChallenge) {
   url.searchParams.set("scope", cognitoConfig.scope);
   url.searchParams.set("code_challenge", codeChallenge);
   url.searchParams.set("code_challenge_method", "S256");
+  if (screenHint) {
+    url.searchParams.set("screen_hint", screenHint);
+  }
   return url.toString();
 }
 
-export async function startLogin(redirectPath = "/portal") {
+export async function startLogin(redirectPath = "/portal", { screenHint } = {}) {
   if (!cognitoConfig.domain || !cognitoConfig.clientId || !cognitoConfig.redirectUri) {
     throw new Error("Configure cognitoConfig.domain, clientId, and redirectUri before logging in.");
   }
@@ -88,8 +91,12 @@ export async function startLogin(redirectPath = "/portal") {
   const { verifier, challenge } = await createPkcePair();
   persistVerifier(verifier);
   persistRedirectPath(redirectPath);
-  const authorizeUrl = buildAuthorizeUrl(challenge);
+  const authorizeUrl = buildAuthorizeUrl(challenge, { screenHint });
   window.location.assign(authorizeUrl);
+}
+
+export async function startSignUp(redirectPath = "/portal") {
+  return startLogin(redirectPath, { screenHint: "signup" });
 }
 
 function buildLogoutUrl() {

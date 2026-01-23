@@ -9,10 +9,22 @@ export default function PortalLayout() {
         <div style={{ fontSize: 18, fontWeight: 700 }}>Portal</div>
         <nav className="nav" aria-label="Portal">
           <NavLink className={navClass} to="/portal" end>
-            Home
+            Dashboard
           </NavLink>
           <NavLink className={navClass} to="/portal/pricing-rules">
             Pricing rules
+          </NavLink>
+          <NavLink className={navClass} to="/portal/settings/integrations">
+            Integrations
+          </NavLink>
+          <NavLink className={navClass} to="/portal/ops/quotes">
+            Ops quotes
+          </NavLink>
+          <NavLink className={navClass} to="/subscriptions">
+            Subscriptions
+          </NavLink>
+          <NavLink className={navClass} to="/cart">
+            Cart
           </NavLink>
         </nav>
       </div>
