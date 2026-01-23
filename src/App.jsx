@@ -104,7 +104,7 @@ function TopNav({ authed, onLogout, cartCount }) {
             </NavLinkButton>
           </nav>
           <div className="nav-cta">
-            <NavLinkButton to="/login" variant="primary" onClick={closeMenu}>
+            <NavLinkButton to="/login" variant="emphasis" onClick={closeMenu}>
               Client login
             </NavLinkButton>
             <NavLinkButton to="/portal" onClick={closeMenu}>

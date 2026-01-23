@@ -192,18 +192,16 @@ p {
   border-color: rgba(11, 46, 77, 0.2);
 }
 
-.navLink--primary {
-  background: var(--primary);
-  color: #ffffff;
-  border-color: rgba(11, 46, 77, 0.2);
-  box-shadow: 0 12px 24px rgba(11, 46, 77, 0.2);
+.navLink--emphasis {
+  border-color: rgba(11, 46, 77, 0.35);
+  color: var(--primary);
+  background: transparent;
 }
 
-.navLink--primary:hover,
-.navLink--primary.active {
-  background: var(--primary-hover);
-  color: #ffffff;
-  border-color: rgba(11, 46, 77, 0.3);
+.navLink--emphasis:hover,
+.navLink--emphasis.active {
+  background: rgba(11, 46, 77, 0.12);
+  border-color: rgba(11, 46, 77, 0.45);
 }
 
 .navLink--ghost {

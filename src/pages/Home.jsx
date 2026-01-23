@@ -3,7 +3,7 @@ import { Link } from "react-router-dom";
 import Button from "../components/Button.jsx";
 import Card from "../components/Card.jsx";
 import Footer from "../components/Footer.jsx";
-import heroVisual from "../assets/hero-visual.svg";
+import heroVisual from "../assets/hero/hero-visual.svg";
 import Seo from "../seo/Seo.jsx";
 import { buildOrganisationSchema, buildWebsiteSchema } from "../seo/structuredData.js";
 

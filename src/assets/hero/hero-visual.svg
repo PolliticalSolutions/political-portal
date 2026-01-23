@@ -1,0 +1,119 @@
+<svg width="1200" height="700" viewBox="0 0 1200 700" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1200" y2="700" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#F5F8FB"/>
+      <stop offset="1" stop-color="#E9EFF5"/>
+    </linearGradient>
+    <linearGradient id="panel" x1="0" y1="0" x2="1" y2="1">
+      <stop stop-color="#FFFFFF" stop-opacity="0.85"/>
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0.55"/>
+    </linearGradient>
+    <filter id="softShadow" x="-30" y="-30" width="1260" height="760" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB">
+      <feDropShadow dx="0" dy="14" stdDeviation="18" flood-color="#0D1925" flood-opacity="0.12"/>
+    </filter>
+    <filter id="cardShadow" x="-30" y="-30" width="600" height="340" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB">
+      <feDropShadow dx="0" dy="10" stdDeviation="14" flood-color="#0D1925" flood-opacity="0.10"/>
+    </filter>
+  </defs>
+
+  <!-- Background -->
+  <rect x="40" y="40" width="1120" height="620" rx="28" fill="url(#bg)" filter="url(#softShadow)"/>
+  <rect x="70" y="70" width="1060" height="560" rx="24" fill="url(#panel)" stroke="#D6E0EA"/>
+
+  <!-- Subtle grid -->
+  <g opacity="0.35">
+    <path d="M140 170H1060" stroke="#D6E0EA"/>
+    <path d="M140 240H1060" stroke="#D6E0EA"/>
+    <path d="M140 310H1060" stroke="#D6E0EA"/>
+    <path d="M140 380H1060" stroke="#D6E0EA"/>
+    <path d="M140 450H1060" stroke="#D6E0EA"/>
+    <path d="M140 520H1060" stroke="#D6E0EA"/>
+    <path d="M220 140V590" stroke="#D6E0EA"/>
+    <path d="M320 140V590" stroke="#D6E0EA"/>
+    <path d="M420 140V590" stroke="#D6E0EA"/>
+    <path d="M520 140V590" stroke="#D6E0EA"/>
+    <path d="M620 140V590" stroke="#D6E0EA"/>
+    <path d="M720 140V590" stroke="#D6E0EA"/>
+    <path d="M820 140V590" stroke="#D6E0EA"/>
+    <path d="M920 140V590" stroke="#D6E0EA"/>
+  </g>
+
+  <!-- UK silhouette (abstract / non-political) -->
+  <path d="M335 455
+           C310 430, 305 400, 316 374
+           C325 352, 345 338, 370 330
+           C390 323, 403 304, 397 284
+           C391 263, 402 246, 424 238
+           C448 229, 458 208, 447 188
+           C434 164, 452 144, 480 150
+           C505 155, 522 176, 518 202
+           C514 228, 534 244, 558 246
+           C585 248, 606 270, 598 296
+           C590 321, 610 340, 636 344
+           C664 349, 679 376, 667 401
+           C656 424, 664 450, 685 464
+           C706 478, 704 508, 681 520
+           C658 532, 646 560, 662 581
+           C679 603, 661 630, 635 625
+           C609 620, 585 604, 566 583
+           C548 562, 518 559, 494 571
+           C470 583, 439 576, 424 553
+           C410 532, 384 525, 366 510
+           C349 496, 354 474, 335 455Z"
+        fill="#1E3549" opacity="0.10" stroke="#1E3549" stroke-opacity="0.35" stroke-width="2"/>
+
+  <!-- Network / operations lines -->
+  <g stroke="#1E3549" stroke-opacity="0.35" stroke-width="2" fill="none">
+    <path d="M410 520C470 485 545 470 615 500"/>
+    <path d="M390 420C455 395 520 395 590 420"/>
+    <path d="M455 290C500 315 545 320 600 300"/>
+  </g>
+
+  <!-- Nodes -->
+  <g>
+    <circle cx="410" cy="520" r="7" fill="#0D1925"/>
+    <circle cx="615" cy="500" r="7" fill="#0D1925"/>
+    <circle cx="390" cy="420" r="7" fill="#0D1925"/>
+    <circle cx="590" cy="420" r="7" fill="#0D1925"/>
+    <circle cx="455" cy="290" r="7" fill="#0D1925"/>
+    <circle cx="600" cy="300" r="7" fill="#0D1925"/>
+    <circle cx="520" cy="395" r="7" fill="#2F595F"/>
+  </g>
+
+  <!-- Dashboard cards -->
+  <g filter="url(#cardShadow)">
+    <rect x="680" y="185" width="360" height="150" rx="18" fill="#FFFFFF" stroke="#D6E0EA"/>
+    <text x="710" y="225" font-family="Inter, system-ui, -apple-system, Segoe UI, Roboto, Arial" font-size="18" fill="#0D1925" opacity="0.92">Delivery overview</text>
+    <path d="M710 290H1010" stroke="#D6E0EA"/>
+    <path d="M720 288V255" stroke="#1E3549" stroke-opacity="0.55" stroke-width="10" stroke-linecap="round"/>
+    <path d="M760 288V240" stroke="#1E3549" stroke-opacity="0.55" stroke-width="10" stroke-linecap="round"/>
+    <path d="M800 288V265" stroke="#1E3549" stroke-opacity="0.55" stroke-width="10" stroke-linecap="round"/>
+    <path d="M840 288V230" stroke="#2F595F" stroke-opacity="0.75" stroke-width="10" stroke-linecap="round"/>
+    <path d="M880 288V250" stroke="#1E3549" stroke-opacity="0.55" stroke-width="10" stroke-linecap="round"/>
+    <path d="M920 288V235" stroke="#1E3549" stroke-opacity="0.55" stroke-width="10" stroke-linecap="round"/>
+  </g>
+
+  <g filter="url(#cardShadow)">
+    <rect x="680" y="370" width="360" height="210" rx="18" fill="#FFFFFF" stroke="#D6E0EA"/>
+    <text x="710" y="410" font-family="Inter, system-ui, -apple-system, Segoe UI, Roboto, Arial" font-size="18" fill="#0D1925" opacity="0.92">Data insights</text>
+
+    <rect x="710" y="440" width="300" height="12" rx="6" fill="#E9EFF5"/>
+    <rect x="710" y="440" width="210" height="12" rx="6" fill="#1E3549" opacity="0.65"/>
+
+    <rect x="710" y="470" width="300" height="12" rx="6" fill="#E9EFF5"/>
+    <rect x="710" y="470" width="255" height="12" rx="6" fill="#2F595F" opacity="0.75"/>
+
+    <rect x="710" y="500" width="300" height="12" rx="6" fill="#E9EFF5"/>
+    <rect x="710" y="500" width="175" height="12" rx="6" fill="#1E3549" opacity="0.55"/>
+
+    <path d="M710 555C760 525 810 545 860 520C910 495 960 520 1010 495" stroke="#0D1925" stroke-opacity="0.70" stroke-width="3" fill="none"/>
+    <circle cx="760" cy="525" r="5" fill="#0D1925"/>
+    <circle cx="860" cy="520" r="5" fill="#2F595F"/>
+    <circle cx="1010" cy="495" r="5" fill="#0D1925"/>
+  </g>
+
+  <!-- Caption -->
+  <text x="100" y="120" font-family="Inter, system-ui, -apple-system, Segoe UI, Roboto, Arial" font-size="14" fill="#1E3549" opacity="0.75">
+    Secure, apolitical operations support — delivered through a subscription portal
+  </text>
+</svg>
