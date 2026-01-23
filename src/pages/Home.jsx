@@ -1,5 +1,4 @@
 import { Link } from "react-router-dom";
-import Badge from "../components/Badge.jsx";
 import Button from "../components/Button.jsx";
 import Card from "../components/Card.jsx";
 import Footer from "../components/Footer.jsx";
@@ -73,8 +72,7 @@ export default function Home() {
       <section className="section">
         <div className="container hero">
           <div>
-            <Badge tone="accent">Apolitical operations platform</Badge>
-            <h1>UK political operations platform for clean delivery.</h1>
+            <h1>UK political operations platform for clean delivery</h1>
             <p>
               Political Solutions provides marked register processing, data insights, and campaign operations
               support, delivered through a secure subscription portal.
@@ -88,11 +86,13 @@ export default function Home() {
               </Button>
             </div>
           </div>
-          <div className="hero-visual" aria-hidden="true">
-            <span>Product overview visual</span>
-            <p className="muted" style={{ marginTop: 8 }}>
-              Diagram or screenshot placeholder
-            </p>
+          <div className="hero-visual">
+            <img
+              className="hero-visual-image"
+              src="/assets/hero-visual.svg"
+              alt="Illustration of secure operations delivery and data insights"
+              loading="lazy"
+            />
           </div>
         </div>
       </section>

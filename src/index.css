@@ -151,15 +151,14 @@ p {
   font-weight: 700;
   letter-spacing: 0.01em;
   color: var(--primary);
+  text-decoration: none;
 }
 
-.brand-mark {
-  width: 36px;
-  height: 36px;
-  border-radius: 12px;
-  background: linear-gradient(135deg, rgba(11, 46, 77, 0.15), rgba(11, 46, 77, 0.35));
-  border: 1px solid rgba(11, 46, 77, 0.2);
-  box-shadow: 0 10px 24px rgba(15, 28, 52, 0.12);
+.brand-logo {
+  width: 34px;
+  height: 34px;
+  border-radius: 10px;
+  object-fit: contain;
 }
 
 .nav {
@@ -243,6 +242,10 @@ p {
   width: 100%;
 }
 
+.content p {
+  max-width: 72ch;
+}
+
 .hero {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
@@ -269,18 +272,19 @@ p {
 
 .hero-visual {
   border-radius: var(--radius-lg);
-  border: 1px dashed rgba(11, 46, 77, 0.3);
-  background: linear-gradient(145deg, rgba(11, 46, 77, 0.05), rgba(255, 255, 255, 0.8));
+  border: 1px solid var(--border);
+  background: var(--surface);
   min-height: 220px;
   display: grid;
   place-items: center;
-  padding: var(--space-4);
-  color: var(--text-muted);
-  text-align: center;
+  padding: var(--space-3);
 }
 
-.hero-visual span {
-  font-weight: 600;
+.hero-visual-image {
+  width: 100%;
+  height: auto;
+  max-height: 420px;
+  object-fit: contain;
 }
 
 .pill {
@@ -336,6 +340,7 @@ p {
 .card p {
   margin: 0;
   color: var(--text-muted);
+  max-width: none;
 }
 
 .card + .card {

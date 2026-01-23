@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { NavLink, Navigate, Route, Routes } from "react-router-dom";
+import { Link, NavLink, Navigate, Route, Routes } from "react-router-dom";
 import { clearStoredSession, startLogout } from "./lib/cognito.js";
 import { useCart } from "./cart/cartStore.jsx";
 import { getSession } from "./auth/session.js";
@@ -34,6 +34,7 @@ import SignUp from "./pages/SignUp.jsx";
 import CookiesPage from "./pages/legal/CookiesPage.jsx";
 import PrivacyPage from "./pages/legal/PrivacyPage.jsx";
 import TermsPage from "./pages/legal/TermsPage.jsx";
+import brandLogo from "./assets/brand/political-solutions-logo.png";
 
 const WARNING_DELAY_MS = 4 * 60 * 1000; // 4 minutes before showing the warning
 const WARNING_WINDOW_MS = 60 * 1000; // 1 minute countdown before auto-logout
@@ -46,15 +47,22 @@ function TopNav({ authed, onLogout, cartCount }) {
   return (
     <header className="topbar">
       <div className="container topbar-inner">
-        <div className="brand">
-          <span className="brand-mark" aria-hidden="true" />
+        <Link className="brand" to="/" onClick={() => setMenuOpen(false)}>
+          <img
+            className="brand-logo"
+            src={brandLogo}
+            alt="Political Solutions"
+            width={34}
+            height={34}
+            loading="eager"
+          />
           <div>
             <div style={{ fontWeight: 800 }}>Political Solutions</div>
             <div className="muted" style={{ fontSize: 13 }}>
-              UK political operations platform
+              UK Political Operations Platform
             </div>
           </div>
-        </div>
+        </Link>
         <button
           type="button"
           className="nav-toggle"
