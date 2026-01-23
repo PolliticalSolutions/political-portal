@@ -1,5 +1,0 @@
-User-agent: *
-Disallow: /portal
-Disallow: /callback
-
-Sitemap: https://www.politicalsolutions.uk/sitemap.xml
