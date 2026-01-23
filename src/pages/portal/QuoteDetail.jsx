@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import Button from "../../components/Button.jsx";
 import Card from "../../components/Card.jsx";
-import { getQuoteRequestAdmin } from "../../lib/quoteApi.js";
+import { createServiceInvoice, getQuoteRequestAdmin, getXeroStatus } from "../../lib/quoteApi.js";
 import { formatCurrency } from "../../utils/formatters.js";
 
 const formatDate = (value) => {
@@ -35,25 +35,54 @@ const resolveErrorAction = (code) => {
 export default function QuoteDetail() {
   const { ref } = useParams();
   const [state, setState] = useState({ loading: true, error: "", record: null });
+  const [xeroConfig, setXeroConfig] = useState({ emailInvoiceEnabled: false });
+  const [invoiceModalOpen, setInvoiceModalOpen] = useState(false);
+  const [invoiceForm, setInvoiceForm] = useState({
+    amount: "",
+    description: "",
+    dueDays: "",
+    emailInvoice: false,
+  });
+  const [invoiceErrors, setInvoiceErrors] = useState({});
+  const [invoiceStatus, setInvoiceStatus] = useState({ submitting: false, error: "" });
+
+  const loadDetail = async (active) => {
+    setState({ loading: true, error: "", record: null });
+    try {
+      const result = await getQuoteRequestAdmin(ref);
+      if (!active) return;
+      setState({ loading: false, error: "", record: result.record });
+    } catch (error) {
+      if (!active) return;
+      setState({ loading: false, error: "Unable to load quote details.", record: null });
+    }
+  };
 
   useEffect(() => {
     let active = true;
-    const loadDetail = async () => {
-      setState({ loading: true, error: "", record: null });
-      try {
-        const result = await getQuoteRequestAdmin(ref);
-        if (!active) return;
-        setState({ loading: false, error: "", record: result.record });
-      } catch (error) {
-        if (!active) return;
-        setState({ loading: false, error: "Unable to load quote details.", record: null });
-      }
-    };
-    if (ref) loadDetail();
+    if (ref) loadDetail(active);
     return () => {
       active = false;
     };
   }, [ref]);
+
+  useEffect(() => {
+    let active = true;
+    const loadXero = async () => {
+      try {
+        const result = await getXeroStatus({ withAuth: true });
+        if (!active) return;
+        setXeroConfig({ emailInvoiceEnabled: Boolean(result?.emailInvoiceEnabled) });
+      } catch {
+        if (!active) return;
+        setXeroConfig({ emailInvoiceEnabled: false });
+      }
+    };
+    loadXero();
+    return () => {
+      active = false;
+    };
+  }, []);
 
   const summaryText = useMemo(() => {
     if (!state.record) return "";
@@ -81,6 +110,63 @@ export default function QuoteDetail() {
     () => resolveErrorAction(state.record?.xero?.errorCode || ""),
     [state.record]
   );
+  const isServiceEnquiry = state.record?.requestType === "SERVICE_ENQUIRY";
+
+  const handleInvoiceChange = (event) => {
+    const { name, value, type, checked } = event.target;
+    setInvoiceForm((prev) => ({
+      ...prev,
+      [name]: type === "checkbox" ? checked : value,
+    }));
+  };
+
+  const validateInvoice = () => {
+    const nextErrors = {};
+    const amount = Number(invoiceForm.amount);
+    if (!Number.isFinite(amount) || amount < 1) {
+      nextErrors.amount = "Amount must be at least 1.";
+    }
+    if (!invoiceForm.description.trim()) {
+      nextErrors.description = "Description is required.";
+    } else if (invoiceForm.description.length > 200) {
+      nextErrors.description = "Description is too long.";
+    }
+    if (invoiceForm.dueDays && Number(invoiceForm.dueDays) <= 0) {
+      nextErrors.dueDays = "Due days must be positive.";
+    }
+    setInvoiceErrors(nextErrors);
+    return Object.keys(nextErrors).length === 0;
+  };
+
+  const handleCreateInvoice = async () => {
+    if (!state.record?.referenceId) return;
+    if (!validateInvoice()) return;
+    setInvoiceStatus({ submitting: true, error: "" });
+    try {
+      const result = await createServiceInvoice(state.record.referenceId, {
+        amount: Number(invoiceForm.amount),
+        description: invoiceForm.description.trim(),
+        dueDays: invoiceForm.dueDays ? Number(invoiceForm.dueDays) : undefined,
+        emailInvoice: invoiceForm.emailInvoice,
+      });
+      if (!result?.ok && result?.errorCode) {
+        setInvoiceStatus({
+          submitting: false,
+          error: `Invoice creation failed (${result.errorCode}).`,
+        });
+      } else {
+        setInvoiceStatus({ submitting: false, error: "" });
+        setInvoiceModalOpen(false);
+        setInvoiceForm({ amount: "", description: "", dueDays: "", emailInvoice: false });
+      }
+      await loadDetail(true);
+    } catch (error) {
+      setInvoiceStatus({
+        submitting: false,
+        error: "Unable to create invoice. Please try again.",
+      });
+    }
+  };
 
   const copySummary = async () => {
     if (!summaryText) return;
@@ -179,12 +265,118 @@ export default function QuoteDetail() {
                 <div>{state.record.notes}</div>
               </div>
             )}
+            {isServiceEnquiry && (
+              <div>
+                <div className="muted">Service enquiry</div>
+                <div style={{ fontWeight: 700 }}>Election & by-election support</div>
+                <ol className="muted" style={{ marginTop: 8, paddingLeft: 18 }}>
+                  <li>Received: {formatDate(state.record.createdAt)}</li>
+                  <li>Invoice: {invoiceState}</li>
+                </ol>
+                {state.record.serviceInvoice && (
+                  <div className="muted" style={{ marginTop: 8 }}>
+                    Draft invoice: {formatCurrency(state.record.serviceInvoice.amount || 0)} -{" "}
+                    {state.record.serviceInvoice.description || "No description"}
+                  </div>
+                )}
+              </div>
+            )}
+            {isServiceEnquiry && (
+              <div>
+                <Button variant="primary" onClick={() => setInvoiceModalOpen(true)}>
+                  Create draft invoice
+                </Button>
+              </div>
+            )}
             <Button variant="secondary" onClick={copySummary}>
               Copy invoice-ready summary
             </Button>
           </div>
         )}
       </Card>
+
+      {invoiceModalOpen && (
+        <div
+          role="dialog"
+          aria-modal="true"
+          style={{
+            position: "fixed",
+            inset: 0,
+            background: "rgba(15, 23, 42, 0.4)",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            padding: 16,
+            zIndex: 50,
+          }}
+        >
+          <div style={{ maxWidth: 520, width: "100%" }}>
+            <Card className="stack" title="Create draft invoice">
+            <label className="field">
+              <span>Amount (GBP) *</span>
+              <input
+                className="input"
+                name="amount"
+                type="number"
+                min="1"
+                step="0.01"
+                value={invoiceForm.amount}
+                onChange={handleInvoiceChange}
+              />
+              {invoiceErrors.amount && <span className="helper">{invoiceErrors.amount}</span>}
+            </label>
+            <label className="field">
+              <span>Description *</span>
+              <input
+                className="input"
+                name="description"
+                value={invoiceForm.description}
+                onChange={handleInvoiceChange}
+              />
+              {invoiceErrors.description && (
+                <span className="helper">{invoiceErrors.description}</span>
+              )}
+            </label>
+            <label className="field">
+              <span>Due days</span>
+              <input
+                className="input"
+                name="dueDays"
+                type="number"
+                min="1"
+                max="30"
+                value={invoiceForm.dueDays}
+                onChange={handleInvoiceChange}
+              />
+              {invoiceErrors.dueDays && <span className="helper">{invoiceErrors.dueDays}</span>}
+            </label>
+            {xeroConfig.emailInvoiceEnabled && (
+              <label className="field">
+                <span style={{ fontWeight: 600 }}>Invoice email</span>
+                <label className="muted" style={{ display: "flex", gap: 8, alignItems: "flex-start" }}>
+                  <input
+                    type="checkbox"
+                    name="emailInvoice"
+                    checked={invoiceForm.emailInvoice}
+                    onChange={handleInvoiceChange}
+                  />
+                  Email invoice from Xero after creation.
+                </label>
+              </label>
+            )}
+            {invoiceStatus.error && <div className="status error">{invoiceStatus.error}</div>}
+            <div style={{ display: "flex", gap: 8, justifyContent: "flex-end" }}>
+              <Button variant="ghost" onClick={() => setInvoiceModalOpen(false)}>
+                Cancel
+              </Button>
+              <Button variant="primary" onClick={handleCreateInvoice} loading={invoiceStatus.submitting}>
+                Create invoice
+              </Button>
+            </div>
+            </Card>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

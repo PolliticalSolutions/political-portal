@@ -3,6 +3,7 @@ Go-live: invoice-ready hardening
 Scope
 - Covers Cognito-gated ops endpoints, Xero invoicing, SES email, and ops visibility.
 - Public quote flow must remain available even if Cognito auth is not configured.
+- Adds public service enquiry intake for election support and ops-created draft invoices.
 
 Required parameters (SAM stack)
 - COGNITO_ISSUER and COGNITO_AUDIENCE for ops and Xero endpoints (fail-closed if missing).
@@ -14,6 +15,7 @@ Required parameters (SAM stack)
 - ALLOWED_ORIGINS and FRONTEND_BASE_URL for CORS and redirects.
 - AlarmTopicArn (optional but recommended).
 - DLQ settings and TTL settings (optional).
+- No new parameters required for service enquiries or ops-created invoices.
 
 Amplify environment variables
 - VITE_API_BASE_URL=<ApiBaseUrl> (required).
@@ -37,6 +39,20 @@ Xero configuration and connect flow
 - Connect Xero in /portal/settings/integrations and confirm tenant is shown.
 - If using invoice emails, enable Xero online payments before setting XERO_EMAIL_INVOICE=true.
 
+Service enquiry intake (public)
+- Public endpoint: POST /enquiry/service-support (no auth required).
+- Minimal data collection: name + email required; phone/organisation/message optional; consent required.
+- Creates a QuoteRequests record with requestType=SERVICE_ENQUIRY and serviceCategory=ELECTION_SUPPORT.
+- Sends a customer acknowledgement email and an ops notification email.
+- Does NOT create a Xero invoice automatically.
+
+Ops conversion to invoice (protected)
+- In /portal/ops/quotes, filter for Service enquiry.
+- Open the service enquiry and select "Create draft invoice".
+- Provide amount + description (required), optional due days, optional Xero email (if enabled).
+- Endpoint: POST /ops/quotes/{id}/invoice (auth required, fail-closed if missing Cognito config).
+- On success, the QuoteRequest is updated with Xero invoice id/status.
+
 Test invoice steps
 - In /portal/settings/integrations, click "Test invoice creation".
 - Confirm draft invoice appears in Xero and portal status updates.
@@ -50,4 +66,4 @@ Day-2 operations: invoice error codes
 - XERO_NOT_CONNECTED: reconnect Xero in Integrations, then retry manually in Xero.
 - XERO_CONFIG_MISSING: set sales account code and tax type, then retry.
 - XERO_INVOICE_FAILED: check CloudWatch logs, then create invoice manually in Xero.
-
+- AUTH_NOT_CONFIGURED: set Cognito issuer/audience; ops endpoints fail closed until configured.

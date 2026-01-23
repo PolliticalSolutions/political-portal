@@ -20,10 +20,13 @@ export default function PortalLayout() {
           <NavLink className={navClass} to="/portal/ops/quotes">
             Ops quotes
           </NavLink>
-          <NavLink className={navClass} to="/subscriptions">
+          <NavLink className={navClass} to="/portal/subscriptions">
             Subscriptions
           </NavLink>
-          <NavLink className={navClass} to="/cart">
+          <NavLink className={navClass} to="/services">
+            Services
+          </NavLink>
+          <NavLink className={navClass} to="/portal/cart">
             Cart
           </NavLink>
         </nav>

@@ -1,3 +1,4 @@
+import crypto from "crypto";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const idempotencyMap = new Map();
@@ -75,9 +76,25 @@ const buildEvent = (payload) => ({
   isBase64Encoded: false,
 });
 
+const buildServiceEvent = (payload) => ({
+  requestContext: { http: { method: "POST", path: "/enquiry/service-support", sourceIp: "1.2.3.4" } },
+  headers: {},
+  body: JSON.stringify(payload),
+  isBase64Encoded: false,
+});
+
 const buildGetEvent = (path, headers = {}) => ({
   requestContext: { http: { method: "GET", path, sourceIp: "1.2.3.4" } },
   headers,
+  isBase64Encoded: false,
+});
+
+const buildOpsInvoiceEvent = (referenceId, payload, headers = {}) => ({
+  requestContext: {
+    http: { method: "POST", path: `/ops/quotes/${referenceId}/invoice`, sourceIp: "1.2.3.4" },
+  },
+  headers,
+  body: JSON.stringify(payload),
   isBase64Encoded: false,
 });
 
@@ -110,6 +127,34 @@ const buildPayload = (overrides = {}) => ({
   totals: { oneOffSubtotal: 0, subscriptionSubtotal: 50, subtotal: 50 },
   ...overrides,
 });
+
+const buildServicePayload = (overrides = {}) => ({
+  name: "Alex Doe",
+  email: "alex@example.com",
+  phone: "07000000000",
+  organisation: "Alpha Org",
+  message: "Need election support",
+  consent: true,
+  ...overrides,
+});
+
+function makeJwt(payloadObj, privateKey, kid) {
+  const header = { alg: "RS256", typ: "JWT", kid };
+  const encode = (obj) =>
+    Buffer.from(JSON.stringify(obj))
+      .toString("base64")
+      .replace(/\+/g, "-")
+      .replace(/\//g, "_")
+      .replace(/=+$/, "");
+  const signingInput = `${encode(header)}.${encode(payloadObj)}`;
+  const signature = crypto.sign("RSA-SHA256", Buffer.from(signingInput), privateKey);
+  const signatureEncoded = Buffer.from(signature)
+    .toString("base64")
+    .replace(/\+/g, "-")
+    .replace(/\//g, "_")
+    .replace(/=+$/, "");
+  return `${signingInput}.${signatureEncoded}`;
+}
 
 describe("quote request handler", () => {
   beforeEach(() => {
@@ -255,5 +300,186 @@ describe("quote request handler", () => {
     const { handler } = await import("../src/handler.mjs");
     const result = await handler(buildEvent(buildPayload()), {});
     expect(result.statusCode).toBe(200);
+  });
+
+  it("creates a service enquiry without auth configuration", async () => {
+    delete process.env.COGNITO_ISSUER;
+    delete process.env.COGNITO_AUDIENCE;
+    const { handler } = await import("../src/handler.mjs");
+    const result = await handler(buildServiceEvent(buildServicePayload()), {});
+    const body = JSON.parse(result.body);
+    expect(result.statusCode).toBe(200);
+    expect(body.referenceId).toBeTruthy();
+  });
+
+  it("rejects service enquiry without consent", async () => {
+    const { handler } = await import("../src/handler.mjs");
+    const result = await handler(buildServiceEvent(buildServicePayload({ consent: false })), {});
+    const body = JSON.parse(result.body);
+    expect(result.statusCode).toBe(400);
+    expect(body.errorCode).toBe("VALIDATION_ERROR");
+  });
+
+  it("fails closed when auth configuration is missing on ops invoice creation", async () => {
+    delete process.env.COGNITO_ISSUER;
+    delete process.env.COGNITO_AUDIENCE;
+    const { handler } = await import("../src/handler.mjs");
+    const result = await handler(
+      buildOpsInvoiceEvent("ref-1", { amount: 100, description: "Service support" }),
+      {}
+    );
+    const body = JSON.parse(result.body);
+    expect(result.statusCode).toBe(503);
+    expect(body.errorCode).toBe("AUTH_NOT_CONFIGURED");
+  });
+
+  it("returns unauthorized for ops invoice creation without token", async () => {
+    process.env.COGNITO_ISSUER = "https://example.com/issuer";
+    process.env.COGNITO_AUDIENCE = "audience";
+    const { handler } = await import("../src/handler.mjs");
+    const result = await handler(
+      buildOpsInvoiceEvent("ref-1", { amount: 100, description: "Service support" }),
+      {}
+    );
+    expect(result.statusCode).toBe(401);
+  });
+
+  it("stores invoice id on ops invoice creation success", async () => {
+    process.env.COGNITO_ISSUER = "https://example.com/issuer";
+    process.env.COGNITO_AUDIENCE = "audience";
+    const { publicKey, privateKey } = crypto.generateKeyPairSync("rsa", { modulusLength: 2048 });
+    const kid = "test-kid";
+    const jwk = { ...publicKey.export({ format: "jwk" }), kid };
+    const token = makeJwt(
+      { iss: process.env.COGNITO_ISSUER, aud: process.env.COGNITO_AUDIENCE, exp: Math.floor(Date.now() / 1000) + 300 },
+      privateKey,
+      kid
+    );
+
+    const referenceId = "service-1";
+    quoteMap.set(referenceId, {
+      referenceId,
+      requestType: "SERVICE_ENQUIRY",
+      createdAt: new Date().toISOString(),
+      customer: { name: "Alex", email: "alex@example.com", organisation: "Alpha Org" },
+      notes: "Test",
+      items: [],
+      totals: { subscriptionSubtotal: 0, oneOffSubtotal: 0, subtotal: 0 },
+      xero: {},
+      status: "received",
+    });
+
+    xeroTokenInfo = {
+      refresh_token: "refresh",
+      tenant_id: "tenant",
+      tenant_name: "Tenant",
+      connected_at: new Date().toISOString(),
+    };
+
+    global.fetch = vi.fn(async (url, options = {}) => {
+      if (url.includes("/.well-known/jwks.json")) {
+        return { ok: true, json: async () => ({ keys: [jwk] }) };
+      }
+      if (url.includes("identity.xero.com/connect/token")) {
+        return { ok: true, json: async () => ({ access_token: "token", refresh_token: "refresh" }) };
+      }
+      if (url.includes("api.xro/2.0/Contacts")) {
+        return {
+          ok: true,
+          json: async () => ({ Contacts: [{ ContactID: "contact-1", Name: "Alpha Org" }] }),
+        };
+      }
+      if (url.includes("api.xro/2.0/Invoices")) {
+        return {
+          ok: true,
+          json: async () => ({
+            Invoices: [{ InvoiceID: "inv-1", InvoiceNumber: "INV-001", Status: "DRAFT" }],
+          }),
+        };
+      }
+      return { ok: false, text: async () => "Unexpected", status: 500 };
+    });
+
+    const { handler } = await import("../src/handler.mjs");
+    const result = await handler(
+      buildOpsInvoiceEvent(
+        referenceId,
+        { amount: 120, description: "Service support", emailInvoice: false },
+        { Authorization: `Bearer ${token}` }
+      ),
+      {}
+    );
+    const body = JSON.parse(result.body);
+    expect(result.statusCode).toBe(200);
+    expect(body.invoiceId).toBe("inv-1");
+    const stored = quoteMap.get(referenceId);
+    expect(stored?.xero?.invoiceId).toBe("inv-1");
+  });
+
+  it("stores errorCode on ops invoice creation failure", async () => {
+    process.env.COGNITO_ISSUER = "https://example.com/issuer";
+    process.env.COGNITO_AUDIENCE = "audience";
+    const { publicKey, privateKey } = crypto.generateKeyPairSync("rsa", { modulusLength: 2048 });
+    const kid = "test-kid";
+    const jwk = { ...publicKey.export({ format: "jwk" }), kid };
+    const token = makeJwt(
+      { iss: process.env.COGNITO_ISSUER, aud: process.env.COGNITO_AUDIENCE, exp: Math.floor(Date.now() / 1000) + 300 },
+      privateKey,
+      kid
+    );
+
+    const referenceId = "service-2";
+    quoteMap.set(referenceId, {
+      referenceId,
+      requestType: "SERVICE_ENQUIRY",
+      createdAt: new Date().toISOString(),
+      customer: { name: "Alex", email: "alex@example.com", organisation: "Alpha Org" },
+      notes: "Test",
+      items: [],
+      totals: { subscriptionSubtotal: 0, oneOffSubtotal: 0, subtotal: 0 },
+      xero: {},
+      status: "received",
+    });
+
+    xeroTokenInfo = {
+      refresh_token: "refresh",
+      tenant_id: "tenant",
+      tenant_name: "Tenant",
+      connected_at: new Date().toISOString(),
+    };
+
+    global.fetch = vi.fn(async (url, options = {}) => {
+      if (url.includes("/.well-known/jwks.json")) {
+        return { ok: true, json: async () => ({ keys: [jwk] }) };
+      }
+      if (url.includes("identity.xero.com/connect/token")) {
+        return { ok: true, json: async () => ({ access_token: "token", refresh_token: "refresh" }) };
+      }
+      if (url.includes("api.xro/2.0/Contacts")) {
+        return {
+          ok: true,
+          json: async () => ({ Contacts: [{ ContactID: "contact-1", Name: "Alpha Org" }] }),
+        };
+      }
+      if (url.includes("api.xro/2.0/Invoices")) {
+        return { ok: false, text: async () => "Invoice error", status: 500 };
+      }
+      return { ok: false, text: async () => "Unexpected", status: 500 };
+    });
+
+    const { handler } = await import("../src/handler.mjs");
+    const result = await handler(
+      buildOpsInvoiceEvent(
+        referenceId,
+        { amount: 120, description: "Service support", emailInvoice: false },
+        { Authorization: `Bearer ${token}` }
+      ),
+      {}
+    );
+    const body = JSON.parse(result.body);
+    expect(result.statusCode).toBe(200);
+    expect(body.errorCode).toBe("XERO_INVOICE_FAILED");
+    const stored = quoteMap.get(referenceId);
+    expect(stored?.xero?.errorCode).toBe("XERO_INVOICE_FAILED");
   });
 });

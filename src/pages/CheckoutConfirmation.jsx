@@ -7,12 +7,14 @@ import { getQuoteRequest } from "../lib/quoteApi.js";
 import { formatCurrency } from "../utils/formatters.js";
 import "./Cart.css";
 
-export default function CheckoutConfirmation() {
+export default function CheckoutConfirmation({ basePath = "" }) {
   const [searchParams] = useSearchParams();
   const referenceId = searchParams.get("ref") || "";
   const [record, setRecord] = useState(() => readStoredQuoteRequest(referenceId));
   const [loading, setLoading] = useState(false);
   const [loadError, setLoadError] = useState("");
+  const prefix = basePath ? basePath.replace(/\/$/, "") : "";
+  const buildPath = (path) => `${prefix}${path}`;
   const invoiceFailed =
     record?.xero?.requested && !record?.xero?.created && Boolean(record?.xero?.errorCode);
   const invoicePending =
@@ -179,7 +181,7 @@ export default function CheckoutConfirmation() {
             <div className="muted">Return to subscriptions or continue browsing.</div>
           </div>
           <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-            <Button as={Link} to="/subscriptions" variant="primary">
+            <Button as={Link} to={buildPath("/subscriptions")} variant="primary">
               View subscriptions
             </Button>
             <Button as={Link} to="/" variant="ghost">

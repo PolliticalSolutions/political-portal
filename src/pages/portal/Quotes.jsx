@@ -24,6 +24,7 @@ export default function Quotes() {
     items: [],
     nextKey: "",
   });
+  const [filter, setFilter] = useState("all");
 
   const loadQuotes = async (mode = "replace") => {
     setState((prev) => ({ ...prev, loading: true, error: "" }));
@@ -51,12 +52,25 @@ export default function Quotes() {
     loadQuotes("replace");
   }, []);
 
+  const filteredItems = state.items.filter((item) => {
+    if (filter === "all") return true;
+    return (item.requestType || "CHECKOUT") === filter;
+  });
+
   return (
     <div className="stack">
       <Card title="Quote requests">
         <p className="muted" style={{ marginTop: 0 }}>
           Monitor quote requests and Xero invoice status.
         </p>
+        <label className="field" style={{ maxWidth: 280 }}>
+          <span>Filter</span>
+          <select className="input" value={filter} onChange={(event) => setFilter(event.target.value)}>
+            <option value="all">All requests</option>
+            <option value="CHECKOUT">Checkout</option>
+            <option value="SERVICE_ENQUIRY">Service enquiry</option>
+          </select>
+        </label>
         {state.loading && <div className="muted">Loading quotes...</div>}
         {state.error && <div className="status error">{state.error}</div>}
         <div style={{ overflowX: "auto" }}>
@@ -65,6 +79,7 @@ export default function Quotes() {
               <tr className="muted" style={{ textAlign: "left" }}>
                 <th style={{ padding: "8px 4px" }}>Reference</th>
                 <th style={{ padding: "8px 4px" }}>Created</th>
+                <th style={{ padding: "8px 4px" }}>Type</th>
                 <th style={{ padding: "8px 4px" }}>Organisation</th>
                 <th style={{ padding: "8px 4px" }}>Email</th>
                 <th style={{ padding: "8px 4px" }}>Total</th>
@@ -72,7 +87,7 @@ export default function Quotes() {
               </tr>
             </thead>
             <tbody>
-              {state.items.map((item) => (
+              {filteredItems.map((item) => (
                 <tr key={item.referenceId} style={{ borderTop: "1px solid #e5e7eb" }}>
                   <td style={{ padding: "8px 4px" }}>
                     <Link to={`/portal/ops/quotes/${encodeURIComponent(item.referenceId)}`}>
@@ -80,6 +95,9 @@ export default function Quotes() {
                     </Link>
                   </td>
                   <td style={{ padding: "8px 4px" }}>{formatDate(item.createdAt)}</td>
+                  <td style={{ padding: "8px 4px" }}>
+                    {(item.requestType || "CHECKOUT") === "SERVICE_ENQUIRY" ? "Service enquiry" : "Checkout"}
+                  </td>
                   <td style={{ padding: "8px 4px" }}>{item.customerOrganisation || "N/A"}</td>
                   <td style={{ padding: "8px 4px" }}>{item.customerEmailMasked || "N/A"}</td>
                   <td style={{ padding: "8px 4px" }}>

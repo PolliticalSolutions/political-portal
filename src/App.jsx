@@ -9,13 +9,19 @@ import IdleWarning from "./components/IdleWarning.jsx";
 import ProtectedRoute from "./components/ProtectedRoute.jsx";
 import Callback from "./pages/Callback.jsx";
 import Cart from "./pages/Cart.jsx";
+import CartEntry from "./pages/CartEntry.jsx";
 import Checkout from "./pages/Checkout.jsx";
+import CheckoutEntry from "./pages/CheckoutEntry.jsx";
 import CheckoutConfirmation from "./pages/CheckoutConfirmation.jsx";
+import CheckoutConfirmationEntry from "./pages/CheckoutConfirmationEntry.jsx";
 import EnquirePage from "./pages/EnquirePage.jsx";
 import Home from "./pages/Home.jsx";
 import Login from "./pages/Login.jsx";
 import Pricing from "./pages/Pricing.jsx";
 import Subscriptions from "./pages/Subscriptions.jsx";
+import SubscriptionsEntry from "./pages/SubscriptionsEntry.jsx";
+import Services from "./pages/Services.jsx";
+import ServiceSupport from "./pages/ServiceSupport.jsx";
 import PortalLayout from "./pages/portal/PortalLayout.jsx";
 import PortalNotFound from "./pages/portal/PortalNotFound.jsx";
 import PricingRules from "./pages/portal/PricingRules.jsx";
@@ -53,6 +59,9 @@ function TopNav({ authed, onLogout, cartCount }) {
         </NavLink>
         <NavLink className={navClass} to="/subscriptions">
           Subscriptions
+        </NavLink>
+        <NavLink className={navClass} to="/services">
+          Services
         </NavLink>
         <NavLink className={navClass} to="/cart">
           Cart
@@ -202,10 +211,15 @@ export default function App() {
             <Route path="/callback" element={<Callback onAuth={handleAuthSuccess} />} />
             <Route path="/signup" element={<SignUp />} />
             <Route path="/enquire" element={<EnquirePage />} />
-            <Route path="/cart" element={<Cart />} />
-            <Route path="/checkout" element={<Checkout />} />
-            <Route path="/checkout/confirmation" element={<CheckoutConfirmation />} />
-            <Route path="/subscriptions" element={<Subscriptions />} />
+            <Route path="/cart" element={<CartEntry authed={authed} />} />
+            <Route path="/checkout" element={<CheckoutEntry authed={authed} />} />
+            <Route
+              path="/checkout/confirmation"
+              element={<CheckoutConfirmationEntry authed={authed} />}
+            />
+            <Route path="/subscriptions" element={<SubscriptionsEntry authed={authed} />} />
+            <Route path="/services" element={<Services />} />
+            <Route path="/services/election-support" element={<ServiceSupport />} />
             <Route path="/privacy" element={<PrivacyPage />} />
             <Route path="/terms" element={<TermsPage />} />
             <Route path="/cookies" element={<CookiesPage />} />
@@ -218,6 +232,13 @@ export default function App() {
                 />
                 <Route path="pricing" element={<Pricing />} />
                 <Route path="pricing-rules" element={<PricingRules />} />
+                <Route path="subscriptions" element={<Subscriptions />} />
+                <Route path="cart" element={<Cart basePath="/portal" />} />
+                <Route path="checkout" element={<Checkout basePath="/portal" />} />
+                <Route
+                  path="checkout/confirmation"
+                  element={<CheckoutConfirmation basePath="/portal" />}
+                />
                 <Route path="settings/integrations" element={<Integrations />} />
                 <Route path="ops/quotes" element={<Quotes />} />
                 <Route path="ops/quotes/:ref" element={<QuoteDetail />} />

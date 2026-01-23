@@ -86,6 +86,18 @@ export const postQuoteRequest = async (payload) => {
   });
 };
 
+export const postServiceEnquiry = async (payload) => {
+  const base = resolveApiBaseUrl();
+  if (!base) {
+    throw new Error("Missing API base URL.");
+  }
+  return fetchJson(`${base}/enquiry/service-support`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
+  });
+};
+
 export const getQuoteRequest = async (referenceId) => {
   const base = resolveApiBaseUrl();
   if (!base) {
@@ -124,6 +136,24 @@ export const getQuoteRequestAdmin = async (referenceId) => {
   return fetchJson(`${base}/quote-requests/${encodeURIComponent(referenceId)}/admin`, {
     method: "GET",
     headers: getAuthHeaders(),
+  });
+};
+
+export const createServiceInvoice = async (referenceId, payload) => {
+  const base = resolveApiBaseUrl();
+  if (!base) {
+    throw new Error("Missing API base URL.");
+  }
+  if (!referenceId) {
+    throw new Error("Missing reference id.");
+  }
+  return fetchJson(`${base}/ops/quotes/${encodeURIComponent(referenceId)}/invoice`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      ...getAuthHeaders(),
+    },
+    body: JSON.stringify(payload),
   });
 };
 

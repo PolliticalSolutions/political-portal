@@ -346,6 +346,12 @@ Resources:
             ApiId: !Ref EnquiryApi
             Path: /enquiry
             Method: POST
+        ServiceSupportPost:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref EnquiryApi
+            Path: /enquiry/service-support
+            Method: POST
         QuoteRequestPost:
           Type: HttpApi
           Properties:
@@ -370,6 +376,12 @@ Resources:
             ApiId: !Ref EnquiryApi
             Path: /quote-requests/{referenceId}/admin
             Method: GET
+        OpsInvoicePost:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref EnquiryApi
+            Path: /ops/quotes/{referenceId}/invoice
+            Method: POST
         XeroConnect:
           Type: HttpApi
           Properties:

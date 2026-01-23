@@ -33,6 +33,8 @@ const MAX_NOTES = 1000;
 const MAX_REFERENCE = 80;
 const MAX_LINE_NAME = 160;
 const MAX_LINE_SKU = 80;
+const MAX_SERVICE_MESSAGE = 1000;
+const MAX_SERVICE_DESCRIPTION = 200;
 const MAX_BODY_BYTES = 100000;
 
 const RATE_WINDOW_MS = 60 * 1000;
@@ -321,15 +323,33 @@ function makeRequestId(context) {
 
 function parseJsonBody(event, origin) {
   if (!event?.body) {
-    return { error: response(400, { ok: false, error: "Missing request body." }, origin) };
+    return {
+      error: response(
+        400,
+        { ok: false, error: "Missing request body.", errorCode: "VALIDATION_ERROR" },
+        origin
+      ),
+    };
   }
   if (parseBodyBytes(event) > MAX_BODY_BYTES) {
-    return { error: response(413, { ok: false, error: "payload_too_large" }, origin) };
+    return {
+      error: response(
+        413,
+        { ok: false, error: "payload_too_large", errorCode: "PAYLOAD_TOO_LARGE" },
+        origin
+      ),
+    };
   }
   try {
     return { payload: JSON.parse(event.body) };
   } catch {
-    return { error: response(400, { ok: false, error: "Invalid JSON body." }, origin) };
+    return {
+      error: response(
+        400,
+        { ok: false, error: "Invalid JSON body.", errorCode: "VALIDATION_ERROR" },
+        origin
+      ),
+    };
   }
 }
 
@@ -430,6 +450,13 @@ function hasXeroInvoiceConfig() {
 function parseDueDays() {
   const raw = Number.parseInt(process.env.XERO_DUE_DAYS || "7", 10);
   if (!Number.isFinite(raw) || raw <= 0) return 7;
+  return Math.min(raw, 30);
+}
+
+function resolveDueDaysOverride(value) {
+  if (value === null || value === undefined || value === "") return null;
+  const raw = Number.parseInt(value, 10);
+  if (!Number.isFinite(raw) || raw <= 0) return null;
   return Math.min(raw, 30);
 }
 
@@ -638,7 +665,15 @@ async function emailXeroInvoice({ tenantId, accessToken, invoiceId }) {
   }
 }
 
-async function createXeroInvoice({ tenantId, accessToken, customer, items, referenceId }) {
+async function createXeroInvoice({
+  tenantId,
+  accessToken,
+  customer,
+  items,
+  referenceId,
+  dueDays,
+  emailInvoice,
+}) {
   const accountCode = process.env.XERO_SALES_ACCOUNT_CODE || "";
   const taxType = process.env.XERO_TAX_TYPE || "";
   if (!accountCode || !taxType) {
@@ -646,7 +681,8 @@ async function createXeroInvoice({ tenantId, accessToken, customer, items, refer
   }
   const status = process.env.XERO_INVOICE_STATUS || "DRAFT";
   const now = new Date();
-  const dueDate = addDays(now, parseDueDays());
+  const resolvedDueDays = resolveDueDaysOverride(dueDays);
+  const dueDate = addDays(now, resolvedDueDays || parseDueDays());
 
   const lineItems = items.map((item) => ({
     Description: buildXeroLineDescription(item),
@@ -726,7 +762,10 @@ async function createXeroInvoice({ tenantId, accessToken, customer, items, refer
   }
 
   let invoiceEmailSent = false;
-  if (isXeroEmailInvoiceEnabled() && invoice.InvoiceID) {
+  const emailAllowed = isXeroEmailInvoiceEnabled();
+  const shouldEmail =
+    emailInvoice === undefined ? emailAllowed : Boolean(emailInvoice) && emailAllowed;
+  if (shouldEmail && invoice.InvoiceID) {
     try {
       await emailXeroInvoice({ tenantId, accessToken, invoiceId: invoice.InvoiceID });
       invoiceEmailSent = true;
@@ -975,6 +1014,170 @@ async function handleEnquiryPost(event, context, origin) {
   return response(200, { ok: true, requestId }, origin);
 }
 
+async function handleServiceSupportPost(event, origin) {
+  const sourceIp = event?.requestContext?.http?.sourceIp || "";
+  if (rateLimitHit(sourceIp)) {
+    return response(
+      429,
+      {
+        ok: false,
+        error: "too_many_requests",
+        errorCode: "RATE_LIMITED",
+        message: "Please wait a minute and try again.",
+      },
+      origin
+    );
+  }
+
+  const { payload, error } = parseJsonBody(event, origin);
+  if (error) return error;
+
+  const name = sanitizeText(payload.name || "", MAX_NAME);
+  const email = sanitizeText(payload.email || "", MAX_EMAIL);
+  const phone = sanitizeText(payload.phone || "", MAX_PHONE);
+  const organisation = sanitizeText(payload.organisation || "", MAX_ORG);
+  const message = sanitizeText(payload.message || "", MAX_SERVICE_MESSAGE);
+  const consent = Boolean(payload.consent);
+
+  if (isTooLong(payload.name, MAX_NAME)) {
+    return response(
+      400,
+      { ok: false, error: "validation_error", errorCode: "VALIDATION_ERROR", message: "Name is too long." },
+      origin
+    );
+  }
+  if (isTooLong(payload.email, MAX_EMAIL)) {
+    return response(
+      400,
+      { ok: false, error: "validation_error", errorCode: "VALIDATION_ERROR", message: "Email is too long." },
+      origin
+    );
+  }
+  if (isTooLong(payload.phone, MAX_PHONE)) {
+    return response(
+      400,
+      { ok: false, error: "validation_error", errorCode: "VALIDATION_ERROR", message: "Phone is too long." },
+      origin
+    );
+  }
+  if (isTooLong(payload.organisation, MAX_ORG)) {
+    return response(
+      400,
+      {
+        ok: false,
+        error: "validation_error",
+        errorCode: "VALIDATION_ERROR",
+        message: "Organisation is too long.",
+      },
+      origin
+    );
+  }
+  if (isTooLong(payload.message, MAX_SERVICE_MESSAGE)) {
+    return response(
+      400,
+      { ok: false, error: "validation_error", errorCode: "VALIDATION_ERROR", message: "Message is too long." },
+      origin
+    );
+  }
+
+  if (!name) {
+    return response(
+      400,
+      { ok: false, error: "validation_error", errorCode: "VALIDATION_ERROR", message: "Name is required." },
+      origin
+    );
+  }
+  if (!email || !isValidEmail(email)) {
+    return response(
+      400,
+      {
+        ok: false,
+        error: "validation_error",
+        errorCode: "VALIDATION_ERROR",
+        message: "Valid email is required.",
+      },
+      origin
+    );
+  }
+  if (!consent) {
+    return response(
+      400,
+      {
+        ok: false,
+        error: "validation_error",
+        errorCode: "VALIDATION_ERROR",
+        message: "Consent is required.",
+      },
+      origin
+    );
+  }
+
+  const quoteTable = process.env.QUOTE_REQUESTS_TABLE;
+  if (!quoteTable) {
+    return response(
+      500,
+      { ok: false, error: "server_error", errorCode: "INTERNAL_ERROR", message: "Storage not configured." },
+      origin
+    );
+  }
+
+  const referenceId = crypto.randomUUID();
+  const createdAt = new Date().toISOString();
+  const baseRecord = {
+    referenceId,
+    createdAt,
+    requestType: "SERVICE_ENQUIRY",
+    serviceCategory: "ELECTION_SUPPORT",
+    customer: {
+      name,
+      email,
+      phone,
+      organisation,
+    },
+    notes: message,
+    items: [],
+    totals: {
+      subscriptionSubtotal: 0,
+      oneOffSubtotal: 0,
+      subtotal: 0,
+      subtotalDisplay: formatCurrency(0),
+    },
+    compliance: {
+      hasSubscriptions: false,
+      acknowledged: false,
+      statement: COMPLIANCE_STATEMENT,
+    },
+    status: "received",
+    xero: {
+      requested: false,
+      connected: false,
+      created: false,
+      invoiceId: "",
+      invoiceNumber: "",
+      status: "",
+      error: "",
+      errorCode: "",
+      contactId: "",
+      invoiceEmailSent: false,
+    },
+  };
+
+  const recordToWrite = applyTtl(baseRecord);
+
+  await dynamo
+    .put({
+      TableName: quoteTable,
+      Item: recordToWrite,
+    })
+    .promise();
+
+  logEvent("service_enquiry.stored", { referenceId });
+
+  await sendServiceEnquiryEmails(recordToWrite);
+
+  return response(200, { ok: true, referenceId, createdAt }, origin);
+}
+
 async function handleQuoteRequestPost(event, origin) {
   const sourceIp = event?.requestContext?.http?.sourceIp || "";
   if (rateLimitHit(sourceIp)) {
@@ -1115,6 +1318,7 @@ async function handleQuoteRequestPost(event, origin) {
     referenceId,
     idempotencyKey,
     createdAt,
+    requestType: "CHECKOUT",
     customer: {
       name: customerName,
       email: customerEmail,
@@ -1489,6 +1693,98 @@ async function sendQuoteEmails(record) {
   }
 }
 
+async function sendServiceEnquiryEmails(record) {
+  const fromEmail = process.env.FROM_EMAIL;
+  const opsEmail = process.env.OPS_EMAIL_TO || process.env.TO_EMAIL;
+  if (!fromEmail || !opsEmail) return;
+
+  const customer = record.customer || {};
+  const opsBody = [
+    "New service enquiry received",
+    "",
+    `Reference: ${record.referenceId}`,
+    `Created: ${record.createdAt}`,
+    "",
+    `Name: ${customer.name || ""}`,
+    `Email: ${customer.email || ""}`,
+    customer.phone ? `Phone: ${customer.phone}` : null,
+    customer.organisation ? `Organisation: ${customer.organisation}` : null,
+    "",
+    "Service category: Election support (separate charge)",
+    record.notes ? "" : null,
+    record.notes ? "Message:" : null,
+    record.notes || null,
+    "",
+    "Ops action:",
+    "Review and create a draft Xero invoice from the ops portal if appropriate.",
+  ]
+    .filter(Boolean)
+    .join("\n");
+
+  const customerBody = [
+    "Thank you for your enquiry.",
+    "",
+    `Reference: ${record.referenceId}`,
+    `Submitted: ${record.createdAt}`,
+    "",
+    "We will review your request and be in touch shortly.",
+  ].join("\n");
+
+  try {
+    await ses
+      .sendEmail({
+        Destination: { ToAddresses: [opsEmail] },
+        Message: {
+          Body: {
+            Text: { Data: opsBody },
+            Html: { Data: `<pre>${escapeHtml(opsBody)}</pre>` },
+          },
+          Subject: {
+            Data: `Political Solutions service enquiry - ${customer.organisation || customer.name || "New request"}`,
+          },
+        },
+        Source: fromEmail,
+        ReplyToAddresses: customer.email ? [customer.email] : [],
+      })
+      .promise();
+    logEvent("ses.ops_service_email_sent", { referenceId: record.referenceId });
+  } catch (error) {
+    logEvent("ses.ops_service_email_failed", {
+      referenceId: record.referenceId,
+      error: error?.message || "failed",
+    });
+  }
+
+  if (customer.email) {
+    try {
+      await ses
+        .sendEmail({
+          Destination: { ToAddresses: [customer.email] },
+          Message: {
+            Body: {
+              Text: { Data: customerBody },
+              Html: { Data: `<pre>${escapeHtml(customerBody)}</pre>` },
+            },
+            Subject: {
+              Data: `Political Solutions service enquiry received - ${record.referenceId}`,
+            },
+          },
+          Source: fromEmail,
+        })
+        .promise();
+      logEvent("ses.customer_service_email_sent", {
+        referenceId: record.referenceId,
+        email: maskEmail(customer.email),
+      });
+    } catch (error) {
+      logEvent("ses.customer_service_email_failed", {
+        referenceId: record.referenceId,
+        error: error?.message || "failed",
+      });
+    }
+  }
+}
+
 async function handleQuoteRequestGet(event, origin) {
   const quoteTable = process.env.QUOTE_REQUESTS_TABLE;
   if (!quoteTable) {
@@ -1553,6 +1849,8 @@ async function handleQuoteRequestList(event, origin) {
   const items = (result.Items || []).map((item) => ({
     referenceId: item.referenceId,
     createdAt: item.createdAt,
+    requestType: item.requestType || "CHECKOUT",
+    serviceCategory: item.serviceCategory || "",
     customerOrganisation: item.customer?.organisation || "",
     customerEmailMasked: maskEmail(item.customer?.email || ""),
     totals: item.totals,
@@ -1606,14 +1904,255 @@ async function handleQuoteRequestAdminDetail(event, origin) {
       record: {
         referenceId: record.referenceId,
         createdAt: record.createdAt,
+        requestType: record.requestType || "CHECKOUT",
+        serviceCategory: record.serviceCategory || "",
         customer: record.customer,
         notes: record.notes || "",
         items: record.items || [],
         totals: record.totals,
         compliance: record.compliance,
         xero: record.xero,
+        serviceInvoice: record.serviceInvoice || null,
         status: record.status || "",
       },
+    },
+    origin
+  );
+}
+
+async function handleOpsInvoiceCreate(event, origin) {
+  const authResult = await requireAuth(event, origin);
+  if (authResult.error) return authResult.error;
+
+  const quoteTable = process.env.QUOTE_REQUESTS_TABLE;
+  if (!quoteTable) {
+    return response(
+      500,
+      { ok: false, error: "server_error", errorCode: "INTERNAL_ERROR", message: "Storage not configured." },
+      origin
+    );
+  }
+
+  const path = resolvePath(event);
+  const referenceId = path.split("/").slice(-2, -1)[0];
+  if (!referenceId) {
+    return response(
+      400,
+      { ok: false, error: "validation_error", errorCode: "VALIDATION_ERROR", message: "Missing reference id." },
+      origin
+    );
+  }
+
+  const { payload, error } = parseJsonBody(event, origin);
+  if (error) return error;
+
+  const description = sanitizeText(payload.description || "", MAX_SERVICE_DESCRIPTION);
+  const amountRaw = Number(payload.amount);
+  const amount = Number.isFinite(amountRaw) ? Number(amountRaw) : NaN;
+  const dueDays = resolveDueDaysOverride(payload.dueDays);
+  const emailInvoice = Boolean(payload.emailInvoice);
+
+  if (!description) {
+    return response(
+      400,
+      {
+        ok: false,
+        error: "validation_error",
+        errorCode: "VALIDATION_ERROR",
+        message: "Description is required.",
+      },
+      origin
+    );
+  }
+  if (isTooLong(payload.description, MAX_SERVICE_DESCRIPTION)) {
+    return response(
+      400,
+      {
+        ok: false,
+        error: "validation_error",
+        errorCode: "VALIDATION_ERROR",
+        message: "Description is too long.",
+      },
+      origin
+    );
+  }
+  if (!Number.isFinite(amount) || amount < 1) {
+    return response(
+      400,
+      {
+        ok: false,
+        error: "validation_error",
+        errorCode: "VALIDATION_ERROR",
+        message: "Amount must be at least 1.",
+      },
+      origin
+    );
+  }
+
+  const stored = await dynamo
+    .get({
+      TableName: quoteTable,
+      Key: { referenceId },
+    })
+    .promise();
+  if (!stored?.Item) {
+    return response(
+      404,
+      { ok: false, error: "not_found", errorCode: "NOT_FOUND", message: "Not found." },
+      origin
+    );
+  }
+  const record = stored.Item;
+  if ((record.requestType || "CHECKOUT") !== "SERVICE_ENQUIRY") {
+    return response(
+      400,
+      {
+        ok: false,
+        error: "validation_error",
+        errorCode: "INVALID_REQUEST_TYPE",
+        message: "Invoice creation is only available for service enquiries.",
+      },
+      origin
+    );
+  }
+
+  const xeroInfo = await loadXeroTokenInfo();
+  const xeroConnected = Boolean(xeroInfo?.refresh_token && xeroInfo?.tenant_id);
+
+  const serviceInvoice = {
+    amount,
+    description,
+    dueDays: dueDays || null,
+    emailInvoiceRequested: emailInvoice,
+  };
+
+  let xeroResult = {
+    connected: xeroConnected,
+    created: false,
+    invoiceId: "",
+    invoiceNumber: "",
+    status: "",
+    error: "",
+    errorCode: "",
+    contactId: "",
+    invoiceEmailSent: false,
+  };
+
+  if (!xeroConnected) {
+    xeroResult = {
+      ...xeroResult,
+      error: "Xero is not connected.",
+      errorCode: "XERO_NOT_CONNECTED",
+    };
+    logEvent("xero.not_connected", { referenceId });
+  } else if (!hasXeroInvoiceConfig()) {
+    xeroResult = {
+      ...xeroResult,
+      error: "Xero invoice configuration is missing.",
+      errorCode: "XERO_CONFIG_MISSING",
+    };
+    logEvent("xero.config_missing", { referenceId });
+  } else {
+    try {
+      const refreshed = await refreshXeroToken(xeroInfo.refresh_token);
+      const accessToken = refreshed.access_token;
+      const updatedInfo = {
+        refresh_token: refreshed.refresh_token || xeroInfo.refresh_token,
+        tenant_id: xeroInfo.tenant_id,
+        tenant_name: xeroInfo.tenant_name || "",
+        connected_at: xeroInfo.connected_at || new Date().toISOString(),
+      };
+      await saveXeroTokenInfo(updatedInfo);
+
+      const invoice = await createXeroInvoice({
+        tenantId: xeroInfo.tenant_id,
+        accessToken,
+        customer: record.customer,
+        items: [
+          {
+            name: description,
+            category: "oneOff",
+            quantity: 1,
+            unitPrice: amount,
+            areaName: "",
+            complianceLabel: "",
+            invoiceDescription: description,
+          },
+        ],
+        referenceId,
+        dueDays,
+        emailInvoice,
+      });
+      xeroResult = {
+        connected: true,
+        created: Boolean(invoice.invoiceId),
+        invoiceId: invoice.invoiceId,
+        invoiceNumber: invoice.invoiceNumber,
+        status: invoice.status,
+        error: "",
+        errorCode: "",
+        contactId: invoice.contactId || "",
+        invoiceEmailSent: Boolean(invoice.invoiceEmailSent),
+      };
+      logEvent("xero.invoice_created", {
+        referenceId,
+        invoiceId: invoice.invoiceId,
+        invoiceNumber: invoice.invoiceNumber,
+      });
+    } catch (error) {
+      xeroResult = {
+        connected: true,
+        created: false,
+        invoiceId: "",
+        invoiceNumber: "",
+        status: "",
+        error: sanitizeText(error?.message || "Invoice creation failed.", 200),
+        errorCode: "XERO_INVOICE_FAILED",
+        contactId: "",
+        invoiceEmailSent: false,
+      };
+      logEvent("xero.invoice_failed", {
+        referenceId,
+        error: xeroResult.error,
+      });
+    }
+  }
+
+  const updatedRecord = {
+    ...record,
+    serviceInvoice,
+    status: xeroResult.invoiceId ? "invoice-created" : "invoice-failed",
+    xero: {
+      ...record.xero,
+      connected: xeroResult.connected,
+      requested: true,
+      created: xeroResult.created || false,
+      invoiceId: xeroResult.invoiceId || "",
+      invoiceNumber: xeroResult.invoiceNumber || "",
+      status: xeroResult.status || "",
+      error: xeroResult.error || "",
+      errorCode: xeroResult.errorCode || "",
+      contactId: xeroResult.contactId || "",
+      invoiceEmailSent: xeroResult.invoiceEmailSent || false,
+    },
+  };
+
+  await dynamo
+    .put({
+      TableName: quoteTable,
+      Item: updatedRecord,
+    })
+    .promise();
+
+  return response(
+    200,
+    {
+      ok: xeroResult.created,
+      errorCode: xeroResult.errorCode || "",
+      invoiceId: xeroResult.invoiceId || "",
+      invoiceNumber: xeroResult.invoiceNumber || "",
+      status: xeroResult.status || "",
+      invoiceEmailSent: xeroResult.invoiceEmailSent || false,
     },
     origin
   );
@@ -1643,6 +2182,7 @@ async function handleXeroStatus(event, origin) {
       tenantName: info?.tenant_name || "",
       lastConnectedAt: info?.connected_at || "",
       canCreateInvoice: hasXeroInvoiceConfig(),
+      emailInvoiceEnabled: isXeroEmailInvoiceEnabled(),
     },
     origin
   );
@@ -1797,6 +2337,9 @@ export async function handler(event, context) {
     if (path === "/enquiry" && method === "POST") {
       return await handleEnquiryPost(event, context, origin);
     }
+    if (path === "/enquiry/service-support" && method === "POST") {
+      return await handleServiceSupportPost(event, origin);
+    }
     if (path === "/quote-requests" && method === "POST") {
       return await handleQuoteRequestPost(event, origin);
     }
@@ -1809,6 +2352,9 @@ export async function handler(event, context) {
       const authResult = await requireAuth(event, origin);
       if (authResult.error) return authResult.error;
       return await handleQuoteRequestAdminDetail(event, origin);
+    }
+    if (path.startsWith("/ops/quotes/") && path.endsWith("/invoice") && method === "POST") {
+      return await handleOpsInvoiceCreate(event, origin);
     }
     if (path.startsWith("/quote-requests/") && method === "GET") {
       return await handleQuoteRequestGet(event, origin);

@@ -74,10 +74,12 @@ const CartLineItem = ({ item, onRemove }) => (
   </div>
 );
 
-export default function Cart() {
+export default function Cart({ basePath = "" }) {
   const { items, removeItem, totals } = useCart();
   const subscriptionItems = items.filter((item) => item.category === "subscription");
   const oneOffItems = items.filter((item) => item.category !== "subscription");
+  const prefix = basePath ? basePath.replace(/\/$/, "") : "";
+  const buildPath = (path) => `${prefix}${path}`;
 
   if (items.length === 0) {
     return (
@@ -86,7 +88,7 @@ export default function Cart() {
           <h1 style={{ margin: "0 0 12px", fontSize: 22 }}>Cart</h1>
           <p className="muted">Your cart is empty. Add a subscription or product to continue.</p>
           <div style={{ display: "flex", gap: 12, flexWrap: "wrap", marginTop: 16 }}>
-            <Button as={Link} to="/subscriptions" variant="primary">
+            <Button as={Link} to={buildPath("/subscriptions")} variant="primary">
               View subscriptions
             </Button>
             <Button as={Link} to="/enquire" variant="ghost">
@@ -145,10 +147,10 @@ export default function Cart() {
             <div style={{ fontWeight: 700, marginTop: 6 }}>Total: {formatCurrency(totals.subtotal)}</div>
           </div>
           <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-            <Button as={Link} to="/checkout" variant="primary">
+            <Button as={Link} to={buildPath("/checkout")} variant="primary">
               Continue to quote request
             </Button>
-            <Button as={Link} to="/subscriptions" variant="ghost">
+            <Button as={Link} to={buildPath("/subscriptions")} variant="ghost">
               Continue shopping
             </Button>
           </div>

@@ -12,9 +12,11 @@ import { getXeroStatus, postQuoteRequest } from "../lib/quoteApi.js";
 import { formatCurrency } from "../utils/formatters.js";
 import "./Checkout.css";
 
-export default function Checkout() {
+export default function Checkout({ basePath = "" }) {
   const navigate = useNavigate();
   const { items, totals, clearCart } = useCart();
+  const prefix = basePath ? basePath.replace(/\/$/, "") : "";
+  const buildPath = (path) => `${prefix}${path}`;
   const hasSubscriptions = useMemo(
     () => items.some((item) => item.category === "subscription"),
     [items]
@@ -131,7 +133,7 @@ export default function Checkout() {
       };
       storeQuoteRequest(storedRequest);
       clearCart();
-      navigate(`/checkout/confirmation?ref=${encodeURIComponent(result.referenceId)}`);
+      navigate(`${buildPath("/checkout/confirmation")}?ref=${encodeURIComponent(result.referenceId)}`);
       return;
     } catch (error) {
       setStatus({
@@ -147,7 +149,7 @@ export default function Checkout() {
         <Card>
           <h1 style={{ margin: "0 0 12px", fontSize: 22 }}>Checkout</h1>
           <p className="muted">Your cart is empty. Add products before requesting a quote.</p>
-          <Button as={Link} to="/subscriptions" variant="primary" style={{ marginTop: 16 }}>
+          <Button as={Link} to={buildPath("/subscriptions")} variant="primary" style={{ marginTop: 16 }}>
             View subscriptions
           </Button>
         </Card>
@@ -298,7 +300,7 @@ export default function Checkout() {
             <Button type="submit" variant="primary" loading={status.submitting}>
               Submit request
             </Button>
-            <Button as={Link} to="/cart" variant="ghost">
+            <Button as={Link} to={buildPath("/cart")} variant="ghost">
               Back to cart
             </Button>
           </div>

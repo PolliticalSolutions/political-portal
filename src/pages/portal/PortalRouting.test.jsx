@@ -1,9 +1,11 @@
 import { render, screen } from "@testing-library/react";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
 import { beforeEach, describe, expect, it } from "vitest";
+import { CartProvider } from "../../cart/cartStore.jsx";
 import ProtectedRoute from "../../components/ProtectedRoute.jsx";
 import { tokensKey } from "../../auth/session.js";
 import Portal from "../Portal.jsx";
+import Cart from "../Cart.jsx";
 import PortalLayout from "./PortalLayout.jsx";
 import PortalNotFound from "./PortalNotFound.jsx";
 import PricingRules from "./PricingRules.jsx";
@@ -62,5 +64,26 @@ describe("Portal routing", () => {
 
     expect(screen.getByText("Portal")).toBeInTheDocument();
     expect(screen.getByText("Page not found")).toBeInTheDocument();
+  });
+
+  it("renders cart inside the portal layout", () => {
+    render(
+      <MemoryRouter initialEntries={["/portal/cart"]}>
+        <CartProvider>
+          <Routes>
+            <Route element={<ProtectedRoute authed={true} session={{}} />}>
+              <Route path="/portal" element={<PortalLayout />}>
+                <Route index element={<Portal tokens={null} onLogout={null} />} />
+                <Route path="cart" element={<Cart basePath="/portal" />} />
+                <Route path="pricing-rules" element={<PricingRules />} />
+                <Route path="*" element={<PortalNotFound />} />
+              </Route>
+            </Route>
+          </Routes>
+        </CartProvider>
+      </MemoryRouter>
+    );
+
+    expect(screen.getByRole("heading", { name: "Cart" })).toBeInTheDocument();
   });
 });
