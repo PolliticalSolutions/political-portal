@@ -1,9 +1,18 @@
 import Card from "../../components/Card.jsx";
 import Footer from "../../components/Footer.jsx";
+import Seo from "../../seo/Seo.jsx";
+import { buildOrganisationSchema, buildWebsiteSchema } from "../../seo/structuredData.js";
 
 export default function CookiesPage() {
   return (
     <div className="page stack">
+      <Seo
+        title="Cookie notice"
+        description="Cookie notice for the Political Solutions Portal, including essential storage information."
+        path="/cookies"
+        robots="index,follow"
+        jsonLd={[buildOrganisationSchema(), buildWebsiteSchema()]}
+      />
       <Card>
         <h1 style={{ margin: "0 0 12px", fontSize: 22 }}>Cookie Notice</h1>
         <p className="muted">

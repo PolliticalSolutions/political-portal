@@ -67,9 +67,10 @@ describe("EnquirePage", () => {
     expect(params.get("subject")).toContain("Civic Group");
     expect(params.get("body")).toContain("Message:");
     expect(params.get("body")).toContain("Please share pricing details.");
-    expect(params.get("body")).toContain("Association: Big Federation");
     expect(params.get("body")).toContain("Constituency count: 3");
     expect(params.get("body")).toContain("Page: https://example.test/enquire");
+    expect(params.get("body")).not.toContain("Association:");
+    expect(params.get("body")).not.toContain("Constituencies:");
   });
 
   it("posts to the enquiry API when configured and shows success", async () => {

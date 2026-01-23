@@ -5,10 +5,10 @@ export default function Portal() {
   return (
     <div className="container">
       <h1>Portal</h1>
-      <p className="lead">You’re logged in ✅</p>
+      <p className="lead">You are logged in.</p>
 
       <button className="btn btnPrimary" onClick={logout}>
-        Logout
+        Log out
       </button>
     </div>
   );

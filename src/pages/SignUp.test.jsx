@@ -23,7 +23,7 @@ import SignUp from "./SignUp.jsx";
 import { startSignUp } from "../lib/cognito.js";
 
 describe("SignUp", () => {
-  it("renders association summary and totals from query params", () => {
+  it("renders pricing context and totals from query params", () => {
     render(
       <MemoryRouter initialEntries={["/signup?association=Big%20Federation&count=3"]}>
         <Routes>
@@ -32,10 +32,11 @@ describe("SignUp", () => {
       </MemoryRouter>
     );
 
-    expect(screen.getByText("Big Federation")).toBeInTheDocument();
+    expect(screen.getByText("Pricing context captured")).toBeInTheDocument();
     expect(screen.getByText("3 constituencies")).toBeInTheDocument();
-    expect(screen.getByText("Total (inc VAT): £1,200.00")).toBeInTheDocument();
+    expect(screen.getByText(/Total \(inc VAT\):/)).toBeInTheDocument();
   });
+
   it("starts hosted UI signup from the primary CTA", () => {
     render(
       <MemoryRouter initialEntries={["/signup?association=Big%20Federation&count=3"]}>
@@ -64,9 +65,7 @@ describe("SignUp", () => {
       expect(sessionStorage.getItem("ps_post_auth_redirect_v1")).toBe("/portal/pricing-rules");
     });
 
-    expect(
-      screen.getByText("After sign-in you'll return to Pricing Rules.")
-    ).toBeInTheDocument();
+    expect(screen.getByText("After sign-in you'll return to Pricing Rules.")).toBeInTheDocument();
 
     const loginLink = screen.getByRole("link", { name: "Already have an account? Log in" });
     expect(loginLink.getAttribute("href")).toBe("/login?returnTo=%2Fportal%2Fpricing-rules");

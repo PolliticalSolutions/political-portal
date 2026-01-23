@@ -1,3 +1,5 @@
-# https://www.robotstxt.org/robotstxt.html
 User-agent: *
-Disallow:
+Disallow: /portal
+Disallow: /callback
+
+Sitemap: https://www.politicalsolutions.uk/sitemap.xml

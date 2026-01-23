@@ -5,6 +5,8 @@ import Card from "../components/Card.jsx";
 import Footer from "../components/Footer.jsx";
 import associations from "../data/associations.json";
 import { submitEnquiry } from "../lib/enquiryApi.js";
+import Seo from "../seo/Seo.jsx";
+import { buildOrganisationSchema, buildWebsiteSchema } from "../seo/structuredData.js";
 
 export function buildEnquiryMailto({ name, email, organisation, message, context, pageUrl }) {
   const subjectParts = [name || "Enquiry"];
@@ -22,12 +24,7 @@ export function buildEnquiryMailto({ name, email, organisation, message, context
 
   if (context) {
     lines.push("", "Context:");
-    if (context.association) lines.push(`Association: ${context.association}`);
-    if (context.constituency) lines.push(`Constituency: ${context.constituency}`);
     if (context.constituencyCount) lines.push(`Constituency count: ${context.constituencyCount}`);
-    if (context.constituencies?.length) {
-      lines.push(`Constituencies: ${context.constituencies.join(", ")}`);
-    }
   }
 
   if (pageUrl) {
@@ -139,6 +136,13 @@ export default function EnquirePage() {
 
   return (
     <div className="page stack">
+      <Seo
+        title="Enquire about services"
+        description="Ask a question, request a demo, or clarify pricing for Political Solutions services."
+        path="/enquire"
+        robots="index,follow"
+        jsonLd={[buildOrganisationSchema(), buildWebsiteSchema()]}
+      />
       <Card>
         <h1 style={{ margin: "0 0 12px", fontSize: 22 }}>Enquire</h1>
         <p className="muted">
@@ -148,8 +152,6 @@ export default function EnquirePage() {
           <div className="status" style={{ marginTop: 16 }}>
             <div>
               <div style={{ fontWeight: 700 }}>Context</div>
-              {association && <div>{association}</div>}
-              {constituency && <div>{constituency}</div>}
               {constituencyCount ? (
                 <div>
                   {constituencyCount} constituenc{constituencyCount === 1 ? "y" : "ies"}

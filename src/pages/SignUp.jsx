@@ -7,6 +7,8 @@ import associations from "../data/associations.json";
 import { calculateFederationPricing } from "../portal/pricing/federationPricing.js";
 import { startSignUp } from "../lib/cognito.js";
 import { isSafeInternalPath, setPostAuthRedirect } from "../utils/postAuthRedirect.js";
+import Seo from "../seo/Seo.jsx";
+import { buildOrganisationSchema, buildWebsiteSchema } from "../seo/structuredData.js";
 
 const gbp = new Intl.NumberFormat("en-GB", {
   style: "currency",
@@ -68,34 +70,33 @@ export default function SignUp() {
     try {
       await startSignUp("/portal");
     } catch (err) {
-      setError(err.message || "Signup failed to start.");
+      setError(err.message || "Sign-up failed to start.");
     }
   };
 
   return (
     <div className="page stack">
+      <Seo
+        title="Create a portal account"
+        description="Create a Political Solutions Portal account to access subscriptions, operational tools, and reporting."
+        path="/signup"
+        robots="index,follow"
+        jsonLd={[buildOrganisationSchema(), buildWebsiteSchema()]}
+      />
       <Card>
         <h1 style={{ margin: "0 0 12px", fontSize: 22 }}>Create account</h1>
-        {!association ? (
-          <p className="muted">No association selected yet. Choose a plan to capture your pricing context.</p>
+        {!association && !constituencyCount ? (
+          <p className="muted">No pricing context selected yet. Choose a plan to capture your pricing context.</p>
         ) : (
           <>
             <div style={{ marginBottom: 16 }}>
-              <div style={{ fontSize: 16, fontWeight: 700 }}>{association}</div>
-              <div className="muted" style={{ marginTop: 4 }}>
-                {constituencyCount} constituenc{constituencyCount === 1 ? "y" : "ies"}
-              </div>
+              <div style={{ fontSize: 16, fontWeight: 700 }}>Pricing context captured</div>
+              {constituencyCount ? (
+                <div className="muted" style={{ marginTop: 4 }}>
+                  {constituencyCount} constituenc{constituencyCount === 1 ? "y" : "ies"}
+                </div>
+              ) : null}
             </div>
-            {constituencies.length > 0 && (
-              <div style={{ marginBottom: 16 }}>
-                <div style={{ fontWeight: 600, marginBottom: 6 }}>Included constituencies</div>
-                <ul style={{ margin: 0, paddingLeft: 18 }}>
-                  {constituencies.map((constituency) => (
-                    <li key={constituency}>{constituency}</li>
-                  ))}
-                </ul>
-              </div>
-            )}
             {pricing && (
               <div style={{ marginBottom: 16 }}>
                 <div>Total (ex VAT): {gbp.format(pricing.netTotal)}</div>

@@ -1,9 +1,18 @@
 import Card from "../../components/Card.jsx";
 import Footer from "../../components/Footer.jsx";
+import Seo from "../../seo/Seo.jsx";
+import { buildOrganisationSchema, buildWebsiteSchema } from "../../seo/structuredData.js";
 
 export default function PrivacyPage() {
   return (
     <div className="page stack">
+      <Seo
+        title="Privacy policy"
+        description="Read how Political Solutions Ltd handles data, privacy, and contact details."
+        path="/privacy"
+        robots="index,follow"
+        jsonLd={[buildOrganisationSchema(), buildWebsiteSchema()]}
+      />
       <Card>
         <h1 style={{ margin: "0 0 12px", fontSize: 22 }}>Privacy Policy</h1>
         <p className="muted">
@@ -14,7 +23,7 @@ export default function PrivacyPage() {
           <div>
             <strong>Data we collect</strong>
             <p className="muted">
-              Account identifiers, login metadata, and basic usage information needed to operate the portal.
+              Account identifiers, sign-in metadata, and basic usage information needed to operate the portal.
               We only request what is required for access control and service delivery.
             </p>
           </div>

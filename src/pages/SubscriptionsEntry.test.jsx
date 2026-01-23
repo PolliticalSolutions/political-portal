@@ -15,7 +15,7 @@ describe("SubscriptionsEntry", () => {
       screen.getByRole("heading", { name: "Subscriptions are available in the Portal" })
     ).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "Log in" })).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: "Request access / Create account" })).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Request access / create account" })).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "View our services" })).toBeInTheDocument();
   });
 });

@@ -8,7 +8,7 @@ export default function Footer() {
         Contact: <a href="mailto:paul@politicalsolutions.uk">paul@politicalsolutions.uk</a>
       </span>
       <span className="footer-links">
-        <Link to="/privacy">Privacy Policy</Link> · <Link to="/terms">Terms of Use</Link> ·{" "}
+        <Link to="/privacy">Privacy Policy</Link> | <Link to="/terms">Terms of Use</Link> |{" "}
         <Link to="/cookies">Cookie Notice</Link>
       </span>
     </footer>

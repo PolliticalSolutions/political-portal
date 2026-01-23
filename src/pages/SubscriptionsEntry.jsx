@@ -1,6 +1,8 @@
 import { Link, Navigate } from "react-router-dom";
 import Button from "../components/Button.jsx";
 import Card from "../components/Card.jsx";
+import Seo from "../seo/Seo.jsx";
+import { buildOrganisationSchema, buildWebsiteSchema } from "../seo/structuredData.js";
 
 export default function SubscriptionsEntry({ authed }) {
   if (authed) {
@@ -9,11 +11,18 @@ export default function SubscriptionsEntry({ authed }) {
 
   return (
     <div className="page stack">
+      <Seo
+        title="Portal subscriptions"
+        description="Subscriptions are managed through the secure Political Solutions Portal. Log in to view tiers and manage your account."
+        path="/subscriptions"
+        robots="noindex,nofollow"
+        jsonLd={[buildOrganisationSchema(), buildWebsiteSchema()]}
+      />
       <section className="hero">
         <div>
           <h1>Subscriptions are available in the Portal</h1>
           <p className="muted">
-            Log in to view subscription tiers and manage your account, or view our services overview.
+            Log in to view subscription tiers and manage your account, or review our services overview.
           </p>
         </div>
       </section>
@@ -26,7 +35,7 @@ export default function SubscriptionsEntry({ authed }) {
               Log in
             </Button>
             <Button as={Link} to="/signup" variant="secondary">
-              Request access / Create account
+              Request access / create account
             </Button>
             <Button as={Link} to="/services" variant="ghost">
               View our services

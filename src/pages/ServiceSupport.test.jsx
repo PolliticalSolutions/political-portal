@@ -1,4 +1,4 @@
-import { fireEvent, render, screen } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import { describe, expect, it, vi } from "vitest";
 import ServiceSupport from "./ServiceSupport.jsx";
@@ -18,6 +18,21 @@ describe("ServiceSupport", () => {
     expect(
       screen.getByRole("heading", { name: "Request election & by-election support" })
     ).toBeInTheDocument();
+  });
+
+  it("sets the SEO title and description", async () => {
+    render(
+      <MemoryRouter>
+        <ServiceSupport />
+      </MemoryRouter>
+    );
+
+    await waitFor(() => {
+      expect(document.title).toContain("Election and by-election support");
+    });
+
+    const description = document.querySelector('meta[name="description"]')?.getAttribute("content") || "";
+    expect(description).toContain("UK-wide");
   });
 
   it("submits the enquiry and shows a reference", async () => {

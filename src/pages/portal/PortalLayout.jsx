@@ -1,10 +1,17 @@
 import { NavLink, Outlet } from "react-router-dom";
+import Seo from "../../seo/Seo.jsx";
 
 export default function PortalLayout() {
   const navClass = ({ isActive }) => (isActive ? "navLink active" : "navLink");
 
   return (
     <div className="page stack">
+      <Seo
+        title="Portal"
+        description="Secure Political Solutions Portal access."
+        path="/portal"
+        robots="noindex,nofollow"
+      />
       <div className="no-print" style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
         <div style={{ fontSize: 18, fontWeight: 700 }}>Portal</div>
         <nav className="nav" aria-label="Portal">

@@ -6,6 +6,8 @@ import Button from "../components/Button.jsx";
 import Card from "../components/Card.jsx";
 import Footer from "../components/Footer.jsx";
 import { isSafeInternalPath, setPostAuthRedirect } from "../utils/postAuthRedirect.js";
+import Seo from "../seo/Seo.jsx";
+import { buildOrganisationSchema, buildWebsiteSchema } from "../seo/structuredData.js";
 
 export default function Login({ authed }) {
   const [error, setError] = useState(null);
@@ -55,7 +57,7 @@ export default function Login({ authed }) {
       setPostAuthRedirect(redirectPath);
       await startLogin(redirectPath);
     } catch (err) {
-      setError(err.message || "Login failed to start.");
+      setError(err.message || "Sign-in failed to start.");
     }
   };
 
@@ -64,12 +66,19 @@ export default function Login({ authed }) {
     try {
       await startSignUp("/portal");
     } catch (err) {
-      setError(err.message || "Signup failed to start.");
+      setError(err.message || "Sign-up failed to start.");
     }
   };
 
   return (
     <div className="page stack">
+      <Seo
+        title="Secure portal sign-in"
+        description="Secure sign-in for the Political Solutions Portal. Access operational tools, reporting, and subscriptions."
+        path="/login"
+        robots="index,follow"
+        jsonLd={[buildOrganisationSchema(), buildWebsiteSchema()]}
+      />
       <div className="centered">
         <div className="login-card">
           <Card>

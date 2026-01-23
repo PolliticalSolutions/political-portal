@@ -68,14 +68,14 @@ function TopNav({ authed, onLogout, cartCount }) {
           {cartCount > 0 && <span className="nav-badge">{cartCount}</span>}
         </NavLink>
         <NavLink className={navClass} to="/login">
-          Login
+          Log in
         </NavLink>
         <NavLink className={navClass} to="/portal">
           Portal
         </NavLink>
         {authed && (
           <Button variant="ghost" onClick={onLogout}>
-            Logout
+            Log out
           </Button>
         )}
       </nav>

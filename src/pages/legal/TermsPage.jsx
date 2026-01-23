@@ -1,9 +1,18 @@
 import Card from "../../components/Card.jsx";
 import Footer from "../../components/Footer.jsx";
+import Seo from "../../seo/Seo.jsx";
+import { buildOrganisationSchema, buildWebsiteSchema } from "../../seo/structuredData.js";
 
 export default function TermsPage() {
   return (
     <div className="page stack">
+      <Seo
+        title="Terms of use"
+        description="Terms of use for the Political Solutions Portal and related services."
+        path="/terms"
+        robots="index,follow"
+        jsonLd={[buildOrganisationSchema(), buildWebsiteSchema()]}
+      />
       <Card>
         <h1 style={{ margin: "0 0 12px", fontSize: 22 }}>Terms of Use</h1>
         <p className="muted">
@@ -14,7 +23,7 @@ export default function TermsPage() {
           <div>
             <strong>Access and accounts</strong>
             <p className="muted">
-              Keep login credentials secure and notify us if you suspect unauthorised access. Access is
+              Keep sign-in credentials secure and notify us if you suspect unauthorised access. Access is
               provided for approved users only.
             </p>
           </div>

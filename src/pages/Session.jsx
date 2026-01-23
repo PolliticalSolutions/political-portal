@@ -52,8 +52,7 @@ export default function Session({ session, onClear }) {
             <p>Client ID: {cognitoConfig.clientId || "Unknown"}</p>
             <p>Redirect URI: {cognitoConfig.redirectUri || "Unknown"}</p>
             <p>
-              Logout URI:{" "}
-              {cognitoConfig.logoutUri || cognitoConfig.redirectUri || "Unknown"}
+              Log-out URI: {cognitoConfig.logoutUri || cognitoConfig.redirectUri || "Unknown"}
             </p>
           </Card>
         </div>

@@ -11,7 +11,7 @@ export default function IdleWarning({ secondsLeft, onStay, onLogout }) {
           title={
             <div id="idle-title" style={{ display: "flex", alignItems: "center", gap: 10 }}>
               Still there?
-              <Badge tone="accent">Auto logout</Badge>
+              <Badge tone="accent">Auto log-out</Badge>
             </div>
           }
         >

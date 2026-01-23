@@ -3,6 +3,8 @@ import { Link } from "react-router-dom";
 import Button from "../components/Button.jsx";
 import Card from "../components/Card.jsx";
 import { postServiceEnquiry } from "../lib/quoteApi.js";
+import Seo from "../seo/Seo.jsx";
+import { buildElectionSupportSchema, buildOrganisationSchema, buildWebsiteSchema } from "../seo/structuredData.js";
 
 const MAX_MESSAGE = 1000;
 
@@ -72,6 +74,13 @@ export default function ServiceSupport() {
   if (status.referenceId) {
     return (
       <div className="page stack">
+        <Seo
+          title="Election and by-election support"
+          description="UK-wide election and by-election support for campaign operations, data coordination, and delivery planning. Separate chargeable service with clear scope."
+          path="/services/election-support"
+          robots="index,follow"
+          jsonLd={[buildOrganisationSchema(), buildWebsiteSchema(), buildElectionSupportSchema()]}
+        />
         <Card>
           <h1 style={{ margin: "0 0 12px", fontSize: 22 }}>Request received</h1>
           <p className="muted">
@@ -87,15 +96,35 @@ export default function ServiceSupport() {
 
   return (
     <div className="page stack">
+      <Seo
+        title="Election and by-election support"
+        description="UK-wide election and by-election support for campaign operations, data coordination, and delivery planning. Separate chargeable service with clear scope."
+        path="/services/election-support"
+        robots="index,follow"
+        jsonLd={[buildOrganisationSchema(), buildWebsiteSchema(), buildElectionSupportSchema()]}
+      />
       <section className="hero">
         <div>
           <h1>Request election & by-election support</h1>
           <p className="muted">
-            This is a separate, chargeable service. Provide a brief outline and we will confirm scope and
-            next steps.
+            This is a separate, chargeable service. Provide a brief outline and we will confirm scope,
+            timelines, and next steps.
           </p>
         </div>
       </section>
+
+      <Card title="What we can support">
+        <div className="stack" style={{ gap: 8 }}>
+          <p className="muted" style={{ margin: 0 }}>
+            UK-wide campaign operations support that may include planning, volunteer briefing, data
+            coordination, print logistics, and delivery oversight.
+          </p>
+          <p className="muted" style={{ margin: 0 }}>
+            We will confirm scope and pricing before any work starts. Election and by-election support is not
+            included in subscription capability tiers.
+          </p>
+        </div>
+      </Card>
 
       <Card>
         <form className="stack" onSubmit={handleSubmit} noValidate>

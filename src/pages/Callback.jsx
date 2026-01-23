@@ -5,6 +5,7 @@ import { clearStoredSession, exchangeCodeForTokens } from "../lib/cognito.js";
 import Badge from "../components/Badge.jsx";
 import Card from "../components/Card.jsx";
 import { consumePostAuthRedirect, isSafeInternalPath } from "../utils/postAuthRedirect.js";
+import Seo from "../seo/Seo.jsx";
 
 export default function Callback({ onAuth }) {
   const location = useLocation();
@@ -29,7 +30,7 @@ export default function Callback({ onAuth }) {
 
     if (errorParam) {
       setStatus("error");
-      setError(`${errorParam}: ${params.get("error_description") || "Login error"}`);
+      setError(`${errorParam}: ${params.get("error_description") || "Sign-in error"}`);
       return;
     }
 
@@ -67,6 +68,12 @@ export default function Callback({ onAuth }) {
   if (!error) {
     return (
       <div className="page centered">
+        <Seo
+          title="Authentication callback"
+          description="Authentication callback for the Political Solutions Portal."
+          path="/callback"
+          robots="noindex,nofollow"
+        />
         <Card>
           <div className="stack">
             <Badge tone="accent">Secure handoff</Badge>
@@ -81,11 +88,17 @@ export default function Callback({ onAuth }) {
 
   return (
     <div className="page centered">
+      <Seo
+        title="Authentication callback"
+        description="Authentication callback for the Political Solutions Portal."
+        path="/callback"
+        robots="noindex,nofollow"
+      />
       <Card>
         <div className="stack">
           <Badge tone="accent">Secure handoff</Badge>
           <div className="status error">{error}</div>
-          <p className="helper">Please restart login.</p>
+          <p className="helper">Please restart sign-in.</p>
         </div>
       </Card>
     </div>

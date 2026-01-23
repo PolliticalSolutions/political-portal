@@ -37,7 +37,7 @@ export default function Portal({ tokens, onLogout }) {
           </div>
           {onLogout && (
             <Button variant="ghost" onClick={onLogout}>
-              Logout
+              Log out
             </Button>
           )}
         </div>
