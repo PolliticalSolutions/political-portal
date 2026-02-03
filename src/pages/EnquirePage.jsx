@@ -7,6 +7,7 @@ import associations from "../data/associations.json";
 import { submitEnquiry } from "../lib/enquiryApi.js";
 import Seo from "../seo/Seo.jsx";
 import { buildOrganisationSchema, buildWebsiteSchema } from "../seo/structuredData.js";
+import { getRuntimeConfig } from "../config/runtimeConfig.js";
 
 export function buildEnquiryMailto({ name, email, organisation, message, context, pageUrl }) {
   const subjectParts = [name || "Enquiry"];
@@ -109,7 +110,7 @@ export default function EnquirePage() {
     };
     const mailto = buildEnquiryMailto({ ...formValues, context, pageUrl });
 
-    const apiUrl = import.meta.env.VITE_ENQUIRY_API_URL?.trim();
+    const apiUrl = getRuntimeConfig().enquiryApiUrl;
     if (apiUrl) {
       try {
         const result = await submitEnquiry(apiUrl, payload);

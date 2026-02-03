@@ -4,15 +4,29 @@ import { MemoryRouter } from "react-router-dom";
 import { HelmetProvider } from "react-helmet-async";
 import App from "./App.jsx";
 import { CartProvider } from "./cart/cartStore.jsx";
+import ConfigErrorScreen from "./components/ConfigErrorScreen.jsx";
+import ErrorBoundary from "./components/ErrorBoundary.jsx";
+import { validateEnv } from "./utils/validateEnv.js";
 
 export async function render(url) {
   const helmetContext = {};
+  try {
+    validateEnv();
+  } catch (error) {
+    const appHtml = renderToString(
+      <ConfigErrorScreen missingKeys={error?.missingKeys} />
+    );
+    const headHtml = "<title>Configuration error</title>";
+    return { appHtml, headHtml };
+  }
 
   const appHtml = renderToString(
     <HelmetProvider context={helmetContext}>
       <MemoryRouter initialEntries={[url]}>
         <CartProvider>
-          <App />
+          <ErrorBoundary>
+            <App />
+          </ErrorBoundary>
         </CartProvider>
       </MemoryRouter>
     </HelmetProvider>

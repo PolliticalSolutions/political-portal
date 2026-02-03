@@ -1,4 +1,6 @@
-export const siteUrl = "https://politicalsolutions.uk";
+import { SITE_URL } from "./seoConfig.js";
+
+export const siteUrl = SITE_URL;
 
 export const seoRoutes = [
   {

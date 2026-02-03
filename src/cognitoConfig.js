@@ -1,7 +1,12 @@
-// Basic Cognito Hosted UI settings. Replace placeholders with your actual values.
+import { getRuntimeConfig } from "./config/runtimeConfig.js";
+
+// Basic Cognito Hosted UI settings.
+const runtimeConfig = getRuntimeConfig();
+
 export const cognitoConfig = {
-  domain: "https://eu-west-2rlruaqyij.auth.eu-west-2.amazoncognito.com",
-  clientId: "6c0l6a3fntgqj2n7rfjcuss61l",
-  redirectUri: "https://www.politicalsolutions.uk/callback", // change to http://localhost:5173/callback for local dev
+  domain: runtimeConfig.cognitoDomain,
+  clientId: runtimeConfig.cognitoClientId,
+  redirectUri: runtimeConfig.cognitoRedirectUri,
+  logoutUri: runtimeConfig.cognitoLogoutUri,
   scope: "openid email profile",
 };

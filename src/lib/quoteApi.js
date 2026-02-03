@@ -1,9 +1,6 @@
-const resolveApiBaseUrl = () => {
-  const base =
-    import.meta.env.VITE_API_BASE_URL?.trim() || import.meta.env.VITE_ENQUIRY_API_URL?.trim();
-  if (!base) return "";
-  return base.replace(/\/+$/, "");
-};
+import { getApiBaseUrl } from "../config/runtimeConfig.js";
+
+const resolveApiBaseUrl = () => getApiBaseUrl();
 
 const fetchJson = async (url, options) => {
   let response;

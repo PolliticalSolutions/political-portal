@@ -49,6 +49,15 @@ describe("Seo", () => {
     expect(document.querySelector("meta[name='twitter:description']")?.content).toBe(
       "Explore services for political operations.",
     );
+    expect(document.querySelector("meta[property='og:image']")?.content).toMatch(
+      /^https:\/\/politicalsolutions\.uk/
+    );
+    expect(document.querySelector("meta[name='twitter:image']")?.content).toMatch(
+      /^https:\/\/politicalsolutions\.uk/
+    );
+    expect(document.querySelector("meta[property='og:image:alt']")?.content).toBe(
+      "Political Solutions logo"
+    );
   });
 
   it("adds noindex when specified", async () => {
