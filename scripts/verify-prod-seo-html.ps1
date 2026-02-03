@@ -14,7 +14,7 @@ foreach ($route in $routes) {
   $canonical = "$siteUrl$normalized"
   $expectedTitle = $route.title
 
-  $html = curl.exe -sS -L --ssl-no-revoke $url
+  $html = (curl.exe -sS -L --ssl-no-revoke $url | Out-String)
 
   if ($html -notmatch [regex]::Escape($expectedTitle)) {
     $failures += "$url missing expected title"
