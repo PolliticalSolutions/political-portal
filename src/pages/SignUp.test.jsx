@@ -1,4 +1,5 @@
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { HelmetProvider } from "react-helmet-async";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
 import { describe, expect, it, vi } from "vitest";
 
@@ -23,8 +24,10 @@ import SignUp from "./SignUp.jsx";
 import { startSignUp } from "../lib/cognito.js";
 
 describe("SignUp", () => {
+  const renderWithHelmet = (ui) => render(<HelmetProvider>{ui}</HelmetProvider>);
+
   it("renders pricing context and totals from query params", () => {
-    render(
+    renderWithHelmet(
       <MemoryRouter initialEntries={["/signup?association=Big%20Federation&count=3"]}>
         <Routes>
           <Route path="/signup" element={<SignUp />} />
@@ -38,7 +41,7 @@ describe("SignUp", () => {
   });
 
   it("starts hosted UI signup from the primary CTA", () => {
-    render(
+    renderWithHelmet(
       <MemoryRouter initialEntries={["/signup?association=Big%20Federation&count=3"]}>
         <Routes>
           <Route path="/signup" element={<SignUp />} />
@@ -51,7 +54,7 @@ describe("SignUp", () => {
   });
 
   it("stores returnTo on mount and preserves it in the login link", async () => {
-    render(
+    renderWithHelmet(
       <MemoryRouter
         initialEntries={["/signup?association=Big%20Federation&count=3&returnTo=%2Fportal%2Fpricing-rules"]}
       >

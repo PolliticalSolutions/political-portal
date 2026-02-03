@@ -1,4 +1,5 @@
 import { render, screen, waitFor } from "@testing-library/react";
+import { HelmetProvider } from "react-helmet-async";
 import { MemoryRouter } from "react-router-dom";
 import { describe, expect, it } from "vitest";
 import Services from "./Services.jsx";
@@ -6,9 +7,11 @@ import Services from "./Services.jsx";
 describe("Services", () => {
   it("renders key service headings", () => {
     render(
-      <MemoryRouter>
-        <Services />
-      </MemoryRouter>
+      <HelmetProvider>
+        <MemoryRouter>
+          <Services />
+        </MemoryRouter>
+      </HelmetProvider>
     );
 
     expect(screen.getByRole("heading", { name: "Political operations services" })).toBeInTheDocument();
@@ -18,9 +21,11 @@ describe("Services", () => {
 
   it("sets the SEO title and description", async () => {
     render(
-      <MemoryRouter>
-        <Services />
-      </MemoryRouter>
+      <HelmetProvider>
+        <MemoryRouter>
+          <Services />
+        </MemoryRouter>
+      </HelmetProvider>
     );
 
     await waitFor(() => {

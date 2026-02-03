@@ -5,7 +5,10 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "vite build",
+    "build": "npm run build:client && npm run build:ssr && npm run prerender",
+    "build:client": "vite build",
+    "build:ssr": "vite build --ssr src/entry-server.jsx --outDir dist-ssr",
+    "prerender": "node scripts/prerender.mjs",
     "postbuild": "node scripts/generate-sitemap.mjs",
     "preview": "vite preview",
     "test": "vitest",
@@ -13,7 +16,9 @@
     "test:ui": "vitest --ui",
     "test:api": "vitest run --config vitest.api.config.js",
     "data:build": "node scripts/generateAssociationsJson.mjs",
-    "verify:prod:headers": "powershell -ExecutionPolicy Bypass -File scripts/verify-prod-headers.ps1"
+    "verify:prod:headers": "powershell -ExecutionPolicy Bypass -File scripts/verify-prod-headers.ps1",
+    "verify:prerender": "powershell -ExecutionPolicy Bypass -File scripts/verify-prerender-output.ps1",
+    "verify:prod:seo": "powershell -ExecutionPolicy Bypass -File scripts/verify-prod-seo-html.ps1"
   },
   "dependencies": {
     "react": "^19.2.3",

@@ -1,15 +1,18 @@
 import { render, screen, waitFor } from "@testing-library/react";
+import { HelmetProvider } from "react-helmet-async";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
 import { describe, expect, it, beforeEach } from "vitest";
 import Login from "./Login.jsx";
 
 describe("Login", () => {
+  const renderWithHelmet = (ui) => render(<HelmetProvider>{ui}</HelmetProvider>);
+
   beforeEach(() => {
     sessionStorage.clear();
   });
 
   it("stores returnTo on mount and preserves it in the signup link", async () => {
-    render(
+    renderWithHelmet(
       <MemoryRouter
         initialEntries={["/login?returnTo=%2Fportal%2Fpricing-rules%3Fassociation%3DTest"]}
       >

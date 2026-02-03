@@ -1,8 +1,14 @@
 import { render, waitFor } from "@testing-library/react";
+import { HelmetProvider } from "react-helmet-async";
 import { afterEach, describe, expect, it } from "vitest";
 import Seo from "./Seo.jsx";
 
-const renderSeo = (props) => render(<Seo {...props} />);
+const renderSeo = (props) =>
+  render(
+    <HelmetProvider>
+      <Seo {...props} />
+    </HelmetProvider>
+  );
 
 afterEach(() => {
   document.title = "";

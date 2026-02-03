@@ -1,11 +1,14 @@
 import { render, screen } from "@testing-library/react";
+import { HelmetProvider } from "react-helmet-async";
 import { MemoryRouter } from "react-router-dom";
 import { describe, expect, it } from "vitest";
 import CartEntry from "./CartEntry.jsx";
 
 describe("CartEntry", () => {
+  const renderWithHelmet = (ui) => render(<HelmetProvider>{ui}</HelmetProvider>);
+
   it("renders login CTA when logged out", () => {
-    render(
+    renderWithHelmet(
       <MemoryRouter>
         <CartEntry authed={false} />
       </MemoryRouter>

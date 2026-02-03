@@ -1,4 +1,5 @@
 import { render, screen } from "@testing-library/react";
+import { HelmetProvider } from "react-helmet-async";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
 import { beforeEach, describe, expect, it } from "vitest";
 import Login from "../pages/Login.jsx";
@@ -20,12 +21,14 @@ function PortalScreen() {
 }
 
 describe("ProtectedRoute", () => {
+  const renderWithHelmet = (ui) => render(<HelmetProvider>{ui}</HelmetProvider>);
+
   beforeEach(() => {
     sessionStorage.clear();
   });
 
   it("redirects to /login when no token is present", () => {
-    render(
+    renderWithHelmet(
       <MemoryRouter initialEntries={["/portal"]}>
         <Routes>
           <Route element={<ProtectedRoute authed={false} session={{}} />}>
@@ -44,7 +47,7 @@ describe("ProtectedRoute", () => {
     const tokens = { access_token: makeJwt({ exp: expiredExp }) };
     sessionStorage.setItem(tokensKey, JSON.stringify(tokens));
 
-    render(
+    renderWithHelmet(
       <MemoryRouter initialEntries={["/portal"]}>
         <Routes>
           <Route element={<ProtectedRoute authed={false} session={{}} />}>
@@ -60,7 +63,7 @@ describe("ProtectedRoute", () => {
   });
 
   it("stores the intended path before redirecting to /login", () => {
-    render(
+    renderWithHelmet(
       <MemoryRouter initialEntries={["/portal/thing?x=1"]}>
         <Routes>
           <Route element={<ProtectedRoute authed={false} session={{}} />}>
@@ -79,7 +82,7 @@ describe("ProtectedRoute", () => {
     const tokens = { access_token: makeJwt({ exp: futureExp }) };
     sessionStorage.setItem(tokensKey, JSON.stringify(tokens));
 
-    render(
+    renderWithHelmet(
       <MemoryRouter initialEntries={["/portal"]}>
         <Routes>
           <Route element={<ProtectedRoute authed={true} session={{}} />}>

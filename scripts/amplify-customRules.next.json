@@ -1,0 +1,52 @@
+[
+  {
+    "source": "</^\\/$/>",
+    "target": "/index.html",
+    "status": "200"
+  },
+  {
+    "source": "</^/services\\/?$/>",
+    "target": "/services/index.html",
+    "status": "200"
+  },
+  {
+    "source": "</^/services/election-support\\/?$/>",
+    "target": "/services/election-support/index.html",
+    "status": "200"
+  },
+  {
+    "source": "</^/subscriptions\\/?$/>",
+    "target": "/subscriptions/index.html",
+    "status": "200"
+  },
+  {
+    "source": "</^/enquire\\/?$/>",
+    "target": "/enquire/index.html",
+    "status": "200"
+  },
+  {
+    "source": "</^/privacy\\/?$/>",
+    "target": "/privacy/index.html",
+    "status": "200"
+  },
+  {
+    "source": "</^/terms\\/?$/>",
+    "target": "/terms/index.html",
+    "status": "200"
+  },
+  {
+    "source": "</^/cookies\\/?$/>",
+    "target": "/cookies/index.html",
+    "status": "200"
+  },
+  {
+    "source": "/assets/<*>",
+    "target": "/assets/<*>",
+    "status": "200"
+  },
+  {
+    "source": "</^[^.]+$|\\.(?!(css|gif|ico|jpg|jpeg|js|png|txt|xml|svg|woff|woff2|ttf|map|json|webp)$)([^.]+$)/>",
+    "target": "/index.html",
+    "status": "200"
+  }
+]

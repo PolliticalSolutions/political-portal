@@ -1,4 +1,5 @@
 import { render, screen, waitFor } from "@testing-library/react";
+import { HelmetProvider } from "react-helmet-async";
 import { MemoryRouter, Route, Routes, useLocation } from "react-router-dom";
 import { describe, expect, it, vi, beforeEach } from "vitest";
 import Callback from "./Callback.jsx";
@@ -23,6 +24,8 @@ function LocationDisplay() {
 }
 
 describe("Callback", () => {
+  const renderWithHelmet = (ui) => render(<HelmetProvider>{ui}</HelmetProvider>);
+
   beforeEach(() => {
     sessionStorage.clear();
   });
@@ -30,7 +33,7 @@ describe("Callback", () => {
   it("navigates to the stored redirect after auth and clears the key", async () => {
     sessionStorage.setItem("ps_post_auth_redirect_v1", "/portal/pricing-rules?association=Test");
 
-    render(
+    renderWithHelmet(
       <MemoryRouter initialEntries={["/callback?code=123"]}>
         <Routes>
           <Route path="/callback" element={<Callback />} />
@@ -53,7 +56,7 @@ describe("Callback", () => {
   it("falls back to /portal for unsafe redirects and clears the key", async () => {
     sessionStorage.setItem("ps_post_auth_redirect_v1", "https://evil.com");
 
-    render(
+    renderWithHelmet(
       <MemoryRouter initialEntries={["/callback?code=123"]}>
         <Routes>
           <Route path="/callback" element={<Callback />} />

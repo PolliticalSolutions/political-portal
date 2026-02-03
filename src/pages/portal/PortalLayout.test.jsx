@@ -1,4 +1,5 @@
 import { render, waitFor } from "@testing-library/react";
+import { HelmetProvider } from "react-helmet-async";
 import { MemoryRouter } from "react-router-dom";
 import { describe, expect, it } from "vitest";
 import PortalLayout from "./PortalLayout.jsx";
@@ -6,9 +7,11 @@ import PortalLayout from "./PortalLayout.jsx";
 describe("PortalLayout SEO", () => {
   it("sets robots to noindex", async () => {
     render(
-      <MemoryRouter>
-        <PortalLayout />
-      </MemoryRouter>
+      <HelmetProvider>
+        <MemoryRouter>
+          <PortalLayout />
+        </MemoryRouter>
+      </HelmetProvider>
     );
 
     await waitFor(() => {

@@ -1,4 +1,5 @@
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { HelmetProvider } from "react-helmet-async";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import EnquirePage, { buildEnquiryMailto } from "./EnquirePage.jsx";
@@ -13,6 +14,7 @@ vi.mock("../data/associations.json", () => ({
 
 describe("EnquirePage", () => {
   const originalLocation = window.location;
+  const renderWithHelmet = (ui) => render(<HelmetProvider>{ui}</HelmetProvider>);
 
   beforeEach(() => {
     vi.stubEnv("VITE_ENQUIRY_API_URL", "");
@@ -33,7 +35,7 @@ describe("EnquirePage", () => {
   });
 
   it("validates required fields on submit", () => {
-    render(
+    renderWithHelmet(
       <MemoryRouter initialEntries={["/enquire"]}>
         <Routes>
           <Route path="/enquire" element={<EnquirePage />} />
@@ -80,7 +82,7 @@ describe("EnquirePage", () => {
       json: async () => ({ ok: true, requestId: "req-123" }),
     });
 
-    render(
+    renderWithHelmet(
       <MemoryRouter initialEntries={["/enquire?association=Big%20Federation&count=3"]}>
         <Routes>
           <Route path="/enquire" element={<EnquirePage />} />
@@ -133,7 +135,7 @@ describe("EnquirePage", () => {
       json: async () => ({ ok: true, requestId: "req-456" }),
     });
 
-    render(
+    renderWithHelmet(
       <MemoryRouter initialEntries={["/enquire"]}>
         <Routes>
           <Route path="/enquire" element={<EnquirePage />} />
@@ -155,7 +157,7 @@ describe("EnquirePage", () => {
   });
 
   it("falls back to mailto when API is not configured", async () => {
-    render(
+    renderWithHelmet(
       <MemoryRouter initialEntries={["/enquire"]}>
         <Routes>
           <Route path="/enquire" element={<EnquirePage />} />
@@ -179,7 +181,7 @@ describe("EnquirePage", () => {
     vi.stubEnv("VITE_ENQUIRY_API_URL", "https://api.example.test");
     global.fetch.mockRejectedValue(new Error("Network error"));
 
-    render(
+    renderWithHelmet(
       <MemoryRouter initialEntries={["/enquire"]}>
         <Routes>
           <Route path="/enquire" element={<EnquirePage />} />
@@ -213,7 +215,7 @@ describe("EnquirePage", () => {
       }),
     });
 
-    render(
+    renderWithHelmet(
       <MemoryRouter initialEntries={["/enquire"]}>
         <Routes>
           <Route path="/enquire" element={<EnquirePage />} />

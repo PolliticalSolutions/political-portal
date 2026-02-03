@@ -1,4 +1,5 @@
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { HelmetProvider } from "react-helmet-async";
 import { MemoryRouter } from "react-router-dom";
 import { describe, expect, it, vi } from "vitest";
 import ServiceSupport from "./ServiceSupport.jsx";
@@ -8,8 +9,10 @@ vi.mock("../lib/quoteApi.js", () => ({
 }));
 
 describe("ServiceSupport", () => {
+  const renderWithHelmet = (ui) => render(<HelmetProvider>{ui}</HelmetProvider>);
+
   it("renders the service support heading", () => {
-    render(
+    renderWithHelmet(
       <MemoryRouter>
         <ServiceSupport />
       </MemoryRouter>
@@ -21,7 +24,7 @@ describe("ServiceSupport", () => {
   });
 
   it("sets the SEO title and description", async () => {
-    render(
+    renderWithHelmet(
       <MemoryRouter>
         <ServiceSupport />
       </MemoryRouter>
@@ -36,7 +39,7 @@ describe("ServiceSupport", () => {
   });
 
   it("submits the enquiry and shows a reference", async () => {
-    render(
+    renderWithHelmet(
       <MemoryRouter>
         <ServiceSupport />
       </MemoryRouter>

@@ -1,4 +1,5 @@
 import { render, screen } from "@testing-library/react";
+import { HelmetProvider } from "react-helmet-async";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
 import { beforeEach, describe, expect, it } from "vitest";
 import { CartProvider } from "../../cart/cartStore.jsx";
@@ -21,6 +22,8 @@ function makeJwt(payloadObj) {
 }
 
 describe("Portal routing", () => {
+  const renderWithHelmet = (ui) => render(<HelmetProvider>{ui}</HelmetProvider>);
+
   beforeEach(() => {
     sessionStorage.clear();
     const futureExp = Math.floor(Date.now() / 1000) + 300;
@@ -29,7 +32,7 @@ describe("Portal routing", () => {
   });
 
   it("renders pricing rules inside the portal layout", () => {
-    render(
+    renderWithHelmet(
       <MemoryRouter initialEntries={["/portal/pricing-rules"]}>
         <Routes>
           <Route element={<ProtectedRoute authed={true} session={{}} />}>
@@ -48,7 +51,7 @@ describe("Portal routing", () => {
   });
 
   it("renders portal not found for unknown routes", () => {
-    render(
+    renderWithHelmet(
       <MemoryRouter initialEntries={["/portal/does-not-exist"]}>
         <Routes>
           <Route element={<ProtectedRoute authed={true} session={{}} />}>
@@ -67,7 +70,7 @@ describe("Portal routing", () => {
   });
 
   it("renders cart inside the portal layout", () => {
-    render(
+    renderWithHelmet(
       <MemoryRouter initialEntries={["/portal/cart"]}>
         <CartProvider>
           <Routes>

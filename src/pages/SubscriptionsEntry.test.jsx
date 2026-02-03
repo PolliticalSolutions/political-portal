@@ -1,11 +1,14 @@
 import { render, screen } from "@testing-library/react";
+import { HelmetProvider } from "react-helmet-async";
 import { MemoryRouter } from "react-router-dom";
 import { describe, expect, it } from "vitest";
 import SubscriptionsEntry from "./SubscriptionsEntry.jsx";
 
 describe("SubscriptionsEntry", () => {
+  const renderWithHelmet = (ui) => render(<HelmetProvider>{ui}</HelmetProvider>);
+
   it("renders portal access messaging when logged out", () => {
-    render(
+    renderWithHelmet(
       <MemoryRouter>
         <SubscriptionsEntry authed={false} />
       </MemoryRouter>
