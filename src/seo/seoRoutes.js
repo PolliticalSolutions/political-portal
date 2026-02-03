@@ -3,62 +3,62 @@ export const siteUrl = "https://politicalsolutions.uk";
 export const seoRoutes = [
   {
     path: "/",
-    title: "Political Solutions | UK Political Operations Platform",
+    title: "UK political operations platform",
     description:
-      "Political Solutions helps UK organisations plan, campaign, and manage political operations with confidence.",
+      "UK political operations platform for marked register processing, data insights, and compliant campaign operations support. Secure portal subscriptions.",
     changefreq: "weekly",
     priority: 1.0,
   },
   {
     path: "/services",
-    title: "Services | Political Solutions",
+    title: "Political operations services",
     description:
-      "Explore Political Solutions services for political operations, compliance support, and strategic delivery.",
+      "UK-wide political operations services: marked register processing, data insights, subscription platform access, training, and support. Election support available separately.",
     changefreq: "monthly",
     priority: 0.8,
   },
   {
     path: "/services/election-support",
-    title: "Election Support | Political Solutions",
+    title: "Election and by-election support",
     description:
-      "Election support services for UK campaigns covering planning, compliance, and delivery.",
+      "UK-wide election and by-election support for campaign operations, data coordination, and delivery planning. Separate chargeable service with clear scope.",
     changefreq: "monthly",
     priority: 0.7,
   },
   {
     path: "/subscriptions",
-    title: "Pricing | Political Solutions",
+    title: "Portal subscriptions",
     description:
-      "Transparent pricing for Political Solutions subscriptions and services.",
+      "Subscriptions are managed through the secure Political Solutions Portal. Log in to view tiers and manage your account.",
     changefreq: "monthly",
     priority: 0.7,
   },
   {
     path: "/enquire",
-    title: "Enquire | Political Solutions",
+    title: "Enquire about services",
     description:
-      "Contact Political Solutions to discuss your political operations requirements.",
+      "Ask a question, request a demo, or clarify pricing for Political Solutions services.",
     changefreq: "monthly",
     priority: 0.6,
   },
   {
     path: "/privacy",
-    title: "Privacy Policy | Political Solutions",
-    description: "Read the Political Solutions privacy policy.",
+    title: "Privacy policy",
+    description: "Read how Political Solutions Ltd handles data, privacy, and contact details.",
     changefreq: "yearly",
     priority: 0.3,
   },
   {
     path: "/terms",
-    title: "Terms of Service | Political Solutions",
-    description: "Review the Political Solutions terms of service.",
+    title: "Terms of use",
+    description: "Terms of use for the Political Solutions Portal and related services.",
     changefreq: "yearly",
     priority: 0.3,
   },
   {
     path: "/cookies",
-    title: "Cookie Policy | Political Solutions",
-    description: "Learn how Political Solutions uses cookies.",
+    title: "Cookie notice",
+    description: "Cookie notice for the Political Solutions Portal, including essential storage information.",
     changefreq: "yearly",
     priority: 0.3,
   },
