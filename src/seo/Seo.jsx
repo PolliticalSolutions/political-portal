@@ -1,85 +1,54 @@
-import { useEffect, useMemo } from "react";
-import { DEFAULT_DESCRIPTION, LOGO_PATH, SITE_NAME, SITE_URL } from "./seoConfig.js";
+import { Helmet, HelmetProvider } from "react-helmet-async";
+import { DEFAULT_DESCRIPTION, SITE_NAME, SITE_URL } from "./seoConfig.js";
+import { buildOrganisationSchema, buildWebsiteSchema } from "./structuredData.js";
 
-const normalisePath = (path) => {
-  if (!path) return "";
-  return path.startsWith("/") ? path : `/${path}`;
+const normalizePath = (path) => {
+  if (!path || path === "/") return "/";
+  return path.endsWith("/") ? path.slice(0, -1) : path;
 };
 
-const buildUrl = (path) => `${SITE_URL}${normalisePath(path)}`;
-const buildAssetUrl = (path) => `${SITE_URL}${normalisePath(path)}`;
-
-const upsertMeta = ({ name, property, content }) => {
-  if (!content) return;
-  const selector = name ? `meta[name="${name}"]` : `meta[property="${property}"]`;
-  let tag = document.head.querySelector(selector);
-  if (!tag) {
-    tag = document.createElement("meta");
-    if (name) tag.setAttribute("name", name);
-    if (property) tag.setAttribute("property", property);
-    document.head.appendChild(tag);
+const normalizeJsonLd = (jsonLd) => {
+  if (!jsonLd) {
+    return [buildOrganisationSchema(), buildWebsiteSchema()];
   }
-  tag.setAttribute("content", content);
-};
-
-const upsertLink = ({ rel, href }) => {
-  if (!href) return;
-  let tag = document.head.querySelector(`link[rel="${rel}"]`);
-  if (!tag) {
-    tag = document.createElement("link");
-    tag.setAttribute("rel", rel);
-    document.head.appendChild(tag);
-  }
-  tag.setAttribute("href", href);
-};
-
-const replaceJsonLd = (items) => {
-  document.head.querySelectorAll('script[data-seo="jsonld"]').forEach((tag) => tag.remove());
-  if (!items?.length) return;
-  items.forEach((entry, index) => {
-    const script = document.createElement("script");
-    script.type = "application/ld+json";
-    script.setAttribute("data-seo", "jsonld");
-    script.setAttribute("data-seo-index", String(index));
-    script.textContent = JSON.stringify(entry);
-    document.head.appendChild(script);
-  });
+  return Array.isArray(jsonLd) ? jsonLd : [jsonLd];
 };
 
 export default function Seo({
   title,
-  description,
-  path = "",
-  robots = "index,follow",
-  ogType = "website",
-  jsonLd = [],
+  description = DEFAULT_DESCRIPTION,
+  path = "/",
+  canonical,
+  robots,
+  noindex = false,
+  jsonLd,
 }) {
-  const resolvedDescription = description || DEFAULT_DESCRIPTION;
-  const canonicalUrl = useMemo(() => buildUrl(path), [path]);
-  const ogImageUrl = useMemo(() => buildAssetUrl(LOGO_PATH), []);
+  const normalizedPath = normalizePath(path);
+  const canonicalUrl = canonical || `${SITE_URL}${normalizedPath}`;
+  const finalTitle = title || SITE_NAME;
+  const robotsValue = noindex ? "noindex, nofollow" : robots;
+  const jsonLdEntries = normalizeJsonLd(jsonLd);
 
-  useEffect(() => {
-    const resolvedTitle = title ? `${title} | ${SITE_NAME}` : SITE_NAME;
-    document.title = resolvedTitle;
-
-    upsertMeta({ name: "description", content: resolvedDescription });
-    upsertMeta({ name: "robots", content: robots });
-
-    upsertMeta({ property: "og:title", content: resolvedTitle });
-    upsertMeta({ property: "og:description", content: resolvedDescription });
-    upsertMeta({ property: "og:url", content: canonicalUrl });
-    upsertMeta({ property: "og:type", content: ogType });
-    upsertMeta({ property: "og:site_name", content: SITE_NAME });
-    upsertMeta({ property: "og:image", content: ogImageUrl });
-
-    upsertMeta({ name: "twitter:card", content: "summary" });
-    upsertMeta({ name: "twitter:title", content: resolvedTitle });
-    upsertMeta({ name: "twitter:description", content: resolvedDescription });
-    upsertMeta({ name: "twitter:image", content: ogImageUrl });
-
-    upsertLink({ rel: "canonical", href: canonicalUrl });
-    replaceJsonLd(jsonLd);
-  }, [canonicalUrl, jsonLd, ogImageUrl, ogType, resolvedDescription, robots, title]);
-
-  return null;
+  return (
+    <HelmetProvider>
+      <Helmet>
+        <title>{finalTitle}</title>
+        <meta name="description" content={description} />
+        <link rel="canonical" href={canonicalUrl} />
+        <meta property="og:title" content={finalTitle} />
+        <meta property="og:description" content={description} />
+        <meta property="og:url" content={canonicalUrl} />
+        <meta property="og:type" content="website" />
+        <meta name="twitter:card" content="summary" />
+        <meta name="twitter:title" content={finalTitle} />
+        <meta name="twitter:description" content={description} />
+        {robotsValue && <meta name="robots" content={robotsValue} />}
+        {jsonLdEntries.map((entry) => (
+          <script key={entry["@type"] || JSON.stringify(entry)} type="application/ld+json">
+            {JSON.stringify(entry)}
+          </script>
+        ))}
+      </Helmet>
+    </HelmetProvider>
+  );
 }

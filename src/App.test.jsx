@@ -1,5 +1,6 @@
 import { fireEvent, render, screen } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
+import { HelmetProvider } from "react-helmet-async";
 import { describe, expect, it } from "vitest";
 import { CartProvider } from "./cart/cartStore.jsx";
 import App from "./App.jsx";
@@ -7,11 +8,13 @@ import App from "./App.jsx";
 describe("App public routing", () => {
   it("navigates to legal pages from the footer links", () => {
     render(
-      <MemoryRouter initialEntries={["/"]}>
-        <CartProvider>
-          <App />
-        </CartProvider>
-      </MemoryRouter>
+      <HelmetProvider>
+        <MemoryRouter initialEntries={["/"]}>
+          <CartProvider>
+            <App />
+          </CartProvider>
+        </MemoryRouter>
+      </HelmetProvider>
     );
 
     fireEvent.click(screen.getByRole("link", { name: "Privacy Policy" }));

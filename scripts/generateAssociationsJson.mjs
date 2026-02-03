@@ -1,11 +1,10 @@
 import fs from "node:fs";
 import path from "node:path";
-import xlsx from "xlsx";
 
 const rootDir = process.cwd();
 const cliPath = process.argv[2];
-const envPath = process.env.ASSOCIATIONS_XLSX;
-const resolvedInputPath = envPath || cliPath || path.join(rootDir, "Associations.xlsx");
+const envPath = process.env.ASSOCIATIONS_CSV;
+const resolvedInputPath = envPath || cliPath || path.join(rootDir, "Associations.csv");
 const inputPath = path.isAbsolute(resolvedInputPath)
   ? resolvedInputPath
   : path.join(rootDir, resolvedInputPath);
@@ -13,20 +12,82 @@ const outputPath = path.join(rootDir, "src", "data", "associations.json");
 
 if (!fs.existsSync(inputPath)) {
   console.error(`Missing input file: ${inputPath}`);
-  console.error("Set ASSOCIATIONS_XLSX or pass a path argument, or place Associations.xlsx at repo root.");
+  console.error("Set ASSOCIATIONS_CSV or pass a path argument, or place Associations.csv at repo root.");
   process.exit(1);
 }
 
-const workbook = xlsx.readFile(inputPath, { cellDates: false });
-const sheetName = workbook.SheetNames[0];
-const sheet = workbook.Sheets[sheetName];
+const parseCsv = (text) => {
+  const rows = [];
+  let row = [];
+  let value = "";
+  let inQuotes = false;
 
-const rows = xlsx.utils.sheet_to_json(sheet, { defval: "" });
+  for (let i = 0; i < text.length; i += 1) {
+    const char = text[i];
+    const next = text[i + 1];
+
+    if (inQuotes) {
+      if (char === '"' && next === '"') {
+        value += '"';
+        i += 1;
+      } else if (char === '"') {
+        inQuotes = false;
+      } else {
+        value += char;
+      }
+      continue;
+    }
+
+    if (char === '"') {
+      inQuotes = true;
+      continue;
+    }
+
+    if (char === ",") {
+      row.push(value);
+      value = "";
+      continue;
+    }
+
+    if (char === "\n") {
+      row.push(value.replace(/\r$/, ""));
+      rows.push(row);
+      row = [];
+      value = "";
+      continue;
+    }
+
+    value += char;
+  }
+
+  if (value.length > 0 || row.length > 0) {
+    row.push(value.replace(/\r$/, ""));
+    rows.push(row);
+  }
+
+  return rows;
+};
+
+const csvText = fs.readFileSync(inputPath, "utf8");
+const rows = parseCsv(csvText);
+const [headerRow, ...dataRows] = rows;
+if (!headerRow || headerRow.length === 0) {
+  console.error("Missing CSV header row.");
+  process.exit(1);
+}
+
+const headers = headerRow.map((header) => header.trim());
+const rowsAsObjects = dataRows.map((row) =>
+  headers.reduce((acc, header, index) => {
+    acc[header] = row[index] ?? "";
+    return acc;
+  }, {})
+);
 
 const byAssociationMap = new Map();
 const byConstituency = {};
 
-for (const row of rows) {
+for (const row of rowsAsObjects) {
   const associationRaw = row.Association ?? row["Association/Federation"] ?? "";
   const constituencyRaw = row.Constituency ?? "";
   const association = String(associationRaw).trim();
