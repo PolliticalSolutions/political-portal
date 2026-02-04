@@ -4,6 +4,13 @@ import { setPostAuthRedirect } from "../utils/postAuthRedirect.js";
 
 export default function ProtectedRoute({ authed, session }) {
   const location = useLocation();
+  const isBrowser =
+    typeof window !== "undefined" && typeof window.sessionStorage !== "undefined";
+
+  if (!isBrowser) {
+    return <Outlet />;
+  }
+
   const requestedPath = `${location.pathname}${location.search}`;
   const nowMs = Date.now();
   const sessionValid = isSessionValid(window.sessionStorage, nowMs);

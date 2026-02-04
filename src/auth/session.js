@@ -49,9 +49,16 @@ export function isTokenExpired(token, nowMs = Date.now(), skewSec = 60) {
   return nowSec >= exp - skewSec;
 }
 
-export function isSessionValid(sessionStorageLike = window.sessionStorage, nowMs = Date.now()) {
-  if (!sessionStorageLike) return false;
-  const raw = sessionStorageLike.getItem(tokensKey);
+function resolveSessionStorage(sessionStorageLike) {
+  if (sessionStorageLike) return sessionStorageLike;
+  if (!hasWindow) return null;
+  return window.sessionStorage;
+}
+
+export function isSessionValid(sessionStorageLike, nowMs = Date.now()) {
+  const storage = resolveSessionStorage(sessionStorageLike);
+  if (!storage) return false;
+  const raw = storage.getItem(tokensKey);
   if (!raw) return false;
   const tokens = safeJsonParse(raw);
   const accessToken = tokens?.access_token;
@@ -80,13 +87,14 @@ export function storeTokens(tokens) {
 }
 
 export function clearSession(
-  sessionStorageLike = window.sessionStorage,
+  sessionStorageLike,
   { preserveRedirect = false } = {}
 ) {
-  if (!sessionStorageLike) return;
-  sessionStorageLike.removeItem(tokensKey);
+  const storage = resolveSessionStorage(sessionStorageLike);
+  if (!storage) return;
+  storage.removeItem(tokensKey);
   if (!preserveRedirect) {
-    sessionStorageLike.removeItem(redirectKey);
+    storage.removeItem(redirectKey);
   }
 }
 
