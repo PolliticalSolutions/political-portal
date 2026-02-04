@@ -39,6 +39,15 @@ describe("Amplify customHeaders", () => {
     expect(headerMap["Permissions-Policy"]).toBe(
       "camera=(), microphone=(), geolocation=(), payment=(), usb=()",
     );
+    expect(headerMap["Content-Security-Policy-Report-Only"]).toContain(
+      "default-src 'self';",
+    );
+    expect(headerMap["Content-Security-Policy-Report-Only"]).toContain(
+      "frame-ancestors 'none';",
+    );
+    expect(headerMap["Content-Security-Policy-Report-Only"]).toContain(
+      "connect-src 'self' https://rn06rrhtfe.execute-api.eu-west-2.amazonaws.com https://*.amazoncognito.com https://*.auth.eu-west-2.amazoncognito.com;",
+    );
   });
 
   it("sets cache headers for HTML, assets, and SEO files", async () => {
