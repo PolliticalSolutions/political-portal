@@ -57,7 +57,7 @@ describe("Amplify customHeaders", () => {
       findHeaderPattern(customHeaders, "index.html"),
     );
     expect(indexHeaders["Cache-Control"]).toBe(
-      "no-store, max-age=0, must-revalidate",
+      "public, max-age=0, s-maxage=600, must-revalidate",
     );
 
     const assetHeaders = toHeaderMap(
@@ -71,6 +71,13 @@ describe("Amplify customHeaders", () => {
       findHeaderPattern(customHeaders, "robots.txt"),
     );
     expect(robotsHeaders["Cache-Control"]).toBe("public, max-age=3600");
+
+    const sourcemapHeaders = toHeaderMap(
+      findHeaderPattern(customHeaders, "**/*.map"),
+    );
+    expect(sourcemapHeaders["Cache-Control"]).toBe(
+      "no-store, max-age=0, must-revalidate",
+    );
 
     const sitemapHeaders = toHeaderMap(
       findHeaderPattern(customHeaders, "sitemap.xml"),
