@@ -1,17 +1,10 @@
 import { NavLink, Outlet } from "react-router-dom";
-import Seo from "../../seo/Seo.jsx";
 
 export default function PortalLayout() {
   const navClass = ({ isActive }) => (isActive ? "navLink active" : "navLink");
 
   return (
     <div className="page stack">
-      <Seo
-        title="Portal"
-        description="Secure Political Solutions Portal access."
-        path="/portal"
-        robots="noindex,nofollow"
-      />
       <div className="container">
         <div
           className="no-print"

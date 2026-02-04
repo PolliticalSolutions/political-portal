@@ -4,8 +4,6 @@ import Button from "../components/Button.jsx";
 import Card from "../components/Card.jsx";
 import Footer from "../components/Footer.jsx";
 import heroVisual from "../assets/hero/hero-visual.svg";
-import Seo from "../seo/Seo.jsx";
-import { buildOrganisationSchema, buildWebsiteSchema } from "../seo/structuredData.js";
 
 const features = [
   {
@@ -65,14 +63,6 @@ export default function Home() {
 
   return (
     <div className="page">
-      <Seo
-        title="UK political operations platform"
-        description="UK political operations platform for marked register processing, data insights, and compliant campaign operations support. Secure portal subscriptions."
-        path="/"
-        robots="index,follow"
-        jsonLd={[buildOrganisationSchema(), buildWebsiteSchema()]}
-      />
-
       <section className="section">
         <div className="container hero">
           <div>

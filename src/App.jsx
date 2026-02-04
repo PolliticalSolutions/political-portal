@@ -34,6 +34,7 @@ import CookiesPage from "./pages/legal/CookiesPage.jsx";
 import PrivacyPage from "./pages/legal/PrivacyPage.jsx";
 import TermsPage from "./pages/legal/TermsPage.jsx";
 import brandLogo from "./assets/brand/political-solutions-logo.png";
+import RouteSeo from "./seo/RouteSeo.jsx";
 
 const WARNING_DELAY_MS = 4 * 60 * 1000; // 4 minutes before showing the warning
 const WARNING_WINDOW_MS = 60 * 1000; // 1 minute countdown before auto-logout
@@ -292,6 +293,7 @@ export default function App() {
             </Route>
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
+          <RouteSeo />
         </div>
       </main>
       {showIdleWarning && (

@@ -2,20 +2,10 @@ import { Link } from "react-router-dom";
 import Button from "../components/Button.jsx";
 import Card from "../components/Card.jsx";
 import Footer from "../components/Footer.jsx";
-import Seo from "../seo/Seo.jsx";
-import { buildOrganisationSchema, buildServicesSchema, buildWebsiteSchema } from "../seo/structuredData.js";
 
 export default function Services() {
   return (
     <div className="page">
-      <Seo
-        title="Political operations services"
-        description="UK-wide political operations services: marked register processing, data insights, subscription platform access, training, and support. Election support available separately."
-        path="/services"
-        robots="index,follow"
-        jsonLd={[buildOrganisationSchema(), buildWebsiteSchema(), buildServicesSchema()]}
-      />
-
       <section className="section">
         <div className="container hero">
           <div>

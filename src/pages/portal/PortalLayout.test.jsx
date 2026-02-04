@@ -1,11 +1,11 @@
-import { render, waitFor } from "@testing-library/react";
+import { render, screen } from "@testing-library/react";
 import { HelmetProvider } from "react-helmet-async";
 import { MemoryRouter } from "react-router-dom";
 import { describe, expect, it } from "vitest";
 import PortalLayout from "./PortalLayout.jsx";
 
-describe("PortalLayout SEO", () => {
-  it("sets robots to noindex", async () => {
+describe("PortalLayout", () => {
+  it("renders portal navigation", () => {
     render(
       <HelmetProvider>
         <MemoryRouter>
@@ -14,9 +14,7 @@ describe("PortalLayout SEO", () => {
       </HelmetProvider>
     );
 
-    await waitFor(() => {
-      const robots = document.querySelector('meta[name="robots"]')?.getAttribute("content");
-      expect(robots).toBe("noindex,nofollow");
-    });
+    expect(screen.getByRole("navigation", { name: "Portal" })).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Dashboard" })).toBeInTheDocument();
   });
 });

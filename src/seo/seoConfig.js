@@ -1,6 +1,18 @@
 import { getSiteUrl } from "../config/runtimeConfig.js";
 
-export const SITE_URL = getSiteUrl();
+const normalizeSiteUrl = (siteUrl) => {
+  try {
+    const parsed = new URL(siteUrl);
+    if (parsed.hostname === "www.politicalsolutions.uk") {
+      parsed.hostname = "politicalsolutions.uk";
+    }
+    return parsed.toString().replace(/\/$/, "");
+  } catch {
+    return "https://politicalsolutions.uk";
+  }
+};
+
+export const SITE_URL = normalizeSiteUrl(getSiteUrl());
 export const SITE_NAME = "Political Solutions";
 export const SITE_LEGAL_NAME = "Political Solutions Ltd";
 export const DEFAULT_DESCRIPTION =

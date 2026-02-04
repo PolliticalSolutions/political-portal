@@ -1,19 +1,9 @@
 import Card from "../../components/Card.jsx";
 import Footer from "../../components/Footer.jsx";
-import Seo from "../../seo/Seo.jsx";
-import { buildOrganisationSchema, buildWebsiteSchema } from "../../seo/structuredData.js";
 
 export default function TermsPage() {
   return (
     <div className="page">
-      <Seo
-        title="Terms of use"
-        description="Terms of use for the Political Solutions Portal and related services."
-        path="/terms"
-        robots="index,follow"
-        jsonLd={[buildOrganisationSchema(), buildWebsiteSchema()]}
-      />
-
       <section className="section">
         <div className="container hero">
           <div>

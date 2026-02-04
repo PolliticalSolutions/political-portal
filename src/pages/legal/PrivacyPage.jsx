@@ -1,19 +1,9 @@
 import Card from "../../components/Card.jsx";
 import Footer from "../../components/Footer.jsx";
-import Seo from "../../seo/Seo.jsx";
-import { buildOrganisationSchema, buildWebsiteSchema } from "../../seo/structuredData.js";
 
 export default function PrivacyPage() {
   return (
     <div className="page">
-      <Seo
-        title="Privacy policy"
-        description="Read how Political Solutions Ltd handles data, privacy, and contact details."
-        path="/privacy"
-        robots="index,follow"
-        jsonLd={[buildOrganisationSchema(), buildWebsiteSchema()]}
-      />
-
       <section className="section">
         <div className="container hero">
           <div>

@@ -2,8 +2,6 @@ import { Link, Navigate } from "react-router-dom";
 import Button from "../components/Button.jsx";
 import Card from "../components/Card.jsx";
 import Footer from "../components/Footer.jsx";
-import Seo from "../seo/Seo.jsx";
-import { buildOrganisationSchema, buildWebsiteSchema } from "../seo/structuredData.js";
 
 export default function CartEntry({ authed }) {
   if (authed) {
@@ -12,14 +10,6 @@ export default function CartEntry({ authed }) {
 
   return (
     <div className="page">
-      <Seo
-        title="Portal cart access"
-        description="Cart access is available through the secure Political Solutions Portal. Log in to continue."
-        path="/cart"
-        robots="noindex,nofollow"
-        jsonLd={[buildOrganisationSchema(), buildWebsiteSchema()]}
-      />
-
       <section className="section">
         <div className="container hero">
           <div>

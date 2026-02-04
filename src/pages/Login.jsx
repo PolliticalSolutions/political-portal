@@ -6,8 +6,6 @@ import Button from "../components/Button.jsx";
 import Card from "../components/Card.jsx";
 import Footer from "../components/Footer.jsx";
 import { isSafeInternalPath, setPostAuthRedirect } from "../utils/postAuthRedirect.js";
-import Seo from "../seo/Seo.jsx";
-import { buildOrganisationSchema, buildWebsiteSchema } from "../seo/structuredData.js";
 
 export default function Login({ authed }) {
   const [error, setError] = useState(null);
@@ -72,14 +70,6 @@ export default function Login({ authed }) {
 
   return (
     <div className="page">
-      <Seo
-        title="Secure portal sign-in"
-        description="Secure sign-in for the Political Solutions Portal. Access operational tools, reporting, and subscriptions."
-        path="/login"
-        robots="index,follow"
-        jsonLd={[buildOrganisationSchema(), buildWebsiteSchema()]}
-      />
-
       <section className="section">
         <div className="container centered">
           <div className="login-card">

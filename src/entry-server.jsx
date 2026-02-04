@@ -10,14 +10,17 @@ import { validateEnv } from "./utils/validateEnv.js";
 
 export async function render(url) {
   const helmetContext = {};
-  try {
-    validateEnv();
-  } catch (error) {
-    const appHtml = renderToString(
-      <ConfigErrorScreen missingKeys={error?.missingKeys} />
-    );
-    const headHtml = "<title>Configuration error</title>";
-    return { appHtml, headHtml };
+  const skipEnvValidation = process.env.PRERENDER_SKIP_ENV_VALIDATION === "1";
+  if (!skipEnvValidation) {
+    try {
+      validateEnv();
+    } catch (error) {
+      const appHtml = renderToString(
+        <ConfigErrorScreen missingKeys={error?.missingKeys} />
+      );
+      const headHtml = "<title>Configuration error</title>";
+      return { appHtml, headHtml };
+    }
   }
 
   const appHtml = renderToString(

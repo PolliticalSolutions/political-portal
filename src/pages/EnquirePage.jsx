@@ -5,8 +5,6 @@ import Card from "../components/Card.jsx";
 import Footer from "../components/Footer.jsx";
 import associations from "../data/associations.json";
 import { submitEnquiry } from "../lib/enquiryApi.js";
-import Seo from "../seo/Seo.jsx";
-import { buildOrganisationSchema, buildWebsiteSchema } from "../seo/structuredData.js";
 import { getRuntimeConfig } from "../config/runtimeConfig.js";
 
 export function buildEnquiryMailto({ name, email, organisation, message, context, pageUrl }) {
@@ -137,14 +135,6 @@ export default function EnquirePage() {
 
   return (
     <div className="page">
-      <Seo
-        title="Enquire about services"
-        description="Ask a question, request a demo, or clarify pricing for Political Solutions services."
-        path="/enquire"
-        robots="index,follow"
-        jsonLd={[buildOrganisationSchema(), buildWebsiteSchema()]}
-      />
-
       <section className="section">
         <div className="container hero">
           <div>

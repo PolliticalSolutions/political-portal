@@ -4,12 +4,6 @@ import Button from "../components/Button.jsx";
 import Card from "../components/Card.jsx";
 import Footer from "../components/Footer.jsx";
 import { postServiceEnquiry } from "../lib/quoteApi.js";
-import Seo from "../seo/Seo.jsx";
-import {
-  buildElectionSupportSchema,
-  buildOrganisationSchema,
-  buildWebsiteSchema,
-} from "../seo/structuredData.js";
 
 const MAX_MESSAGE = 1000;
 
@@ -79,13 +73,6 @@ export default function ServiceSupport() {
   if (status.referenceId) {
     return (
       <div className="page">
-        <Seo
-          title="Election and by-election support"
-          description="UK-wide election and by-election support for campaign operations, data coordination, and delivery planning. Separate chargeable service with clear scope."
-          path="/services/election-support"
-          robots="index,follow"
-          jsonLd={[buildOrganisationSchema(), buildWebsiteSchema(), buildElectionSupportSchema()]}
-        />
         <section className="section">
           <div className="container">
             <Card>
@@ -106,14 +93,6 @@ export default function ServiceSupport() {
 
   return (
     <div className="page">
-      <Seo
-        title="Election and by-election support"
-        description="UK-wide election and by-election support for campaign operations, data coordination, and delivery planning. Separate chargeable service with clear scope."
-        path="/services/election-support"
-        robots="index,follow"
-        jsonLd={[buildOrganisationSchema(), buildWebsiteSchema(), buildElectionSupportSchema()]}
-      />
-
       <section className="section">
         <div className="container hero">
           <div>

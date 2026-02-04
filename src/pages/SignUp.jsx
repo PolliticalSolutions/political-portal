@@ -7,8 +7,6 @@ import associations from "../data/associations.json";
 import { calculateFederationPricing } from "../portal/pricing/federationPricing.js";
 import { startSignUp } from "../lib/cognito.js";
 import { isSafeInternalPath, setPostAuthRedirect } from "../utils/postAuthRedirect.js";
-import Seo from "../seo/Seo.jsx";
-import { buildOrganisationSchema, buildWebsiteSchema } from "../seo/structuredData.js";
 
 const gbp = new Intl.NumberFormat("en-GB", {
   style: "currency",
@@ -76,14 +74,6 @@ export default function SignUp() {
 
   return (
     <div className="page">
-      <Seo
-        title="Create a portal account"
-        description="Create a Political Solutions Portal account to access subscriptions, operational tools, and reporting."
-        path="/signup"
-        robots="index,follow"
-        jsonLd={[buildOrganisationSchema(), buildWebsiteSchema()]}
-      />
-
       <section className="section">
         <div className="container centered">
           <Card>

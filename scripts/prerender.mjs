@@ -1,7 +1,9 @@
 import { promises as fs } from "node:fs";
 import path from "node:path";
 import { pathToFileURL } from "node:url";
-import { seoRoutes } from "../src/seo/seoRoutes.js";
+import { getSeoForPath, seoRoutes } from "../src/seo/seoRoutes.js";
+
+process.env.PRERENDER_SKIP_ENV_VALIDATION = "1";
 
 const distDir = path.resolve("dist");
 const ssrEntry = path.resolve("dist-ssr", "entry-server.js");
@@ -24,7 +26,7 @@ const injectApp = (html, appHtml) => {
   return html.replace(rootPattern, `<div id="root">${appHtml}</div>`);
 };
 
-const routesToRender = seoRoutes.filter((route) => !route.noindex);
+const routesToRender = seoRoutes.filter((route) => !getSeoForPath(route.path).noindex);
 
 await Promise.all(
   routesToRender.map(async (route) => {
