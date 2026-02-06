@@ -63,6 +63,26 @@ frontend:
       headers:
         - key: Cache-Control
           value: public, max-age=0, s-maxage=600, must-revalidate
+    - pattern: '/login'
+      headers:
+        - key: X-Robots-Tag
+          value: noindex, nofollow
+    - pattern: '/portal'
+      headers:
+        - key: X-Robots-Tag
+          value: noindex, nofollow
+    - pattern: '/portal/*'
+      headers:
+        - key: X-Robots-Tag
+          value: noindex, nofollow
+    - pattern: '/callback'
+      headers:
+        - key: X-Robots-Tag
+          value: noindex, nofollow
+    - pattern: '/signup'
+      headers:
+        - key: X-Robots-Tag
+          value: noindex, nofollow
     - pattern: index.html
       headers:
         - key: Cache-Control

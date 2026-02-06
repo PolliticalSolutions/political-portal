@@ -84,4 +84,26 @@ describe("Amplify customHeaders", () => {
     );
     expect(sitemapHeaders["Cache-Control"]).toBe("public, max-age=3600");
   });
+
+  it("adds noindex headers for auth and portal routes only", async () => {
+    const customHeaders = await getCustomHeaders();
+    const noindexPatterns = [
+      "/login",
+      "/portal",
+      "/portal/*",
+      "/callback",
+      "/signup",
+    ];
+
+    for (const pattern of noindexPatterns) {
+      const headerMap = toHeaderMap(findHeaderPattern(customHeaders, pattern));
+      expect(headerMap["X-Robots-Tag"]).toBe("noindex, nofollow");
+    }
+
+    const indexablePatterns = ["/", "/services", "/subscriptions"];
+    for (const pattern of indexablePatterns) {
+      const headerMap = toHeaderMap(findHeaderPattern(customHeaders, pattern));
+      expect(headerMap["X-Robots-Tag"]).toBeUndefined();
+    }
+  });
 });
