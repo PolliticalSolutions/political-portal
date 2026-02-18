@@ -68,15 +68,15 @@ export default function Home() {
           <div>
             <h1>UK political operations platform for clean delivery</h1>
             <p>
-              Political Solutions provides marked register processing, data insights, and campaign operations
-              support, delivered through a secure subscription portal.
+              Political Solutions provides UK marked register processing, data insights, and managed campaign
+              operations support with secure delivery plans for authorised teams.
             </p>
             <div className="hero-actions">
-              <Button as={Link} to="/services" variant="primary">
-                View services
+              <Button as={Link} to="/enquire" variant="primary">
+                Request support
               </Button>
-              <Button as={Link} to="/login" variant="ghost">
-                Client login
+              <Button as={Link} to="/services" variant="ghost">
+                View services
               </Button>
             </div>
           </div>
