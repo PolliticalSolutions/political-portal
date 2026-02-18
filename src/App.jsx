@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Link, NavLink, Navigate, Route, Routes, useLocation } from "react-router-dom";
+import { Link, NavLink, Navigate, Route, Routes } from "react-router-dom";
 import { clearStoredSession, startLogout } from "./lib/cognito.js";
 import { useCart } from "./cart/cartStore.jsx";
 import { getSession } from "./auth/session.js";
@@ -55,22 +55,6 @@ function NavLinkButton({ to, onClick, variant = "ghost", children, end = false }
   );
 }
 
-function ContactNavLink({ onClick }) {
-  const location = useLocation();
-  const isActive = location.pathname === "/" && location.hash === "#contact";
-
-  return (
-    <Link
-      to={{ pathname: "/", hash: "#contact" }}
-      onClick={onClick}
-      aria-current={isActive ? "page" : undefined}
-      className={["navLink", "navLink--ghost", isActive ? "active" : ""].filter(Boolean).join(" ")}
-    >
-      Contact
-    </Link>
-  );
-}
-
 function TopNav({ authed, onLogout, cartCount }) {
   const [menuOpen, setMenuOpen] = useState(false);
   const closeMenu = () => setMenuOpen(false);
@@ -111,7 +95,9 @@ function TopNav({ authed, onLogout, cartCount }) {
             <NavLinkButton to="/subscriptions" onClick={closeMenu}>
               Pricing
             </NavLinkButton>
-            <ContactNavLink onClick={closeMenu} />
+            <NavLinkButton to="/enquire" onClick={closeMenu} end>
+              Contact
+            </NavLinkButton>
           </nav>
           <div className="nav-cta">
             <NavLinkButton to="/login" variant="emphasis" onClick={closeMenu} end>
