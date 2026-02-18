@@ -83,8 +83,8 @@ function TopNav({ authed, onLogout, cartCount }) {
             className="brand-logo"
             src={brandLogo}
             alt="Political Solutions"
-            width={48}
-            height={48}
+            width={96}
+            height={96}
             loading="eager"
           />
           <div>
