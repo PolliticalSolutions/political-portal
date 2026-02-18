@@ -3,7 +3,7 @@ import { Link } from "react-router-dom";
 import Button from "../components/Button.jsx";
 import Card from "../components/Card.jsx";
 import Footer from "../components/Footer.jsx";
-import heroVisual from "../assets/hero/hero-visual.svg";
+import campaignDataVisual from "../assets/campaign-data.png";
 
 const features = [
   {
@@ -84,8 +84,8 @@ export default function Home() {
             {visualLoaded ? (
               <img
                 className="hero-visual-image"
-                src={heroVisual}
-                alt="Illustration of secure operations delivery and data insights"
+                src={campaignDataVisual}
+                alt="Campaign data dashboard visual for UK political operations delivery"
                 loading="eager"
                 onError={() => setVisualLoaded(false)}
               />
