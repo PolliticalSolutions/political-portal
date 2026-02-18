@@ -80,6 +80,14 @@ export default function Home() {
                 View services
               </Button>
             </div>
+            <ul className="muted" style={{ marginTop: 16, paddingLeft: 20, maxWidth: 72 + "ch" }}>
+              <li>Send marked register PDFs or service request details.</li>
+              <li>We process and return structured outputs to an agreed scope and turnaround.</li>
+              <li>Delivery includes reporting notes for audit-ready handover.</li>
+            </ul>
+            <p className="muted" style={{ marginTop: 8, maxWidth: 72 + "ch" }}>
+              Clear scope and delivery timings are confirmed before work starts.
+            </p>
           </div>
           <div className="hero-visual">
             {visualLoaded ? (
