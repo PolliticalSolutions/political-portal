@@ -17,6 +17,16 @@ const SERVICE_OPTIONS = [
   "Anything else not listed?",
 ];
 
+function buildOrganisationLine(organisation = "") {
+  const trimmed = organisation.trim();
+  return `Organisation: ${trimmed || "(not specified)"}`;
+}
+
+function buildRoleLine(role = "") {
+  const trimmed = role.trim();
+  return `Role: ${trimmed || "(not specified)"}`;
+}
+
 function buildServicesLine(selectedServices = []) {
   if (!selectedServices.length) {
     return "Services interested in: (not specified)";
@@ -24,21 +34,23 @@ function buildServicesLine(selectedServices = []) {
   return `Services interested in: ${selectedServices.join(", ")}`;
 }
 
-function buildEnquiryMessage(message, selectedServices = []) {
+function buildEnquiryMessage({ message, organisation, role, selectedServices = [] }) {
   const trimmedMessage = message.trim();
+  const organisationLine = buildOrganisationLine(organisation);
+  const roleLine = buildRoleLine(role);
   const servicesLine = buildServicesLine(selectedServices);
-  return `${trimmedMessage}\n\n${servicesLine}`;
+  return `${trimmedMessage}\n\n${organisationLine}\n${roleLine}\n${servicesLine}`;
 }
 
 export function buildEnquiryMailto({ name, email, organisation, message, context, pageUrl }) {
+  const trimmedOrganisation = organisation.trim();
   const subjectParts = [name || "Enquiry"];
-  if (organisation) subjectParts.push(organisation);
+  if (trimmedOrganisation) subjectParts.push(trimmedOrganisation);
   const subject = `Political Solutions enquiry - ${subjectParts.join(" / ")}`;
 
   const lines = [
     `Name: ${name}`,
     `Email: ${email}`,
-    organisation ? `Organisation: ${organisation}` : null,
     "",
     "Message:",
     message,
@@ -79,6 +91,7 @@ export default function EnquirePage() {
     name: "",
     email: "",
     organisation: "",
+    role: "",
     message: "",
   });
   const [selectedServices, setSelectedServices] = useState([]);
@@ -93,9 +106,19 @@ export default function EnquirePage() {
     setFormValues((prev) => ({ ...prev, [name]: value }));
   };
 
-  const handleServicesChange = (event) => {
-    const selected = Array.from(event.target.selectedOptions, (option) => option.value);
-    setSelectedServices(selected);
+  const organisationOptions = useMemo(
+    () => Object.keys(associations.byAssociation ?? {}).sort(),
+    []
+  );
+
+  const handleServiceToggle = (event) => {
+    const { checked, value } = event.target;
+    setSelectedServices((prev) => {
+      if (checked) {
+        return [...prev, value];
+      }
+      return prev.filter((service) => service !== value);
+    });
   };
 
   const validate = () => {
@@ -106,6 +129,7 @@ export default function EnquirePage() {
     } else if (!formValues.email.includes("@")) {
       nextErrors.email = "Enter a valid email.";
     }
+    if (!formValues.organisation.trim()) nextErrors.organisation = "Organisation is required.";
     if (!formValues.message.trim()) nextErrors.message = "Message is required.";
     setErrors(nextErrors);
     return Object.keys(nextErrors).length === 0;
@@ -120,6 +144,12 @@ export default function EnquirePage() {
     setStatus({ success: false, requestId: "" });
 
     const pageUrl = typeof window !== "undefined" ? window.location.href : "";
+    const enquiryMessage = buildEnquiryMessage({
+      message: formValues.message,
+      organisation: formValues.organisation,
+      role: formValues.role,
+      selectedServices,
+    });
     const context = hasContext
       ? {
           association,
@@ -130,7 +160,7 @@ export default function EnquirePage() {
       : null;
     const payload = {
       ...formValues,
-      message: buildEnquiryMessage(formValues.message, selectedServices),
+      message: enquiryMessage,
       context,
       pageUrl,
       userAgent: typeof navigator !== "undefined" ? navigator.userAgent : "",
@@ -138,7 +168,7 @@ export default function EnquirePage() {
     };
     const mailto = buildEnquiryMailto({
       ...formValues,
-      message: buildEnquiryMessage(formValues.message, selectedServices),
+      message: enquiryMessage,
       context,
       pageUrl,
     });
@@ -175,7 +205,9 @@ export default function EnquirePage() {
           <div>
             <h1>Enquire</h1>
             <p className="muted">
-              Ask a question, request a demo, or clarify pricing. We will get back to you by email.
+              Get in touch with us using the form below. Highlight which of the services offered you're
+              interested in (you can select more than one!) and I will get back in touch with you as quickly
+              as possible. Please provide as much information as possible so the best solution can be offered
             </p>
           </div>
           <div className="hero-visual">
@@ -189,28 +221,6 @@ export default function EnquirePage() {
               decoding="async"
             />
           </div>
-        </div>
-      </section>
-
-      <section className="section muted">
-        <div className="container">
-          <Card>
-            <p className="muted">
-              Tell us about your operational goals and we will confirm scope, timelines, and next steps.
-            </p>
-            {hasContext && (
-              <div className="status" style={{ marginTop: 16 }}>
-                <div>
-                  <div style={{ fontWeight: 700 }}>Context</div>
-                  {constituencyCount ? (
-                    <div>
-                      {constituencyCount} constituenc{constituencyCount === 1 ? "y" : "ies"}
-                    </div>
-                  ) : null}
-                </div>
-              </div>
-            )}
-          </Card>
         </div>
       </section>
 
@@ -235,30 +245,43 @@ export default function EnquirePage() {
                 {errors.email && <span className="helper">{errors.email}</span>}
               </label>
               <label className="field">
-                <span>Organisation</span>
-                <input
+                <span>Organisation *</span>
+                <select
                   className="input"
                   name="organisation"
                   value={formValues.organisation}
                   onChange={handleChange}
-                />
-              </label>
-              <label className="field">
-                <span>Which services are you interested in?</span>
-                <select
-                  className="input"
-                  name="servicesInterested"
-                  multiple
-                  value={selectedServices}
-                  onChange={handleServicesChange}
+                  required
                 >
-                  {SERVICE_OPTIONS.map((option) => (
-                    <option key={option} value={option}>
-                      {option}
+                  <option value="">Select an organisation…</option>
+                  {organisationOptions.map((organisation) => (
+                    <option key={organisation} value={organisation}>
+                      {organisation}
                     </option>
                   ))}
                 </select>
-                <span className="helper">Tip: hold Ctrl (Windows) or Cmd (Mac) to select multiple.</span>
+                {errors.organisation && <span className="helper">{errors.organisation}</span>}
+              </label>
+              <fieldset className="field">
+                <legend>Which services are you interested in?</legend>
+                <div className="stack" style={{ gap: 8, marginTop: 8 }}>
+                  {SERVICE_OPTIONS.map((option) => (
+                    <label key={option} style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                      <input
+                        type="checkbox"
+                        name="servicesInterested"
+                        value={option}
+                        checked={selectedServices.includes(option)}
+                        onChange={handleServiceToggle}
+                      />
+                      <span>{option}</span>
+                    </label>
+                  ))}
+                </div>
+              </fieldset>
+              <label className="field">
+                <span>Your role in the Association/Federation/Area/Region</span>
+                <input className="input" name="role" value={formValues.role} onChange={handleChange} />
               </label>
               <label className="field">
                 <span>Message *</span>

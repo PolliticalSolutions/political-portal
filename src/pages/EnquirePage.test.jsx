@@ -46,10 +46,11 @@ describe("EnquirePage", () => {
     fireEvent.click(screen.getByRole("button", { name: "Send enquiry" }));
     expect(screen.getByText("Name is required.")).toBeInTheDocument();
     expect(screen.getByText("Email is required.")).toBeInTheDocument();
+    expect(screen.getByText("Organisation is required.")).toBeInTheDocument();
     expect(screen.getByText("Message is required.")).toBeInTheDocument();
   });
 
-  it("renders the services multi-select and removes banner CTA links", () => {
+  it("shows the updated intro copy and removes the operational goals box", () => {
     renderWithHelmet(
       <MemoryRouter initialEntries={["/enquire"]}>
         <Routes>
@@ -58,9 +59,53 @@ describe("EnquirePage", () => {
       </MemoryRouter>
     );
 
-    expect(screen.getByLabelText(/Which services are you interested in\?/i)).toBeInTheDocument();
-    expect(screen.queryByRole("link", { name: "View services" })).not.toBeInTheDocument();
-    expect(screen.queryByRole("link", { name: "View subscriptions" })).not.toBeInTheDocument();
+    expect(
+      screen.getByText(
+        "Get in touch with us using the form below. Highlight which of the services offered you're interested in (you can select more than one!) and I will get back in touch with you as quickly as possible. Please provide as much information as possible so the best solution can be offered"
+      )
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByText(
+        "Tell us about your operational goals and we will confirm scope, timelines, and next steps."
+      )
+    ).not.toBeInTheDocument();
+  });
+
+  it("renders services as checkboxes and allows multiple selections", () => {
+    renderWithHelmet(
+      <MemoryRouter initialEntries={["/enquire"]}>
+        <Routes>
+          <Route path="/enquire" element={<EnquirePage />} />
+        </Routes>
+      </MemoryRouter>
+    );
+
+    const markedRegister = screen.getByRole("checkbox", { name: "Marked Register entry" });
+    const byElection = screen.getByRole("checkbox", { name: "By-Election campaign consultancy" });
+
+    fireEvent.click(markedRegister);
+    fireEvent.click(byElection);
+
+    expect(markedRegister).toBeChecked();
+    expect(byElection).toBeChecked();
+  });
+
+  it("blocks submit when organisation is not selected", () => {
+    renderWithHelmet(
+      <MemoryRouter initialEntries={["/enquire"]}>
+        <Routes>
+          <Route path="/enquire" element={<EnquirePage />} />
+        </Routes>
+      </MemoryRouter>
+    );
+
+    fireEvent.change(screen.getByLabelText("Name *"), { target: { value: "Alex" } });
+    fireEvent.change(screen.getByLabelText("Email *"), { target: { value: "alex@example.com" } });
+    fireEvent.change(screen.getByLabelText("Message *"), { target: { value: "Hello" } });
+    fireEvent.click(screen.getByRole("button", { name: "Send enquiry" }));
+
+    expect(screen.getByText("Organisation is required.")).toBeInTheDocument();
+    expect(global.fetch).not.toHaveBeenCalled();
   });
 
   it("builds a mailto with subject and body content", () => {
@@ -106,14 +151,12 @@ describe("EnquirePage", () => {
 
     fireEvent.change(screen.getByLabelText("Name *"), { target: { value: "Alex" } });
     fireEvent.change(screen.getByLabelText("Email *"), { target: { value: "alex@example.com" } });
-    fireEvent.change(screen.getByLabelText("Organisation"), { target: { value: "Civic Group" } });
-    const servicesSelect = screen.getByLabelText(/Which services are you interested in\?/i);
-    Array.from(servicesSelect.options).forEach((option) => {
-      option.selected = ["Marked Register entry", "General campaigning consultancy"].includes(
-        option.value
-      );
+    fireEvent.change(screen.getByLabelText("Organisation *"), { target: { value: "Big Federation" } });
+    fireEvent.change(screen.getByLabelText("Your role in the Association/Federation/Area/Region"), {
+      target: { value: "Campaign Manager" },
     });
-    fireEvent.change(servicesSelect);
+    fireEvent.click(screen.getByRole("checkbox", { name: "Marked Register entry" }));
+    fireEvent.click(screen.getByRole("checkbox", { name: "General campaigning consultancy" }));
     fireEvent.change(screen.getByLabelText("Message *"), {
       target: { value: "Please share pricing details." },
     });
@@ -136,8 +179,11 @@ describe("EnquirePage", () => {
     const body = JSON.parse(global.fetch.mock.calls[0][1].body);
     expect(body.name).toBe("Alex");
     expect(body.email).toBe("alex@example.com");
-    expect(body.organisation).toBe("Civic Group");
+    expect(body.organisation).toBe("Big Federation");
+    expect(body.role).toBe("Campaign Manager");
     expect(body.message).toContain("Please share pricing details.");
+    expect(body.message).toContain("Organisation: Big Federation");
+    expect(body.message).toContain("Role: Campaign Manager");
     expect(body.message).toContain(
       "Services interested in: Marked Register entry, General campaigning consultancy"
     );
@@ -167,6 +213,7 @@ describe("EnquirePage", () => {
 
     fireEvent.change(screen.getByLabelText("Name *"), { target: { value: "Alex" } });
     fireEvent.change(screen.getByLabelText("Email *"), { target: { value: "alex@example.com" } });
+    fireEvent.change(screen.getByLabelText("Organisation *"), { target: { value: "Big Federation" } });
     fireEvent.change(screen.getByLabelText("Message *"), { target: { value: "Hello" } });
 
     fireEvent.click(screen.getByRole("button", { name: "Send enquiry" }));
@@ -189,13 +236,12 @@ describe("EnquirePage", () => {
 
     fireEvent.change(screen.getByLabelText("Name *"), { target: { value: "Alex" } });
     fireEvent.change(screen.getByLabelText("Email *"), { target: { value: "alex@example.com" } });
-    const servicesSelect = screen.getByLabelText(/Which services are you interested in\?/i);
-    Array.from(servicesSelect.options).forEach((option) => {
-      option.selected = ["By-Election campaign consultancy", "Anything else not listed?"].includes(
-        option.value
-      );
+    fireEvent.change(screen.getByLabelText("Organisation *"), { target: { value: "Big Federation" } });
+    fireEvent.change(screen.getByLabelText("Your role in the Association/Federation/Area/Region"), {
+      target: { value: "Deputy Chair" },
     });
-    fireEvent.change(servicesSelect);
+    fireEvent.click(screen.getByRole("checkbox", { name: "By-Election campaign consultancy" }));
+    fireEvent.click(screen.getByRole("checkbox", { name: "Anything else not listed?" }));
     fireEvent.change(screen.getByLabelText("Message *"), { target: { value: "Hello" } });
 
     fireEvent.click(screen.getByRole("button", { name: "Send enquiry" }));
@@ -205,6 +251,8 @@ describe("EnquirePage", () => {
     });
     const query = window.location.href.split("?")[1];
     const params = new URLSearchParams(query);
+    expect(params.get("body")).toContain("Organisation: Big Federation");
+    expect(params.get("body")).toContain("Role: Deputy Chair");
     expect(params.get("body")).toContain(
       "Services interested in: By-Election campaign consultancy, Anything else not listed?"
     );
@@ -225,6 +273,7 @@ describe("EnquirePage", () => {
 
     fireEvent.change(screen.getByLabelText("Name *"), { target: { value: "Alex" } });
     fireEvent.change(screen.getByLabelText("Email *"), { target: { value: "alex@example.com" } });
+    fireEvent.change(screen.getByLabelText("Organisation *"), { target: { value: "Big Federation" } });
     fireEvent.change(screen.getByLabelText("Message *"), { target: { value: "Hello" } });
 
     fireEvent.click(screen.getByRole("button", { name: "Send enquiry" }));
@@ -259,6 +308,7 @@ describe("EnquirePage", () => {
 
     fireEvent.change(screen.getByLabelText("Name *"), { target: { value: "Alex" } });
     fireEvent.change(screen.getByLabelText("Email *"), { target: { value: "alex@example.com" } });
+    fireEvent.change(screen.getByLabelText("Organisation *"), { target: { value: "Big Federation" } });
     fireEvent.change(screen.getByLabelText("Message *"), { target: { value: "Hello" } });
 
     fireEvent.click(screen.getByRole("button", { name: "Send enquiry" }));
