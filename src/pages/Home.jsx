@@ -165,7 +165,7 @@ export default function Home() {
               clear reporting.
             </p>
           </div>
-          <div className="feature-grid">
+          <div className="feature-grid feature-grid--equal">
             {features.map((feature) => (
               <Card key={feature.title} title={feature.title}>
                 <p>{feature.body}</p>
