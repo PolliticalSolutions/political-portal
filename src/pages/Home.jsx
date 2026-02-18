@@ -33,10 +33,10 @@ const features = [
 ];
 
 const trustItems = [
-  "UK-wide delivery with clear scopes.",
-  "Secure sign-in via AWS Cognito.",
-  "Audit-ready workflows and reporting.",
-  "Subscriptions focused on capability and readiness.",
+  "Delivery scopes are agreed in writing before operational work starts.",
+  "Secure authentication and session controls are provided via AWS Cognito.",
+  "Role-aware access keeps tools and data limited to authorised users.",
+  "Audit-ready workflows support governance, review, and exportable reporting.",
 ];
 
 const steps = [
@@ -199,7 +199,9 @@ export default function Home() {
           </div>
           <div className="feature-grid">
             <Card title="Compliance posture">
-              <p className="muted">Capability-focused subscriptions with separate election support scopes.</p>
+              <p className="muted">
+                Service packages and delivery plans are scoped separately from election support requests.
+              </p>
             </Card>
             <Card title="Security overview">
               <p className="muted">Hosted authentication with session controls and audit-ready workflows.</p>
@@ -225,17 +227,17 @@ export default function Home() {
       <section className="section">
         <div className="container cta-section">
           <div>
-            <h2>Ready to plan your operational support?</h2>
+            <h2>Ready to scope your operational support?</h2>
             <p className="muted" style={{ maxWidth: 72 + "ch" }}>
-              View subscriptions in the portal or request election support to confirm scope and pricing.
+              Request a scoping call to confirm delivery needs, timelines, and the right service package.
             </p>
           </div>
           <div className="hero-actions">
-            <Button as={Link} to="/subscriptions" variant="primary">
-              View subscriptions
+            <Button as={Link} to="/enquire" variant="primary">
+              Book a scoping call
             </Button>
-            <Button as={Link} to="/services/election-support" variant="secondary">
-              Request election support
+            <Button as={Link} to="/services" variant="secondary">
+              Explore services
             </Button>
           </div>
         </div>
