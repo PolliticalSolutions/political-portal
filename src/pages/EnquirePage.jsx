@@ -1,11 +1,34 @@
 import { useMemo, useState } from "react";
-import { Link, useSearchParams } from "react-router-dom";
+import { useSearchParams } from "react-router-dom";
 import Button from "../components/Button.jsx";
 import Card from "../components/Card.jsx";
 import Footer from "../components/Footer.jsx";
 import associations from "../data/associations.json";
 import { submitEnquiry } from "../lib/enquiryApi.js";
 import { getRuntimeConfig } from "../config/runtimeConfig.js";
+import enquireIllustration from "../assets/enquire-illustration.png";
+
+const SERVICE_OPTIONS = [
+  "Marked Register entry",
+  "By-Election campaign consultancy",
+  "General campaigning consultancy",
+  "Automated content generation for literature",
+  "Clerical services for your association/federation",
+  "Anything else not listed?",
+];
+
+function buildServicesLine(selectedServices = []) {
+  if (!selectedServices.length) {
+    return "Services interested in: (not specified)";
+  }
+  return `Services interested in: ${selectedServices.join(", ")}`;
+}
+
+function buildEnquiryMessage(message, selectedServices = []) {
+  const trimmedMessage = message.trim();
+  const servicesLine = buildServicesLine(selectedServices);
+  return `${trimmedMessage}\n\n${servicesLine}`;
+}
 
 export function buildEnquiryMailto({ name, email, organisation, message, context, pageUrl }) {
   const subjectParts = [name || "Enquiry"];
@@ -58,6 +81,7 @@ export default function EnquirePage() {
     organisation: "",
     message: "",
   });
+  const [selectedServices, setSelectedServices] = useState([]);
   const [errors, setErrors] = useState({});
   const [status, setStatus] = useState({ success: false, requestId: "" });
   const [autoFallbackNote, setAutoFallbackNote] = useState("");
@@ -67,6 +91,11 @@ export default function EnquirePage() {
   const handleChange = (event) => {
     const { name, value } = event.target;
     setFormValues((prev) => ({ ...prev, [name]: value }));
+  };
+
+  const handleServicesChange = (event) => {
+    const selected = Array.from(event.target.selectedOptions, (option) => option.value);
+    setSelectedServices(selected);
   };
 
   const validate = () => {
@@ -101,12 +130,18 @@ export default function EnquirePage() {
       : null;
     const payload = {
       ...formValues,
+      message: buildEnquiryMessage(formValues.message, selectedServices),
       context,
       pageUrl,
       userAgent: typeof navigator !== "undefined" ? navigator.userAgent : "",
       timestampIso: new Date().toISOString(),
     };
-    const mailto = buildEnquiryMailto({ ...formValues, context, pageUrl });
+    const mailto = buildEnquiryMailto({
+      ...formValues,
+      message: buildEnquiryMessage(formValues.message, selectedServices),
+      context,
+      pageUrl,
+    });
 
     const apiUrl = getRuntimeConfig().enquiryApiUrl;
     if (apiUrl) {
@@ -142,20 +177,17 @@ export default function EnquirePage() {
             <p className="muted">
               Ask a question, request a demo, or clarify pricing. We will get back to you by email.
             </p>
-            <div className="hero-actions">
-              <Button as={Link} to="/services" variant="secondary">
-                View services
-              </Button>
-              <Button as={Link} to="/subscriptions" variant="ghost">
-                View subscriptions
-              </Button>
-            </div>
           </div>
-          <div className="hero-visual" aria-hidden="true">
-            <span>Enquiry workflow preview</span>
-            <p className="muted" style={{ marginTop: 8 }}>
-              Service request placeholder
-            </p>
+          <div className="hero-visual">
+            <img
+              className="hero-visual-image"
+              src={enquireIllustration}
+              alt="People submitting an enquiry to Political Solutions"
+              width={1536}
+              height={1024}
+              loading="eager"
+              decoding="async"
+            />
           </div>
         </div>
       </section>
@@ -210,6 +242,23 @@ export default function EnquirePage() {
                   value={formValues.organisation}
                   onChange={handleChange}
                 />
+              </label>
+              <label className="field">
+                <span>Which services are you interested in?</span>
+                <select
+                  className="input"
+                  name="servicesInterested"
+                  multiple
+                  value={selectedServices}
+                  onChange={handleServicesChange}
+                >
+                  {SERVICE_OPTIONS.map((option) => (
+                    <option key={option} value={option}>
+                      {option}
+                    </option>
+                  ))}
+                </select>
+                <span className="helper">Tip: hold Ctrl (Windows) or Cmd (Mac) to select multiple.</span>
               </label>
               <label className="field">
                 <span>Message *</span>
