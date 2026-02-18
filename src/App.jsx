@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Link, NavLink, Navigate, Route, Routes } from "react-router-dom";
+import { Link, NavLink, Navigate, Route, Routes, useLocation } from "react-router-dom";
 import { clearStoredSession, startLogout } from "./lib/cognito.js";
 import { useCart } from "./cart/cartStore.jsx";
 import { getSession } from "./auth/session.js";
@@ -40,10 +40,11 @@ const WARNING_DELAY_MS = 4 * 60 * 1000; // 4 minutes before showing the warning
 const WARNING_WINDOW_MS = 60 * 1000; // 1 minute countdown before auto-logout
 const WARNING_SECONDS = WARNING_WINDOW_MS / 1000;
 
-function NavLinkButton({ to, onClick, variant = "ghost", children }) {
+function NavLinkButton({ to, onClick, variant = "ghost", children, end = false }) {
   return (
     <NavLink
       to={to}
+      end={end}
       onClick={onClick}
       className={({ isActive }) =>
         ["navLink", `navLink--${variant}`, isActive ? "active" : ""].filter(Boolean).join(" ")
@@ -51,6 +52,22 @@ function NavLinkButton({ to, onClick, variant = "ghost", children }) {
     >
       {children}
     </NavLink>
+  );
+}
+
+function ContactNavLink({ onClick }) {
+  const location = useLocation();
+  const isActive = location.pathname === "/" && location.hash === "#contact";
+
+  return (
+    <Link
+      to={{ pathname: "/", hash: "#contact" }}
+      onClick={onClick}
+      aria-current={isActive ? "page" : undefined}
+      className={["navLink", "navLink--ghost", isActive ? "active" : ""].filter(Boolean).join(" ")}
+    >
+      Contact
+    </Link>
   );
 }
 
@@ -91,21 +108,13 @@ function TopNav({ authed, onLogout, cartCount }) {
             <NavLinkButton to="/services" onClick={closeMenu}>
               Services
             </NavLinkButton>
-            <NavLinkButton to="/#how-it-works" onClick={closeMenu}>
-              How it works
-            </NavLinkButton>
             <NavLinkButton to="/subscriptions" onClick={closeMenu}>
               Pricing
             </NavLinkButton>
-            <NavLinkButton to="/#resources" onClick={closeMenu}>
-              Resources
-            </NavLinkButton>
-            <NavLinkButton to="/#contact" onClick={closeMenu}>
-              Contact
-            </NavLinkButton>
+            <ContactNavLink onClick={closeMenu} />
           </nav>
           <div className="nav-cta">
-            <NavLinkButton to="/login" variant="emphasis" onClick={closeMenu}>
+            <NavLinkButton to="/login" variant="emphasis" onClick={closeMenu} end>
               Client login
             </NavLinkButton>
             <NavLinkButton to="/portal" onClick={closeMenu}>
