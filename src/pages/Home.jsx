@@ -3,7 +3,8 @@ import { Link } from "react-router-dom";
 import Button from "../components/Button.jsx";
 import Card from "../components/Card.jsx";
 import Footer from "../components/Footer.jsx";
-import campaignDataVisual from "../assets/campaign-data.png";
+import campaignDataPng from "../assets/campaign-data.png";
+import campaignDataWebp from "../assets/campaign-data.webp";
 
 const features = [
   {
@@ -82,13 +83,19 @@ export default function Home() {
           </div>
           <div className="hero-visual">
             {visualLoaded ? (
-              <img
-                className="hero-visual-image"
-                src={campaignDataVisual}
-                alt="Campaign data dashboard visual for UK political operations delivery"
-                loading="eager"
-                onError={() => setVisualLoaded(false)}
-              />
+              <picture>
+                <source type="image/webp" srcSet={campaignDataWebp} />
+                <img
+                  className="hero-visual-image"
+                  src={campaignDataPng}
+                  alt="Campaign data dashboard visual for UK political operations delivery"
+                  width={1536}
+                  height={1024}
+                  loading="eager"
+                  decoding="async"
+                  onError={() => setVisualLoaded(false)}
+                />
+              </picture>
             ) : (
               <div className="hero-visual-fallback" aria-hidden="true">
                 <div className="hero-visual-bars">
