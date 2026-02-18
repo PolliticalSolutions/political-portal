@@ -16,12 +16,14 @@ export default function Services() {
       </section>
 
       <div className="stack">
-        <Card title="Marked Register Processing">
-          <p className="muted">
-            Standardization, validation, and structured outputs from client-provided marked registers for
-            operational use.
-          </p>
-        </Card>
+        <div id="marked-register">
+          <Card title="Marked Register Processing">
+            <p className="muted">
+              Standardization, validation, and structured outputs from client-provided marked registers for
+              operational use.
+            </p>
+          </Card>
+        </div>
 
         <Card title="Data & Insight">
           <p className="muted">
