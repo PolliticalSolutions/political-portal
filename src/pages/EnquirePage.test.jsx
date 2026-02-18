@@ -49,6 +49,20 @@ describe("EnquirePage", () => {
     expect(screen.getByText("Message is required.")).toBeInTheDocument();
   });
 
+  it("renders the services multi-select and removes banner CTA links", () => {
+    renderWithHelmet(
+      <MemoryRouter initialEntries={["/enquire"]}>
+        <Routes>
+          <Route path="/enquire" element={<EnquirePage />} />
+        </Routes>
+      </MemoryRouter>
+    );
+
+    expect(screen.getByLabelText(/Which services are you interested in\?/i)).toBeInTheDocument();
+    expect(screen.queryByRole("link", { name: "View services" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("link", { name: "View subscriptions" })).not.toBeInTheDocument();
+  });
+
   it("builds a mailto with subject and body content", () => {
     const mailto = buildEnquiryMailto({
       name: "Alex",
@@ -93,6 +107,13 @@ describe("EnquirePage", () => {
     fireEvent.change(screen.getByLabelText("Name *"), { target: { value: "Alex" } });
     fireEvent.change(screen.getByLabelText("Email *"), { target: { value: "alex@example.com" } });
     fireEvent.change(screen.getByLabelText("Organisation"), { target: { value: "Civic Group" } });
+    const servicesSelect = screen.getByLabelText(/Which services are you interested in\?/i);
+    Array.from(servicesSelect.options).forEach((option) => {
+      option.selected = ["Marked Register entry", "General campaigning consultancy"].includes(
+        option.value
+      );
+    });
+    fireEvent.change(servicesSelect);
     fireEvent.change(screen.getByLabelText("Message *"), {
       target: { value: "Please share pricing details." },
     });
@@ -113,12 +134,13 @@ describe("EnquirePage", () => {
     );
 
     const body = JSON.parse(global.fetch.mock.calls[0][1].body);
-    expect(body).toMatchObject({
-      name: "Alex",
-      email: "alex@example.com",
-      organisation: "Civic Group",
-      message: "Please share pricing details.",
-    });
+    expect(body.name).toBe("Alex");
+    expect(body.email).toBe("alex@example.com");
+    expect(body.organisation).toBe("Civic Group");
+    expect(body.message).toContain("Please share pricing details.");
+    expect(body.message).toContain(
+      "Services interested in: Marked Register entry, General campaigning consultancy"
+    );
     expect(body.context).toMatchObject({
       association: "Big Federation",
       constituencyCount: 3,
@@ -167,6 +189,13 @@ describe("EnquirePage", () => {
 
     fireEvent.change(screen.getByLabelText("Name *"), { target: { value: "Alex" } });
     fireEvent.change(screen.getByLabelText("Email *"), { target: { value: "alex@example.com" } });
+    const servicesSelect = screen.getByLabelText(/Which services are you interested in\?/i);
+    Array.from(servicesSelect.options).forEach((option) => {
+      option.selected = ["By-Election campaign consultancy", "Anything else not listed?"].includes(
+        option.value
+      );
+    });
+    fireEvent.change(servicesSelect);
     fireEvent.change(screen.getByLabelText("Message *"), { target: { value: "Hello" } });
 
     fireEvent.click(screen.getByRole("button", { name: "Send enquiry" }));
@@ -174,6 +203,11 @@ describe("EnquirePage", () => {
     await waitFor(() => {
       expect(window.location.href).toContain("mailto:paul@politicalsolutions.uk");
     });
+    const query = window.location.href.split("?")[1];
+    const params = new URLSearchParams(query);
+    expect(params.get("body")).toContain(
+      "Services interested in: By-Election campaign consultancy, Anything else not listed?"
+    );
     expect(global.fetch).not.toHaveBeenCalled();
   });
 
