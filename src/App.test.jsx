@@ -23,7 +23,7 @@ describe("App public routing", () => {
     fireEvent.click(screen.getByRole("link", { name: "Terms of Use" }));
     expect(screen.getByRole("heading", { name: "Terms of Use" })).toBeInTheDocument();
 
-    fireEvent.click(screen.getByRole("link", { name: "Cookie Notice" }));
+    fireEvent.click(screen.getByRole("link", { name: "Cookie notice" }));
     expect(screen.getByRole("heading", { name: "Cookie Notice" })).toBeInTheDocument();
   });
 });

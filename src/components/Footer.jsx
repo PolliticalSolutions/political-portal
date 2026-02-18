@@ -18,13 +18,18 @@ export default function Footer() {
           </div>
         </div>
         <div>
-          <div style={{ fontWeight: 600, color: "var(--primary)" }}>Resources</div>
+          <div style={{ fontWeight: 600, color: "var(--primary)" }}>Coverage</div>
           <div className="footer-links" style={{ marginTop: 8 }}>
-            <Link to="/privacy">Privacy Policy</Link>
-            <Link to="/terms">Terms of Use</Link>
-            <Link to="/cookies">Cookie Notice</Link>
+            <span className="muted">Marked register processing</span>
+            <span className="muted">Data insights and reporting</span>
+            <span className="muted">Election support delivery</span>
           </div>
         </div>
+      </div>
+      <div className="container footer-legal">
+        <Link to="/privacy">Privacy Policy</Link>
+        <Link to="/terms">Terms of Use</Link>
+        <Link to="/cookies">Cookie notice</Link>
       </div>
     </footer>
   );

@@ -210,17 +210,6 @@ export default function Home() {
               <p className="muted">Privacy, terms, and cookie guidance available online.</p>
             </Card>
           </div>
-          <div style={{ display: "flex", flexWrap: "wrap", gap: 12 }}>
-            <Button as={Link} to="/privacy" variant="ghost">
-              Privacy policy
-            </Button>
-            <Button as={Link} to="/terms" variant="ghost">
-              Terms of use
-            </Button>
-            <Button as={Link} to="/cookies" variant="ghost">
-              Cookie notice
-            </Button>
-          </div>
         </div>
       </section>
 
