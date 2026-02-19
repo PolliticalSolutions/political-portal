@@ -90,10 +90,20 @@ Resources:
             MaxAge: 3600
       LifecycleConfiguration:
         Rules:
+          - Id: ExpireUploadsAfter90Days
+            Status: Enabled
+            Filter:
+              Prefix: "uploads/"
+            ExpirationInDays: 90
+          - Id: ExpireOutputsAfter90Days
+            Status: Enabled
+            Filter:
+              Prefix: "outputs/"
+            ExpirationInDays: 90
           - Id: DeleteIncompleteMultipartUploads
             Status: Enabled
             AbortIncompleteMultipartUpload:
-              DaysAfterInitiation: 1
+              DaysAfterInitiation: 7
 
   # ── DynamoDB table ─────────────────────────────────────────────────────────
 
@@ -109,6 +119,8 @@ Resources:
           AttributeType: S
         - AttributeName: createdAt
           AttributeType: S
+        - AttributeName: s3Key
+          AttributeType: S
       KeySchema:
         - AttributeName: jobId
           KeyType: HASH
@@ -121,6 +133,32 @@ Resources:
               KeyType: RANGE
           Projection:
             ProjectionType: ALL
+        - IndexName: S3KeyIndex
+          KeySchema:
+            - AttributeName: s3Key
+              KeyType: HASH
+          Projection:
+            ProjectionType: ALL
+      TimeToLiveSpecification:
+        AttributeName: expiresAt
+        Enabled: true
+
+  # ── Processing queues (scan-gated) ────────────────────────────────────────
+
+  ProcessDLQ:
+    Type: AWS::SQS::Queue
+    Properties:
+      QueueName: !Sub "${AWS::StackName}-process-dlq"
+      MessageRetentionPeriod: 1209600
+
+  ProcessQueue:
+    Type: AWS::SQS::Queue
+    Properties:
+      QueueName: !Sub "${AWS::StackName}-process-queue"
+      VisibilityTimeout: 360
+      RedrivePolicy:
+        deadLetterTargetArn: !GetAtt ProcessDLQ.Arn
+        maxReceiveCount: 5
 
   # ── HTTP API ───────────────────────────────────────────────────────────────
 
@@ -266,6 +304,7 @@ Resources:
             Resource:
               - !GetAtt JobsTable.Arn
               - !Sub "${JobsTable.Arn}/index/UserSubIndex"
+              - !Sub "${JobsTable.Arn}/index/S3KeyIndex"
         - Statement:
             Effect: Allow
             Action:
@@ -322,20 +361,119 @@ Resources:
         - Statement:
             Effect: Allow
             Action:
+              - s3:HeadObject
               - s3:GetObject
               - s3:PutObject
             Resource: !Sub "${UploadsBucket.Arn}/*"
-      Events:
-        S3Upload:
-          Type: S3
-          Properties:
-            Bucket: !Ref UploadsBucket
-            Events: s3:ObjectCreated:*
-            Filter:
-              S3Key:
-                Rules:
-                  - Name: prefix
-                    Value: "uploads/"
+
+  WorkerProcessQueueMapping:
+    Type: AWS::Lambda::EventSourceMapping
+    Properties:
+      BatchSize: 10
+      EventSourceArn: !GetAtt ProcessQueue.Arn
+      FunctionName: !Ref WorkerFunction
+      FunctionResponseTypes:
+        - ReportBatchItemFailures
+      Enabled: true
+
+  # ── Scan result handler (GuardDuty -> EventBridge -> Lambda -> SQS) ───────
+
+  ScanResultHandlerFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: src/
+      Handler: scanResultHandler.handler
+      Runtime: nodejs20.x
+      Timeout: 30
+      MemorySize: 256
+      Environment:
+        Variables:
+          JOBS_TABLE: !Ref JobsTable
+          PROCESS_QUEUE_URL: !Ref ProcessQueue
+          UPLOADS_BUCKET: !Ref UploadsBucket
+      Policies:
+        - Statement:
+            Effect: Allow
+            Action:
+              - dynamodb:GetItem
+              - dynamodb:UpdateItem
+              - dynamodb:Query
+            Resource:
+              - !GetAtt JobsTable.Arn
+              - !Sub "${JobsTable.Arn}/index/S3KeyIndex"
+        - Statement:
+            Effect: Allow
+            Action:
+              - sqs:SendMessage
+            Resource: !GetAtt ProcessQueue.Arn
+
+  ScanResultsRule:
+    Type: AWS::Events::Rule
+    Properties:
+      Description: Route GuardDuty malware scan results for upload objects.
+      EventPattern:
+        source:
+          - aws.guardduty
+        detail-type:
+          - GuardDuty Malware Protection Object Scan Result
+        detail:
+          s3ObjectDetails:
+            bucketName:
+              - !Ref UploadsBucket
+      Targets:
+        - Arn: !GetAtt ScanResultHandlerFunction.Arn
+          Id: ScanResultHandlerTarget
+
+  ScanResultHandlerInvokePermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      Action: lambda:InvokeFunction
+      FunctionName: !Ref ScanResultHandlerFunction
+      Principal: events.amazonaws.com
+      SourceArn: !GetAtt ScanResultsRule.Arn
+
+  # ── GuardDuty Malware Protection plan for uploads/ prefix ─────────────────
+
+  MalwareProtectionRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: malware-protection-plan.guardduty.amazonaws.com
+            Action: sts:AssumeRole
+      Policies:
+        - PolicyName: GuardDutyMalwareProtectionS3Access
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action:
+                  - s3:GetObject
+                  - s3:GetObjectVersion
+                  - s3:PutObjectTagging
+                  - s3:PutObjectVersionTagging
+                Resource:
+                  - !Sub "${UploadsBucket.Arn}/uploads/*"
+              - Effect: Allow
+                Action:
+                  - s3:ListBucket
+                Resource: !GetAtt UploadsBucket.Arn
+
+  UploadsMalwareProtectionPlan:
+    Type: AWS::GuardDuty::MalwareProtectionPlan
+    Properties:
+      Role: !GetAtt MalwareProtectionRole.Arn
+      ProtectedResource:
+        S3Bucket:
+          BucketName: !Ref UploadsBucket
+          ObjectPrefixes:
+            - "uploads/"
+      Actions:
+        Tagging:
+          Status: ENABLED
 
   # ── CloudWatch Alarms ──────────────────────────────────────────────────────
 
@@ -368,6 +506,26 @@ Resources:
       Dimensions:
         - Name: FunctionName
           Value: !Ref WorkerFunction
+      Statistic: Sum
+      Period: 300
+      EvaluationPeriods: 1
+      Threshold: 1
+      ComparisonOperator: GreaterThanOrEqualToThreshold
+      TreatMissingData: notBreaching
+      AlarmActions: !If
+        - AlarmActionsEnabled
+        - - !Ref AlarmTopicArn
+        - !Ref AWS::NoValue
+
+  ScanResultHandlerErrorsAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmDescription: Lambda errors for scan result handler.
+      Namespace: AWS/Lambda
+      MetricName: Errors
+      Dimensions:
+        - Name: FunctionName
+          Value: !Ref ScanResultHandlerFunction
       Statistic: Sum
       Period: 300
       EvaluationPeriods: 1

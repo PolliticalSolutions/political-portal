@@ -1,11 +1,8 @@
 /**
- * Upload worker — triggered by S3 ObjectCreated events on the uploads/ prefix.
+ * Upload processor worker — triggered by SQS messages from scan result handler.
  *
- * Processing pipeline (placeholder):
- *   PDF  → writes a CSV manifest: jobId,filename,processedAt
- *   CSV  → validates parseability, normalises line endings, copies as output
- *
- * Swap the "process" section below with the real OCR command when ready.
+ * Queue payload:
+ *   { jobId, bucket, s3Key }
  */
 
 import { createRequire } from "module";
@@ -32,6 +29,52 @@ const MAX_FILE_SIZE_BYTES = 200 * 1024 * 1024;
 
 function logEvent(stage, data = {}) {
   console.log(JSON.stringify({ stage, ts: new Date().toISOString(), ...data }));
+}
+
+function isConditionalCheckFailed(error) {
+  return error?.code === "ConditionalCheckFailedException";
+}
+
+function parseQueueMessage(record) {
+  let payload = null;
+  try {
+    payload = JSON.parse(record.body || "{}");
+  } catch {
+    throw new Error("Invalid SQS message JSON.");
+  }
+  const jobId = (payload.jobId || "").toString();
+  const bucket = (payload.bucket || UPLOADS_BUCKET || "").toString();
+  const s3Key = (payload.s3Key || "").toString();
+  if (!jobId || !bucket || !s3Key) {
+    throw new Error("SQS message is missing required fields.");
+  }
+  return { jobId, bucket, s3Key };
+}
+
+async function markProcessing(jobId) {
+  const now = new Date().toISOString();
+  try {
+    await dynamo
+      .update({
+        TableName: JOBS_TABLE,
+        Key: { jobId },
+        UpdateExpression: "SET #status = :processing, updatedAt = :now",
+        ConditionExpression: "#status = :queued",
+        ExpressionAttributeNames: { "#status": "status" },
+        ExpressionAttributeValues: {
+          ":queued": "QUEUED",
+          ":processing": "PROCESSING",
+          ":now": now,
+        },
+      })
+      .promise();
+    return true;
+  } catch (error) {
+    if (isConditionalCheckFailed(error)) {
+      return false;
+    }
+    throw error;
+  }
 }
 
 async function updateJobStatus(jobId, status, extra = {}) {
@@ -62,35 +105,24 @@ async function updateJobStatus(jobId, status, extra = {}) {
     .promise();
 }
 
-async function processRecord(bucket, rawKey) {
-  // S3 keys can have + encoded spaces
-  const key = rawKey.replace(/\+/g, " ");
+async function processJobMessage(message) {
+  const { jobId, bucket, s3Key } = message;
+  logEvent("worker_start", { jobId, key: s3Key });
 
-  // Expected format: uploads/{userSub}/{jobId}/{filename}
-  const parts = key.split("/");
-  if (parts.length < 4 || parts[0] !== "uploads") {
-    logEvent("worker_skip", { reason: "unexpected_key_format", key });
+  const canProcess = await markProcessing(jobId);
+  if (!canProcess) {
+    logEvent("worker_noop", { jobId, reason: "already_transitioned" });
     return;
   }
-
-  const jobId = parts[2];
-  const filename = parts.slice(3).join("/");
-
-  logEvent("worker_start", { jobId, filename, key });
-
-  // Fetch the job record
-  const getResult = await dynamo.get({ TableName: JOBS_TABLE, Key: { jobId } }).promise();
-  const job = getResult.Item;
-  if (!job) {
-    logEvent("worker_skip", { reason: "job_not_found", jobId });
-    return;
-  }
-
-  await updateJobStatus(jobId, "PROCESSING");
 
   try {
-    // ── Validate uploaded object before processing ─────────────────────────
-    const head = await s3.headObject({ Bucket: bucket, Key: key }).promise();
+    const getResult = await dynamo.get({ TableName: JOBS_TABLE, Key: { jobId } }).promise();
+    const job = getResult.Item;
+    if (!job) {
+      throw new Error("Job not found.");
+    }
+
+    const head = await s3.headObject({ Bucket: bucket, Key: s3Key }).promise();
     const actualSize = Number(head.ContentLength || 0);
     if (!Number.isFinite(actualSize) || actualSize <= 0) {
       throw new Error("Uploaded object size is invalid.");
@@ -105,7 +137,7 @@ async function processRecord(bucket, rawKey) {
     const fileType = (job.expectedFileType || job.fileType || "").toLowerCase();
     if (fileType === "pdf") {
       const headerObj = await s3
-        .getObject({ Bucket: bucket, Key: key, Range: "bytes=0-4" })
+        .getObject({ Bucket: bucket, Key: s3Key, Range: "bytes=0-4" })
         .promise();
       const header = Buffer.from(headerObj.Body || "").toString("utf-8");
       if (header !== "%PDF-") {
@@ -115,29 +147,22 @@ async function processRecord(bucket, rawKey) {
       throw new Error(`Unsupported fileType: ${fileType}`);
     }
 
-    // ── Download the uploaded file ──────────────────────────────────────────
-    const fileObj = await s3.getObject({ Bucket: bucket, Key: key }).promise();
+    const fileObj = await s3.getObject({ Bucket: bucket, Key: s3Key }).promise();
     const fileBuffer = Buffer.from(fileObj.Body);
     const now = new Date().toISOString();
 
-    // ── Process (placeholder — swap for real OCR integration) ───────────────
     let outputContent;
     if (fileType === "pdf") {
-      // TODO: replace with actual OCR command, e.g. call Textract or tesseract
-      // For now write a CSV manifest as placeholder output
-      outputContent = `jobId,filename,processedAt\n"${jobId}","${filename.replace(/"/g, '""')}","${now}"\n`;
-    } else if (fileType === "csv") {
-      // Validate CSV is parseable (at least one non-empty row)
+      outputContent = `jobId,filename,processedAt\n"${jobId}","${job.filename.replace(/"/g, '""')}","${now}"\n`;
+    } else {
       const text = fileBuffer.toString("utf-8");
-      const lines = text.split(/\r?\n/).filter((l) => l.trim().length > 0);
+      const lines = text.split(/\r?\n/).filter((line) => line.trim().length > 0);
       if (lines.length === 0) {
         throw new Error("CSV file is empty or contains no data rows.");
       }
-      // Normalise line endings and re-emit
       outputContent = lines.join("\n") + "\n";
     }
 
-    // ── Upload output ───────────────────────────────────────────────────────
     const outputKey = `outputs/${jobId}/result.csv`;
     await s3
       .putObject({
@@ -148,7 +173,6 @@ async function processRecord(bucket, rawKey) {
       })
       .promise();
 
-    // ── Mark SUCCEEDED ──────────────────────────────────────────────────────
     await updateJobStatus(jobId, "SUCCEEDED", {
       output: {
         outputPrefix: `outputs/${jobId}/`,
@@ -164,21 +188,33 @@ async function processRecord(bucket, rawKey) {
     });
 
     logEvent("worker_succeeded", { jobId, outputKey });
-  } catch (err) {
-    logEvent("worker_failed", { jobId, message: err.message });
+  } catch (error) {
+    logEvent("worker_failed", { jobId, message: error.message });
     await updateJobStatus(jobId, "FAILED", {
-      error: { message: err.message, detail: err.stack || "" },
+      error: { message: error.message, detail: error.stack || "" },
     });
+    throw error;
   }
 }
 
 export async function handler(event) {
   const records = event.Records || [];
+  const failures = [];
+
   await Promise.all(
     records.map(async (record) => {
-      const bucket = record.s3.bucket.name;
-      const key = record.s3.object.key;
-      await processRecord(bucket, key);
+      try {
+        const message = parseQueueMessage(record);
+        await processJobMessage(message);
+      } catch (error) {
+        logEvent("worker_message_failed", {
+          messageId: record.messageId,
+          error: error.message,
+        });
+        failures.push({ itemIdentifier: record.messageId });
+      }
     })
   );
+
+  return { batchItemFailures: failures };
 }

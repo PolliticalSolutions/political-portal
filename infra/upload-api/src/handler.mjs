@@ -22,6 +22,7 @@ const UPLOADS_BUCKET = process.env.UPLOADS_BUCKET || "";
 const UPLOAD_URL_TTL = 900; // 15 minutes
 const DOWNLOAD_URL_TTL = 900; // 15 minutes
 const MAX_FILE_SIZE_BYTES = 200 * 1024 * 1024;
+const JOB_TTL_SECONDS = 365 * 24 * 60 * 60;
 
 const MAX_FILENAME = 255;
 const MAX_CLIENT_NAME = 200;
@@ -239,6 +240,7 @@ async function handleCreateJob(event, origin) {
   const jobId = crypto.randomUUID();
   const s3Key = `uploads/${userSub}/${jobId}/${filename}`;
   const now = new Date().toISOString();
+  const expiresAt = Math.floor(Date.now() / 1000) + JOB_TTL_SECONDS;
 
   const item = {
     jobId,
@@ -251,6 +253,7 @@ async function handleCreateJob(event, origin) {
     status: "QUEUED",
     createdAt: now,
     updatedAt: now,
+    expiresAt,
     metadata: { clientName, notes },
   };
 

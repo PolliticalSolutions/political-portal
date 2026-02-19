@@ -1,8 +1,17 @@
 import { beforeEach, describe, expect, it } from "vitest";
 
 const jobsMap = new Map();
-const updates = [];
 const uploads = [];
+const calls = {
+  headObject: 0,
+  getObject: 0,
+  putObject: 0,
+};
+const behavior = {
+  headContentLength: 1024,
+  rangeHeader: "%PDF-",
+  fullBody: "a,b\n1,2\n",
+};
 
 const makePromise = (value) => ({ promise: async () => value });
 
@@ -12,22 +21,41 @@ const createAwsMock = () => {
       return makePromise({ Item: jobsMap.get(params.Key.jobId) });
     }
     update(params) {
-      updates.push(params);
+      const jobId = params.Key.jobId;
+      const existing = jobsMap.get(jobId) || { jobId };
+      if (params.ConditionExpression && existing.status !== "QUEUED") {
+        const error = new Error("Conditional check failed");
+        error.code = "ConditionalCheckFailedException";
+        return { promise: async () => Promise.reject(error) };
+      }
+
+      const names = params.ExpressionAttributeNames || {};
+      const values = params.ExpressionAttributeValues || {};
+      if (values[":processing"]) existing.status = values[":processing"];
+      if (values[":status"]) existing.status = values[":status"];
+      if (values[":now"]) existing.updatedAt = values[":now"];
+      if (values[":output"]) existing.output = values[":output"];
+      if (values[":error"]) existing.error = values[":error"];
+      if (names["#status"] && values[":failed"]) existing.status = values[":failed"];
+      jobsMap.set(jobId, existing);
       return makePromise({});
     }
   }
 
   class S3 {
     headObject() {
-      return makePromise({ ContentLength: 1024 });
+      calls.headObject += 1;
+      return makePromise({ ContentLength: behavior.headContentLength });
     }
     getObject(params) {
+      calls.getObject += 1;
       if (params.Range) {
-        return makePromise({ Body: Buffer.from("%PDF-") });
+        return makePromise({ Body: Buffer.from(behavior.rangeHeader) });
       }
-      return makePromise({ Body: Buffer.from("a,b\n1,2\n") });
+      return makePromise({ Body: Buffer.from(behavior.fullBody) });
     }
     putObject(params) {
+      calls.putObject += 1;
       uploads.push(params);
       return makePromise({});
     }
@@ -45,14 +73,12 @@ process.env.UPLOADS_BUCKET = "test-bucket";
 
 const { handler } = await import("../src/worker.mjs");
 
-function s3Event(key) {
+function sqsEvent(message, messageId = "msg-1") {
   return {
     Records: [
       {
-        s3: {
-          bucket: { name: "test-bucket" },
-          object: { key },
-        },
+        messageId,
+        body: JSON.stringify(message),
       },
     ],
   };
@@ -60,49 +86,91 @@ function s3Event(key) {
 
 beforeEach(() => {
   jobsMap.clear();
-  updates.length = 0;
   uploads.length = 0;
+  calls.headObject = 0;
+  calls.getObject = 0;
+  calls.putObject = 0;
+  behavior.headContentLength = 1024;
+  behavior.rangeHeader = "%PDF-";
+  behavior.fullBody = "a,b\n1,2\n";
 });
 
-describe("upload worker validation", () => {
-  it("fails PDF jobs when magic bytes are invalid", async () => {
-    jobsMap.set("job-pdf", {
-      jobId: "job-pdf",
+describe("upload processor worker (SQS)", () => {
+  it("processes a valid queued message and returns no batch failures", async () => {
+    jobsMap.set("job-1", {
+      jobId: "job-1",
+      status: "QUEUED",
+      filename: "input.pdf",
       fileType: "pdf",
       expectedFileType: "pdf",
       expectedSize: 1024,
+      s3Key: "uploads/user/job-1/input.pdf",
     });
 
-    globalThis.__AWS_SDK_MOCK__.S3.prototype.getObject = function getObject(params) {
-      if (params.Range) return makePromise({ Body: Buffer.from("NOTPD") });
-      return makePromise({ Body: Buffer.from("irrelevant") });
-    };
+    const result = await handler(
+      sqsEvent({
+        jobId: "job-1",
+        bucket: "test-bucket",
+        s3Key: "uploads/user/job-1/input.pdf",
+      })
+    );
 
-    await handler(s3Event("uploads/user/job-pdf/file.pdf"));
-
-    const failedUpdate = updates.find((u) => u.ExpressionAttributeValues?.[":status"] === "FAILED");
-    expect(failedUpdate).toBeTruthy();
-    expect(failedUpdate.ExpressionAttributeValues[":error"].message).toContain("Invalid PDF header");
-    expect(uploads).toHaveLength(0);
+    expect(result).toEqual({ batchItemFailures: [] });
+    expect(jobsMap.get("job-1").status).toBe("SUCCEEDED");
+    expect(uploads).toHaveLength(1);
   });
 
-  it("fails jobs when uploaded size does not match expected size", async () => {
-    jobsMap.set("job-csv", {
-      jobId: "job-csv",
+  it("noops duplicate messages when status is already transitioned", async () => {
+    jobsMap.set("job-2", {
+      jobId: "job-2",
+      status: "SUCCEEDED",
+      filename: "done.csv",
       fileType: "csv",
       expectedFileType: "csv",
-      expectedSize: 5000,
+      expectedSize: 1024,
+      s3Key: "uploads/user/job-2/done.csv",
     });
 
-    globalThis.__AWS_SDK_MOCK__.S3.prototype.headObject = function headObject() {
-      return makePromise({ ContentLength: 1024 });
-    };
+    const result = await handler(
+      sqsEvent({
+        jobId: "job-2",
+        bucket: "test-bucket",
+        s3Key: "uploads/user/job-2/done.csv",
+      })
+    );
 
-    await handler(s3Event("uploads/user/job-csv/file.csv"));
+    expect(result).toEqual({ batchItemFailures: [] });
+    expect(calls.headObject).toBe(0);
+    expect(calls.putObject).toBe(0);
+  });
 
-    const failedUpdate = updates.find((u) => u.ExpressionAttributeValues?.[":status"] === "FAILED");
-    expect(failedUpdate).toBeTruthy();
-    expect(failedUpdate.ExpressionAttributeValues[":error"].message).toContain("does not match expected size");
-    expect(uploads).toHaveLength(0);
+  it("marks FAILED and returns batch item failure for retry/DLQ", async () => {
+    jobsMap.set("job-3", {
+      jobId: "job-3",
+      status: "QUEUED",
+      filename: "bad.pdf",
+      fileType: "pdf",
+      expectedFileType: "pdf",
+      expectedSize: 1024,
+      s3Key: "uploads/user/job-3/bad.pdf",
+    });
+
+    behavior.rangeHeader = "NOTPD";
+    behavior.fullBody = "irrelevant";
+
+    const result = await handler(
+      sqsEvent(
+        {
+          jobId: "job-3",
+          bucket: "test-bucket",
+          s3Key: "uploads/user/job-3/bad.pdf",
+        },
+        "msg-3"
+      )
+    );
+
+    expect(result).toEqual({ batchItemFailures: [{ itemIdentifier: "msg-3" }] });
+    expect(jobsMap.get("job-3").status).toBe("FAILED");
+    expect(jobsMap.get("job-3").error.message).toContain("Invalid PDF header");
   });
 });
