@@ -28,6 +28,7 @@ const s3 = new AWS.S3({ region: REGION });
 
 const JOBS_TABLE = process.env.JOBS_TABLE || "";
 const UPLOADS_BUCKET = process.env.UPLOADS_BUCKET || "";
+const MAX_FILE_SIZE_BYTES = 200 * 1024 * 1024;
 
 function logEvent(stage, data = {}) {
   console.log(JSON.stringify({ stage, ts: new Date().toISOString(), ...data }));
@@ -88,10 +89,35 @@ async function processRecord(bucket, rawKey) {
   await updateJobStatus(jobId, "PROCESSING");
 
   try {
+    // ── Validate uploaded object before processing ─────────────────────────
+    const head = await s3.headObject({ Bucket: bucket, Key: key }).promise();
+    const actualSize = Number(head.ContentLength || 0);
+    if (!Number.isFinite(actualSize) || actualSize <= 0) {
+      throw new Error("Uploaded object size is invalid.");
+    }
+    if (actualSize > MAX_FILE_SIZE_BYTES) {
+      throw new Error("Uploaded object exceeds 200 MB size limit.");
+    }
+    if (typeof job.expectedSize === "number" && job.expectedSize > 0 && actualSize !== job.expectedSize) {
+      throw new Error(`Uploaded object size (${actualSize}) does not match expected size (${job.expectedSize}).`);
+    }
+
+    const fileType = (job.expectedFileType || job.fileType || "").toLowerCase();
+    if (fileType === "pdf") {
+      const headerObj = await s3
+        .getObject({ Bucket: bucket, Key: key, Range: "bytes=0-4" })
+        .promise();
+      const header = Buffer.from(headerObj.Body || "").toString("utf-8");
+      if (header !== "%PDF-") {
+        throw new Error("Invalid PDF header; expected %PDF- signature.");
+      }
+    } else if (fileType !== "csv") {
+      throw new Error(`Unsupported fileType: ${fileType}`);
+    }
+
     // ── Download the uploaded file ──────────────────────────────────────────
     const fileObj = await s3.getObject({ Bucket: bucket, Key: key }).promise();
     const fileBuffer = Buffer.from(fileObj.Body);
-    const fileType = (job.fileType || "").toLowerCase();
     const now = new Date().toISOString();
 
     // ── Process (placeholder — swap for real OCR integration) ───────────────
@@ -109,8 +135,6 @@ async function processRecord(bucket, rawKey) {
       }
       // Normalise line endings and re-emit
       outputContent = lines.join("\n") + "\n";
-    } else {
-      throw new Error(`Unsupported fileType: ${fileType}`);
     }
 
     // ── Upload output ───────────────────────────────────────────────────────

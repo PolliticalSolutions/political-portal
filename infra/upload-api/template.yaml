@@ -85,7 +85,7 @@ Resources:
       CorsConfiguration:
         CorsRules:
           - AllowedOrigins: !Ref AllowedOrigins
-            AllowedMethods: [PUT]
+            AllowedMethods: [POST, GET]
             AllowedHeaders: ["*"]
             MaxAge: 3600
       LifecycleConfiguration:
