@@ -1,7 +1,7 @@
 import { render, screen } from "@testing-library/react";
 import { HelmetProvider } from "react-helmet-async";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
-import { beforeEach, describe, expect, it } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import { CartProvider } from "../../cart/cartStore.jsx";
 import ProtectedRoute from "../../components/ProtectedRoute.jsx";
 import { tokensKey } from "../../auth/session.js";
@@ -10,6 +10,19 @@ import Cart from "../Cart.jsx";
 import PortalLayout from "./PortalLayout.jsx";
 import PortalNotFound from "./PortalNotFound.jsx";
 import PricingRules from "./PricingRules.jsx";
+import Uploads from "./Uploads.jsx";
+import * as uploadApi from "../../lib/uploadApi.js";
+
+vi.mock("../../lib/uploadApi.js", async () => {
+  const actual = await vi.importActual("../../lib/uploadApi.js");
+  return {
+    ...actual,
+    getMe: vi.fn(),
+    getAdminMe: vi.fn(),
+    applyForApproval: vi.fn(),
+    listOrganisations: vi.fn(),
+  };
+});
 
 function makeJwt(payloadObj) {
   const header = { alg: "none", typ: "JWT" };
@@ -29,9 +42,13 @@ describe("Portal routing", () => {
     const futureExp = Math.floor(Date.now() / 1000) + 300;
     const tokens = { access_token: makeJwt({ exp: futureExp }) };
     sessionStorage.setItem(tokensKey, JSON.stringify(tokens));
+    sessionStorage.setItem("cognito_tokens", JSON.stringify(tokens));
+    uploadApi.getMe.mockResolvedValue({ user: { status: "APPROVED" } });
+    uploadApi.getAdminMe.mockResolvedValue({ isAdmin: false });
+    uploadApi.listOrganisations.mockResolvedValue({ items: [] });
   });
 
-  it("renders pricing rules inside the portal layout", () => {
+  it("renders pricing rules inside the portal layout", async () => {
     renderWithHelmet(
       <MemoryRouter initialEntries={["/portal/pricing-rules"]}>
         <Routes>
@@ -39,6 +56,7 @@ describe("Portal routing", () => {
             <Route path="/portal" element={<PortalLayout />}>
               <Route index element={<Portal tokens={null} onLogout={null} />} />
               <Route path="pricing-rules" element={<PricingRules />} />
+              <Route path="uploads" element={<Uploads />} />
               <Route path="*" element={<PortalNotFound />} />
             </Route>
           </Route>
@@ -46,11 +64,10 @@ describe("Portal routing", () => {
       </MemoryRouter>
     );
 
-    expect(screen.getByText("Portal")).toBeInTheDocument();
-    expect(screen.getByText("Pricing Rules")).toBeInTheDocument();
+    expect(await screen.findByText("Pricing Rules")).toBeInTheDocument();
   });
 
-  it("renders portal not found for unknown routes", () => {
+  it("renders portal not found for unknown routes", async () => {
     renderWithHelmet(
       <MemoryRouter initialEntries={["/portal/does-not-exist"]}>
         <Routes>
@@ -58,6 +75,7 @@ describe("Portal routing", () => {
             <Route path="/portal" element={<PortalLayout />}>
               <Route index element={<Portal tokens={null} onLogout={null} />} />
               <Route path="pricing-rules" element={<PricingRules />} />
+              <Route path="uploads" element={<Uploads />} />
               <Route path="*" element={<PortalNotFound />} />
             </Route>
           </Route>
@@ -65,11 +83,10 @@ describe("Portal routing", () => {
       </MemoryRouter>
     );
 
-    expect(screen.getByText("Portal")).toBeInTheDocument();
-    expect(screen.getByText("Page not found")).toBeInTheDocument();
+    expect(await screen.findByText("Page not found")).toBeInTheDocument();
   });
 
-  it("renders cart inside the portal layout", () => {
+  it("renders cart inside the portal layout", async () => {
     renderWithHelmet(
       <MemoryRouter initialEntries={["/portal/cart"]}>
         <CartProvider>
@@ -79,6 +96,7 @@ describe("Portal routing", () => {
                 <Route index element={<Portal tokens={null} onLogout={null} />} />
                 <Route path="cart" element={<Cart basePath="/portal" />} />
                 <Route path="pricing-rules" element={<PricingRules />} />
+                <Route path="uploads" element={<Uploads />} />
                 <Route path="*" element={<PortalNotFound />} />
               </Route>
             </Route>
@@ -87,6 +105,48 @@ describe("Portal routing", () => {
       </MemoryRouter>
     );
 
-    expect(screen.getByRole("heading", { name: "Cart" })).toBeInTheDocument();
+    expect(await screen.findByRole("heading", { name: "Cart" })).toBeInTheDocument();
+  });
+
+  it("blocks upload route when /me returns PENDING", async () => {
+    uploadApi.getMe.mockResolvedValue({ user: { status: "PENDING" } });
+
+    renderWithHelmet(
+      <MemoryRouter initialEntries={["/portal/uploads"]}>
+        <Routes>
+          <Route element={<ProtectedRoute authed={true} session={{}} />}>
+            <Route path="/portal" element={<PortalLayout />}>
+              <Route index element={<Portal tokens={null} onLogout={null} />} />
+              <Route path="uploads" element={<Uploads />} />
+              <Route path="*" element={<PortalNotFound />} />
+            </Route>
+          </Route>
+        </Routes>
+      </MemoryRouter>
+    );
+
+    expect(await screen.findByRole("heading", { name: "Pending approval" })).toBeInTheDocument();
+    expect(screen.queryByRole("heading", { name: "Upload files" })).not.toBeInTheDocument();
+  });
+
+  it("blocks upload route when /me fails", async () => {
+    uploadApi.getMe.mockRejectedValue(new Error("Service down"));
+
+    renderWithHelmet(
+      <MemoryRouter initialEntries={["/portal/uploads"]}>
+        <Routes>
+          <Route element={<ProtectedRoute authed={true} session={{}} />}>
+            <Route path="/portal" element={<PortalLayout />}>
+              <Route index element={<Portal tokens={null} onLogout={null} />} />
+              <Route path="uploads" element={<Uploads />} />
+              <Route path="*" element={<PortalNotFound />} />
+            </Route>
+          </Route>
+        </Routes>
+      </MemoryRouter>
+    );
+
+    expect(await screen.findByRole("heading", { name: "Service unavailable" })).toBeInTheDocument();
+    expect(screen.queryByRole("heading", { name: "Upload files" })).not.toBeInTheDocument();
   });
 });

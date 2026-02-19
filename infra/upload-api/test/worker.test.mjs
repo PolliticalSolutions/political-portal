@@ -189,6 +189,33 @@ describe("upload processor worker (SQS)", () => {
     expect(calls.putObject).toBe(0);
   });
 
+  it("noops jobs that are blocked by manual review", async () => {
+    jobsMap.set("job-mr-1", {
+      jobId: "job-mr-1",
+      status: "QUEUED",
+      filename: "pending.csv",
+      fileType: "csv",
+      expectedFileType: "csv",
+      expectedSize: 1024,
+      s3Key: "uploads/user/job-mr-1/pending.csv",
+      requiresManualReview: true,
+      manualReviewStatus: "OPEN",
+      blocked: true,
+    });
+
+    const result = await handler(
+      sqsEvent({
+        jobId: "job-mr-1",
+        bucket: "test-bucket",
+        s3Key: "uploads/user/job-mr-1/pending.csv",
+      })
+    );
+
+    expect(result).toEqual({ batchItemFailures: [] });
+    expect(jobsMap.get("job-mr-1").status).toBe("QUEUED");
+    expect(calls.headObject).toBe(0);
+  });
+
   it("marks FAILED and ACKs validation failures", async () => {
     jobsMap.set("job-3", {
       jobId: "job-3",

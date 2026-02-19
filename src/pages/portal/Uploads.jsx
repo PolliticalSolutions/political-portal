@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import Button from "../../components/Button.jsx";
 import Card from "../../components/Card.jsx";
-import { createJob, getDownloadUrls, getJob, listJobs } from "../../lib/uploadApi.js";
+import { createJob, getDownloadUrls, getJob, listElections, listJobs } from "../../lib/uploadApi.js";
 
 const MAX_FILE_SIZE = 200 * 1024 * 1024; // 200 MB
 const ALLOWED_EXTENSIONS = new Set([".pdf", ".csv"]);
@@ -55,6 +55,15 @@ function StatusBadge({ status }) {
 export default function Uploads() {
   const [staged, setStaged] = useState([]);
   const [metadata, setMetadata] = useState({ clientName: "", notes: "" });
+  const [submissionScope, setSubmissionScope] = useState({
+    pconCode: "",
+    wards: "",
+    electionId: "",
+    manualReviewReason: "",
+  });
+  const [elections, setElections] = useState([]);
+  const [loadingElections, setLoadingElections] = useState(false);
+  const [electionsError, setElectionsError] = useState(null);
   const [jobs, setJobs] = useState([]);
   const [uploading, setUploading] = useState(false);
   const [uploadErrors, setUploadErrors] = useState([]);
@@ -103,6 +112,40 @@ export default function Uploads() {
     };
   }, [jobs]);
 
+  useEffect(() => {
+    const pconCode = submissionScope.pconCode.trim().toUpperCase();
+    if (!pconCode) {
+      setElections([]);
+      setElectionsError(null);
+      setLoadingElections(false);
+      setSubmissionScope((scope) => ({ ...scope, electionId: "" }));
+      return undefined;
+    }
+
+    let cancelled = false;
+    setLoadingElections(true);
+    setElectionsError(null);
+    setSubmissionScope((scope) => ({ ...scope, electionId: "" }));
+    listElections(pconCode, ["OPEN", "UPCOMING"])
+      .then((data) => {
+        if (cancelled) return;
+        const items = Array.isArray(data?.items) ? data.items : [];
+        setElections(items);
+      })
+      .catch((error) => {
+        if (cancelled) return;
+        setElections([]);
+        setElectionsError(error.message || "Failed to load elections.");
+      })
+      .finally(() => {
+        if (!cancelled) setLoadingElections(false);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [submissionScope.pconCode]);
+
   const addFiles = useCallback((fileList) => {
     const incoming = Array.from(fileList).map((file) => ({
       file,
@@ -129,6 +172,25 @@ export default function Uploads() {
   const handleUpload = async () => {
     const valid = staged.filter((s) => !s.error);
     if (valid.length === 0) return;
+    const pconCode = submissionScope.pconCode.trim().toUpperCase();
+    if (!pconCode) {
+      setUploadErrors(["Constituency code (PCON24CD) is required."]);
+      return;
+    }
+    const electionId = submissionScope.electionId.trim();
+    if (!electionId) {
+      setUploadErrors(["Election selection is required."]);
+      return;
+    }
+    if (electionId === "OTHER" && submissionScope.manualReviewReason.trim().length < 10) {
+      setUploadErrors(["Manual review reason must be at least 10 characters when election is Other."]);
+      return;
+    }
+
+    const wardCodes = submissionScope.wards
+      .split(",")
+      .map((entry) => entry.trim().toUpperCase())
+      .filter(Boolean);
 
     setUploading(true);
     setUploadErrors([]);
@@ -140,6 +202,12 @@ export default function Uploads() {
       try {
         const { jobId, upload, s3Key } = await createJob({
           filename: file.name,
+          pconCode,
+          electionId,
+          ...(electionId === "OTHER"
+            ? { manualReviewReason: submissionScope.manualReviewReason.trim() }
+            : {}),
+          ...(wardCodes.length > 0 ? { wards: wardCodes } : {}),
           fileType,
           size: file.size,
           metadata: {
@@ -327,6 +395,137 @@ export default function Uploads() {
           <div className="stack" style={{ marginTop: 20, gap: 12 }}>
             <div>
               <label
+                htmlFor="pconCode"
+                style={{ display: "block", fontWeight: 600, marginBottom: 4 }}
+              >
+                Constituency code (PCON24CD)
+              </label>
+              <input
+                id="pconCode"
+                type="text"
+                value={submissionScope.pconCode}
+                onChange={(e) =>
+                  setSubmissionScope((scope) => ({ ...scope, pconCode: e.target.value }))
+                }
+                placeholder="e.g. E14000637"
+                style={{
+                  width: "100%",
+                  padding: "8px 12px",
+                  border: "1px solid #cbd5e1",
+                  borderRadius: 6,
+                  fontSize: 14,
+                  boxSizing: "border-box",
+                }}
+              />
+            </div>
+            <div>
+              <label
+                htmlFor="wardCodes"
+                style={{ display: "block", fontWeight: 600, marginBottom: 4 }}
+              >
+                Ward codes (optional, comma-separated WD24CD)
+              </label>
+              <input
+                id="wardCodes"
+                type="text"
+                value={submissionScope.wards}
+                onChange={(e) =>
+                  setSubmissionScope((scope) => ({ ...scope, wards: e.target.value }))
+                }
+                placeholder="e.g. W1001,W1002"
+                style={{
+                  width: "100%",
+                  padding: "8px 12px",
+                  border: "1px solid #cbd5e1",
+                  borderRadius: 6,
+                  fontSize: 14,
+                  boxSizing: "border-box",
+                }}
+              />
+            </div>
+            <div>
+              <label
+                htmlFor="electionId"
+                style={{ display: "block", fontWeight: 600, marginBottom: 4 }}
+              >
+                Election
+              </label>
+              <select
+                id="electionId"
+                value={submissionScope.electionId}
+                onChange={(e) =>
+                  setSubmissionScope((scope) => ({
+                    ...scope,
+                    electionId: e.target.value,
+                    manualReviewReason: e.target.value === "OTHER" ? scope.manualReviewReason : "",
+                  }))
+                }
+                disabled={!submissionScope.pconCode.trim() || loadingElections}
+                style={{
+                  width: "100%",
+                  padding: "8px 12px",
+                  border: "1px solid #cbd5e1",
+                  borderRadius: 6,
+                  fontSize: 14,
+                  boxSizing: "border-box",
+                }}
+              >
+                <option value="">Select an election</option>
+                {elections.map((election) => (
+                  <option key={election.electionId} value={election.electionId}>
+                    {election.name} ({election.date})
+                  </option>
+                ))}
+                {elections.length === 0 && !loadingElections && submissionScope.pconCode.trim() && (
+                  <option value="OTHER">Other / Not listed</option>
+                )}
+              </select>
+              {loadingElections && (
+                <p style={{ margin: "6px 0 0", fontSize: 12, color: "#64748b" }}>
+                  Loading elections...
+                </p>
+              )}
+              {!loadingElections && elections.length === 0 && submissionScope.pconCode.trim() && !electionsError && (
+                <p style={{ margin: "6px 0 0", fontSize: 12, color: "#b45309" }}>
+                  No elections configured for this constituency.
+                </p>
+              )}
+              {electionsError && (
+                <p style={{ margin: "6px 0 0", fontSize: 12, color: "#b91c1c" }}>
+                  {electionsError}
+                </p>
+              )}
+            </div>
+            {submissionScope.electionId === "OTHER" && (
+              <div>
+                <label
+                  htmlFor="manualReviewReason"
+                  style={{ display: "block", fontWeight: 600, marginBottom: 4 }}
+                >
+                  Manual review reason
+                </label>
+                <textarea
+                  id="manualReviewReason"
+                  rows={3}
+                  value={submissionScope.manualReviewReason}
+                  onChange={(e) =>
+                    setSubmissionScope((scope) => ({ ...scope, manualReviewReason: e.target.value }))
+                  }
+                  placeholder="Explain why this election is not listed (minimum 10 characters)."
+                  style={{
+                    width: "100%",
+                    padding: "8px 12px",
+                    border: "1px solid #cbd5e1",
+                    borderRadius: 6,
+                    fontSize: 14,
+                    boxSizing: "border-box",
+                    resize: "vertical",
+                  }}
+                />
+              </div>
+            )}
+            <div>
+              <label
                 htmlFor="clientName"
                 style={{ display: "block", fontWeight: 600, marginBottom: 4 }}
               >
@@ -379,7 +578,11 @@ export default function Uploads() {
             <Button
               onClick={handleUpload}
               loading={uploading}
-              disabled={uploading}
+              disabled={
+                uploading ||
+                (submissionScope.electionId === "OTHER" &&
+                  submissionScope.manualReviewReason.trim().length < 10)
+              }
             >
               {uploading
                 ? "Uploading…"

@@ -29,6 +29,7 @@ import Dashboard from "./pages/portal/Dashboard.jsx";
 import Integrations from "./pages/portal/Integrations.jsx";
 import Quotes from "./pages/portal/Quotes.jsx";
 import QuoteDetail from "./pages/portal/QuoteDetail.jsx";
+import ManualReviewPage from "./pages/portal/admin/ManualReviewPage.jsx";
 import Session from "./pages/Session.jsx";
 import SignUp from "./pages/SignUp.jsx";
 import CookiesPage from "./pages/legal/CookiesPage.jsx";
@@ -285,6 +286,7 @@ export default function App() {
                 <Route path="uploads" element={<Uploads />} />
                 <Route path="ops/quotes" element={<Quotes />} />
                 <Route path="ops/quotes/:ref" element={<QuoteDetail />} />
+                <Route path="admin/manual-review" element={<ManualReviewPage />} />
                 <Route path="*" element={<PortalNotFound />} />
               </Route>
             </Route>

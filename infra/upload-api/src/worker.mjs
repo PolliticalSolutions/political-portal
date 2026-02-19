@@ -176,6 +176,17 @@ async function processJobMessage(message) {
   const s3Key = message.s3Key || job?.s3Key || "";
   logEvent("worker_start", { jobId, key: s3Key });
 
+  const reviewStatus = (job?.manualReviewStatus || "").toString().trim().toUpperCase();
+  const reviewDecision = (job?.manualReviewDecision || "").toString().trim().toUpperCase();
+  const requiresManualReview = job?.requiresManualReview === true;
+  const blockedByReview =
+    requiresManualReview &&
+    (job?.blocked === true || reviewStatus === "OPEN" || reviewStatus === "NEEDS_INFO" || reviewDecision === "REJECT");
+  if (blockedByReview) {
+    logEvent("worker_noop", { jobId, reason: "manual_review_blocked", reviewStatus, reviewDecision });
+    return;
+  }
+
   const canProcess = await markProcessing(jobId);
   if (!canProcess) {
     logEvent("worker_noop", { jobId, reason: "already_transitioned" });
