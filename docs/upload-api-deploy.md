@@ -34,6 +34,8 @@ WAF_RATE_LIMIT="300" \
 WAF_MANAGED_RULES_ENABLED="true" \
 WAF_LOGGING_ENABLED="true" \
 WAF_LOG_RETENTION_DAYS="14" \
+ENABLE_GD_SCAN="false" \
+BYPASS_SCAN_WHEN_DISABLED="true" \
 AWS_REGION="eu-west-2" \
 STACK_NAME="ps-upload-api-prod" \
 ./scripts/deploy-upload-api.sh
@@ -57,6 +59,8 @@ sam deploy --resolve-s3 \
     WafManagedRulesEnabled=true \
     WafLoggingEnabled=true \
     WafLogRetentionDays=14 \
+    EnableGuardDutyScan=false \
+    BypassScanWhenDisabled=true \
   --region eu-west-2
 ```
 
@@ -145,11 +149,19 @@ Response contains presigned download URLs, valid for 15 minutes.
 
 ## Processing pipeline
 1. Client creates a job and uploads to `uploads/<userSub>/<jobId>/<filename>`.
-2. GuardDuty Malware Protection scans uploaded objects under `uploads/`.
-3. EventBridge forwards scan result to `ScanResultHandlerFunction`.
-4. Clean scans enqueue `{ jobId, bucket, s3Key }` to `ProcessQueue`.
+2. If `EnableGuardDutyScan=true`: GuardDuty scans uploaded objects and EventBridge routes results to `ScanResultHandlerFunction`.
+3. Clean scans enqueue `{ jobId, bucket, s3Key }` to `ProcessQueue`; infected/failed scans mark the job failed.
+4. If `EnableGuardDutyScan=false` and `BypassScanWhenDisabled=true`: API marks `scanResultStatus=BYPASSED` and enqueues immediately.
 5. `WorkerFunction` consumes SQS messages, validates/processes, writes outputs.
 6. Failed processing retries and eventually lands in `ProcessDLQ`.
+
+## GuardDuty scan feature flags
+- `EnableGuardDutyScan`:
+  - `true` enables `AWS::GuardDuty::MalwareProtectionPlan` + EventBridge scan-result routing.
+  - `false` skips plan/rule creation.
+- `BypassScanWhenDisabled`:
+  - `true` avoids stuck `QUEUED` jobs by enqueuing directly from API when scan is disabled.
+  - `false` keeps strict scan-gated behaviour (do not use in production unless scan is enabled).
 
 ## Retention
 - S3 lifecycle:

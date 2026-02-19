@@ -14,6 +14,20 @@ Parameters:
     Type: String
     Default: ""
     Description: Cognito app client ID for JWT verification.
+  EnableGuardDutyScan:
+    Type: String
+    Default: "false"
+    AllowedValues:
+      - "true"
+      - "false"
+    Description: Enable GuardDuty Malware Protection for S3 scan gating.
+  BypassScanWhenDisabled:
+    Type: String
+    Default: "true"
+    AllowedValues:
+      - "true"
+      - "false"
+    Description: Enqueue jobs directly when GuardDuty scan gating is disabled.
   AlarmTopicArn:
     Type: String
     Default: ""
@@ -63,6 +77,8 @@ Conditions:
     - !Condition WafEnabledCondition
     - !Equals [!Ref WafLoggingEnabled, "true"]
   AlarmActionsEnabled: !Not [!Equals [!Ref AlarmTopicArn, ""]]
+  GuardDutyScanEnabled: !Equals [!Ref EnableGuardDutyScan, "true"]
+  GuardDutyScanDisabled: !Not [!Condition GuardDutyScanEnabled]
 
 Resources:
 
@@ -70,6 +86,7 @@ Resources:
 
   UploadsBucket:
     Type: AWS::S3::Bucket
+    DependsOn: ProcessQueueS3SendPolicy
     Properties:
       BucketName: !Sub "${AWS::StackName}-uploads-${AWS::AccountId}"
       AccessControl: Private
@@ -92,18 +109,27 @@ Resources:
         Rules:
           - Id: ExpireUploadsAfter90Days
             Status: Enabled
-            Filter:
-              Prefix: "uploads/"
+            Prefix: "uploads/"
             ExpirationInDays: 90
           - Id: ExpireOutputsAfter90Days
             Status: Enabled
-            Filter:
-              Prefix: "outputs/"
+            Prefix: "outputs/"
             ExpirationInDays: 90
           - Id: DeleteIncompleteMultipartUploads
             Status: Enabled
             AbortIncompleteMultipartUpload:
               DaysAfterInitiation: 7
+      NotificationConfiguration: !If
+        - GuardDutyScanDisabled
+        - QueueConfigurations:
+            - Event: "s3:ObjectCreated:*"
+              Queue: !GetAtt ProcessQueue.Arn
+              Filter:
+                S3Key:
+                  Rules:
+                    - Name: prefix
+                      Value: "uploads/"
+        - !Ref AWS::NoValue
 
   # ── DynamoDB table ─────────────────────────────────────────────────────────
 
@@ -158,7 +184,25 @@ Resources:
       VisibilityTimeout: 360
       RedrivePolicy:
         deadLetterTargetArn: !GetAtt ProcessDLQ.Arn
-        maxReceiveCount: 5
+        maxReceiveCount: 3
+
+  ProcessQueueS3SendPolicy:
+    Type: AWS::SQS::QueuePolicy
+    Properties:
+      Queues:
+        - !Ref ProcessQueue
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Sid: AllowS3SendMessageFromUploadsBucket
+            Effect: Allow
+            Principal:
+              Service: s3.amazonaws.com
+            Action: sqs:SendMessage
+            Resource: !GetAtt ProcessQueue.Arn
+            Condition:
+              ArnEquals:
+                aws:SourceArn: !Sub "arn:aws:s3:::${AWS::StackName}-uploads-${AWS::AccountId}"
 
   # ── HTTP API ───────────────────────────────────────────────────────────────
 
@@ -293,6 +337,8 @@ Resources:
           UPLOADS_BUCKET: !Ref UploadsBucket
           COGNITO_ISSUER: !Ref CognitoIssuer
           COGNITO_AUDIENCE: !Ref CognitoAudience
+          ENABLE_GUARDDUTY_SCAN: !Ref EnableGuardDutyScan
+          BYPASS_SCAN_WHEN_DISABLED: !Ref BypassScanWhenDisabled
       Policies:
         - Statement:
             Effect: Allow
@@ -356,8 +402,15 @@ Resources:
             Effect: Allow
             Action:
               - dynamodb:GetItem
+              - dynamodb:Query
               - dynamodb:UpdateItem
             Resource: !GetAtt JobsTable.Arn
+        - Statement:
+            Effect: Allow
+            Action:
+              - dynamodb:Query
+            Resource:
+              - !Sub "${JobsTable.Arn}/index/S3KeyIndex"
         - Statement:
             Effect: Allow
             Action:
@@ -365,6 +418,14 @@ Resources:
               - s3:GetObject
               - s3:PutObject
             Resource: !Sub "${UploadsBucket.Arn}/*"
+        - Statement:
+            Effect: Allow
+            Action:
+              - sqs:ReceiveMessage
+              - sqs:DeleteMessage
+              - sqs:GetQueueAttributes
+              - sqs:ChangeMessageVisibility
+            Resource: !GetAtt ProcessQueue.Arn
 
   WorkerProcessQueueMapping:
     Type: AWS::Lambda::EventSourceMapping
@@ -409,6 +470,7 @@ Resources:
 
   ScanResultsRule:
     Type: AWS::Events::Rule
+    Condition: GuardDutyScanEnabled
     Properties:
       Description: Route GuardDuty malware scan results for upload objects.
       EventPattern:
@@ -426,6 +488,7 @@ Resources:
 
   ScanResultHandlerInvokePermission:
     Type: AWS::Lambda::Permission
+    Condition: GuardDutyScanEnabled
     Properties:
       Action: lambda:InvokeFunction
       FunctionName: !Ref ScanResultHandlerFunction
@@ -459,11 +522,34 @@ Resources:
                   - !Sub "${UploadsBucket.Arn}/uploads/*"
               - Effect: Allow
                 Action:
-                  - s3:ListBucket
+                  - s3:GetBucketNotification
+                  - s3:PutBucketNotification
+                  - s3:GetBucketNotificationConfiguration
+                  - s3:PutBucketNotificationConfiguration
+                  - s3:GetBucketLocation
+                  - s3:GetBucketTagging
+                  - s3:PutBucketTagging
                 Resource: !GetAtt UploadsBucket.Arn
+              - Effect: Allow
+                Action:
+                  - events:PutRule
+                  - events:DeleteRule
+                  - events:PutTargets
+                  - events:RemoveTargets
+                Resource: !Sub "arn:aws:events:${AWS::Region}:${AWS::AccountId}:rule/DO-NOT-DELETE-AmazonGuardDutyMalwareProtectionS3*"
+              - Effect: Allow
+                Action:
+                  - events:DescribeRule
+                  - events:ListTargetsByRule
+                Resource: !Sub "arn:aws:events:${AWS::Region}:${AWS::AccountId}:rule/DO-NOT-DELETE-AmazonGuardDutyMalwareProtectionS3*"
+              - Effect: Allow
+                Action:
+                  - s3:PutObject
+                Resource: !Sub "${UploadsBucket.Arn}/malware-protection-resource-validation-object"
 
   UploadsMalwareProtectionPlan:
     Type: AWS::GuardDuty::MalwareProtectionPlan
+    Condition: GuardDutyScanEnabled
     Properties:
       Role: !GetAtt MalwareProtectionRole.Arn
       ProtectedResource:
@@ -547,6 +633,22 @@ Outputs:
   JobsTableName:
     Description: Name of the DynamoDB jobs table.
     Value: !Ref JobsTable
+  ProcessQueueUrl:
+    Description: URL of the processing SQS queue.
+    Value: !Ref ProcessQueue
+  ProcessQueueArn:
+    Description: ARN of the processing SQS queue.
+    Value: !GetAtt ProcessQueue.Arn
+  ProcessDlqUrl:
+    Description: URL of the processing dead-letter queue.
+    Value: !Ref ProcessDLQ
+  ProcessDlqArn:
+    Description: ARN of the processing dead-letter queue.
+    Value: !GetAtt ProcessDLQ.Arn
+  ScanResultsRuleName:
+    Condition: GuardDutyScanEnabled
+    Description: EventBridge rule name for GuardDuty malware scan results.
+    Value: !Ref ScanResultsRule
   WafWebAclArn:
     Condition: WafEnabledCondition
     Description: ARN of the WAF Web ACL protecting the upload API.

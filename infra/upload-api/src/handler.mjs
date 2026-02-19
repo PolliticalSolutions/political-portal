@@ -204,6 +204,14 @@ function createPresignedPost(params) {
   });
 }
 
+function isGuardDutyScanEnabled() {
+  return (process.env.ENABLE_GUARDDUTY_SCAN || "false").toLowerCase() === "true";
+}
+
+function shouldBypassScanWhenDisabled() {
+  return (process.env.BYPASS_SCAN_WHEN_DISABLED || "false").toLowerCase() === "true";
+}
+
 // ── Route handlers ────────────────────────────────────────────────────────────
 
 async function handleCreateJob(event, origin) {
@@ -256,6 +264,10 @@ async function handleCreateJob(event, origin) {
     expiresAt,
     metadata: { clientName, notes },
   };
+  if (!isGuardDutyScanEnabled() && shouldBypassScanWhenDisabled()) {
+    item.scanResultStatus = "BYPASSED";
+    item.scanUpdatedAt = now;
+  }
 
   await dynamo.put({ TableName: JOBS_TABLE, Item: item }).promise();
 
