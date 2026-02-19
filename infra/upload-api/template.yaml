@@ -158,7 +158,7 @@ Resources:
       VisibilityTimeout: 360
       RedrivePolicy:
         deadLetterTargetArn: !GetAtt ProcessDLQ.Arn
-        maxReceiveCount: 5
+        maxReceiveCount: 3
 
   # ── HTTP API ───────────────────────────────────────────────────────────────
 
@@ -547,6 +547,21 @@ Outputs:
   JobsTableName:
     Description: Name of the DynamoDB jobs table.
     Value: !Ref JobsTable
+  ProcessQueueUrl:
+    Description: URL of the processing SQS queue.
+    Value: !Ref ProcessQueue
+  ProcessQueueArn:
+    Description: ARN of the processing SQS queue.
+    Value: !GetAtt ProcessQueue.Arn
+  ProcessDlqUrl:
+    Description: URL of the processing dead-letter queue.
+    Value: !Ref ProcessDLQ
+  ProcessDlqArn:
+    Description: ARN of the processing dead-letter queue.
+    Value: !GetAtt ProcessDLQ.Arn
+  ScanResultsRuleName:
+    Description: EventBridge rule name for GuardDuty malware scan results.
+    Value: !Ref ScanResultsRule
   WafWebAclArn:
     Condition: WafEnabledCondition
     Description: ARN of the WAF Web ACL protecting the upload API.
