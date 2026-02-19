@@ -26,6 +26,7 @@ export const getRuntimeConfig = () => {
     apiBaseUrl,
     enquiryApiUrl: normalizeBaseUrl(readEnv("VITE_ENQUIRY_API_URL")),
     apiBaseUrlExplicit: normalizeBaseUrl(readEnv("VITE_API_BASE_URL")),
+    uploadApiBaseUrl: normalizeBaseUrl(readEnv("VITE_UPLOAD_API_URL")),
     cognitoDomain: readEnv("VITE_COGNITO_DOMAIN"),
     cognitoClientId: readEnv("VITE_COGNITO_CLIENT_ID"),
     cognitoRedirectUri: readEnv("VITE_COGNITO_REDIRECT_URI"),

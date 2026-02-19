@@ -29,4 +29,6 @@ yarn-error.log*
 # production
 /dist/
 /dist-ssr/
+.claude/
+.aws-sam/
 

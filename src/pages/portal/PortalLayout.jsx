@@ -21,6 +21,9 @@ export default function PortalLayout() {
             <NavLink className={navClass} to="/portal/settings/integrations">
               Integrations
             </NavLink>
+            <NavLink className={navClass} to="/portal/uploads">
+              Uploads
+            </NavLink>
             <NavLink className={navClass} to="/portal/ops/quotes">
               Ops quotes
             </NavLink>

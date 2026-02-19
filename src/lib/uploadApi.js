@@ -1,0 +1,83 @@
+import { getRuntimeConfig } from "../config/runtimeConfig.js";
+
+const resolveUploadApiBaseUrl = () => {
+  const config = getRuntimeConfig();
+  return config.uploadApiBaseUrl || "";
+};
+
+const fetchJson = async (url, options) => {
+  let response;
+  try {
+    response = await fetch(url, options);
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "Network request failed.";
+    throw new Error(message);
+  }
+
+  let data = null;
+  try {
+    data = await response.json();
+  } catch {
+    data = null;
+  }
+
+  if (!response.ok) {
+    const message = data?.message || `Request failed (${response.status}).`;
+    throw new Error(message);
+  }
+
+  return data;
+};
+
+const getAuthHeaders = () => {
+  try {
+    const raw = sessionStorage.getItem("cognito_tokens");
+    if (!raw) return {};
+    const tokens = JSON.parse(raw);
+    const token = tokens?.access_token || tokens?.id_token;
+    if (!token) return {};
+    return { Authorization: `Bearer ${token}` };
+  } catch {
+    return {};
+  }
+};
+
+export const createJob = async (payload) => {
+  const base = resolveUploadApiBaseUrl();
+  if (!base) throw new Error("Missing Upload API URL. Set VITE_UPLOAD_API_URL.");
+  return fetchJson(`${base}/jobs`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...getAuthHeaders() },
+    body: JSON.stringify(payload),
+  });
+};
+
+export const listJobs = async (limit = 25) => {
+  const base = resolveUploadApiBaseUrl();
+  if (!base) throw new Error("Missing Upload API URL. Set VITE_UPLOAD_API_URL.");
+  const params = new URLSearchParams({ limit: String(limit) });
+  return fetchJson(`${base}/jobs?${params.toString()}`, {
+    method: "GET",
+    headers: getAuthHeaders(),
+  });
+};
+
+export const getJob = async (jobId) => {
+  const base = resolveUploadApiBaseUrl();
+  if (!base) throw new Error("Missing Upload API URL. Set VITE_UPLOAD_API_URL.");
+  if (!jobId) throw new Error("Missing job ID.");
+  return fetchJson(`${base}/jobs/${encodeURIComponent(jobId)}`, {
+    method: "GET",
+    headers: getAuthHeaders(),
+  });
+};
+
+export const getDownloadUrls = async (jobId) => {
+  const base = resolveUploadApiBaseUrl();
+  if (!base) throw new Error("Missing Upload API URL. Set VITE_UPLOAD_API_URL.");
+  if (!jobId) throw new Error("Missing job ID.");
+  return fetchJson(`${base}/jobs/${encodeURIComponent(jobId)}/download`, {
+    method: "GET",
+    headers: getAuthHeaders(),
+  });
+};
