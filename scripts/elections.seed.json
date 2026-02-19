@@ -1,0 +1,20 @@
+[
+  {
+    "electionId": "2026-05-07:LOCAL:bradford-east",
+    "name": "Bradford East Local Elections 2026",
+    "date": "2026-05-07",
+    "electionType": "LOCAL",
+    "authority": "Bradford",
+    "pconCodes": ["E14000637"],
+    "status": "UPCOMING"
+  },
+  {
+    "electionId": "2026-05-07:PCC:west-yorkshire",
+    "name": "West Yorkshire PCC Election 2026",
+    "date": "2026-05-07",
+    "electionType": "PCC",
+    "authority": "West Yorkshire",
+    "pconCodes": ["E14000637", "E14000638"],
+    "status": "OPEN"
+  }
+]

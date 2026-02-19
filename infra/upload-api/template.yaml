@@ -14,6 +14,14 @@ Parameters:
     Type: String
     Default: ""
     Description: Cognito app client ID for JWT verification.
+  AdminSubAllowlist:
+    Type: String
+    Default: ""
+    Description: Comma-separated Cognito sub allowlist for admin endpoints.
+  GeoLookupTableName:
+    Type: String
+    Default: ""
+    Description: Existing geography lookup DynamoDB table name (PCON/WD mapping), managed outside this stack.
   EnableGuardDutyScan:
     Type: String
     Default: "false"
@@ -73,6 +81,7 @@ Parameters:
 Conditions:
   WafEnabledCondition: !Equals [!Ref WafEnabled, "true"]
   WafManagedRulesEnabledCondition: !Equals [!Ref WafManagedRulesEnabled, "true"]
+  GeoLookupConfigured: !Not [!Equals [!Ref GeoLookupTableName, ""]]
   WafLoggingOn: !And
     - !Condition WafEnabledCondition
     - !Equals [!Ref WafLoggingEnabled, "true"]
@@ -147,6 +156,8 @@ Resources:
           AttributeType: S
         - AttributeName: s3Key
           AttributeType: S
+        - AttributeName: manualReviewKey
+          AttributeType: S
       KeySchema:
         - AttributeName: jobId
           KeyType: HASH
@@ -165,9 +176,148 @@ Resources:
               KeyType: HASH
           Projection:
             ProjectionType: ALL
+        - IndexName: ManualReviewIndex
+          KeySchema:
+            - AttributeName: manualReviewKey
+              KeyType: HASH
+            - AttributeName: createdAt
+              KeyType: RANGE
+          Projection:
+            ProjectionType: ALL
       TimeToLiveSpecification:
         AttributeName: expiresAt
         Enabled: true
+
+  UsersTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: !Sub "${AWS::StackName}-users"
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - AttributeName: userId
+          AttributeType: S
+        - AttributeName: status
+          AttributeType: S
+        - AttributeName: createdAt
+          AttributeType: S
+      KeySchema:
+        - AttributeName: userId
+          KeyType: HASH
+      GlobalSecondaryIndexes:
+        - IndexName: StatusCreatedAtIndex
+          KeySchema:
+            - AttributeName: status
+              KeyType: HASH
+            - AttributeName: createdAt
+              KeyType: RANGE
+          Projection:
+            ProjectionType: ALL
+
+  ElectionsTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: !Sub "${AWS::StackName}-elections"
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - AttributeName: electionId
+          AttributeType: S
+        - AttributeName: statusPconKey
+          AttributeType: S
+        - AttributeName: dateElectionKey
+          AttributeType: S
+      KeySchema:
+        - AttributeName: electionId
+          KeyType: HASH
+      GlobalSecondaryIndexes:
+        - IndexName: StatusPconDateIndex
+          KeySchema:
+            - AttributeName: statusPconKey
+              KeyType: HASH
+            - AttributeName: dateElectionKey
+              KeyType: RANGE
+          Projection:
+            ProjectionType: ALL
+
+  OrganisationsTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: !Sub "${AWS::StackName}-organisations"
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - AttributeName: orgId
+          AttributeType: S
+        - AttributeName: activeOrgTypeKey
+          AttributeType: S
+      KeySchema:
+        - AttributeName: orgId
+          KeyType: HASH
+      GlobalSecondaryIndexes:
+        - IndexName: ActiveOrgTypeIndex
+          KeySchema:
+            - AttributeName: activeOrgTypeKey
+              KeyType: HASH
+          Projection:
+            ProjectionType: ALL
+
+  AuditLogTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: !Sub "${AWS::StackName}-audit-log"
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - AttributeName: auditId
+          AttributeType: S
+        - AttributeName: actorId
+          AttributeType: S
+        - AttributeName: targetKey
+          AttributeType: S
+        - AttributeName: createdAt
+          AttributeType: S
+      KeySchema:
+        - AttributeName: auditId
+          KeyType: HASH
+      GlobalSecondaryIndexes:
+        - IndexName: ActorCreatedAtIndex
+          KeySchema:
+            - AttributeName: actorId
+              KeyType: HASH
+            - AttributeName: createdAt
+              KeyType: RANGE
+          Projection:
+            ProjectionType: ALL
+        - IndexName: TargetCreatedAtIndex
+          KeySchema:
+            - AttributeName: targetKey
+              KeyType: HASH
+            - AttributeName: createdAt
+              KeyType: RANGE
+          Projection:
+            ProjectionType: ALL
+
+  SubmissionsTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: !Sub "${AWS::StackName}-submissions"
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - AttributeName: submissionId
+          AttributeType: S
+        - AttributeName: userId
+          AttributeType: S
+        - AttributeName: createdAt
+          AttributeType: S
+      KeySchema:
+        - AttributeName: submissionId
+          KeyType: HASH
+      GlobalSecondaryIndexes:
+        - IndexName: UserIdCreatedAtIndex
+          KeySchema:
+            - AttributeName: userId
+              KeyType: HASH
+            - AttributeName: createdAt
+              KeyType: RANGE
+          Projection:
+            ProjectionType: ALL
 
   # ── Processing queues (scan-gated) ────────────────────────────────────────
 
@@ -215,6 +365,7 @@ Resources:
         AllowMethods:
           - GET
           - POST
+          - PUT
           - OPTIONS
         AllowHeaders:
           - Content-Type
@@ -334,9 +485,22 @@ Resources:
         Variables:
           ALLOWED_ORIGINS: !Join [",", !Ref AllowedOrigins]
           JOBS_TABLE: !Ref JobsTable
+          USERS_TABLE: !Ref UsersTable
+          ELECTIONS_TABLE: !Ref ElectionsTable
+          SUBMISSIONS_TABLE: !Ref SubmissionsTable
+          ORGANISATIONS_TABLE: !Ref OrganisationsTable
+          AUDIT_TABLE: !Ref AuditLogTable
+          GEO_LOOKUP_TABLE: !Ref GeoLookupTableName
+          GEO_LOOKUP_MODE: "auto"
+          GEO_LOOKUP_WARD_KEY_ATTR: "wardCode"
+          GEO_LOOKUP_PCON_ATTR: "pconCode"
+          GEO_LOOKUP_PK_ATTR: "pk"
+          GEO_LOOKUP_SK_ATTR: "sk"
+          GEO_LOOKUP_WARD_PK_PREFIX: "WARD#"
           UPLOADS_BUCKET: !Ref UploadsBucket
           COGNITO_ISSUER: !Ref CognitoIssuer
           COGNITO_AUDIENCE: !Ref CognitoAudience
+          ADMIN_SUB_ALLOWLIST: !Ref AdminSubAllowlist
           ENABLE_GUARDDUTY_SCAN: !Ref EnableGuardDutyScan
           BYPASS_SCAN_WHEN_DISABLED: !Ref BypassScanWhenDisabled
       Policies:
@@ -347,10 +511,29 @@ Resources:
               - dynamodb:PutItem
               - dynamodb:UpdateItem
               - dynamodb:Query
+              - dynamodb:DeleteItem
             Resource:
               - !GetAtt JobsTable.Arn
               - !Sub "${JobsTable.Arn}/index/UserSubIndex"
               - !Sub "${JobsTable.Arn}/index/S3KeyIndex"
+              - !Sub "${JobsTable.Arn}/index/ManualReviewIndex"
+              - !GetAtt UsersTable.Arn
+              - !Sub "${UsersTable.Arn}/index/StatusCreatedAtIndex"
+              - !GetAtt ElectionsTable.Arn
+              - !Sub "${ElectionsTable.Arn}/index/StatusPconDateIndex"
+              - !GetAtt SubmissionsTable.Arn
+              - !Sub "${SubmissionsTable.Arn}/index/UserIdCreatedAtIndex"
+              - !GetAtt OrganisationsTable.Arn
+              - !Sub "${OrganisationsTable.Arn}/index/ActiveOrgTypeIndex"
+              - !GetAtt AuditLogTable.Arn
+        - !If
+          - GeoLookupConfigured
+          - Statement:
+              Effect: Allow
+              Action:
+                - dynamodb:GetItem
+              Resource: !Sub "arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/${GeoLookupTableName}"
+          - !Ref AWS::NoValue
         - Statement:
             Effect: Allow
             Action:
@@ -382,6 +565,60 @@ Resources:
             ApiId: !Ref UploadApi
             Path: /jobs/{jobId}/download
             Method: GET
+        ElectionsList:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref UploadApi
+            Path: /elections
+            Method: GET
+        OrganisationsList:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref UploadApi
+            Path: /organisations
+            Method: GET
+        AdminElectionsCreate:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref UploadApi
+            Path: /admin/elections
+            Method: POST
+        AdminElectionsUpdate:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref UploadApi
+            Path: /admin/elections/{electionId}
+            Method: PUT
+        AdminElectionsArchive:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref UploadApi
+            Path: /admin/elections/{electionId}/archive
+            Method: POST
+        AdminMe:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref UploadApi
+            Path: /admin/me
+            Method: GET
+        ManualReviewJobsList:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref UploadApi
+            Path: /admin/manual-review/jobs
+            Method: GET
+        ManualReviewJobGet:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref UploadApi
+            Path: /admin/manual-review/jobs/{jobId}
+            Method: GET
+        ManualReviewJobResolve:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref UploadApi
+            Path: /admin/manual-review/jobs/{jobId}/resolve
+            Method: POST
 
   # ── Worker Lambda (S3 trigger) ─────────────────────────────────────────────
 
@@ -396,6 +633,10 @@ Resources:
       Environment:
         Variables:
           JOBS_TABLE: !Ref JobsTable
+          USERS_TABLE: !Ref UsersTable
+          ELECTIONS_TABLE: !Ref ElectionsTable
+          SUBMISSIONS_TABLE: !Ref SubmissionsTable
+          GEO_LOOKUP_TABLE: !Ref GeoLookupTableName
           UPLOADS_BUCKET: !Ref UploadsBucket
       Policies:
         - Statement:
@@ -450,6 +691,10 @@ Resources:
       Environment:
         Variables:
           JOBS_TABLE: !Ref JobsTable
+          USERS_TABLE: !Ref UsersTable
+          ELECTIONS_TABLE: !Ref ElectionsTable
+          SUBMISSIONS_TABLE: !Ref SubmissionsTable
+          GEO_LOOKUP_TABLE: !Ref GeoLookupTableName
           PROCESS_QUEUE_URL: !Ref ProcessQueue
           UPLOADS_BUCKET: !Ref UploadsBucket
       Policies:
@@ -633,6 +878,21 @@ Outputs:
   JobsTableName:
     Description: Name of the DynamoDB jobs table.
     Value: !Ref JobsTable
+  UsersTableName:
+    Description: Name of the DynamoDB users table.
+    Value: !Ref UsersTable
+  ElectionsTableName:
+    Description: Name of the DynamoDB elections table.
+    Value: !Ref ElectionsTable
+  OrganisationsTableName:
+    Description: Name of the DynamoDB organisations table.
+    Value: !Ref OrganisationsTable
+  AuditLogTableName:
+    Description: Name of the DynamoDB audit log table.
+    Value: !Ref AuditLogTable
+  SubmissionsTableName:
+    Description: Name of the DynamoDB submissions table.
+    Value: !Ref SubmissionsTable
   ProcessQueueUrl:
     Description: URL of the processing SQS queue.
     Value: !Ref ProcessQueue

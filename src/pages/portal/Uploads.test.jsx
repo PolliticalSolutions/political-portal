@@ -7,6 +7,7 @@ vi.mock("../../lib/uploadApi.js", () => ({
   listJobs: vi.fn(),
   getJob: vi.fn(),
   getDownloadUrls: vi.fn(),
+  listElections: vi.fn(),
 }));
 
 import * as uploadApi from "../../lib/uploadApi.js";
@@ -24,9 +25,31 @@ function setInputFiles(input, files) {
   fireEvent.change(input);
 }
 
+function setRequiredPconCode() {
+  fireEvent.change(screen.getByLabelText(/Constituency code \(PCON24CD\)/i), {
+    target: { value: "E14000637" },
+  });
+}
+
+async function setRequiredElection() {
+  await waitFor(() => expect(uploadApi.listElections).toHaveBeenCalled());
+  fireEvent.change(screen.getByLabelText(/^Election$/i), {
+    target: { value: "election-1" },
+  });
+}
+
 beforeEach(() => {
   vi.clearAllMocks();
   uploadApi.listJobs.mockResolvedValue({ items: [] });
+  uploadApi.listElections.mockResolvedValue({
+    items: [
+      {
+        electionId: "election-1",
+        name: "Local Election",
+        date: "2026-05-07",
+      },
+    ],
+  });
 });
 
 afterEach(() => {
@@ -115,12 +138,16 @@ describe("Uploads – upload flow", () => {
     fireEvent.change(screen.getByLabelText(/Notes/), {
       target: { value: "Urgent batch" },
     });
+    setRequiredPconCode();
+    await setRequiredElection();
 
     fireEvent.click(screen.getByText(/Upload 1 file/));
 
     await waitFor(() => {
       expect(uploadApi.createJob).toHaveBeenCalledWith({
         filename: "report.pdf",
+        pconCode: "E14000637",
+        electionId: "election-1",
         fileType: "pdf",
         size: 1024,
         metadata: { clientName: "Greenfield Association", notes: "Urgent batch" },
@@ -152,6 +179,8 @@ describe("Uploads – upload flow", () => {
     setInputFiles(input, [makeFile("data.csv", "text/csv")]);
 
     await waitFor(() => screen.getByText(/Upload 1 file/));
+    setRequiredPconCode();
+    await setRequiredElection();
     fireEvent.click(screen.getByText(/Upload 1 file/));
 
     await waitFor(() => {
@@ -185,6 +214,8 @@ describe("Uploads – upload flow", () => {
     setInputFiles(input, [makeFile("report.pdf", "application/pdf")]);
 
     await waitFor(() => screen.getByText(/Upload 1 file/));
+    setRequiredPconCode();
+    await setRequiredElection();
     fireEvent.click(screen.getByText(/Upload 1 file/));
 
     await waitFor(() => {
@@ -210,6 +241,8 @@ describe("Uploads – upload flow", () => {
     setInputFiles(input, [makeFile("report.pdf", "application/pdf")]);
 
     await waitFor(() => screen.getByText(/Upload 1 file/));
+    setRequiredPconCode();
+    await setRequiredElection();
     fireEvent.click(screen.getByText(/Upload 1 file/));
 
     await waitFor(() => {
@@ -288,6 +321,80 @@ describe("Uploads – polling", () => {
 
     unmount();
     vi.useRealTimers();
+  });
+});
+
+describe("Uploads – elections", () => {
+  it("requires election selection before submitting", async () => {
+    uploadApi.createJob.mockResolvedValue({
+      jobId: "test-job-no-election",
+      upload: {
+        url: "https://s3.example.com/presigned",
+        fields: { key: "uploads/sub1/test-job-no-election/report.pdf" },
+      },
+      s3Key: "uploads/sub1/test-job-no-election/report.pdf",
+    });
+    global.fetch = vi.fn().mockResolvedValue({ ok: true });
+
+    render(<Uploads />);
+    await waitFor(() => expect(uploadApi.listJobs).toHaveBeenCalled());
+
+    const input = document.querySelector('input[type="file"]');
+    setInputFiles(input, [makeFile("report.pdf", "application/pdf")]);
+    await waitFor(() => screen.getByText(/Upload 1 file/));
+
+    setRequiredPconCode();
+    fireEvent.click(screen.getByText(/Upload 1 file/));
+
+    await waitFor(() => {
+      expect(screen.getByText(/Election selection is required/)).toBeInTheDocument();
+    });
+    expect(uploadApi.createJob).not.toHaveBeenCalled();
+  });
+
+  it("shows no-elections state and allows Other / Not listed", async () => {
+    uploadApi.listElections.mockResolvedValueOnce({ items: [] });
+    uploadApi.createJob.mockResolvedValue({
+      jobId: "test-job-other",
+      upload: {
+        url: "https://s3.example.com/presigned",
+        fields: { key: "uploads/sub1/test-job-other/report.pdf" },
+      },
+      s3Key: "uploads/sub1/test-job-other/report.pdf",
+    });
+    global.fetch = vi.fn().mockResolvedValue({ ok: true });
+
+    render(<Uploads />);
+    await waitFor(() => expect(uploadApi.listJobs).toHaveBeenCalled());
+
+    const input = document.querySelector('input[type="file"]');
+    setInputFiles(input, [makeFile("report.pdf", "application/pdf")]);
+    await waitFor(() => screen.getByText(/Upload 1 file/));
+
+    setRequiredPconCode();
+    await waitFor(() => {
+      expect(screen.getByText(/No elections configured for this constituency/)).toBeInTheDocument();
+    });
+    fireEvent.change(screen.getByLabelText(/^Election$/i), {
+      target: { value: "OTHER" },
+    });
+    expect(screen.getByLabelText(/Manual review reason/i)).toBeInTheDocument();
+    expect(screen.getByText(/Upload 1 file/)).toBeDisabled();
+    fireEvent.change(screen.getByLabelText(/Manual review reason/i), {
+      target: { value: "Election is not yet configured for this ward set." },
+    });
+    expect(screen.getByText(/Upload 1 file/)).not.toBeDisabled();
+    fireEvent.click(screen.getByText(/Upload 1 file/));
+
+    await waitFor(() => {
+      expect(uploadApi.createJob).toHaveBeenCalledWith(
+        expect.objectContaining({
+          pconCode: "E14000637",
+          electionId: "OTHER",
+          manualReviewReason: "Election is not yet configured for this ward set.",
+        })
+      );
+    });
   });
 });
 

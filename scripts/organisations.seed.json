@@ -1,0 +1,16 @@
+[
+  {
+    "orgId": "org-bradford-east-association",
+    "name": "Bradford East Association",
+    "orgType": "ASSOCIATION",
+    "isActive": true,
+    "pconCodes": ["E14000637"]
+  },
+  {
+    "orgId": "org-west-yorkshire-federation",
+    "name": "West Yorkshire Federation",
+    "orgType": "FEDERATION",
+    "isActive": true,
+    "pconCodes": ["E14000637", "E14000638"]
+  }
+]
