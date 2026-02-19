@@ -96,20 +96,29 @@ Replace `<ApiBaseUrl>` and `<JWT_TOKEN>` below.
 curl -i -X POST \
   -H "Content-Type: application/json" \
   -H "Authorization: Bearer <JWT_TOKEN>" \
-  -d '{"filename":"test.csv","fileType":"csv","metadata":{"clientName":"Test","notes":""}}' \
+  -d '{"filename":"test.csv","fileType":"csv","size":12345,"metadata":{"clientName":"Test","notes":""}}' \
   https://<ApiBaseUrl>/jobs
 ```
 Expected:
 ```json
-{ "jobId": "<uuid>", "uploadUrl": "https://...", "s3Key": "uploads/..." }
+{
+  "jobId": "<uuid>",
+  "s3Key": "uploads/...",
+  "upload": {
+    "url": "https://<bucket>.s3.amazonaws.com",
+    "fields": { "...": "..." }
+  }
+}
 ```
 
-### Upload file to presigned URL
+### Upload file to presigned POST URL
 ```
-curl -i -X PUT \
-  -H "Content-Type: text/csv" \
-  --data-binary @/path/to/file.csv \
-  "<uploadUrl>"
+curl -i -X POST "<upload.url>" \
+  -F "key=<upload.fields.key>" \
+  -F "policy=<upload.fields.policy>" \
+  -F "x-amz-signature=<upload.fields.x-amz-signature>" \
+  -F "Content-Type=text/csv" \
+  -F "file=@/path/to/file.csv;type=text/csv"
 ```
 
 ### List jobs

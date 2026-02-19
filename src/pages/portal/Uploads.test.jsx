@@ -93,7 +93,10 @@ describe("Uploads – upload flow", () => {
   it("calls createJob with filename, fileType, and metadata", async () => {
     uploadApi.createJob.mockResolvedValue({
       jobId: "test-job-1",
-      uploadUrl: "https://s3.example.com/presigned-put",
+      upload: {
+        url: "https://s3.example.com/presigned-post",
+        fields: { key: "uploads/sub1/test-job-1/report.pdf", policy: "abc" },
+      },
       s3Key: "uploads/sub1/test-job-1/report.pdf",
     });
     global.fetch = vi.fn().mockResolvedValue({ ok: true });
@@ -119,15 +122,24 @@ describe("Uploads – upload flow", () => {
       expect(uploadApi.createJob).toHaveBeenCalledWith({
         filename: "report.pdf",
         fileType: "pdf",
+        size: 1024,
         metadata: { clientName: "Greenfield Association", notes: "Urgent batch" },
       });
     });
   });
 
-  it("PUTs the file to the presigned S3 URL returned by createJob", async () => {
+  it("POSTs FormData to the presigned S3 URL returned by createJob", async () => {
     uploadApi.createJob.mockResolvedValue({
       jobId: "test-job-2",
-      uploadUrl: "https://bucket.s3.amazonaws.com/uploads/sub1/test-job-2/data.csv?sig=abc",
+      upload: {
+        url: "https://bucket.s3.amazonaws.com",
+        fields: {
+          key: "uploads/sub1/test-job-2/data.csv",
+          policy: "abc",
+          "x-amz-signature": "sig",
+          "Content-Type": "text/csv",
+        },
+      },
       s3Key: "uploads/sub1/test-job-2/data.csv",
     });
     const fetchMock = vi.fn().mockResolvedValue({ ok: true });
@@ -144,16 +156,24 @@ describe("Uploads – upload flow", () => {
 
     await waitFor(() => {
       expect(fetchMock).toHaveBeenCalledWith(
-        "https://bucket.s3.amazonaws.com/uploads/sub1/test-job-2/data.csv?sig=abc",
-        expect.objectContaining({ method: "PUT" })
+        "https://bucket.s3.amazonaws.com",
+        expect.objectContaining({ method: "POST" })
       );
     });
+
+    const [, options] = fetchMock.mock.calls[0];
+    expect(options.body).toBeInstanceOf(FormData);
+    expect(options.body.get("key")).toBe("uploads/sub1/test-job-2/data.csv");
+    expect(options.body.get("file")).toBeInstanceOf(File);
   });
 
   it("shows the new job in the table after a successful upload", async () => {
     uploadApi.createJob.mockResolvedValue({
       jobId: "test-job-3",
-      uploadUrl: "https://s3.example.com/presigned",
+      upload: {
+        url: "https://s3.example.com/presigned",
+        fields: { key: "uploads/sub1/test-job-3/report.pdf" },
+      },
       s3Key: "uploads/sub1/test-job-3/report.pdf",
     });
     global.fetch = vi.fn().mockResolvedValue({ ok: true });
@@ -172,10 +192,13 @@ describe("Uploads – upload flow", () => {
     });
   });
 
-  it("displays upload error when S3 PUT fails", async () => {
+  it("displays upload error when S3 POST fails", async () => {
     uploadApi.createJob.mockResolvedValue({
       jobId: "test-job-fail",
-      uploadUrl: "https://s3.example.com/presigned",
+      upload: {
+        url: "https://s3.example.com/presigned",
+        fields: { key: "uploads/sub1/test-job-fail/report.pdf" },
+      },
       s3Key: "uploads/sub1/test-job-fail/report.pdf",
     });
     global.fetch = vi.fn().mockResolvedValue({ ok: false, status: 403 });

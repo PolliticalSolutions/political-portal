@@ -138,22 +138,31 @@ export default function Uploads() {
       const ext = getFileExt(file.name);
       const fileType = ext === ".pdf" ? "pdf" : "csv";
       try {
-        const { jobId, uploadUrl, s3Key } = await createJob({
+        const { jobId, upload, s3Key } = await createJob({
           filename: file.name,
           fileType,
+          size: file.size,
           metadata: {
             clientName: metadata.clientName.trim(),
             notes: metadata.notes.trim(),
           },
         });
+        if (!upload?.url || !upload?.fields) {
+          throw new Error("Upload details were missing from API response.");
+        }
 
-        const putRes = await fetch(uploadUrl, {
-          method: "PUT",
-          body: file,
-          headers: { "Content-Type": file.type || "application/octet-stream" },
+        const form = new FormData();
+        for (const [field, value] of Object.entries(upload.fields)) {
+          form.append(field, value);
+        }
+        form.append("file", file);
+
+        const postRes = await fetch(upload.url, {
+          method: "POST",
+          body: form,
         });
-        if (!putRes.ok) {
-          throw new Error(`S3 upload failed (${putRes.status}).`);
+        if (!postRes.ok) {
+          throw new Error(`S3 upload failed (${postRes.status}).`);
         }
 
         const now = new Date().toISOString();

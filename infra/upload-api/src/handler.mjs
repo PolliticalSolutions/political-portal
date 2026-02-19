@@ -21,11 +21,16 @@ const JOBS_TABLE = process.env.JOBS_TABLE || "";
 const UPLOADS_BUCKET = process.env.UPLOADS_BUCKET || "";
 const UPLOAD_URL_TTL = 900; // 15 minutes
 const DOWNLOAD_URL_TTL = 900; // 15 minutes
+const MAX_FILE_SIZE_BYTES = 200 * 1024 * 1024;
 
 const MAX_FILENAME = 255;
 const MAX_CLIENT_NAME = 200;
 const MAX_NOTES = 1000;
 const VALID_FILE_TYPES = new Set(["pdf", "csv"]);
+const FILE_TYPE_CONTENT_TYPES = {
+  pdf: "application/pdf",
+  csv: "text/csv",
+};
 
 // ── JWKS cache ────────────────────────────────────────────────────────────────
 
@@ -180,6 +185,24 @@ function parseBody(event) {
   }
 }
 
+function parseFileSize(value) {
+  if (typeof value !== "number") return null;
+  if (!Number.isInteger(value) || value <= 0) return null;
+  return value;
+}
+
+function createPresignedPost(params) {
+  return new Promise((resolve, reject) => {
+    s3.createPresignedPost(params, (error, data) => {
+      if (error) {
+        reject(error);
+        return;
+      }
+      resolve(data);
+    });
+  });
+}
+
 // ── Route handlers ────────────────────────────────────────────────────────────
 
 async function handleCreateJob(event, origin) {
@@ -194,6 +217,7 @@ async function handleCreateJob(event, origin) {
 
   const filename = sanitize(body.filename, MAX_FILENAME);
   const fileType = (body.fileType || "").toString().toLowerCase().trim();
+  const size = parseFileSize(body.size);
 
   if (!filename) {
     return response(400, { error: "filename_required" }, origin);
@@ -201,9 +225,16 @@ async function handleCreateJob(event, origin) {
   if (!VALID_FILE_TYPES.has(fileType)) {
     return response(400, { error: "invalid_file_type", detail: "Must be pdf or csv." }, origin);
   }
+  if (size === null) {
+    return response(400, { error: "size_required", detail: "Provide file size in bytes." }, origin);
+  }
+  if (size > MAX_FILE_SIZE_BYTES) {
+    return response(400, { error: "file_too_large", detail: "Maximum allowed size is 200 MB." }, origin);
+  }
 
   const clientName = sanitize(body.metadata?.clientName, MAX_CLIENT_NAME);
   const notes = sanitize(body.metadata?.notes, MAX_NOTES);
+  const contentType = FILE_TYPE_CONTENT_TYPES[fileType];
 
   const jobId = crypto.randomUUID();
   const s3Key = `uploads/${userSub}/${jobId}/${filename}`;
@@ -214,6 +245,8 @@ async function handleCreateJob(event, origin) {
     userSub,
     filename,
     fileType,
+    expectedFileType: fileType,
+    expectedSize: size,
     s3Key,
     status: "QUEUED",
     createdAt: now,
@@ -223,13 +256,21 @@ async function handleCreateJob(event, origin) {
 
   await dynamo.put({ TableName: JOBS_TABLE, Item: item }).promise();
 
-  const uploadUrl = await s3.getSignedUrlPromise("putObject", {
+  const upload = await createPresignedPost({
     Bucket: UPLOADS_BUCKET,
-    Key: s3Key,
     Expires: UPLOAD_URL_TTL,
+    Fields: {
+      key: s3Key,
+      "Content-Type": contentType,
+    },
+    Conditions: [
+      ["eq", "$key", s3Key],
+      ["eq", "$Content-Type", contentType],
+      ["content-length-range", 1, MAX_FILE_SIZE_BYTES],
+    ],
   });
 
-  return response(201, { jobId, uploadUrl, s3Key }, origin);
+  return response(201, { jobId, s3Key, upload }, origin);
 }
 
 async function handleListJobs(event, origin) {
