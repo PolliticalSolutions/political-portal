@@ -16,6 +16,7 @@ try {
 const REGION = process.env.AWS_REGION || "eu-west-2";
 const dynamo = new AWS.DynamoDB.DocumentClient({ region: REGION });
 const s3 = new AWS.S3({ region: REGION });
+const sqs = new AWS.SQS({ region: REGION });
 
 const JOBS_TABLE = process.env.JOBS_TABLE || "";
 const UPLOADS_BUCKET = process.env.UPLOADS_BUCKET || "";
@@ -204,6 +205,31 @@ function createPresignedPost(params) {
   });
 }
 
+async function enqueueProcessingMessage(job) {
+  const processQueueUrl = process.env.PROCESS_QUEUE_URL || "";
+  if (!processQueueUrl) {
+    throw new Error("Missing PROCESS_QUEUE_URL for upload processing enqueue.");
+  }
+  await sqs
+    .sendMessage({
+      QueueUrl: processQueueUrl,
+      MessageBody: JSON.stringify({
+        jobId: job.jobId,
+        bucket: UPLOADS_BUCKET,
+        s3Key: job.s3Key,
+      }),
+    })
+    .promise();
+}
+
+function isGuardDutyScanEnabled() {
+  return (process.env.ENABLE_GUARDDUTY_SCAN || "false").toLowerCase() === "true";
+}
+
+function shouldBypassScanWhenDisabled() {
+  return (process.env.BYPASS_SCAN_WHEN_DISABLED || "false").toLowerCase() === "true";
+}
+
 // ── Route handlers ────────────────────────────────────────────────────────────
 
 async function handleCreateJob(event, origin) {
@@ -256,8 +282,39 @@ async function handleCreateJob(event, origin) {
     expiresAt,
     metadata: { clientName, notes },
   };
+  if (!isGuardDutyScanEnabled() && shouldBypassScanWhenDisabled()) {
+    item.scanResultStatus = "BYPASSED";
+    item.scanUpdatedAt = now;
+  }
 
   await dynamo.put({ TableName: JOBS_TABLE, Item: item }).promise();
+
+  if (!isGuardDutyScanEnabled() && shouldBypassScanWhenDisabled()) {
+    try {
+      await enqueueProcessingMessage(item);
+    } catch (error) {
+      await dynamo
+        .update({
+          TableName: JOBS_TABLE,
+          Key: { jobId: item.jobId },
+          UpdateExpression: "SET #status = :failed, #error = :error, updatedAt = :now",
+          ExpressionAttributeNames: {
+            "#status": "status",
+            "#error": "error",
+          },
+          ExpressionAttributeValues: {
+            ":failed": "FAILED",
+            ":error": {
+              message: "Processing enqueue failed while scan bypass was active.",
+              detail: error.message,
+            },
+            ":now": new Date().toISOString(),
+          },
+        })
+        .promise();
+      throw error;
+    }
+  }
 
   const upload = await createPresignedPost({
     Bucket: UPLOADS_BUCKET,

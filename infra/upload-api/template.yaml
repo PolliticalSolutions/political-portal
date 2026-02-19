@@ -14,6 +14,20 @@ Parameters:
     Type: String
     Default: ""
     Description: Cognito app client ID for JWT verification.
+  EnableGuardDutyScan:
+    Type: String
+    Default: "false"
+    AllowedValues:
+      - "true"
+      - "false"
+    Description: Enable GuardDuty Malware Protection for S3 scan gating.
+  BypassScanWhenDisabled:
+    Type: String
+    Default: "true"
+    AllowedValues:
+      - "true"
+      - "false"
+    Description: Enqueue jobs directly when GuardDuty scan gating is disabled.
   AlarmTopicArn:
     Type: String
     Default: ""
@@ -63,6 +77,7 @@ Conditions:
     - !Condition WafEnabledCondition
     - !Equals [!Ref WafLoggingEnabled, "true"]
   AlarmActionsEnabled: !Not [!Equals [!Ref AlarmTopicArn, ""]]
+  GuardDutyScanEnabled: !Equals [!Ref EnableGuardDutyScan, "true"]
 
 Resources:
 
@@ -291,6 +306,9 @@ Resources:
           UPLOADS_BUCKET: !Ref UploadsBucket
           COGNITO_ISSUER: !Ref CognitoIssuer
           COGNITO_AUDIENCE: !Ref CognitoAudience
+          ENABLE_GUARDDUTY_SCAN: !Ref EnableGuardDutyScan
+          BYPASS_SCAN_WHEN_DISABLED: !Ref BypassScanWhenDisabled
+          PROCESS_QUEUE_URL: !Ref ProcessQueue
       Policies:
         - Statement:
             Effect: Allow
@@ -309,6 +327,11 @@ Resources:
               - s3:PutObject
               - s3:GetObject
             Resource: !Sub "${UploadsBucket.Arn}/*"
+        - Statement:
+            Effect: Allow
+            Action:
+              - sqs:SendMessage
+            Resource: !GetAtt ProcessQueue.Arn
       Events:
         JobsPost:
           Type: HttpApi
@@ -363,6 +386,14 @@ Resources:
               - s3:GetObject
               - s3:PutObject
             Resource: !Sub "${UploadsBucket.Arn}/*"
+        - Statement:
+            Effect: Allow
+            Action:
+              - sqs:ReceiveMessage
+              - sqs:DeleteMessage
+              - sqs:GetQueueAttributes
+              - sqs:ChangeMessageVisibility
+            Resource: !GetAtt ProcessQueue.Arn
 
   WorkerProcessQueueMapping:
     Type: AWS::Lambda::EventSourceMapping
@@ -407,6 +438,7 @@ Resources:
 
   ScanResultsRule:
     Type: AWS::Events::Rule
+    Condition: GuardDutyScanEnabled
     Properties:
       Description: Route GuardDuty malware scan results for upload objects.
       EventPattern:
@@ -424,6 +456,7 @@ Resources:
 
   ScanResultHandlerInvokePermission:
     Type: AWS::Lambda::Permission
+    Condition: GuardDutyScanEnabled
     Properties:
       Action: lambda:InvokeFunction
       FunctionName: !Ref ScanResultHandlerFunction
@@ -457,18 +490,34 @@ Resources:
                   - !Sub "${UploadsBucket.Arn}/uploads/*"
               - Effect: Allow
                 Action:
-                  - s3:*
-                Resource: !GetAtt UploadsBucket.Arn
-              - Effect: Allow
-                Action:
                   - s3:GetBucketNotification
                   - s3:PutBucketNotification
                   - s3:GetBucketNotificationConfiguration
                   - s3:PutBucketNotificationConfiguration
-                Resource: "*"
+                  - s3:GetBucketLocation
+                  - s3:GetBucketTagging
+                  - s3:PutBucketTagging
+                Resource: !GetAtt UploadsBucket.Arn
+              - Effect: Allow
+                Action:
+                  - events:PutRule
+                  - events:DeleteRule
+                  - events:PutTargets
+                  - events:RemoveTargets
+                Resource: !Sub "arn:aws:events:${AWS::Region}:${AWS::AccountId}:rule/DO-NOT-DELETE-AmazonGuardDutyMalwareProtectionS3*"
+              - Effect: Allow
+                Action:
+                  - events:DescribeRule
+                  - events:ListTargetsByRule
+                Resource: !Sub "arn:aws:events:${AWS::Region}:${AWS::AccountId}:rule/DO-NOT-DELETE-AmazonGuardDutyMalwareProtectionS3*"
+              - Effect: Allow
+                Action:
+                  - s3:PutObject
+                Resource: !Sub "${UploadsBucket.Arn}/malware-protection-resource-validation-object"
 
   UploadsMalwareProtectionPlan:
     Type: AWS::GuardDuty::MalwareProtectionPlan
+    Condition: GuardDutyScanEnabled
     Properties:
       Role: !GetAtt MalwareProtectionRole.Arn
       ProtectedResource:
@@ -565,6 +614,7 @@ Outputs:
     Description: ARN of the processing dead-letter queue.
     Value: !GetAtt ProcessDLQ.Arn
   ScanResultsRuleName:
+    Condition: GuardDutyScanEnabled
     Description: EventBridge rule name for GuardDuty malware scan results.
     Value: !Ref ScanResultsRule
   WafWebAclArn:

@@ -3,6 +3,7 @@ import crypto from "crypto";
 
 const jobsMap = new Map();
 let lastPresignedPostParams = null;
+const sentQueueMessages = [];
 
 const makePromise = (value) => ({ promise: async () => value });
 
@@ -43,9 +44,17 @@ const createAwsMock = () => {
     }
   }
 
+  class SQS {
+    sendMessage(params) {
+      sentQueueMessages.push(params);
+      return makePromise({ MessageId: "msg-1" });
+    }
+  }
+
   return {
     DynamoDB: { DocumentClient },
     S3,
+    SQS,
   };
 };
 
@@ -107,6 +116,10 @@ function buildAuthEvent({ method, path, body } = {}) {
 beforeEach(() => {
   jobsMap.clear();
   lastPresignedPostParams = null;
+  sentQueueMessages.length = 0;
+  delete process.env.ENABLE_GUARDDUTY_SCAN;
+  delete process.env.BYPASS_SCAN_WHEN_DISABLED;
+  delete process.env.PROCESS_QUEUE_URL;
   global.fetch = vi.fn().mockResolvedValue({
     ok: true,
     json: async () => ({
@@ -194,6 +207,30 @@ describe("POST /jobs", () => {
     );
     expect(res.statusCode).toBe(400);
     expect(JSON.parse(res.body).error).toBe("file_too_large");
+  });
+
+  it("bypasses scan and enqueues immediately when scan is disabled", async () => {
+    process.env.ENABLE_GUARDDUTY_SCAN = "false";
+    process.env.BYPASS_SCAN_WHEN_DISABLED = "true";
+    process.env.PROCESS_QUEUE_URL = "https://sqs.example.com/queue";
+
+    const event = buildAuthEvent({
+      method: "POST",
+      path: "/jobs",
+      body: {
+        filename: "batch.csv",
+        fileType: "csv",
+        size: 1024,
+      },
+    });
+
+    const res = await handler(event);
+    expect(res.statusCode).toBe(201);
+
+    const body = JSON.parse(res.body);
+    const stored = jobsMap.get(body.jobId);
+    expect(stored.scanResultStatus).toBe("BYPASSED");
+    expect(sentQueueMessages).toHaveLength(1);
   });
 });
 
