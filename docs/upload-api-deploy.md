@@ -6,9 +6,11 @@ Region assumption: eu-west-2.
 
 Stack creates:
 - Private S3 bucket (uploads input + processed outputs)
-- DynamoDB table with GSI for per-user job listing
+- DynamoDB table with GSIs and TTL for job retention
 - HTTP API Gateway + Lambda for job CRUD and presigned URL generation
-- Worker Lambda triggered by S3 ObjectCreated (processes uploaded files)
+- GuardDuty Malware Protection plan for uploads/ with object tagging
+- EventBridge rule + scan result handler Lambda to gate processing
+- SQS processing queue + DLQ + processor Lambda (batch + partial-failure)
 - Optional WAF with rate limiting and AWS Managed Rules
 
 ## Prerequisites
@@ -16,6 +18,7 @@ Stack creates:
 - AWS SAM CLI installed (`pip install aws-sam-cli`)
 - Cognito User Pool and App Client IDs from the existing Cognito setup
   (same pool used by the enquiry-api and portal login)
+- GuardDuty enabled in the target account/region (required for malware scan events)
 
 ## Deploy
 
@@ -139,6 +142,30 @@ curl -i -H "Authorization: Bearer <JWT_TOKEN>" \
   https://<ApiBaseUrl>/jobs/<jobId>/download
 ```
 Response contains presigned download URLs, valid for 15 minutes.
+
+## Processing pipeline
+1. Client creates a job and uploads to `uploads/<userSub>/<jobId>/<filename>`.
+2. GuardDuty Malware Protection scans uploaded objects under `uploads/`.
+3. EventBridge forwards scan result to `ScanResultHandlerFunction`.
+4. Clean scans enqueue `{ jobId, bucket, s3Key }` to `ProcessQueue`.
+5. `WorkerFunction` consumes SQS messages, validates/processes, writes outputs.
+6. Failed processing retries and eventually lands in `ProcessDLQ`.
+
+## Retention
+- S3 lifecycle:
+  - `uploads/*` expires after 90 days.
+  - `outputs/*` expires after 90 days.
+  - Incomplete multipart uploads abort after 7 days.
+- DynamoDB TTL:
+  - Jobs table TTL attribute: `expiresAt` (epoch seconds).
+  - Job records are set to expire 365 days after creation.
+  - TTL deletion is best-effort and not immediate.
+
+## DLQ replay
+To replay failed processor messages from the DLQ:
+1. Inspect DLQ payloads and error cause in CloudWatch Logs.
+2. Re-drive from `ProcessDLQ` back to `ProcessQueue` (SQS redrive in console or CLI).
+3. Confirm the root cause is fixed before replaying to avoid repeat failures.
 
 ## Throttling + 429s
 - Default stage throttling: 20 rps, burst 40.

@@ -152,6 +152,8 @@ describe("POST /jobs", () => {
     const stored = jobsMap.get(body.jobId);
     expect(stored.expectedFileType).toBe("csv");
     expect(stored.expectedSize).toBe(1024);
+    expect(stored.expiresAt).toBeTypeOf("number");
+    expect(stored.expiresAt).toBeGreaterThan(Math.floor(Date.now() / 1000));
   });
 
   it("rejects invalid fileType", async () => {
