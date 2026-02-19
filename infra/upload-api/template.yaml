@@ -92,13 +92,11 @@ Resources:
         Rules:
           - Id: ExpireUploadsAfter90Days
             Status: Enabled
-            Filter:
-              Prefix: "uploads/"
+            Prefix: "uploads/"
             ExpirationInDays: 90
           - Id: ExpireOutputsAfter90Days
             Status: Enabled
-            Filter:
-              Prefix: "outputs/"
+            Prefix: "outputs/"
             ExpirationInDays: 90
           - Id: DeleteIncompleteMultipartUploads
             Status: Enabled
@@ -459,8 +457,15 @@ Resources:
                   - !Sub "${UploadsBucket.Arn}/uploads/*"
               - Effect: Allow
                 Action:
-                  - s3:ListBucket
+                  - s3:*
                 Resource: !GetAtt UploadsBucket.Arn
+              - Effect: Allow
+                Action:
+                  - s3:GetBucketNotification
+                  - s3:PutBucketNotification
+                  - s3:GetBucketNotificationConfiguration
+                  - s3:PutBucketNotificationConfiguration
+                Resource: "*"
 
   UploadsMalwareProtectionPlan:
     Type: AWS::GuardDuty::MalwareProtectionPlan
