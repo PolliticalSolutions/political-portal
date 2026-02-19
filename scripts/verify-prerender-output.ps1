@@ -17,8 +17,10 @@ foreach ($route in $routes) {
   }
 
   $html = Get-Content -Path $fullPath -Raw
-  if ($html -notmatch "<title>") {
-    $invalid += "$relativePath missing <title>"
+  # Accept <title> and <title ...> (e.g. react-helmet-async adds attributes)
+  $titleCount = ([regex]::Matches($html, '(?i)<title\b[^>]*>')).Count
+  if ($titleCount -ne 1) {
+    $invalid += "$relativePath expected exactly 1 <title>, found $titleCount"
   }
   if ($html -notmatch 'rel="canonical"') {
     $invalid += "$relativePath missing canonical"
