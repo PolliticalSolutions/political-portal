@@ -1,0 +1,16 @@
+{
+  "name": "upload-api-src",
+  "version": "1.0.0",
+  "description": "Upload API Lambda handlers for Political Solutions portal.",
+  "type": "module",
+  "main": "handler.mjs",
+  "scripts": {
+    "test": "echo \"Tests run from repo root with: npm run test:api\""
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "aws-sdk": "^2.1692.0"
+  }
+}

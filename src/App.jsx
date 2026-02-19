@@ -24,6 +24,7 @@ import ServiceSupport from "./pages/ServiceSupport.jsx";
 import PortalLayout from "./pages/portal/PortalLayout.jsx";
 import PortalNotFound from "./pages/portal/PortalNotFound.jsx";
 import PricingRules from "./pages/portal/PricingRules.jsx";
+import Uploads from "./pages/portal/Uploads.jsx";
 import Dashboard from "./pages/portal/Dashboard.jsx";
 import Integrations from "./pages/portal/Integrations.jsx";
 import Quotes from "./pages/portal/Quotes.jsx";
@@ -281,6 +282,7 @@ export default function App() {
                   element={<CheckoutConfirmation basePath="/portal" />}
                 />
                 <Route path="settings/integrations" element={<Integrations />} />
+                <Route path="uploads" element={<Uploads />} />
                 <Route path="ops/quotes" element={<Quotes />} />
                 <Route path="ops/quotes/:ref" element={<QuoteDetail />} />
                 <Route path="*" element={<PortalNotFound />} />

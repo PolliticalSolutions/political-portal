@@ -1,0 +1,395 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Transform: AWS::Serverless-2016-10-31
+Description: Political Solutions upload API (HTTP API + Lambda + S3 + DynamoDB).
+
+Parameters:
+  AllowedOrigins:
+    Type: CommaDelimitedList
+    Description: SPA origins allowed by CORS (e.g. https://www.politicalsolutions.uk,http://localhost:5173).
+  CognitoIssuer:
+    Type: String
+    Default: ""
+    Description: Cognito issuer URL for JWT verification (e.g. https://cognito-idp.eu-west-2.amazonaws.com/<user-pool-id>).
+  CognitoAudience:
+    Type: String
+    Default: ""
+    Description: Cognito app client ID for JWT verification.
+  AlarmTopicArn:
+    Type: String
+    Default: ""
+    Description: Optional SNS topic ARN for CloudWatch alarms.
+  ThrottlingRateLimit:
+    Type: Number
+    Default: 20
+    Description: Steady-state request rate per second for the HTTP API stage.
+  ThrottlingBurstLimit:
+    Type: Number
+    Default: 40
+    Description: Burst limit for the HTTP API stage.
+  WafEnabled:
+    Type: String
+    Default: "true"
+    AllowedValues:
+      - "true"
+      - "false"
+    Description: Enable or disable AWS WAF protection.
+  WafRateLimit:
+    Type: Number
+    Default: 300
+    Description: WAF rate limit (requests per 5 minutes per IP).
+  WafManagedRulesEnabled:
+    Type: String
+    Default: "true"
+    AllowedValues:
+      - "true"
+      - "false"
+    Description: Enable or disable AWS Managed Rule Groups.
+  WafLoggingEnabled:
+    Type: String
+    Default: "true"
+    AllowedValues:
+      - "true"
+      - "false"
+    Description: Enable or disable WAF logging to CloudWatch Logs.
+  WafLogRetentionDays:
+    Type: Number
+    Default: 14
+    Description: CloudWatch Logs retention in days for WAF logs.
+
+Conditions:
+  WafEnabledCondition: !Equals [!Ref WafEnabled, "true"]
+  WafManagedRulesEnabledCondition: !Equals [!Ref WafManagedRulesEnabled, "true"]
+  WafLoggingOn: !And
+    - !Condition WafEnabledCondition
+    - !Equals [!Ref WafLoggingEnabled, "true"]
+  AlarmActionsEnabled: !Not [!Equals [!Ref AlarmTopicArn, ""]]
+
+Resources:
+
+  # ── S3 bucket (uploads + outputs) ─────────────────────────────────────────
+
+  UploadsBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: !Sub "${AWS::StackName}-uploads-${AWS::AccountId}"
+      AccessControl: Private
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        BlockPublicPolicy: true
+        IgnorePublicAcls: true
+        RestrictPublicBuckets: true
+      BucketEncryption:
+        ServerSideEncryptionConfiguration:
+          - ServerSideEncryptionByDefault:
+              SSEAlgorithm: AES256
+      CorsConfiguration:
+        CorsRules:
+          - AllowedOrigins: !Ref AllowedOrigins
+            AllowedMethods: [PUT]
+            AllowedHeaders: ["*"]
+            MaxAge: 3600
+      LifecycleConfiguration:
+        Rules:
+          - Id: DeleteIncompleteMultipartUploads
+            Status: Enabled
+            AbortIncompleteMultipartUpload:
+              DaysAfterInitiation: 1
+
+  # ── DynamoDB table ─────────────────────────────────────────────────────────
+
+  JobsTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: !Sub "${AWS::StackName}-jobs"
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - AttributeName: jobId
+          AttributeType: S
+        - AttributeName: userSub
+          AttributeType: S
+        - AttributeName: createdAt
+          AttributeType: S
+      KeySchema:
+        - AttributeName: jobId
+          KeyType: HASH
+      GlobalSecondaryIndexes:
+        - IndexName: UserSubIndex
+          KeySchema:
+            - AttributeName: userSub
+              KeyType: HASH
+            - AttributeName: createdAt
+              KeyType: RANGE
+          Projection:
+            ProjectionType: ALL
+
+  # ── HTTP API ───────────────────────────────────────────────────────────────
+
+  UploadApi:
+    Type: AWS::Serverless::HttpApi
+    Properties:
+      StageName: "$default"
+      CorsConfiguration:
+        AllowOrigins: !Ref AllowedOrigins
+        AllowMethods:
+          - GET
+          - POST
+          - OPTIONS
+        AllowHeaders:
+          - Content-Type
+          - Authorization
+        MaxAge: 600
+      DefaultRouteSettings:
+        ThrottlingRateLimit: !Ref ThrottlingRateLimit
+        ThrottlingBurstLimit: !Ref ThrottlingBurstLimit
+
+  # ── WAF ────────────────────────────────────────────────────────────────────
+
+  UploadWebAcl:
+    Type: AWS::WAFv2::WebACL
+    Condition: WafEnabledCondition
+    Properties:
+      Name: !Sub "${AWS::StackName}-upload-waf"
+      Description: WAF protections for the upload HTTP API.
+      Scope: REGIONAL
+      DefaultAction:
+        Allow: {}
+      VisibilityConfig:
+        CloudWatchMetricsEnabled: true
+        MetricName: upload-waf
+        SampledRequestsEnabled: true
+      Rules:
+        - Name: RateLimitPerIP
+          Priority: 0
+          Action:
+            Block: {}
+          Statement:
+            RateBasedStatement:
+              Limit: !Ref WafRateLimit
+              AggregateKeyType: IP
+          VisibilityConfig:
+            CloudWatchMetricsEnabled: true
+            MetricName: upload-waf-rate-limit
+            SampledRequestsEnabled: true
+        - !If
+          - WafManagedRulesEnabledCondition
+          - Name: AWSManagedRulesCommonRuleSet
+            Priority: 1
+            OverrideAction:
+              None: {}
+            Statement:
+              ManagedRuleGroupStatement:
+                VendorName: AWS
+                Name: AWSManagedRulesCommonRuleSet
+            VisibilityConfig:
+              CloudWatchMetricsEnabled: true
+              MetricName: upload-waf-common
+              SampledRequestsEnabled: true
+          - !Ref AWS::NoValue
+        - !If
+          - WafManagedRulesEnabledCondition
+          - Name: AWSManagedRulesKnownBadInputsRuleSet
+            Priority: 2
+            OverrideAction:
+              None: {}
+            Statement:
+              ManagedRuleGroupStatement:
+                VendorName: AWS
+                Name: AWSManagedRulesKnownBadInputsRuleSet
+            VisibilityConfig:
+              CloudWatchMetricsEnabled: true
+              MetricName: upload-waf-bad-inputs
+              SampledRequestsEnabled: true
+          - !Ref AWS::NoValue
+        - !If
+          - WafManagedRulesEnabledCondition
+          - Name: AWSManagedRulesAmazonIpReputationList
+            Priority: 3
+            OverrideAction:
+              None: {}
+            Statement:
+              ManagedRuleGroupStatement:
+                VendorName: AWS
+                Name: AWSManagedRulesAmazonIpReputationList
+            VisibilityConfig:
+              CloudWatchMetricsEnabled: true
+              MetricName: upload-waf-ip-reputation
+              SampledRequestsEnabled: true
+          - !Ref AWS::NoValue
+
+  UploadWebAclAssociation:
+    Type: AWS::WAFv2::WebACLAssociation
+    Condition: WafEnabledCondition
+    Properties:
+      WebACLArn: !GetAtt UploadWebAcl.Arn
+      ResourceArn: !Sub "arn:aws:apigateway:${AWS::Region}::/apis/${UploadApi}/stages/$default"
+
+  UploadWafLogGroup:
+    Type: AWS::Logs::LogGroup
+    Condition: WafLoggingOn
+    Properties:
+      LogGroupName: !Sub "/aws/waf/${AWS::StackName}"
+      RetentionInDays: !Ref WafLogRetentionDays
+
+  UploadWafLogging:
+    Type: AWS::WAFv2::LoggingConfiguration
+    Condition: WafLoggingOn
+    Properties:
+      ResourceArn: !GetAtt UploadWebAcl.Arn
+      LogDestinationConfigs:
+        - !GetAtt UploadWafLogGroup.Arn
+
+  # ── API Lambda ─────────────────────────────────────────────────────────────
+
+  UploadFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: src/
+      Handler: handler.handler
+      Runtime: nodejs20.x
+      Timeout: 29
+      MemorySize: 256
+      Environment:
+        Variables:
+          ALLOWED_ORIGINS: !Join [",", !Ref AllowedOrigins]
+          JOBS_TABLE: !Ref JobsTable
+          UPLOADS_BUCKET: !Ref UploadsBucket
+          COGNITO_ISSUER: !Ref CognitoIssuer
+          COGNITO_AUDIENCE: !Ref CognitoAudience
+      Policies:
+        - Statement:
+            Effect: Allow
+            Action:
+              - dynamodb:GetItem
+              - dynamodb:PutItem
+              - dynamodb:UpdateItem
+              - dynamodb:Query
+            Resource:
+              - !GetAtt JobsTable.Arn
+              - !Sub "${JobsTable.Arn}/index/UserSubIndex"
+        - Statement:
+            Effect: Allow
+            Action:
+              - s3:PutObject
+              - s3:GetObject
+            Resource: !Sub "${UploadsBucket.Arn}/*"
+      Events:
+        JobsPost:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref UploadApi
+            Path: /jobs
+            Method: POST
+        JobsList:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref UploadApi
+            Path: /jobs
+            Method: GET
+        JobsGet:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref UploadApi
+            Path: /jobs/{jobId}
+            Method: GET
+        JobsDownload:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref UploadApi
+            Path: /jobs/{jobId}/download
+            Method: GET
+
+  # ── Worker Lambda (S3 trigger) ─────────────────────────────────────────────
+
+  WorkerFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: src/
+      Handler: worker.handler
+      Runtime: nodejs20.x
+      Timeout: 300
+      MemorySize: 512
+      Environment:
+        Variables:
+          JOBS_TABLE: !Ref JobsTable
+          UPLOADS_BUCKET: !Ref UploadsBucket
+      Policies:
+        - Statement:
+            Effect: Allow
+            Action:
+              - dynamodb:GetItem
+              - dynamodb:UpdateItem
+            Resource: !GetAtt JobsTable.Arn
+        - Statement:
+            Effect: Allow
+            Action:
+              - s3:GetObject
+              - s3:PutObject
+            Resource: !Sub "${UploadsBucket.Arn}/*"
+      Events:
+        S3Upload:
+          Type: S3
+          Properties:
+            Bucket: !Ref UploadsBucket
+            Events: s3:ObjectCreated:*
+            Filter:
+              S3Key:
+                Rules:
+                  - Name: prefix
+                    Value: "uploads/"
+
+  # ── CloudWatch Alarms ──────────────────────────────────────────────────────
+
+  UploadFunctionErrorsAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmDescription: Lambda errors for upload API handler.
+      Namespace: AWS/Lambda
+      MetricName: Errors
+      Dimensions:
+        - Name: FunctionName
+          Value: !Ref UploadFunction
+      Statistic: Sum
+      Period: 300
+      EvaluationPeriods: 1
+      Threshold: 1
+      ComparisonOperator: GreaterThanOrEqualToThreshold
+      TreatMissingData: notBreaching
+      AlarmActions: !If
+        - AlarmActionsEnabled
+        - - !Ref AlarmTopicArn
+        - !Ref AWS::NoValue
+
+  WorkerFunctionErrorsAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmDescription: Lambda errors for upload worker.
+      Namespace: AWS/Lambda
+      MetricName: Errors
+      Dimensions:
+        - Name: FunctionName
+          Value: !Ref WorkerFunction
+      Statistic: Sum
+      Period: 300
+      EvaluationPeriods: 1
+      Threshold: 1
+      ComparisonOperator: GreaterThanOrEqualToThreshold
+      TreatMissingData: notBreaching
+      AlarmActions: !If
+        - AlarmActionsEnabled
+        - - !Ref AlarmTopicArn
+        - !Ref AWS::NoValue
+
+Outputs:
+  ApiBaseUrl:
+    Description: Base URL for the upload API (set as VITE_UPLOAD_API_URL in Amplify).
+    Value: !Sub "https://${UploadApi}.execute-api.${AWS::Region}.amazonaws.com"
+  UploadsBucketName:
+    Description: Name of the S3 bucket for uploads and outputs.
+    Value: !Ref UploadsBucket
+  JobsTableName:
+    Description: Name of the DynamoDB jobs table.
+    Value: !Ref JobsTable
+  WafWebAclArn:
+    Condition: WafEnabledCondition
+    Description: ARN of the WAF Web ACL protecting the upload API.
+    Value: !GetAtt UploadWebAcl.Arn
