@@ -1,8 +1,9 @@
 /**
- * Upload processor worker — triggered by SQS messages from scan result handler.
+ * Upload processor worker — triggered by SQS messages.
  *
- * Queue payload:
- *   { jobId, bucket, s3Key }
+ * Supported SQS message body shapes:
+ * 1) Custom payload from scan handler: { jobId, bucket, s3Key }
+ * 2) S3 event payload: { Records: [{ s3: { bucket: { name }, object: { key } } }] }
  */
 
 import { createRequire } from "module";
@@ -27,12 +28,23 @@ const JOBS_TABLE = process.env.JOBS_TABLE || "";
 const UPLOADS_BUCKET = process.env.UPLOADS_BUCKET || "";
 const MAX_FILE_SIZE_BYTES = 200 * 1024 * 1024;
 
+class RetryableProcessingError extends Error {}
+class ValidationError extends Error {}
+
 function logEvent(stage, data = {}) {
   console.log(JSON.stringify({ stage, ts: new Date().toISOString(), ...data }));
 }
 
 function isConditionalCheckFailed(error) {
   return error?.code === "ConditionalCheckFailedException";
+}
+
+function isNoSuchKey(error) {
+  return error?.code === "NoSuchKey" || error?.name === "NoSuchKey";
+}
+
+function decodeS3Key(key) {
+  return decodeURIComponent((key || "").replace(/\+/g, " "));
 }
 
 function parseQueueMessage(record) {
@@ -42,13 +54,49 @@ function parseQueueMessage(record) {
   } catch {
     throw new Error("Invalid SQS message JSON.");
   }
-  const jobId = (payload.jobId || "").toString();
-  const bucket = (payload.bucket || UPLOADS_BUCKET || "").toString();
-  const s3Key = (payload.s3Key || "").toString();
-  if (!jobId || !bucket || !s3Key) {
+
+  if (payload?.Records?.[0]?.s3?.bucket?.name && payload?.Records?.[0]?.s3?.object?.key) {
+    const bucket = payload.Records[0].s3.bucket.name.toString();
+    const s3Key = decodeS3Key(payload.Records[0].s3.object.key.toString());
+    return { bucket, s3Key, jobId: "" };
+  }
+
+  const jobId = (payload?.jobId || "").toString();
+  const bucket = (payload?.bucket || UPLOADS_BUCKET || "").toString();
+  const s3Key = (payload?.s3Key || "").toString();
+  if (!bucket || !s3Key) {
     throw new Error("SQS message is missing required fields.");
   }
   return { jobId, bucket, s3Key };
+}
+
+async function findJobByS3Key(s3Key) {
+  const result = await dynamo
+    .query({
+      TableName: JOBS_TABLE,
+      IndexName: "S3KeyIndex",
+      KeyConditionExpression: "s3Key = :s3Key",
+      ExpressionAttributeValues: {
+        ":s3Key": s3Key,
+      },
+      Limit: 1,
+    })
+    .promise();
+  return (result.Items || [])[0] || null;
+}
+
+async function resolveJob(message) {
+  if (message.jobId) {
+    const result = await dynamo.get({ TableName: JOBS_TABLE, Key: { jobId: message.jobId } }).promise();
+    const job = result.Item || null;
+    return { job, jobId: message.jobId };
+  }
+
+  const job = await findJobByS3Key(message.s3Key);
+  if (!job?.jobId) {
+    throw new RetryableProcessingError(`No job found for uploaded key ${message.s3Key}.`);
+  }
+  return { job, jobId: job.jobId };
 }
 
 async function markProcessing(jobId) {
@@ -75,6 +123,23 @@ async function markProcessing(jobId) {
     }
     throw error;
   }
+}
+
+async function resetToQueued(jobId) {
+  await dynamo
+    .update({
+      TableName: JOBS_TABLE,
+      Key: { jobId },
+      UpdateExpression: "SET #status = :queued, updatedAt = :now",
+      ConditionExpression: "#status = :processing",
+      ExpressionAttributeNames: { "#status": "status" },
+      ExpressionAttributeValues: {
+        ":queued": "QUEUED",
+        ":processing": "PROCESSING",
+        ":now": new Date().toISOString(),
+      },
+    })
+    .promise();
 }
 
 async function updateJobStatus(jobId, status, extra = {}) {
@@ -106,7 +171,9 @@ async function updateJobStatus(jobId, status, extra = {}) {
 }
 
 async function processJobMessage(message) {
-  const { jobId, bucket, s3Key } = message;
+  const { job, jobId } = await resolveJob(message);
+  const bucket = message.bucket || UPLOADS_BUCKET;
+  const s3Key = message.s3Key || job?.s3Key || "";
   logEvent("worker_start", { jobId, key: s3Key });
 
   const canProcess = await markProcessing(jobId);
@@ -116,22 +183,18 @@ async function processJobMessage(message) {
   }
 
   try {
-    const getResult = await dynamo.get({ TableName: JOBS_TABLE, Key: { jobId } }).promise();
-    const job = getResult.Item;
-    if (!job) {
-      throw new Error("Job not found.");
-    }
-
     const head = await s3.headObject({ Bucket: bucket, Key: s3Key }).promise();
     const actualSize = Number(head.ContentLength || 0);
     if (!Number.isFinite(actualSize) || actualSize <= 0) {
-      throw new Error("Uploaded object size is invalid.");
+      throw new ValidationError("Uploaded object size is invalid.");
     }
     if (actualSize > MAX_FILE_SIZE_BYTES) {
-      throw new Error("Uploaded object exceeds 200 MB size limit.");
+      throw new ValidationError("Uploaded object exceeds 200 MB size limit.");
     }
     if (typeof job.expectedSize === "number" && job.expectedSize > 0 && actualSize !== job.expectedSize) {
-      throw new Error(`Uploaded object size (${actualSize}) does not match expected size (${job.expectedSize}).`);
+      throw new ValidationError(
+        `Uploaded object size (${actualSize}) does not match expected size (${job.expectedSize}).`
+      );
     }
 
     const fileType = (job.expectedFileType || job.fileType || "").toLowerCase();
@@ -141,10 +204,10 @@ async function processJobMessage(message) {
         .promise();
       const header = Buffer.from(headerObj.Body || "").toString("utf-8");
       if (header !== "%PDF-") {
-        throw new Error("Invalid PDF header; expected %PDF- signature.");
+        throw new ValidationError("Invalid PDF header; expected %PDF- signature.");
       }
     } else if (fileType !== "csv") {
-      throw new Error(`Unsupported fileType: ${fileType}`);
+      throw new ValidationError(`Unsupported fileType: ${fileType}`);
     }
 
     const fileObj = await s3.getObject({ Bucket: bucket, Key: s3Key }).promise();
@@ -158,7 +221,7 @@ async function processJobMessage(message) {
       const text = fileBuffer.toString("utf-8");
       const lines = text.split(/\r?\n/).filter((line) => line.trim().length > 0);
       if (lines.length === 0) {
-        throw new Error("CSV file is empty or contains no data rows.");
+        throw new ValidationError("CSV file is empty or contains no data rows.");
       }
       outputContent = lines.join("\n") + "\n";
     }
@@ -189,11 +252,23 @@ async function processJobMessage(message) {
 
     logEvent("worker_succeeded", { jobId, outputKey });
   } catch (error) {
-    logEvent("worker_failed", { jobId, message: error.message });
-    await updateJobStatus(jobId, "FAILED", {
-      error: { message: error.message, detail: error.stack || "" },
-    });
-    throw error;
+    if (isNoSuchKey(error)) {
+      logEvent("worker_retry", { jobId, reason: "no_such_key", message: error.message });
+      await resetToQueued(jobId);
+      throw new RetryableProcessingError("Uploaded object not found yet.");
+    }
+
+    if (error instanceof ValidationError) {
+      logEvent("worker_failed_validation", { jobId, message: error.message });
+      await updateJobStatus(jobId, "FAILED", {
+        error: { code: "VALIDATION_FAILED", message: error.message, detail: error.stack || "" },
+      });
+      return;
+    }
+
+    logEvent("worker_retry", { jobId, reason: "transient_error", message: error.message });
+    await resetToQueued(jobId);
+    throw new RetryableProcessingError(error.message);
   }
 }
 
@@ -211,7 +286,9 @@ export async function handler(event) {
           messageId: record.messageId,
           error: error.message,
         });
-        failures.push({ itemIdentifier: record.messageId });
+        if (error instanceof RetryableProcessingError) {
+          failures.push({ itemIdentifier: record.messageId });
+        }
       }
     })
   );

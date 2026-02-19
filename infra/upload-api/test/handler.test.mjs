@@ -209,10 +209,9 @@ describe("POST /jobs", () => {
     expect(JSON.parse(res.body).error).toBe("file_too_large");
   });
 
-  it("bypasses scan and enqueues immediately when scan is disabled", async () => {
+  it("sets BYPASSED scan status without enqueuing when scan is disabled", async () => {
     process.env.ENABLE_GUARDDUTY_SCAN = "false";
     process.env.BYPASS_SCAN_WHEN_DISABLED = "true";
-    process.env.PROCESS_QUEUE_URL = "https://sqs.example.com/queue";
 
     const event = buildAuthEvent({
       method: "POST",
@@ -230,7 +229,7 @@ describe("POST /jobs", () => {
     const body = JSON.parse(res.body);
     const stored = jobsMap.get(body.jobId);
     expect(stored.scanResultStatus).toBe("BYPASSED");
-    expect(sentQueueMessages).toHaveLength(1);
+    expect(sentQueueMessages).toHaveLength(0);
   });
 });
 
