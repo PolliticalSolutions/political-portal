@@ -9,19 +9,12 @@ export default function Services() {
       <section className="section">
         <div className="container hero">
           <div>
-            <h1>Political operations services</h1>
+            <h1>What services do we offer?</h1>
             <p className="muted">
-              UK-wide operational support and data services for political organisations, with clear, compliant
-              delivery and a secure subscription platform.
+              Political Solutions offers a wide range of solutions to help your campaigning efforts. These vary
+              from Marked Register processing, to specialised by-election support, to ongoing campaigning
+              consultancy work. See below for more information on how each service operates.
             </p>
-            <div className="hero-actions">
-              <Button as={Link} to="/subscriptions" variant="primary">
-                View pricing
-              </Button>
-              <Button as={Link} to="/services/election-support" variant="ghost">
-                Request election support
-              </Button>
-            </div>
           </div>
           <div className="hero-visual" aria-hidden="true">
             <span>Service delivery overview</span>
@@ -35,56 +28,40 @@ export default function Services() {
       <section className="section muted">
         <div className="container stack">
           <h2 className="section-title">What we deliver</h2>
-          <div className="feature-grid">
+          <div className="feature-grid" data-testid="services-card-grid">
             <Card title="Marked Register Processing">
               <p className="muted">
-                Standardised validation and structured outputs from client-provided marked registers for
-                operational use and reporting.
+                Create your user and select the Marked Register subscription plan. You will be able to upload
+                any Marked Register for your association/federation area. Once the .csv file is ready you will
+                receive an email alerting you the CSV file is ready.
               </p>
-            </Card>
-
-            <Card title="Data & Insight">
-              <p className="muted">
-                Dashboards, turnout and activity analysis, and operational reporting based on lawful client
-                inputs and agreed scopes.
-              </p>
-            </Card>
-
-            <Card title="Subscriptions & Platform">
-              <p className="muted">
-                Capability tiers for operational readiness, workflows, and insight delivery. Access is managed
-                through the Portal.
-              </p>
-              <div style={{ marginTop: 12 }}>
-                <Button as={Link} to="/subscriptions" variant="secondary">
-                  View subscriptions
-                </Button>
-              </div>
             </Card>
 
             <Card title="Training & Support">
               <p className="muted">
-                Onboarding, usage support, and practical training focused on effective operational delivery.
+                Various levels of consultancy help are available, from one-off sessions to ongoing remote support
+                for your association/federation and candidates.
               </p>
             </Card>
 
-            <Card title="Election & By-Election Support (separate charge)">
+            <Card title="Election & By-Election Support">
               <p className="muted">
                 UK-wide planning, field operations support, volunteer training, and print or data operations
                 coordination. This service is quoted and billed separately from subscriptions.
               </p>
-              <div style={{ marginTop: 12 }}>
-                <Button as={Link} to="/services/election-support" variant="secondary">
-                  Request election support
-                </Button>
-              </div>
             </Card>
-
-            <Card title="Compliance note">
+          </div>
+          <div data-testid="services-primary-cta">
+            <Button as={Link} to="/enquire" variant="primary" style={{ width: "100%" }}>
+              Enquire about our services here
+            </Button>
+          </div>
+          <div data-testid="services-compliance-note">
+            <Card title="Compliance note" className="service-compliance-note">
               <p className="muted">
-                Subscriptions provide capability, readiness, and operational tooling. Clients remain responsible
-                for compliance with electoral law and regulated spending. We do not provide statutory electoral
-                services.
+                Service packages provide capability, readiness, and operational tooling. Clients remain
+                responsible for compliance with electoral law and regulated spending. We do not provide statutory
+                electoral services.
               </p>
             </Card>
           </div>
@@ -117,24 +94,6 @@ export default function Services() {
         </div>
       </section>
 
-      <section className="section surface">
-        <div className="container cta-section">
-          <div>
-            <h2>Plan your operational support</h2>
-            <p className="muted" style={{ maxWidth: 72 + "ch" }}>
-              View subscriptions in the portal or request election support to confirm scope and pricing.
-            </p>
-          </div>
-          <div className="hero-actions">
-            <Button as={Link} to="/subscriptions" variant="primary">
-              View subscriptions
-            </Button>
-            <Button as={Link} to="/login" variant="secondary">
-              Client login
-            </Button>
-          </div>
-        </div>
-      </section>
       <Footer />
     </div>
   );

@@ -577,6 +577,12 @@ Resources:
             ApiId: !Ref UploadApi
             Path: /organisations
             Method: GET
+        Me:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref UploadApi
+            Path: /me
+            Method: GET
         AdminElectionsCreate:
           Type: HttpApi
           Properties:
