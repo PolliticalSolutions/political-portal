@@ -399,6 +399,13 @@ p {
 
 .feature-grid--equal {
   grid-auto-rows: 1fr;
+  align-items: stretch;
+  align-content: start;
+}
+
+.feature-grid--equal > * {
+  margin-top: 0;
+  height: 100%;
 }
 
 .feature-grid--equal .card {
