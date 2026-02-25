@@ -112,7 +112,7 @@ export default function SignUp() {
                 Prefer to ask a question first?
               </Button>
               <Button as={Link} to={loginLink} variant="ghost">
-                Already have an account? Log in
+                Already have an account? Sign in
               </Button>
               {error && <div className="status error">{error}</div>}
             </div>
