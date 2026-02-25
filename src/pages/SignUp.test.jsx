@@ -26,6 +26,23 @@ import { startSignUp } from "../lib/cognito.js";
 describe("SignUp", () => {
   const renderWithHelmet = (ui) => render(<HelmetProvider>{ui}</HelmetProvider>);
 
+  it("renders create-account CTA and omits removed placeholder copy when no pricing context is present", () => {
+    renderWithHelmet(
+      <MemoryRouter initialEntries={["/signup"]}>
+        <Routes>
+          <Route path="/signup" element={<SignUp />} />
+        </Routes>
+      </MemoryRouter>
+    );
+
+    expect(screen.getByRole("heading", { name: "Create account" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Create account" })).toBeInTheDocument();
+    expect(
+      screen.queryByText("No pricing context selected yet. Choose a plan to capture your pricing context.")
+    ).not.toBeInTheDocument();
+    expect(screen.queryByText("After sign-in you'll return to Dashboard.")).not.toBeInTheDocument();
+  });
+
   it("renders pricing context and totals from query params", () => {
     renderWithHelmet(
       <MemoryRouter initialEntries={["/signup?association=Big%20Federation&count=3"]}>
@@ -53,7 +70,7 @@ describe("SignUp", () => {
     expect(startSignUp).toHaveBeenCalledWith("/portal");
   });
 
-  it("stores returnTo on mount and preserves it in the login link", async () => {
+  it("stores returnTo on mount, preserves it in login link, and omits return-status copy", async () => {
     renderWithHelmet(
       <MemoryRouter
         initialEntries={["/signup?association=Big%20Federation&count=3&returnTo=%2Fportal%2Fpricing-rules"]}
@@ -68,7 +85,8 @@ describe("SignUp", () => {
       expect(sessionStorage.getItem("ps_post_auth_redirect_v1")).toBe("/portal/pricing-rules");
     });
 
-    expect(screen.getByText("After sign-in you'll return to Pricing Rules.")).toBeInTheDocument();
+    expect(screen.queryByText("After sign-in you'll return to Pricing Rules.")).not.toBeInTheDocument();
+    expect(screen.queryByText("After sign-in you'll return to Dashboard.")).not.toBeInTheDocument();
 
     const loginLink = screen.getByRole("link", { name: "Already have an account? Sign in" });
     expect(loginLink.getAttribute("href")).toBe("/login?returnTo=%2Fportal%2Fpricing-rules");

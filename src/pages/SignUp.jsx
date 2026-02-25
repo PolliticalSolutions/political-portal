@@ -27,7 +27,6 @@ export default function SignUp() {
     typeof sessionStorage !== "undefined" ? sessionStorage.getItem("ps_post_auth_redirect_v1") : "";
   const safeStoredReturnTo = isSafeInternalPath(storedReturnTo) ? storedReturnTo : "";
   const safeReturnTo = isSafeInternalPath(returnToParam) ? returnToParam : "";
-  const effectiveReturnTo = safeReturnTo || safeStoredReturnTo;
   const loginLink = safeReturnTo ? `/login?${new URLSearchParams({ returnTo: safeReturnTo })}` : "/login";
 
   const constituencies = useMemo(() => {
@@ -56,13 +55,6 @@ export default function SignUp() {
     }
   }, [safeReturnTo]);
 
-  const returnLabel = useMemo(() => {
-    if (!effectiveReturnTo) return "";
-    if (effectiveReturnTo.startsWith("/portal/pricing-rules")) return "Pricing Rules";
-    if (effectiveReturnTo === "/portal") return "Dashboard";
-    return effectiveReturnTo.split("?")[0];
-  }, [effectiveReturnTo]);
-
   const handleCreateAccount = async () => {
     setError(null);
     try {
@@ -78,9 +70,7 @@ export default function SignUp() {
         <div className="container centered">
           <Card>
             <h1 style={{ margin: "0 0 12px", fontSize: 22 }}>Create account</h1>
-            {!association && !constituencyCount ? (
-              <p className="muted">No pricing context selected yet. Choose a plan to capture your pricing context.</p>
-            ) : (
+            {association || constituencyCount ? (
               <>
                 <div style={{ marginBottom: 16 }}>
                   <div style={{ fontSize: 16, fontWeight: 700 }}>Pricing context captured</div>
@@ -98,13 +88,8 @@ export default function SignUp() {
                   </div>
                 )}
               </>
-            )}
+            ) : null}
             <div className="stack" style={{ marginTop: 16 }}>
-              {returnLabel && (
-                <div className="status">
-                  After sign-in you'll return to {returnLabel}.
-                </div>
-              )}
               <Button variant="primary" onClick={handleCreateAccount}>
                 Create account
               </Button>
