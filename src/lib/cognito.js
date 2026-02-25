@@ -6,6 +6,30 @@ const verifierKey = "cognito_code_verifier";
 const redirectKey = "cognito_post_login_redirect";
 
 const hasWindow = typeof window !== "undefined";
+const isDev =
+  (typeof import.meta !== "undefined" && Boolean(import.meta.env?.DEV)) ||
+  (typeof process !== "undefined" && process.env?.NODE_ENV !== "production");
+
+function getMissingCognitoEnvKeys() {
+  const missing = [];
+  if (!cognitoConfig.domain) missing.push("VITE_COGNITO_DOMAIN");
+  if (!cognitoConfig.clientId) missing.push("VITE_COGNITO_CLIENT_ID");
+  if (!cognitoConfig.redirectUri) missing.push("VITE_COGNITO_REDIRECT_URI");
+  return missing;
+}
+
+function buildCognitoConfigError(actionLabel) {
+  const missingKeys = getMissingCognitoEnvKeys();
+  const detail = missingKeys.length
+    ? `Missing environment variables: ${missingKeys.join(", ")}.`
+    : "Missing required Cognito configuration.";
+  const message = isDev
+    ? `${actionLabel} is unavailable. ${detail}`
+    : `${actionLabel} is currently unavailable. Please contact support.`;
+  const error = new Error(message);
+  error.missingKeys = missingKeys;
+  return error;
+}
 
 function base64UrlEncode(bytes) {
   return btoa(String.fromCharCode(...bytes))
@@ -83,11 +107,27 @@ export function buildAuthorizeUrl(codeChallenge, { screenHint } = {}) {
   return url.toString();
 }
 
-export async function startLogin(redirectPath = "/portal", { screenHint } = {}) {
-  if (!cognitoConfig.domain || !cognitoConfig.clientId || !cognitoConfig.redirectUri) {
-    throw new Error("Configure cognitoConfig.domain, clientId, and redirectUri before logging in.");
-  }
+export function buildSignUpUrl(codeChallenge) {
+  const url = new URL("/signup", cognitoConfig.domain);
+  url.searchParams.set("response_type", "code");
+  url.searchParams.set("client_id", cognitoConfig.clientId);
+  url.searchParams.set("redirect_uri", cognitoConfig.redirectUri);
+  url.searchParams.set("scope", cognitoConfig.scope);
+  url.searchParams.set("code_challenge", codeChallenge);
+  url.searchParams.set("code_challenge_method", "S256");
+  // Keep a hint as backup for Hosted UI variants that honor this on signup entrypoints.
+  url.searchParams.set("screen_hint", "signup");
+  return url.toString();
+}
 
+function assertLoginConfig(actionLabel) {
+  if (!cognitoConfig.domain || !cognitoConfig.clientId || !cognitoConfig.redirectUri) {
+    throw buildCognitoConfigError(actionLabel);
+  }
+}
+
+export async function startLogin(redirectPath = "/portal", { screenHint } = {}) {
+  assertLoginConfig("Sign-in");
   const { verifier, challenge } = await createPkcePair();
   persistVerifier(verifier);
   persistRedirectPath(redirectPath);
@@ -96,7 +136,12 @@ export async function startLogin(redirectPath = "/portal", { screenHint } = {}) 
 }
 
 export async function startSignUp(redirectPath = "/portal") {
-  return startLogin(redirectPath, { screenHint: "signup" });
+  assertLoginConfig("Sign-up");
+  const { verifier, challenge } = await createPkcePair();
+  persistVerifier(verifier);
+  persistRedirectPath(redirectPath);
+  const signUpUrl = buildSignUpUrl(challenge);
+  window.location.assign(signUpUrl);
 }
 
 function buildLogoutUrl() {

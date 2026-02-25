@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-describe("buildAuthorizeUrl", () => {
+describe("cognito url builders", () => {
   beforeEach(() => {
     vi.stubEnv("VITE_COGNITO_DOMAIN", "https://auth.example.test");
     vi.stubEnv("VITE_COGNITO_CLIENT_ID", "client-id");
@@ -22,5 +22,17 @@ describe("buildAuthorizeUrl", () => {
     const { buildAuthorizeUrl } = await import("./cognito.js");
     const url = new URL(buildAuthorizeUrl("challenge"));
     expect(url.searchParams.has("screen_hint")).toBe(false);
+  });
+
+  it("builds signup URL using hosted ui /signup path", async () => {
+    const { buildSignUpUrl } = await import("./cognito.js");
+    const url = new URL(buildSignUpUrl("challenge"));
+
+    expect(url.pathname).toBe("/signup");
+    expect(url.searchParams.get("client_id")).toBe("client-id");
+    expect(url.searchParams.get("redirect_uri")).toBe("https://example.test/callback");
+    expect(url.searchParams.get("code_challenge_method")).toBe("S256");
+    expect(url.searchParams.get("code_challenge")).toBe("challenge");
+    expect(url.searchParams.get("screen_hint")).toBe("signup");
   });
 });

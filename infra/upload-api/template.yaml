@@ -601,6 +601,12 @@ Resources:
             ApiId: !Ref UploadApi
             Path: /admin/me
             Method: GET
+        AdminUsersList:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref UploadApi
+            Path: /admin/users
+            Method: GET
         ManualReviewJobsList:
           Type: HttpApi
           Properties:

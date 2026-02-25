@@ -70,7 +70,7 @@ describe("SignUp", () => {
 
     expect(screen.getByText("After sign-in you'll return to Pricing Rules.")).toBeInTheDocument();
 
-    const loginLink = screen.getByRole("link", { name: "Already have an account? Log in" });
+    const loginLink = screen.getByRole("link", { name: "Already have an account? Sign in" });
     expect(loginLink.getAttribute("href")).toBe("/login?returnTo=%2Fportal%2Fpricing-rules");
   });
 });
