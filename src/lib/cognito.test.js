@@ -33,11 +33,39 @@ describe("cognito helpers", () => {
 
     expect(url.pathname).toBe("/signup");
     expect(url.searchParams.get("client_id")).toBe("client-id");
-    expect(url.searchParams.get("redirect_uri")).toBe("https://example.test/callback");
+    expect(url.searchParams.get("redirect_uri")).toBe(`${window.location.origin}/callback`);
     expect(url.searchParams.get("code_challenge_method")).toBe("S256");
     expect(url.searchParams.get("code_challenge")).toBe("challenge");
     expect(url.searchParams.get("state")).toBe("state-1");
     expect(url.searchParams.get("screen_hint")).toBe("signup");
+  });
+
+  it("resolves production non-www to canonical www origin", async () => {
+    const { resolveCanonicalOrigin, getCanonicalRedirectTarget } = await import("./cognito.js");
+    const origin = resolveCanonicalOrigin({
+      isProd: true,
+      currentOrigin: "https://politicalsolutions.uk",
+      currentHostname: "politicalsolutions.uk",
+    });
+
+    const target = getCanonicalRedirectTarget({
+      isProd: true,
+      currentHref: "https://politicalsolutions.uk/callback?code=abc&state=1",
+    });
+
+    expect(origin).toBe("https://www.politicalsolutions.uk");
+    expect(target).toBe("https://www.politicalsolutions.uk/callback?code=abc&state=1");
+  });
+
+  it("uses VITE_PUBLIC_ORIGIN as canonical origin in production", async () => {
+    const { resolveCanonicalOrigin } = await import("./cognito.js");
+    const origin = resolveCanonicalOrigin({
+      isProd: true,
+      publicOrigin: "https://www.politicalsolutions.uk/",
+      currentOrigin: "https://politicalsolutions.uk",
+      currentHostname: "politicalsolutions.uk",
+    });
+    expect(origin).toBe("https://www.politicalsolutions.uk");
   });
 
   it("savePkce writes to both sessionStorage and localStorage", async () => {
@@ -86,8 +114,10 @@ describe("cognito helpers", () => {
       json: async () => ({ access_token: "token" }),
     });
     vi.stubGlobal("fetch", fetchMock);
-    const { savePkce, exchangeCodeForTokens } = await import("./cognito.js");
+    const { buildAuthorizeUrl, savePkce, exchangeCodeForTokens } = await import("./cognito.js");
     const key = "cognito_pkce_state_v1:state-exchange";
+    const authorizeUrl = new URL(buildAuthorizeUrl("challenge", { state: "state-exchange" }));
+    const authorizeRedirectUri = authorizeUrl.searchParams.get("redirect_uri");
 
     savePkce("state-exchange", "verifier-local-only", { flow: "signup" });
     sessionStorage.removeItem(key);
@@ -96,6 +126,7 @@ describe("cognito helpers", () => {
 
     const body = fetchMock.mock.calls[0][1].body.toString();
     expect(body).toContain("code_verifier=verifier-local-only");
+    expect(body).toContain(`redirect_uri=${encodeURIComponent(authorizeRedirectUri)}`);
     expect(sessionStorage.getItem(key)).toBeNull();
     expect(localStorage.getItem(key)).toBeNull();
   });

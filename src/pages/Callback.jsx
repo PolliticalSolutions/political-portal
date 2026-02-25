@@ -1,7 +1,12 @@
 import { useEffect, useMemo, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { getSession } from "../auth/session.js";
-import { clearStoredSession, exchangeCodeForTokens, startLogin } from "../lib/cognito.js";
+import {
+  clearStoredSession,
+  ensureCanonicalHost,
+  exchangeCodeForTokens,
+  startLogin,
+} from "../lib/cognito.js";
 import Badge from "../components/Badge.jsx";
 import Button from "../components/Button.jsx";
 import Card from "../components/Card.jsx";
@@ -25,6 +30,10 @@ export default function Callback({ onAuth }) {
   }, []);
 
   useEffect(() => {
+    if (ensureCanonicalHost()) {
+      return;
+    }
+
     const params = new URLSearchParams(location.search);
     const code = params.get("code");
     const state = params.get("state");

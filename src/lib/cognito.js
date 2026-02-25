@@ -5,6 +5,7 @@ export { decodeJwtPayload, getSession, getStoredTokens, isTokenValid } from "../
 const verifierKey = "cognito_code_verifier";
 const redirectKey = "cognito_post_login_redirect";
 const pkcePrefix = "cognito_pkce_state_v1:";
+const preferredProdOrigin = "https://www.politicalsolutions.uk";
 
 const hasWindow = typeof window !== "undefined";
 const isDev =
@@ -15,7 +16,6 @@ function getMissingCognitoEnvKeys() {
   const missing = [];
   if (!cognitoConfig.domain) missing.push("VITE_COGNITO_DOMAIN");
   if (!cognitoConfig.clientId) missing.push("VITE_COGNITO_CLIENT_ID");
-  if (!cognitoConfig.redirectUri) missing.push("VITE_COGNITO_REDIRECT_URI");
   return missing;
 }
 
@@ -37,6 +37,79 @@ function base64UrlEncode(bytes) {
     .replace(/\+/g, "-")
     .replace(/\//g, "_")
     .replace(/=+$/, "");
+}
+
+function isProductionBuild() {
+  if (typeof import.meta !== "undefined" && typeof import.meta.env?.PROD === "boolean") {
+    return import.meta.env.PROD;
+  }
+  if (typeof process !== "undefined" && typeof process.env?.NODE_ENV === "string") {
+    return process.env.NODE_ENV === "production";
+  }
+  return false;
+}
+
+function readEnvValue(key) {
+  const source =
+    typeof import.meta !== "undefined" && import.meta.env
+      ? import.meta.env
+      : (typeof process !== "undefined" ? process.env : undefined);
+  const value = source ? source[key] : "";
+  return typeof value === "string" ? value.trim() : "";
+}
+
+function normalizeOrigin(origin) {
+  if (!origin) return "";
+  return origin.replace(/\/+$/, "");
+}
+
+export function resolveCanonicalOrigin({
+  isProd = isProductionBuild(),
+  publicOrigin = readEnvValue("VITE_PUBLIC_ORIGIN"),
+  currentOrigin = hasWindow ? window.location.origin : "",
+  currentHostname = hasWindow ? window.location.hostname : "",
+} = {}) {
+  const normalizedPublicOrigin = normalizeOrigin(publicOrigin);
+  if (!isProd) {
+    return normalizeOrigin(currentOrigin);
+  }
+  if (normalizedPublicOrigin) {
+    return normalizedPublicOrigin;
+  }
+  if (currentHostname === "politicalsolutions.uk" || currentHostname === "www.politicalsolutions.uk") {
+    return preferredProdOrigin;
+  }
+  return normalizeOrigin(currentOrigin) || preferredProdOrigin;
+}
+
+export function getRedirectUri() {
+  const canonicalOrigin = resolveCanonicalOrigin();
+  return `${canonicalOrigin}/callback`;
+}
+
+export function getCanonicalRedirectTarget({
+  isProd = isProductionBuild(),
+  currentHref = hasWindow ? window.location.href : "",
+  publicOrigin = readEnvValue("VITE_PUBLIC_ORIGIN"),
+} = {}) {
+  if (!isProd || !currentHref) return null;
+  const currentUrl = new URL(currentHref);
+  const canonicalOrigin = resolveCanonicalOrigin({
+    isProd,
+    publicOrigin,
+    currentOrigin: currentUrl.origin,
+    currentHostname: currentUrl.hostname,
+  });
+  if (!canonicalOrigin || canonicalOrigin === currentUrl.origin) return null;
+  return `${canonicalOrigin}${currentUrl.pathname}${currentUrl.search}${currentUrl.hash}`;
+}
+
+export function ensureCanonicalHost() {
+  if (!hasWindow) return false;
+  const target = getCanonicalRedirectTarget();
+  if (!target) return false;
+  window.location.replace(target);
+  return true;
 }
 
 async function sha256(value) {
@@ -168,7 +241,7 @@ export function buildAuthorizeUrl(codeChallenge, { screenHint, state } = {}) {
   const url = new URL("/oauth2/authorize", cognitoConfig.domain);
   url.searchParams.set("response_type", "code");
   url.searchParams.set("client_id", cognitoConfig.clientId);
-  url.searchParams.set("redirect_uri", cognitoConfig.redirectUri);
+  url.searchParams.set("redirect_uri", getRedirectUri());
   url.searchParams.set("scope", cognitoConfig.scope);
   url.searchParams.set("code_challenge", codeChallenge);
   url.searchParams.set("code_challenge_method", "S256");
@@ -185,7 +258,7 @@ export function buildSignUpUrl(codeChallenge, { state } = {}) {
   const url = new URL("/signup", cognitoConfig.domain);
   url.searchParams.set("response_type", "code");
   url.searchParams.set("client_id", cognitoConfig.clientId);
-  url.searchParams.set("redirect_uri", cognitoConfig.redirectUri);
+  url.searchParams.set("redirect_uri", getRedirectUri());
   url.searchParams.set("scope", cognitoConfig.scope);
   url.searchParams.set("code_challenge", codeChallenge);
   url.searchParams.set("code_challenge_method", "S256");
@@ -198,12 +271,13 @@ export function buildSignUpUrl(codeChallenge, { state } = {}) {
 }
 
 function assertLoginConfig(actionLabel) {
-  if (!cognitoConfig.domain || !cognitoConfig.clientId || !cognitoConfig.redirectUri) {
+  if (!cognitoConfig.domain || !cognitoConfig.clientId) {
     throw buildCognitoConfigError(actionLabel);
   }
 }
 
 export async function startLogin(redirectPath = "/portal", { screenHint } = {}) {
+  if (ensureCanonicalHost()) return;
   assertLoginConfig("Sign-in");
   const { verifier, challenge } = await createPkcePair();
   const state = createAuthState();
@@ -215,6 +289,7 @@ export async function startLogin(redirectPath = "/portal", { screenHint } = {}) 
 }
 
 export async function startSignUp(redirectPath = "/portal") {
+  if (ensureCanonicalHost()) return;
   assertLoginConfig("Sign-up");
   const { verifier, challenge } = await createPkcePair();
   const state = createAuthState();
@@ -226,7 +301,7 @@ export async function startSignUp(redirectPath = "/portal") {
 }
 
 function buildLogoutUrl() {
-  const logoutUri = cognitoConfig.logoutUri || cognitoConfig.redirectUri;
+  const logoutUri = cognitoConfig.logoutUri || getRedirectUri();
   if (!logoutUri) {
     throw new Error("Configure cognitoConfig.logoutUri (or redirectUri) before logging out.");
   }
@@ -270,7 +345,7 @@ export async function exchangeCodeForTokens(code, state) {
     client_id: cognitoConfig.clientId,
     code_verifier: codeVerifier,
     code,
-    redirect_uri: cognitoConfig.redirectUri,
+    redirect_uri: getRedirectUri(),
   });
 
   const tokenUrl = new URL("/oauth2/token", cognitoConfig.domain).toString();
