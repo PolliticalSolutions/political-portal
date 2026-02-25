@@ -4,6 +4,7 @@ export { decodeJwtPayload, getSession, getStoredTokens, isTokenValid } from "../
 
 const verifierKey = "cognito_code_verifier";
 const redirectKey = "cognito_post_login_redirect";
+const pkcePrefix = "cognito_pkce_state_v1:";
 
 const hasWindow = typeof window !== "undefined";
 const isDev =
@@ -64,6 +65,74 @@ function readVerifier() {
   return sessionStorage.getItem(verifierKey);
 }
 
+function getPkceStorageKey(state) {
+  return `${pkcePrefix}${state}`;
+}
+
+function createAuthState() {
+  const random = new Uint8Array(24);
+  crypto.getRandomValues(random);
+  return base64UrlEncode(random);
+}
+
+function parsePkceRecord(raw, storage, key) {
+  if (!raw) return null;
+  try {
+    const parsed = JSON.parse(raw);
+    if (!parsed || typeof parsed.verifier !== "string" || !parsed.verifier) {
+      storage.removeItem(key);
+      return null;
+    }
+    return parsed;
+  } catch {
+    storage.removeItem(key);
+    return null;
+  }
+}
+
+export function savePkce(state, verifier, meta = {}) {
+  if (!hasWindow || !state || !verifier) return;
+  const key = getPkceStorageKey(state);
+  const payload = JSON.stringify({ verifier, meta, savedAt: Date.now() });
+  sessionStorage.setItem(key, payload);
+  localStorage.setItem(key, payload);
+}
+
+export function loadPkce(state) {
+  if (!hasWindow || !state) return null;
+  const key = getPkceStorageKey(state);
+  const fromSession = parsePkceRecord(sessionStorage.getItem(key), sessionStorage, key);
+  if (fromSession) {
+    return fromSession;
+  }
+
+  const fromLocal = parsePkceRecord(localStorage.getItem(key), localStorage, key);
+  if (fromLocal) {
+    sessionStorage.setItem(key, JSON.stringify(fromLocal));
+    return fromLocal;
+  }
+  return null;
+}
+
+export function clearPkce(state) {
+  if (!hasWindow || !state) return;
+  const key = getPkceStorageKey(state);
+  sessionStorage.removeItem(key);
+  localStorage.removeItem(key);
+}
+
+function clearPkceByPrefix(storage) {
+  if (!storage) return;
+  const keysToDelete = [];
+  for (let i = 0; i < storage.length; i += 1) {
+    const key = storage.key(i);
+    if (key && key.startsWith(pkcePrefix)) {
+      keysToDelete.push(key);
+    }
+  }
+  keysToDelete.forEach((key) => storage.removeItem(key));
+}
+
 function persistTokens(tokens) {
   storeTokens(tokens);
 }
@@ -87,13 +156,15 @@ export function consumePostLoginRedirect(defaultPath = "/portal") {
 export function clearStoredSession({ preserveRedirect = false } = {}) {
   if (!hasWindow) return;
   clearSession(window.sessionStorage, { preserveRedirect });
+  clearPkceByPrefix(sessionStorage);
+  clearPkceByPrefix(localStorage);
   sessionStorage.removeItem(verifierKey);
   if (!preserveRedirect) {
     sessionStorage.removeItem(redirectKey);
   }
 }
 
-export function buildAuthorizeUrl(codeChallenge, { screenHint } = {}) {
+export function buildAuthorizeUrl(codeChallenge, { screenHint, state } = {}) {
   const url = new URL("/oauth2/authorize", cognitoConfig.domain);
   url.searchParams.set("response_type", "code");
   url.searchParams.set("client_id", cognitoConfig.clientId);
@@ -101,13 +172,16 @@ export function buildAuthorizeUrl(codeChallenge, { screenHint } = {}) {
   url.searchParams.set("scope", cognitoConfig.scope);
   url.searchParams.set("code_challenge", codeChallenge);
   url.searchParams.set("code_challenge_method", "S256");
+  if (state) {
+    url.searchParams.set("state", state);
+  }
   if (screenHint) {
     url.searchParams.set("screen_hint", screenHint);
   }
   return url.toString();
 }
 
-export function buildSignUpUrl(codeChallenge) {
+export function buildSignUpUrl(codeChallenge, { state } = {}) {
   const url = new URL("/signup", cognitoConfig.domain);
   url.searchParams.set("response_type", "code");
   url.searchParams.set("client_id", cognitoConfig.clientId);
@@ -115,6 +189,9 @@ export function buildSignUpUrl(codeChallenge) {
   url.searchParams.set("scope", cognitoConfig.scope);
   url.searchParams.set("code_challenge", codeChallenge);
   url.searchParams.set("code_challenge_method", "S256");
+  if (state) {
+    url.searchParams.set("state", state);
+  }
   // Keep a hint as backup for Hosted UI variants that honor this on signup entrypoints.
   url.searchParams.set("screen_hint", "signup");
   return url.toString();
@@ -129,18 +206,22 @@ function assertLoginConfig(actionLabel) {
 export async function startLogin(redirectPath = "/portal", { screenHint } = {}) {
   assertLoginConfig("Sign-in");
   const { verifier, challenge } = await createPkcePair();
+  const state = createAuthState();
+  savePkce(state, verifier, { flow: "login" });
   persistVerifier(verifier);
   persistRedirectPath(redirectPath);
-  const authorizeUrl = buildAuthorizeUrl(challenge, { screenHint });
+  const authorizeUrl = buildAuthorizeUrl(challenge, { screenHint, state });
   window.location.assign(authorizeUrl);
 }
 
 export async function startSignUp(redirectPath = "/portal") {
   assertLoginConfig("Sign-up");
   const { verifier, challenge } = await createPkcePair();
+  const state = createAuthState();
+  savePkce(state, verifier, { flow: "signup" });
   persistVerifier(verifier);
   persistRedirectPath(redirectPath);
-  const signUpUrl = buildSignUpUrl(challenge);
+  const signUpUrl = buildSignUpUrl(challenge, { state });
   window.location.assign(signUpUrl);
 }
 
@@ -167,10 +248,21 @@ export function startLogout() {
   }
 }
 
-export async function exchangeCodeForTokens(code) {
-  const codeVerifier = readVerifier();
+function missingPkceHandoffError() {
+  const error = new Error("Missing PKCE handoff data.");
+  error.code = "PKCE_HANDOFF_MISSING";
+  return error;
+}
+
+export async function exchangeCodeForTokens(code, state) {
+  if (!state) {
+    throw missingPkceHandoffError();
+  }
+
+  const handoff = loadPkce(state);
+  const codeVerifier = handoff?.verifier || readVerifier();
   if (!codeVerifier) {
-    throw new Error("Missing PKCE verifier in sessionStorage. Restart login.");
+    throw missingPkceHandoffError();
   }
 
   const body = new URLSearchParams({
@@ -197,6 +289,7 @@ export async function exchangeCodeForTokens(code) {
 
   const tokens = await response.json();
   persistTokens(tokens);
+  clearPkce(state);
   sessionStorage.removeItem(verifierKey);
   return tokens;
 }
