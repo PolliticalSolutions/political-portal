@@ -50,4 +50,28 @@ describe("RouteSeo", () => {
       expect(canonical?.includes("www.")).toBe(false);
     });
   });
+
+  it("sets /blog as indexable with canonical blog URL", async () => {
+    renderRouteSeo("/blog");
+    await waitFor(() => {
+      expect(document.querySelector("meta[name='robots']")?.content).toBe("index,follow");
+      expect(document.querySelector("link[rel='canonical']")?.getAttribute("href")).toBe(
+        "https://politicalsolutions.uk/blog"
+      );
+    });
+  });
+
+  it("sets draft blog posts to noindex", async () => {
+    renderRouteSeo("/blog/2026-02-24-draft-post");
+    await waitFor(() => {
+      expect(document.querySelector("meta[name='robots']")?.content).toBe("noindex, nofollow");
+    });
+  });
+
+  it("sets missing blog posts to noindex", async () => {
+    renderRouteSeo("/blog/not-a-real-post");
+    await waitFor(() => {
+      expect(document.querySelector("meta[name='robots']")?.content).toBe("noindex, nofollow");
+    });
+  });
 });

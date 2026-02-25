@@ -331,14 +331,28 @@ async function writeAuditSafe(payload) {
   }
 }
 
+function getEmailFromClaims(payload = {}) {
+  const email = (payload?.email || "").toString().trim();
+  if (email) return email;
+  return (payload?.["cognito:username"] || "").toString().trim();
+}
+
 async function ensureUserRecord({ userSub, payload }) {
+  const email = getEmailFromClaims(payload);
   const existing = await usersRepo.getUser(userSub);
-  if (existing) return existing;
+  if (existing) {
+    const existingEmail = (existing.email || "").toString().trim();
+    if (!existingEmail && email) {
+      const updated = await usersRepo.backfillEmailIfMissing({ userId: userSub, email });
+      return updated || existing;
+    }
+    return existing;
+  }
 
   const created = await usersRepo.putUserIfAbsent({
     userId: userSub,
     status: "PENDING",
-    email: payload?.email || "",
+    email,
   });
   return created.item || null;
 }

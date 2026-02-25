@@ -186,6 +186,38 @@ export function createUsersRepo({ dynamo = getDocumentClient(), tableName = USER
       return this.getUser(userId);
     },
 
+    async backfillEmailIfMissing({ userId, email }) {
+      if (!userId) throw new Error("userId is required.");
+      const normalizedEmail = (email || "").toString().trim();
+      if (!normalizedEmail) return this.getUser(userId);
+
+      try {
+        await dynamo
+          .update({
+            TableName: tableName,
+            Key: { userId },
+            UpdateExpression: "SET #email = :email, #updatedAt = :updatedAt",
+            ConditionExpression: "attribute_exists(userId) AND (attribute_not_exists(#email) OR #email = :empty)",
+            ExpressionAttributeNames: {
+              "#email": "email",
+              "#updatedAt": "updatedAt",
+            },
+            ExpressionAttributeValues: {
+              ":email": normalizedEmail,
+              ":updatedAt": nowIso(),
+              ":empty": "",
+            },
+          })
+          .promise();
+      } catch (error) {
+        if (error?.code !== "ConditionalCheckFailedException") {
+          throw error;
+        }
+      }
+
+      return this.getUser(userId);
+    },
+
     async approveUser({ userId, orgId, orgType, allowedPconCodes, approvedBy }) {
       if (!userId) throw new Error("userId is required.");
       if (!orgId) throw new Error("orgId is required.");

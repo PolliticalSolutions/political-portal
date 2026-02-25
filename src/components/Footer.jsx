@@ -27,6 +27,7 @@ export default function Footer() {
         </div>
       </div>
       <div className="container footer-legal">
+        <Link to="/blog">Blog</Link>
         <Link to="/privacy">Privacy Policy</Link>
         <Link to="/terms">Terms of Use</Link>
         <Link to="/cookies">Cookie notice</Link>

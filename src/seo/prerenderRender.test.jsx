@@ -86,4 +86,86 @@ describe("entry-server render", () => {
     vi.unstubAllEnvs();
   });
 
+  it("renders blog post SEO with a single title and post metadata", async () => {
+    vi.stubEnv("VITE_COGNITO_DOMAIN", "https://auth.example.test");
+    vi.stubEnv("VITE_COGNITO_CLIENT_ID", "client-id");
+    vi.stubEnv("VITE_COGNITO_REDIRECT_URI", "https://example.test/callback");
+    vi.stubEnv("VITE_ENQUIRY_API_URL", "https://api.example.test");
+
+    const template = await readFile(path.join(repoRoot, "index.html"), "utf8");
+    const { appHtml, headHtml } = await render("/blog/2026-02-25-example-post-1");
+    const finalHtml = injectApp(injectHead(template, headHtml), appHtml);
+
+    expect(finalHtml).toContain("Political Solutions | Building a campaign data operations baseline");
+    expect(finalHtml).toContain(
+      'name="description" content="How local campaign teams can reduce operational risk with a disciplined data baseline before peak election periods."'
+    );
+    expect(finalHtml).toContain(
+      `rel="canonical" href="${siteUrl}/blog/2026-02-25-example-post-1"`
+    );
+    expect(finalHtml.match(/<title\b/g)?.length ?? 0).toBe(1);
+
+    vi.unstubAllEnvs();
+  });
+
+  it("honors canonical override for blog posts", async () => {
+    vi.stubEnv("VITE_COGNITO_DOMAIN", "https://auth.example.test");
+    vi.stubEnv("VITE_COGNITO_CLIENT_ID", "client-id");
+    vi.stubEnv("VITE_COGNITO_REDIRECT_URI", "https://example.test/callback");
+    vi.stubEnv("VITE_ENQUIRY_API_URL", "https://api.example.test");
+
+    const post = await render("/blog/2026-02-20-example-post-2");
+    expect(post.headHtml).toContain('rel="canonical" href="https://example.com/original-post"');
+    expect(post.headHtml).toContain(
+      'property="og:url" content="https://example.com/original-post"'
+    );
+
+    vi.unstubAllEnvs();
+  });
+
+  it("marks draft blog posts as noindex", async () => {
+    vi.stubEnv("VITE_COGNITO_DOMAIN", "https://auth.example.test");
+    vi.stubEnv("VITE_COGNITO_CLIENT_ID", "client-id");
+    vi.stubEnv("VITE_COGNITO_REDIRECT_URI", "https://example.test/callback");
+    vi.stubEnv("VITE_ENQUIRY_API_URL", "https://api.example.test");
+
+    const draftPost = await render("/blog/2026-02-24-draft-post");
+    expect(draftPost.headHtml).toContain('name="robots" content="noindex, nofollow"');
+
+    vi.unstubAllEnvs();
+  });
+
+  it("emits BlogPosting JSON-LD for blog posts using canonical URL", async () => {
+    vi.stubEnv("VITE_COGNITO_DOMAIN", "https://auth.example.test");
+    vi.stubEnv("VITE_COGNITO_CLIENT_ID", "client-id");
+    vi.stubEnv("VITE_COGNITO_REDIRECT_URI", "https://example.test/callback");
+    vi.stubEnv("VITE_ENQUIRY_API_URL", "https://api.example.test");
+
+    const post = await render("/blog/2026-02-20-example-post-2");
+    expect(post.headHtml).toContain('"@type":"BlogPosting"');
+    expect(post.headHtml).toContain('"headline":"Reducing field-team friction with better handoffs"');
+    expect(post.headHtml).toContain('"datePublished":"2026-02-20"');
+    expect(post.headHtml).toContain('"mainEntityOfPage":"https://example.com/original-post"');
+
+    vi.unstubAllEnvs();
+  });
+
+  it("renders blog posts in SSR when comments env vars are present", async () => {
+    vi.stubEnv("VITE_COGNITO_DOMAIN", "https://auth.example.test");
+    vi.stubEnv("VITE_COGNITO_CLIENT_ID", "client-id");
+    vi.stubEnv("VITE_COGNITO_REDIRECT_URI", "https://example.test/callback");
+    vi.stubEnv("VITE_ENQUIRY_API_URL", "https://api.example.test");
+    vi.stubEnv("VITE_GISCUS_ENABLED", "true");
+    vi.stubEnv("VITE_GISCUS_REPO", "org/repo");
+    vi.stubEnv("VITE_GISCUS_REPO_ID", "repo-id");
+    vi.stubEnv("VITE_GISCUS_CATEGORY", "General");
+    vi.stubEnv("VITE_GISCUS_CATEGORY_ID", "category-id");
+
+    const post = await render("/blog/2026-02-25-example-post-1");
+    expect(post.appHtml).toContain("Build a resilient campaign data baseline");
+    expect(post.appHtml).not.toContain("blog-giscus");
+
+    vi.unstubAllEnvs();
+  });
+
 });

@@ -10,6 +10,18 @@ Minimal routing skeleton for politicalsolutions.uk. Vite + React with react-rout
 ## Production build
 - `npm run build` (outputs to `dist/`)
 
+## Blog comments (Giscus)
+- Enable GitHub Discussions in the repository that will host comments.
+- Create a Discussions category for blog comments (for example `General` or `Blog`).
+- Open https://giscus.app with your repository settings to retrieve `repoId` and `categoryId`.
+- Set these environment variables locally (for `.env.local`) and in production (for example Amplify environment variables):
+- `VITE_GISCUS_ENABLED=true`
+- `VITE_GISCUS_REPO=owner/repo`
+- `VITE_GISCUS_REPO_ID=<repoId>`
+- `VITE_GISCUS_CATEGORY=<category name>`
+- `VITE_GISCUS_CATEGORY_ID=<categoryId>`
+- Comments only render when all required Giscus variables are present and enabled.
+
 ## Routes to test locally
 - Home: `http://localhost:5173/`
 - Protected Portal (will redirect to login): `http://localhost:5173/portal`

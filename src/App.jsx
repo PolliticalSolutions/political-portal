@@ -14,6 +14,8 @@ import CheckoutEntry from "./pages/CheckoutEntry.jsx";
 import CheckoutConfirmation from "./pages/CheckoutConfirmation.jsx";
 import CheckoutConfirmationEntry from "./pages/CheckoutConfirmationEntry.jsx";
 import EnquirePage from "./pages/EnquirePage.jsx";
+import BlogIndexPage from "./pages/BlogIndexPage.jsx";
+import BlogPostPage from "./pages/BlogPostPage.jsx";
 import Home from "./pages/Home.jsx";
 import Login from "./pages/Login.jsx";
 import Pricing from "./pages/Pricing.jsx";
@@ -99,6 +101,9 @@ function TopNav({ authed, onLogout, cartCount }) {
             </NavLinkButton>
             <NavLinkButton to="/enquire" onClick={closeMenu} end>
               Contact
+            </NavLinkButton>
+            <NavLinkButton to="/blog" onClick={closeMenu} end>
+              Blog
             </NavLinkButton>
           </nav>
           <div className="nav-cta">
@@ -254,6 +259,8 @@ export default function App() {
             <Route path="/callback" element={<Callback onAuth={handleAuthSuccess} />} />
             <Route path="/signup" element={<SignUp />} />
             <Route path="/enquire" element={<EnquirePage />} />
+            <Route path="/blog" element={<BlogIndexPage />} />
+            <Route path="/blog/:slug" element={<BlogPostPage />} />
             <Route path="/cart" element={<CartEntry authed={authed} />} />
             <Route path="/checkout" element={<CheckoutEntry authed={authed} />} />
             <Route

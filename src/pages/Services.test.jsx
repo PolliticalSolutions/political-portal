@@ -20,9 +20,13 @@ describe("Services", () => {
         "Political Solutions offers a wide range of solutions to help your campaigning efforts. These vary from Marked Register processing, to specialised by-election support, to ongoing campaigning consultancy work. See below for more information on how each service operates."
       )
     ).toBeInTheDocument();
+    expect(screen.getByAltText("Team using data to plan a political campaign")).toBeInTheDocument();
+    expect(screen.queryByText("Service delivery overview")).not.toBeInTheDocument();
+    expect(screen.queryByText("Workflow + reporting snapshot placeholder")).not.toBeInTheDocument();
 
     const grid = screen.getByTestId("services-card-grid");
     expect(grid).toBeInTheDocument();
+    expect(grid).toHaveClass("feature-grid--equal");
     expect(screen.getByText("Marked Register Processing")).toBeInTheDocument();
     expect(screen.getByText("Training & Support")).toBeInTheDocument();
     expect(screen.getByText("Election & By-Election Support")).toBeInTheDocument();

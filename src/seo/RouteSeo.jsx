@@ -13,6 +13,7 @@ export default function RouteSeo() {
       title={formatTitle(routeSeo.title)}
       description={routeSeo.description}
       path={routeSeo.path}
+      canonical={routeSeo.canonical}
       noindex={routeSeo.noindex}
       robots={routeSeo.noindex ? undefined : "index,follow"}
     />

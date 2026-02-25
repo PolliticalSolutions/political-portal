@@ -9,7 +9,7 @@
     "build:client": "vite build",
     "build:ssr": "vite build --ssr src/entry-server.jsx --outDir dist-ssr",
     "prerender": "node scripts/prerender.mjs",
-    "postbuild": "node scripts/generate-sitemap.mjs",
+    "postbuild": "node scripts/generate-sitemap.mjs && node scripts/generate-rss.mjs",
     "preview": "vite preview",
     "test": "vitest",
     "test:run": "vitest run",
@@ -23,9 +23,11 @@
     "verify:prod:seo": "powershell -ExecutionPolicy Bypass -File scripts/verify-prod-seo-html.ps1"
   },
   "dependencies": {
+    "@giscus/react": "^3.1.0",
     "react": "^19.2.3",
     "react-dom": "^19.2.3",
     "react-helmet-async": "^2.0.5",
+    "react-markdown": "^10.1.0",
     "react-router-dom": "^7.10.1"
   },
   "devDependencies": {

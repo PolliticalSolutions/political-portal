@@ -1,4 +1,4 @@
-$ErrorActionPreference = "Stop"
+X1|}:\WGF;[]=$ErrorActionPreference = "Stop"
 
 $routesJson = node --input-type=module -e "import { seoRoutes } from './src/seo/seoRoutes.js'; console.log(JSON.stringify(seoRoutes.map(r => r.path)))"
 $routes = $routesJson | ConvertFrom-Json

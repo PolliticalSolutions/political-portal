@@ -1,4 +1,5 @@
 import { SITE_URL } from "./seoConfig.js";
+import { getPostBySlug } from "../blog/blogLoader.js";
 
 export const siteUrl = SITE_URL;
 
@@ -42,6 +43,20 @@ export const seoRoutes = [
       "Ask a question, request a demo, or clarify pricing for Political Solutions services.",
     changefreq: "monthly",
     priority: 0.6,
+  },
+  {
+    path: "/blog",
+    title: "Blog",
+    description:
+      "Practical guidance on political campaign operations, data workflows, and delivery planning for UK teams.",
+    changefreq: "weekly",
+    priority: 0.6,
+  },
+  {
+    path: "/blog/:slug",
+    title: "Blog post",
+    description: "Article from Political Solutions.",
+    noindex: true,
   },
   {
     path: "/privacy",
@@ -88,6 +103,29 @@ export const getSeoForPath = (pathname) => {
   const normalized = normalizePath(pathname);
   const match = seoRoutes.find((route) => route.path === normalized);
   if (match) return match;
+
+  if (normalized.startsWith("/blog/")) {
+    const slug = normalized.slice("/blog/".length);
+    const post = getPostBySlug(slug, { includeDrafts: true });
+
+    if (!post) {
+      return {
+        ...defaultSeo,
+        path: normalized,
+        title: "Post not found",
+        description: "This article is unavailable or has not been published.",
+        noindex: true,
+      };
+    }
+
+    return {
+      path: normalized,
+      title: post.meta.title,
+      description: post.meta.description,
+      canonical: post.meta.canonical || `${SITE_URL}${normalized}`,
+      noindex: post.meta.draft,
+    };
+  }
 
   const noindex =
     noindexRoutes.has(normalized) ||

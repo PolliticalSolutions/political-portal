@@ -26,6 +26,11 @@ function evaluateCondition(params, currentItem) {
     const expected = params.ExpressionAttributeValues?.[":pending"];
     if ((currentItem?.[statusName] || "") !== expected) return false;
   }
+  if (condition.includes("attribute_not_exists(#email) OR #email = :empty")) {
+    const emailName = params.ExpressionAttributeNames?.["#email"] || "email";
+    const emptyValue = params.ExpressionAttributeValues?.[":empty"] || "";
+    if (currentItem?.[emailName] && currentItem[emailName] !== emptyValue) return false;
+  }
 
   return true;
 }
@@ -434,13 +439,70 @@ beforeEach(() => {
 });
 
 describe("User application endpoints", () => {
-  it("GET /me creates a pending user if missing", async () => {
-    const res = await handler(buildAuthEvent({ method: "GET", path: "/me", sub: "new-user-sub" }));
+  it("GET /me creates a pending user if missing and stores email from claims", async () => {
+    const res = await handler(
+      buildAuthEvent({
+        method: "GET",
+        path: "/me",
+        sub: "new-user-sub",
+        claims: { email: "new.user@example.com" },
+      })
+    );
     expect(res.statusCode).toBe(200);
     const body = JSON.parse(res.body);
     expect(body.user.userId).toBe("new-user-sub");
     expect(body.user.status).toBe("PENDING");
+    expect(body.user.email).toBe("new.user@example.com");
     expect(usersMap.get("new-user-sub")?.status).toBe("PENDING");
+    expect(usersMap.get("new-user-sub")?.email).toBe("new.user@example.com");
+  });
+
+  it("GET /me backfills email when existing user email is blank", async () => {
+    usersMap.set("blank-email-user", {
+      userId: "blank-email-user",
+      status: "PENDING",
+      email: "",
+      requestedOrgId: "org-request-1",
+      createdAt: "2026-01-02T00:00:00.000Z",
+    });
+    const res = await handler(
+      buildAuthEvent({
+        method: "GET",
+        path: "/me",
+        sub: "blank-email-user",
+        claims: { email: "blank.backfill@example.com" },
+      })
+    );
+    expect(res.statusCode).toBe(200);
+    const body = JSON.parse(res.body);
+    expect(body.user.email).toBe("blank.backfill@example.com");
+    expect(body.user.status).toBe("PENDING");
+    expect(body.user.requestedOrgId).toBe("org-request-1");
+    expect(usersMap.get("blank-email-user")?.email).toBe("blank.backfill@example.com");
+  });
+
+  it("GET /me does not overwrite existing email", async () => {
+    usersMap.set("existing-email-user", {
+      userId: "existing-email-user",
+      status: "PENDING",
+      email: "already.set@example.com",
+      requestedOrgId: "org-request-1",
+      createdAt: "2026-01-02T00:00:00.000Z",
+    });
+    const res = await handler(
+      buildAuthEvent({
+        method: "GET",
+        path: "/me",
+        sub: "existing-email-user",
+        claims: { email: "new.email@example.com" },
+      })
+    );
+    expect(res.statusCode).toBe(200);
+    const body = JSON.parse(res.body);
+    expect(body.user.email).toBe("already.set@example.com");
+    expect(body.user.status).toBe("PENDING");
+    expect(body.user.requestedOrgId).toBe("org-request-1");
+    expect(usersMap.get("existing-email-user")?.email).toBe("already.set@example.com");
   });
 
   it("POST /apply updates requested fields for a pending user", async () => {

@@ -1,7 +1,7 @@
 import { promises as fs } from "node:fs";
 import path from "node:path";
 import { pathToFileURL } from "node:url";
-import { getSeoForPath, seoRoutes } from "../src/seo/seoRoutes.js";
+import { getPrerenderRoutes } from "./prerender-routes.mjs";
 
 process.env.PRERENDER_SKIP_ENV_VALIDATION = "1";
 
@@ -26,11 +26,11 @@ const injectApp = (html, appHtml) => {
   return html.replace(rootPattern, `<div id="root">${appHtml}</div>`);
 };
 
-const routesToRender = seoRoutes.filter((route) => !getSeoForPath(route.path).noindex);
+const routesToRender = getPrerenderRoutes();
 
 await Promise.all(
-  routesToRender.map(async (route) => {
-    const routePath = normalizeRoute(route.path);
+  routesToRender.map(async (routePathValue) => {
+    const routePath = normalizeRoute(routePathValue);
     const { appHtml, headHtml } = await render(routePath);
     const html = injectApp(injectHead(template, headHtml), appHtml);
 

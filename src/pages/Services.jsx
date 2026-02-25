@@ -2,6 +2,7 @@ import { Link } from "react-router-dom";
 import Button from "../components/Button.jsx";
 import Card from "../components/Card.jsx";
 import Footer from "../components/Footer.jsx";
+import servicesCampaignDataImage from "../assets/services-campaign-data.png";
 
 export default function Services() {
   return (
@@ -16,11 +17,12 @@ export default function Services() {
               consultancy work. See below for more information on how each service operates.
             </p>
           </div>
-          <div className="hero-visual" aria-hidden="true">
-            <span>Service delivery overview</span>
-            <p className="muted" style={{ marginTop: 8 }}>
-              Workflow + reporting snapshot placeholder
-            </p>
+          <div className="hero-visual services-hero-visual">
+            <img
+              className="hero-visual-image services-hero-image"
+              src={servicesCampaignDataImage}
+              alt="Team using data to plan a political campaign"
+            />
           </div>
         </div>
       </section>
@@ -28,7 +30,7 @@ export default function Services() {
       <section className="section muted">
         <div className="container stack">
           <h2 className="section-title">What we deliver</h2>
-          <div className="feature-grid" data-testid="services-card-grid">
+          <div className="feature-grid feature-grid--equal" data-testid="services-card-grid">
             <Card title="Marked Register Processing">
               <p className="muted">
                 Create your user and select the Marked Register subscription plan. You will be able to upload
