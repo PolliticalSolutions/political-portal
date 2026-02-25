@@ -32,7 +32,7 @@ describe("App public routing", () => {
       </HelmetProvider>
     );
 
-    expect(screen.getByRole("heading", { name: "Secure sign-in" })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Sign in" })).toBeInTheDocument();
   });
 
   it("keeps portal gated by redirecting unauthenticated users to login", () => {
@@ -46,7 +46,7 @@ describe("App public routing", () => {
       </HelmetProvider>
     );
 
-    expect(screen.getByRole("heading", { name: "Secure sign-in" })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Sign in" })).toBeInTheDocument();
     expect(screen.getByText("Please sign in to continue.")).toBeInTheDocument();
   });
 

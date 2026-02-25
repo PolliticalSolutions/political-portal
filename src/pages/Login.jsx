@@ -1,7 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
-import { Link, useLocation, useSearchParams } from "react-router-dom";
+import { useLocation, useSearchParams } from "react-router-dom";
 import { startLogin, startSignUp } from "../lib/cognito.js";
-import Badge from "../components/Badge.jsx";
 import Button from "../components/Button.jsx";
 import Card from "../components/Card.jsx";
 import Footer from "../components/Footer.jsx";
@@ -37,12 +36,6 @@ export default function Login({ authed }) {
     return effectiveReturnTo.split("?")[0];
   }, [effectiveReturnTo]);
 
-  const signupLink = useMemo(() => {
-    if (!safeReturnTo) return "/signup";
-    const params = new URLSearchParams({ returnTo: safeReturnTo });
-    return `/signup?${params.toString()}`;
-  }, [safeReturnTo]);
-
   const handleLogin = async () => {
     setError(null);
     const redirectPath =
@@ -75,16 +68,13 @@ export default function Login({ authed }) {
           <div className="login-card">
             <Card>
               <div className="stack">
-                <Badge tone="accent">Secure sign-in</Badge>
                 <div>
-                  <h1 style={{ margin: "4px 0 8px", fontSize: 24 }}>Secure sign-in</h1>
-                  <p className="muted">
-                    Use your account to access operational tools and reporting. Authentication is handled by AWS Cognito.
-                  </p>
+                  <h1 style={{ margin: "4px 0 8px", fontSize: 24 }}>Sign in</h1>
+                  <p className="muted">Use your account to access operational tools and reporting.</p>
                 </div>
                 {returnLabel && (
                   <div className="status">
-                    After sign-in you'll return to {returnLabel}.
+                    After sign-in you'll be directed to the {returnLabel.toLowerCase()}
                   </div>
                 )}
                 <Button variant="primary" onClick={handleLogin} disabled={authed}>
@@ -93,10 +83,6 @@ export default function Login({ authed }) {
                 <Button variant="secondary" onClick={handleSignUp}>
                   Create account
                 </Button>
-                <Button as={Link} to={signupLink} variant="ghost">
-                  Create account with pricing selection
-                </Button>
-                <p className="helper">Hosted by AWS Cognito with PKCE for security.</p>
                 {redirectedFrom && !redirectMessage && <div className="status">Please sign in to continue.</div>}
                 {redirectMessage && <div className="status">{redirectMessage}</div>}
                 {error && <div className="status error">{error}</div>}

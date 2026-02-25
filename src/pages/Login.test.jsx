@@ -28,13 +28,11 @@ describe("Login", () => {
       );
     });
 
-    expect(
-      screen.getByText("After sign-in you'll return to Pricing Rules.")
-    ).toBeInTheDocument();
-
-    const signupLink = screen.getByRole("link", { name: "Create account with pricing selection" });
-    expect(signupLink.getAttribute("href")).toBe(
-      "/signup?returnTo=%2Fportal%2Fpricing-rules%3Fassociation%3DTest"
-    );
+    expect(screen.queryByText("Secure sign-in")).not.toBeInTheDocument();
+    expect(screen.queryByText("After sign-in you'll return to Dashboard.")).not.toBeInTheDocument();
+    expect(screen.getByText("After sign-in you'll be directed to the pricing rules")).toBeInTheDocument();
+    expect(screen.queryByText("Create account with pricing selection")).not.toBeInTheDocument();
+    expect(screen.queryByText("Authentication is handled by AWS Cognito.")).not.toBeInTheDocument();
+    expect(screen.queryByText("Hosted by AWS Cognito with PKCE for security.")).not.toBeInTheDocument();
   });
 });
