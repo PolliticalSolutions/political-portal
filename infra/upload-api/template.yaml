@@ -583,6 +583,12 @@ Resources:
             ApiId: !Ref UploadApi
             Path: /me
             Method: GET
+        Apply:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref UploadApi
+            Path: /apply
+            Method: POST
         AdminElectionsCreate:
           Type: HttpApi
           Properties:
@@ -613,6 +619,18 @@ Resources:
             ApiId: !Ref UploadApi
             Path: /admin/users
             Method: GET
+        AdminUserApprove:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref UploadApi
+            Path: /admin/users/{userId}/approve
+            Method: POST
+        AdminUserReject:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref UploadApi
+            Path: /admin/users/{userId}/reject
+            Method: POST
         ManualReviewJobsList:
           Type: HttpApi
           Properties:
