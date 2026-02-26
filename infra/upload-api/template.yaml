@@ -82,9 +82,6 @@ Conditions:
   WafEnabledCondition: !Equals [!Ref WafEnabled, "true"]
   WafManagedRulesEnabledCondition: !Equals [!Ref WafManagedRulesEnabled, "true"]
   GeoLookupConfigured: !Not [!Equals [!Ref GeoLookupTableName, ""]]
-  WafLoggingOn: !And
-    - !Condition WafEnabledCondition
-    - !Equals [!Ref WafLoggingEnabled, "true"]
   AlarmActionsEnabled: !Not [!Equals [!Ref AlarmTopicArn, ""]]
   GuardDutyScanEnabled: !Equals [!Ref EnableGuardDutyScan, "true"]
   GuardDutyScanDisabled: !Not [!Condition GuardDutyScanEnabled]
@@ -458,14 +455,14 @@ Resources:
 
   UploadWafLogGroup:
     Type: AWS::Logs::LogGroup
-    Condition: WafLoggingOn
+    Condition: WafEnabledCondition
     Properties:
       LogGroupName: !Sub "/aws/waf/${AWS::StackName}"
       RetentionInDays: !Ref WafLogRetentionDays
 
   UploadWafLogging:
     Type: AWS::WAFv2::LoggingConfiguration
-    Condition: WafLoggingOn
+    Condition: WafEnabledCondition
     Properties:
       ResourceArn: !GetAtt UploadWebAcl.Arn
       LogDestinationConfigs:
