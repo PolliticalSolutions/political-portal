@@ -9,9 +9,9 @@ const __dirname = path.dirname(__filename);
 const repoRoot = path.resolve(__dirname, "..");
 
 const getCustomHeaders = async () => {
-  const contents = await readFile(path.join(repoRoot, "amplify.yml"), "utf8");
+  const contents = await readFile(path.join(repoRoot, "customHttp.yml"), "utf8");
   const config = load(contents);
-  return config?.frontend?.customHeaders ?? [];
+  return config?.customHeaders ?? [];
 };
 
 const findHeaderPattern = (headers, pattern) =>

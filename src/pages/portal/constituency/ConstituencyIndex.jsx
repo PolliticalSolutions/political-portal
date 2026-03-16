@@ -72,9 +72,12 @@ export default function ConstituencyIndex() {
         if (cancelled) return;
 
         // Extract the 650 2024 constituencies directly from the winners rows.
+        // Filter to valid ONS codes only (E/S/W/N followed by digits) to exclude
+        // any malformed or historical constituency records.
+        const validOnsCode = /^[ESWN]\d/;
         const constituencies = electionData.winners
           .map((w) => w.constituencies)
-          .filter(Boolean)
+          .filter((c) => c && validOnsCode.test(c.ons_code ?? ""))
           .sort((a, b) => a.name.localeCompare(b.name));
 
         // Derive regions and countries client-side — no extra query needed.
@@ -82,10 +85,11 @@ export default function ConstituencyIndex() {
         const countries = [...new Set(constituencies.map((c) => c.country).filter(Boolean))].sort();
 
         // Build ons_code → party lookup for the map and list.
+        // Only include valid 2024 ONS codes to match the filtered constituencies list.
         const onscodeMap = {};
         electionData.winners.forEach((w) => {
           const onsCode = w.constituencies?.ons_code;
-          if (onsCode) onscodeMap[onsCode] = w.parties;
+          if (onsCode && validOnsCode.test(onsCode)) onscodeMap[onsCode] = w.parties;
         });
 
         setAllConstituencies(constituencies);

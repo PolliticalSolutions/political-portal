@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useCallback, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { ComposableMap, Geographies, Geography } from "react-simple-maps";
 
@@ -12,7 +12,7 @@ function toHexColor(hex) {
   return hex.startsWith("#") ? hex : `#${hex}`;
 }
 
-function MapUnavailable() {
+function MapUnavailable({ reason }) {
   return (
     <div
       style={{
@@ -30,11 +30,15 @@ function MapUnavailable() {
       }}
     >
       <div style={{ fontSize: 32 }}>🗺️</div>
-      <p style={{ margin: 0, fontWeight: 600, color: "#374151" }}>Map boundary file not found</p>
+      <p style={{ margin: 0, fontWeight: 600, color: "#374151" }}>Map could not be loaded</p>
       <p className="muted" style={{ margin: 0, fontSize: 13, maxWidth: 340 }}>
-        Add <code>uk-constituencies.geojson</code> to the <code>public/</code> folder.
-        Download the PCON 2024 boundary file from the ONS Open Geography Portal and ensure each
-        feature has a <code>PCON24CD</code> property matching your <code>ons_code</code> values.
+        {reason || (
+          <>
+            Add <code>uk-constituencies.geojson</code> to the <code>public/</code> folder.
+            Download the PCON 2024 boundary file from the ONS Open Geography Portal and ensure each
+            feature has a <code>PCON24CD</code> property matching your <code>ons_code</code> values.
+          </>
+        )}
       </p>
     </div>
   );
@@ -42,14 +46,8 @@ function MapUnavailable() {
 
 export default function ConstituencyMap({ winnersByOnsCode = {}, onConstituencyClick }) {
   const navigate = useNavigate();
-  // null = unknown, true = available, false = missing
-  const [geoAvailable, setGeoAvailable] = useState(null);
-
-  useEffect(() => {
-    fetch(GEO_URL, { method: "HEAD" })
-      .then((r) => setGeoAvailable(r.ok))
-      .catch(() => setGeoAvailable(false));
-  }, []);
+  const [mapError, setMapError] = useState(null);
+  const errorLoggedRef = useRef(false);
 
   const handleClick = (onsCode) => {
     if (!onsCode) return;
@@ -60,25 +58,59 @@ export default function ConstituencyMap({ winnersByOnsCode = {}, onConstituencyC
     }
   };
 
-  if (geoAvailable === false) {
-    return <MapUnavailable />;
-  }
+  const handleGeographies = useCallback(
+    ({ geographies, error, loading }) => {
+      if (error) {
+        if (!errorLoggedRef.current) {
+          errorLoggedRef.current = true;
+          console.error("[ConstituencyMap] Failed to load GeoJSON from", GEO_URL, error);
+          setMapError("Boundary file could not be fetched. Check that uk-constituencies.geojson is present in the public/ folder.");
+        }
+        return null;
+      }
 
-  if (geoAvailable === null) {
-    return (
-      <div
-        style={{
-          height: 400,
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          background: "#f8fafc",
-          borderRadius: 8,
-        }}
-      >
-        <p className="muted">Loading map...</p>
-      </div>
-    );
+      if (!loading && geographies.length === 0 && !errorLoggedRef.current) {
+        errorLoggedRef.current = true;
+        console.error(
+          "[ConstituencyMap] GeoJSON loaded but no features found. URL:",
+          GEO_URL,
+          "— ensure features have a PCON24CD property."
+        );
+        setMapError("Boundary file loaded but contained no features. Ensure the file uses PCON24CD as the constituency code property.");
+        return null;
+      }
+
+      return geographies.map((geo) => {
+        const onsCode = geo.properties.PCON24CD;
+        const winner = winnersByOnsCode[onsCode];
+        // Use a clearly visible mid-grey for constituencies with no matched winner,
+        // so the map is never a blank white box even if party colours are absent.
+        const fill = toHexColor(winner?.colour_hex) ?? "#94a3b8";
+
+        return (
+          <Geography
+            key={geo.rsmKey}
+            geography={geo}
+            fill={fill}
+            stroke="#ffffff"
+            strokeWidth={0.3}
+            title={geo.properties.PCON24NM ?? onsCode}
+            style={{
+              default: { outline: "none" },
+              hover: { outline: "none", opacity: 0.75, cursor: "pointer" },
+              pressed: { outline: "none", opacity: 0.6 },
+            }}
+            onClick={() => handleClick(onsCode)}
+          />
+        );
+      });
+    },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [winnersByOnsCode]
+  );
+
+  if (mapError) {
+    return <MapUnavailable reason={mapError} />;
   }
 
   return (
@@ -92,32 +124,7 @@ export default function ConstituencyMap({ winnersByOnsCode = {}, onConstituencyC
       style={{ width: "100%", height: "auto", display: "block" }}
     >
       <Geographies geography={GEO_URL}>
-        {({ geographies }) =>
-          geographies.map((geo) => {
-            const onsCode = geo.properties.PCON24CD;
-            const winner = winnersByOnsCode[onsCode];
-            // Use a clearly visible mid-grey for constituencies with no matched winner,
-            // so the map is never a blank white box even if party colours are absent.
-            const fill = toHexColor(winner?.colour_hex) ?? "#94a3b8";
-
-            return (
-              <Geography
-                key={geo.rsmKey}
-                geography={geo}
-                fill={fill}
-                stroke="#ffffff"
-                strokeWidth={0.3}
-                title={geo.properties.PCON24NM ?? onsCode}
-                style={{
-                  default: { outline: "none" },
-                  hover: { outline: "none", opacity: 0.75, cursor: "pointer" },
-                  pressed: { outline: "none", opacity: 0.6 },
-                }}
-                onClick={() => handleClick(onsCode)}
-              />
-            );
-          })
-        }
+        {handleGeographies}
       </Geographies>
     </ComposableMap>
   );
