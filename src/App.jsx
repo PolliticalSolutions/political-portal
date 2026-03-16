@@ -32,6 +32,8 @@ import Integrations from "./pages/portal/Integrations.jsx";
 import Quotes from "./pages/portal/Quotes.jsx";
 import QuoteDetail from "./pages/portal/QuoteDetail.jsx";
 import ManualReviewPage from "./pages/portal/admin/ManualReviewPage.jsx";
+import ConstituencyIndex from "./pages/portal/constituency/ConstituencyIndex.jsx";
+import ConstituencyDetail from "./pages/portal/constituency/ConstituencyDetail.jsx";
 import Session from "./pages/Session.jsx";
 import SignUp from "./pages/SignUp.jsx";
 import CookiesPage from "./pages/legal/CookiesPage.jsx";
@@ -294,6 +296,8 @@ export default function App() {
                 <Route path="ops/quotes" element={<Quotes />} />
                 <Route path="ops/quotes/:ref" element={<QuoteDetail />} />
                 <Route path="admin/manual-review" element={<ManualReviewPage />} />
+                <Route path="constituency" element={<ConstituencyIndex />} />
+                <Route path="constituency/:onsCode" element={<ConstituencyDetail />} />
                 <Route path="*" element={<PortalNotFound />} />
               </Route>
             </Route>

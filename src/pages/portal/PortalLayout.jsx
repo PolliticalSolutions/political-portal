@@ -355,6 +355,9 @@ export default function PortalLayout() {
             <NavLink className={navClass} to="/portal" end>
               Dashboard
             </NavLink>
+            <NavLink className={navClass} to="/portal/constituency">
+              Constituency Intelligence
+            </NavLink>
             <NavLink className={navClass} to="/portal/pricing-rules">
               Pricing rules
             </NavLink>

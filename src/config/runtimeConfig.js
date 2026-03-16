@@ -31,6 +31,8 @@ export const getRuntimeConfig = () => {
     cognitoClientId: readEnv("VITE_COGNITO_CLIENT_ID"),
     cognitoRedirectUri: readEnv("VITE_COGNITO_REDIRECT_URI"),
     cognitoLogoutUri: readEnv("VITE_COGNITO_LOGOUT_URI"),
+    supabaseUrl: readEnv("VITE_SUPABASE_URL"),
+    supabaseAnonKey: readEnv("VITE_SUPABASE_ANON_KEY"),
   };
 };
 

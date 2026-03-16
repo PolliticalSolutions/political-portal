@@ -149,6 +149,8 @@ Resources:
     Properties:
       TableName: !Sub "${AWS::StackName}-jobs"
       BillingMode: PAY_PER_REQUEST
+      PointInTimeRecoverySpecification:
+        PointInTimeRecoveryEnabled: true
       AttributeDefinitions:
         - AttributeName: jobId
           AttributeType: S
@@ -197,6 +199,8 @@ Resources:
     Properties:
       TableName: !Sub "${AWS::StackName}-users"
       BillingMode: PAY_PER_REQUEST
+      PointInTimeRecoverySpecification:
+        PointInTimeRecoveryEnabled: true
       AttributeDefinitions:
         - AttributeName: userId
           AttributeType: S
@@ -224,6 +228,8 @@ Resources:
     Properties:
       TableName: !Sub "${AWS::StackName}-elections"
       BillingMode: PAY_PER_REQUEST
+      PointInTimeRecoverySpecification:
+        PointInTimeRecoveryEnabled: true
       AttributeDefinitions:
         - AttributeName: electionId
           AttributeType: S
@@ -251,6 +257,8 @@ Resources:
     Properties:
       TableName: !Sub "${AWS::StackName}-organisations"
       BillingMode: PAY_PER_REQUEST
+      PointInTimeRecoverySpecification:
+        PointInTimeRecoveryEnabled: true
       AttributeDefinitions:
         - AttributeName: orgId
           AttributeType: S
@@ -274,6 +282,8 @@ Resources:
     Properties:
       TableName: !Sub "${AWS::StackName}-audit-log"
       BillingMode: PAY_PER_REQUEST
+      PointInTimeRecoverySpecification:
+        PointInTimeRecoveryEnabled: true
       AttributeDefinitions:
         - AttributeName: auditId
           AttributeType: S
@@ -311,6 +321,8 @@ Resources:
     Properties:
       TableName: !Sub "${AWS::StackName}-submissions"
       BillingMode: PAY_PER_REQUEST
+      PointInTimeRecoverySpecification:
+        PointInTimeRecoveryEnabled: true
       AttributeDefinitions:
         - AttributeName: submissionId
           AttributeType: S
