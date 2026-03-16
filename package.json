@@ -18,6 +18,9 @@
     "seed:elections": "node scripts/seed-elections.mjs",
     "seed:organisations": "node scripts/seed-organisations.mjs",
     "data:build": "node scripts/generateAssociationsJson.mjs",
+    "blog:automate": "node scripts/run-blog-automation.mjs",
+    "blog:approve": "node scripts/approve-blog-post.mjs",
+    "blog:publish": "node scripts/publish-blog-post.mjs",
     "verify:prod:headers": "powershell -ExecutionPolicy Bypass -File scripts/verify-prod-headers.ps1",
     "verify:prerender": "powershell -ExecutionPolicy Bypass -File scripts/verify-prerender-output.ps1",
     "verify:prod:seo": "powershell -ExecutionPolicy Bypass -File scripts/verify-prod-seo-html.ps1"

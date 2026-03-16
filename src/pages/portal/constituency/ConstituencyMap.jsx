@@ -1,10 +1,9 @@
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { ComposableMap, Geographies, Geography } from "react-simple-maps";
 
 // Place uk-constituencies.geojson in your public/ folder.
 // The file must have features with a PCON24CD property matching your ons_code values.
-// ONS boundary files: https://geoportal.statistics.gov.uk
 const GEO_URL = "/uk-constituencies.geojson";
 
 function toHexColor(hex) {
@@ -34,9 +33,8 @@ function MapUnavailable({ reason }) {
       <p className="muted" style={{ margin: 0, fontSize: 13, maxWidth: 340 }}>
         {reason || (
           <>
-            Add <code>uk-constituencies.geojson</code> to the <code>public/</code> folder.
-            Download the PCON 2024 boundary file from the ONS Open Geography Portal and ensure each
-            feature has a <code>PCON24CD</code> property matching your <code>ons_code</code> values.
+            Add <code>uk-constituencies.geojson</code> to the <code>public/</code> folder with a{" "}
+            <code>PCON24CD</code> property on each feature.
           </>
         )}
       </p>
@@ -46,8 +44,15 @@ function MapUnavailable({ reason }) {
 
 export default function ConstituencyMap({ winnersByOnsCode = {}, onConstituencyClick }) {
   const navigate = useNavigate();
+
+  // SSR guard: react-simple-maps uses browser APIs. Never render on the server.
+  const [isMounted, setIsMounted] = useState(false);
   const [mapError, setMapError] = useState(null);
   const errorLoggedRef = useRef(false);
+
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
 
   const handleClick = (onsCode) => {
     if (!onsCode) return;
@@ -64,7 +69,9 @@ export default function ConstituencyMap({ winnersByOnsCode = {}, onConstituencyC
         if (!errorLoggedRef.current) {
           errorLoggedRef.current = true;
           console.error("[ConstituencyMap] Failed to load GeoJSON from", GEO_URL, error);
-          setMapError("Boundary file could not be fetched. Check that uk-constituencies.geojson is present in the public/ folder.");
+          setMapError(
+            "Boundary file could not be fetched. Check that uk-constituencies.geojson is present in the public/ folder and is being served correctly."
+          );
         }
         return null;
       }
@@ -76,15 +83,15 @@ export default function ConstituencyMap({ winnersByOnsCode = {}, onConstituencyC
           GEO_URL,
           "— ensure features have a PCON24CD property."
         );
-        setMapError("Boundary file loaded but contained no features. Ensure the file uses PCON24CD as the constituency code property.");
+        setMapError(
+          "Boundary file loaded but contained no features. Ensure the file uses PCON24CD as the constituency code property."
+        );
         return null;
       }
 
       return geographies.map((geo) => {
         const onsCode = geo.properties.PCON24CD;
         const winner = winnersByOnsCode[onsCode];
-        // Use a clearly visible mid-grey for constituencies with no matched winner,
-        // so the map is never a blank white box even if party colours are absent.
         const fill = toHexColor(winner?.colour_hex) ?? "#94a3b8";
 
         return (
@@ -109,14 +116,26 @@ export default function ConstituencyMap({ winnersByOnsCode = {}, onConstituencyC
     [winnersByOnsCode]
   );
 
+  // SSR: return an empty placeholder that matches the map's rendered height
+  if (!isMounted) {
+    return (
+      <div
+        style={{
+          width: "100%",
+          aspectRatio: "500 / 750",
+          background: "#f8fafc",
+          borderRadius: 8,
+        }}
+      />
+    );
+  }
+
   if (mapError) {
     return <MapUnavailable reason={mapError} />;
   }
 
   return (
     <ComposableMap
-      // Mercator centred on UK. Scale 1800 + center [-2, 55.4] fits
-      // England, Wales, Scotland and NI within a 500×750 viewport.
       projection="geoMercator"
       projectionConfig={{ center: [-2, 55.4], scale: 1800 }}
       width={500}

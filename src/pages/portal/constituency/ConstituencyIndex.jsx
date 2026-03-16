@@ -72,12 +72,26 @@ export default function ConstituencyIndex() {
         if (cancelled) return;
 
         // Extract the 650 2024 constituencies directly from the winners rows.
-        // Filter to valid ONS codes only (E/S/W/N followed by digits) to exclude
-        // any malformed or historical constituency records.
+        // Filter to valid ONS codes (E/S/W/N + digits) and deduplicate by ons_code.
+        // Log any invalid or duplicate entries so the rogue record can be identified.
         const validOnsCode = /^[ESWN]\d/;
+        const seenCodes = new Set();
         const constituencies = electionData.winners
           .map((w) => w.constituencies)
-          .filter((c) => c && validOnsCode.test(c.ons_code ?? ""))
+          .filter((c) => {
+            if (!c) return false;
+            const code = c.ons_code ?? "";
+            if (!validOnsCode.test(code)) {
+              console.warn("[ConstituencyIndex] Invalid ONS code — excluded:", { code, name: c.name });
+              return false;
+            }
+            if (seenCodes.has(code)) {
+              console.warn("[ConstituencyIndex] Duplicate ONS code — excluded:", { code, name: c.name });
+              return false;
+            }
+            seenCodes.add(code);
+            return true;
+          })
           .sort((a, b) => a.name.localeCompare(b.name));
 
         // Derive regions and countries client-side — no extra query needed.
@@ -85,11 +99,13 @@ export default function ConstituencyIndex() {
         const countries = [...new Set(constituencies.map((c) => c.country).filter(Boolean))].sort();
 
         // Build ons_code → party lookup for the map and list.
-        // Only include valid 2024 ONS codes to match the filtered constituencies list.
+        // Only include valid, non-duplicate 2024 ONS codes.
         const onscodeMap = {};
         electionData.winners.forEach((w) => {
           const onsCode = w.constituencies?.ons_code;
-          if (onsCode && validOnsCode.test(onsCode)) onscodeMap[onsCode] = w.parties;
+          if (onsCode && validOnsCode.test(onsCode) && !onscodeMap[onsCode]) {
+            onscodeMap[onsCode] = w.parties;
+          }
         });
 
         setAllConstituencies(constituencies);

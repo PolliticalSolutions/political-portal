@@ -1,6 +1,7 @@
 import { mkdir, writeFile } from "node:fs/promises";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
+import { getBlogEffectiveDate } from "../src/blog/postDates.js";
 import { seoRoutes, siteUrl } from "../src/seo/seoRoutes.js";
 import { getPublishedBlogPosts } from "./blog-content.mjs";
 import { getPublishedBlogRoutes } from "./blog-routes.mjs";
@@ -34,7 +35,7 @@ const getDefaultRoutes = () => {
       path: routePath,
       changefreq: "monthly",
       priority: 0.5,
-      lastmod: post?.meta.date,
+      lastmod: post ? getBlogEffectiveDate(post.meta) : undefined,
     });
   }
 

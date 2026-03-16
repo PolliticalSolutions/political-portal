@@ -53,6 +53,12 @@ customHeaders:
     headers:
       - key: Cache-Control
         value: public, max-age=31536000, immutable
+  - pattern: '*.geojson'
+    headers:
+      - key: Cache-Control
+        value: public, max-age=86400
+      - key: Content-Type
+        value: application/geo+json
   - pattern: '**/*.map'
     headers:
       - key: Cache-Control

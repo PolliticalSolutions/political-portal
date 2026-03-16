@@ -1,0 +1,77 @@
+name: Blog Automation
+
+on:
+  schedule:
+    - cron: "15 5 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  generate-blog-draft:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Use Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20.19.0"
+          cache: "npm"
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run scheduled blog automation
+        run: npm run blog:automate
+        env:
+          AUTO_PUBLISH: "false"
+          REQUIRE_CLAUDE_REVIEW: "true"
+          REQUIRE_HUMAN_REVIEW: "true"
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          BLOG_GENERATION_MODEL: ${{ vars.BLOG_GENERATION_MODEL || 'claude-3-7-sonnet-latest' }}
+          CLAUDE_REVIEW_MODEL: ${{ vars.CLAUDE_REVIEW_MODEL || 'claude-3-7-sonnet-latest' }}
+
+      - name: Detect content changes
+        id: changes
+        shell: bash
+        run: |
+          if git diff --quiet; then
+            echo "has_changes=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "has_changes=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Run tests
+        if: steps.changes.outputs.has_changes == 'true'
+        run: npm run test:run
+        env:
+          VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
+          VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
+
+      - name: Build
+        if: steps.changes.outputs.has_changes == 'true'
+        run: npm run build
+        env:
+          VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
+          VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
+
+      - name: Create review PR
+        if: steps.changes.outputs.has_changes == 'true'
+        uses: peter-evans/create-pull-request@v7
+        with:
+          branch: automation/blog-draft
+          commit-message: "chore(blog): create review draft"
+          title: "Blog automation review draft"
+          body: |
+            This PR was opened by the daily blog automation workflow.
+
+            Review requirements:
+            - confirm source bundle quality
+            - confirm Claude review result or complete the Claude handoff
+            - complete the human review checklist in `docs/blog-review-checklist.md`
+            - do not merge as published content until manual sign-off is complete

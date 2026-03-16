@@ -2,6 +2,7 @@ import { mkdir, writeFile } from "node:fs/promises";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { siteUrl } from "../src/seo/seoRoutes.js";
+import { getBlogEffectiveDate } from "../src/blog/postDates.js";
 import { getPublishedBlogPosts } from "./blog-content.mjs";
 
 const DEFAULT_SITE_URL = process.env.VITE_SITE_URL || siteUrl;
@@ -30,7 +31,7 @@ export const buildRssXml = ({ baseUrl = DEFAULT_SITE_URL, posts = getPublishedBl
         `    <title>${escapeXml(post.meta.title)}</title>`,
         `    <link>${escapeXml(link)}</link>`,
         `    <guid>${escapeXml(link)}</guid>`,
-        `    <pubDate>${new Date(post.meta.date).toUTCString()}</pubDate>`,
+        `    <pubDate>${new Date(getBlogEffectiveDate(post.meta)).toUTCString()}</pubDate>`,
         `    <description>${escapeXml(post.meta.description)}</description>`,
         "  </item>",
       ].join("\n");

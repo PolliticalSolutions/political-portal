@@ -4,6 +4,7 @@ import { Helmet } from "react-helmet-async";
 import Footer from "../components/Footer.jsx";
 import { getPostBySlug } from "../blog/blogLoader.js";
 import { formatBlogDate } from "../blog/formatBlogDate.js";
+import { getBlogEffectiveDate } from "../blog/postDates.js";
 import Comments from "../blog/Comments.jsx";
 import { SITE_URL } from "../seo/seoConfig.js";
 
@@ -41,11 +42,12 @@ export default function BlogPostPage() {
   }
 
   const canonicalUrl = post.meta.canonical || `${SITE_URL}/blog/${post.slug}`;
+  const publishedDate = getBlogEffectiveDate(post.meta);
   const blogPostingJsonLd = {
     "@context": "https://schema.org",
     "@type": "BlogPosting",
     headline: post.meta.title,
-    datePublished: post.meta.date,
+    datePublished: publishedDate,
     author: {
       "@type": "Organization",
       name: post.meta.author,
@@ -73,7 +75,7 @@ export default function BlogPostPage() {
           <header className="stack" style={{ gap: 8 }}>
             <h1 id="blog-post-title">{post.meta.title}</h1>
             <p className="muted blog-meta">
-              {formatBlogDate(post.meta.date)} | {post.meta.author}
+              {formatBlogDate(publishedDate)} | {post.meta.author}
             </p>
             {post.meta.tags.length > 0 && (
               <div className="blog-tags" aria-label="Tags">

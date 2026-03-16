@@ -2,6 +2,7 @@ import { Link } from "react-router-dom";
 import Footer from "../components/Footer.jsx";
 import { getAllPosts } from "../blog/blogLoader.js";
 import { formatBlogDate } from "../blog/formatBlogDate.js";
+import { getBlogEffectiveDate } from "../blog/postDates.js";
 
 export default function BlogIndexPage() {
   const posts = getAllPosts();
@@ -26,7 +27,7 @@ export default function BlogIndexPage() {
                 <h2 className="card-title blog-title-link">
                   <Link to={`/blog/${post.slug}`}>{post.meta.title}</Link>
                 </h2>
-                <p className="muted blog-meta">{formatBlogDate(post.meta.date)}</p>
+                <p className="muted blog-meta">{formatBlogDate(getBlogEffectiveDate(post.meta))}</p>
                 <p className="muted">{post.meta.description}</p>
               </div>
               {post.meta.tags.length > 0 && (
