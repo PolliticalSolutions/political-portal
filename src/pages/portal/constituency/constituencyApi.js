@@ -1,12 +1,11 @@
 import { supabase } from "../../../lib/supabaseClient.js";
 
-export async function searchConstituencies({ query = "", region = "", country = "", ids = null } = {}) {
+export async function searchConstituencies({ query = "", region = "", country = "" } = {}) {
   let q = supabase
     .from("constituencies")
     .select("id, ons_code, name, region, country, constituency_type, electorate_current")
     .order("name");
 
-  if (ids) q = q.in("id", ids);
   if (query) q = q.ilike("name", `%${query}%`);
   if (region) q = q.eq("region", region);
   if (country) q = q.eq("country", country);
@@ -24,17 +23,6 @@ export async function getConstituency(onsCode) {
     .single();
   if (error) throw new Error(error.message);
   return data;
-}
-
-export async function getRegionsAndCountries(ids = null) {
-  let q = supabase.from("constituencies").select("region, country");
-  if (ids) q = q.in("id", ids);
-  const { data, error } = await q;
-  if (error) throw new Error(error.message);
-
-  const regions = [...new Set((data ?? []).map((r) => r.region).filter(Boolean))].sort();
-  const countries = [...new Set((data ?? []).map((r) => r.country).filter(Boolean))].sort();
-  return { regions, countries };
 }
 
 export async function getConstituencyResults(constituencyId) {
@@ -79,9 +67,15 @@ export async function getLatestElectionWinners() {
 
   const latestId = elections[0].id;
 
+  // Include constituency data in the same query to avoid a separate large .in() call.
+  // PostgREST resolves results.constituency_id → constituencies via the FK relationship.
   const { data: winners, error: wErr } = await supabase
     .from("results")
-    .select("constituency_id, parties(id, name, short_name, colour_hex)")
+    .select(`
+      constituency_id,
+      parties(id, name, short_name, colour_hex),
+      constituencies(id, ons_code, name, region, country, constituency_type, electorate_current)
+    `)
     .eq("election_id", latestId)
     .eq("is_winner", true);
   if (wErr) throw new Error(wErr.message);

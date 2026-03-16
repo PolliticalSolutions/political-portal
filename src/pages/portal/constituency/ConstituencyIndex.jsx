@@ -2,11 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import Card from "../../../components/Card.jsx";
 import ConstituencyMap from "./ConstituencyMap.jsx";
-import {
-  getLatestElectionWinners,
-  getRegionsAndCountries,
-  searchConstituencies,
-} from "./constituencyApi.js";
+import { getLatestElectionWinners } from "./constituencyApi.js";
 
 function toHexColor(hex) {
   if (!hex) return null;
@@ -70,38 +66,32 @@ export default function ConstituencyIndex() {
 
     async function load() {
       try {
-        // Step 1: get winners from the latest (2024) election.
-        // This gives us the definitive set of 2024 constituency IDs.
+        // A single query returns all 2024 winners with constituency + party data embedded.
+        // No secondary large .in() query needed — avoids 400 Bad Request from URL length limits.
         const electionData = await getLatestElectionWinners();
         if (cancelled) return;
 
-        const constituencyIds = electionData.winners
-          .map((w) => w.constituency_id)
-          .filter(Boolean);
+        // Extract the 650 2024 constituencies directly from the winners rows.
+        const constituencies = electionData.winners
+          .map((w) => w.constituencies)
+          .filter(Boolean)
+          .sort((a, b) => a.name.localeCompare(b.name));
 
-        // Step 2: fetch only the 2024 constituencies (by ID) + filter options in parallel.
-        const [constituencies, filterOptions] = await Promise.all([
-          searchConstituencies({ ids: constituencyIds }),
-          getRegionsAndCountries(constituencyIds),
-        ]);
-        if (cancelled) return;
+        // Derive regions and countries client-side — no extra query needed.
+        const regions = [...new Set(constituencies.map((c) => c.region).filter(Boolean))].sort();
+        const countries = [...new Set(constituencies.map((c) => c.country).filter(Boolean))].sort();
 
-        setAllConstituencies(constituencies);
-        setRegions(filterOptions.regions);
-        setCountries(filterOptions.countries);
-        setLatestElection({
-          name: electionData.electionName,
-          date: electionData.electionDate,
-        });
-
-        // Build ons_code → party lookup for the map.
-        const idToOns = {};
-        constituencies.forEach((c) => { idToOns[c.id] = c.ons_code; });
+        // Build ons_code → party lookup for the map and list.
         const onscodeMap = {};
         electionData.winners.forEach((w) => {
-          const onsCode = idToOns[w.constituency_id];
+          const onsCode = w.constituencies?.ons_code;
           if (onsCode) onscodeMap[onsCode] = w.parties;
         });
+
+        setAllConstituencies(constituencies);
+        setRegions(regions);
+        setCountries(countries);
+        setLatestElection({ name: electionData.electionName, date: electionData.electionDate });
         setWinnersByOnsCode(onscodeMap);
       } catch (err) {
         if (!cancelled) setError(err.message || "Failed to load constituency data.");
