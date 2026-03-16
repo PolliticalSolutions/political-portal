@@ -83,19 +83,22 @@ export default function ConstituencyMap({ winnersByOnsCode = {}, onConstituencyC
 
   return (
     <ComposableMap
-      // geoMercator centred on UK. Adjust scale/center if your GeoJSON clips oddly.
+      // Mercator centred on UK. Scale 1800 + center [-2, 55.4] fits
+      // England, Wales, Scotland and NI within a 500×750 viewport.
       projection="geoMercator"
-      projectionConfig={{ center: [-2, 54], scale: 2500 }}
+      projectionConfig={{ center: [-2, 55.4], scale: 1800 }}
       width={500}
-      height={600}
-      style={{ width: "100%", height: "auto" }}
+      height={750}
+      style={{ width: "100%", height: "auto", display: "block" }}
     >
       <Geographies geography={GEO_URL}>
         {({ geographies }) =>
           geographies.map((geo) => {
             const onsCode = geo.properties.PCON24CD;
             const winner = winnersByOnsCode[onsCode];
-            const fill = toHexColor(winner?.colour_hex) ?? "#e2e8f0";
+            // Use a clearly visible mid-grey for constituencies with no matched winner,
+            // so the map is never a blank white box even if party colours are absent.
+            const fill = toHexColor(winner?.colour_hex) ?? "#94a3b8";
 
             return (
               <Geography

@@ -1,11 +1,12 @@
 import { supabase } from "../../../lib/supabaseClient.js";
 
-export async function searchConstituencies({ query = "", region = "", country = "" } = {}) {
+export async function searchConstituencies({ query = "", region = "", country = "", ids = null } = {}) {
   let q = supabase
     .from("constituencies")
     .select("id, ons_code, name, region, country, constituency_type, electorate_current")
     .order("name");
 
+  if (ids) q = q.in("id", ids);
   if (query) q = q.ilike("name", `%${query}%`);
   if (region) q = q.eq("region", region);
   if (country) q = q.eq("country", country);
@@ -25,10 +26,10 @@ export async function getConstituency(onsCode) {
   return data;
 }
 
-export async function getRegionsAndCountries() {
-  const { data, error } = await supabase
-    .from("constituencies")
-    .select("region, country");
+export async function getRegionsAndCountries(ids = null) {
+  let q = supabase.from("constituencies").select("region, country");
+  if (ids) q = q.in("id", ids);
+  const { data, error } = await q;
   if (error) throw new Error(error.message);
 
   const regions = [...new Set((data ?? []).map((r) => r.region).filter(Boolean))].sort();

@@ -70,12 +70,20 @@ export default function ConstituencyIndex() {
 
     async function load() {
       try {
-        const [constituencies, filterOptions, electionData] = await Promise.all([
-          searchConstituencies(),
-          getRegionsAndCountries(),
-          getLatestElectionWinners(),
-        ]);
+        // Step 1: get winners from the latest (2024) election.
+        // This gives us the definitive set of 2024 constituency IDs.
+        const electionData = await getLatestElectionWinners();
+        if (cancelled) return;
 
+        const constituencyIds = electionData.winners
+          .map((w) => w.constituency_id)
+          .filter(Boolean);
+
+        // Step 2: fetch only the 2024 constituencies (by ID) + filter options in parallel.
+        const [constituencies, filterOptions] = await Promise.all([
+          searchConstituencies({ ids: constituencyIds }),
+          getRegionsAndCountries(constituencyIds),
+        ]);
         if (cancelled) return;
 
         setAllConstituencies(constituencies);
@@ -86,19 +94,9 @@ export default function ConstituencyIndex() {
           date: electionData.electionDate,
         });
 
-        const map = {};
-        electionData.winners.forEach((w) => {
-          if (w.constituency_id) {
-            map[w.constituency_id] = w.parties;
-          }
-        });
-        // Also build a lookup by ons_code for the map component
-        // We need to cross-reference constituency_id → ons_code
-        // Build id→ons_code from the constituencies we just loaded
+        // Build ons_code → party lookup for the map.
         const idToOns = {};
-        constituencies.forEach((c) => {
-          idToOns[c.id] = c.ons_code;
-        });
+        constituencies.forEach((c) => { idToOns[c.id] = c.ons_code; });
         const onscodeMap = {};
         electionData.winners.forEach((w) => {
           const onsCode = idToOns[w.constituency_id];
@@ -130,7 +128,8 @@ export default function ConstituencyIndex() {
     const acc = {};
     Object.values(winnersByOnsCode).forEach((party) => {
       if (!party) return;
-      const key = party.id;
+      // Group by short_name so Labour and Labour Co-op don't appear as separate rows.
+      const key = party.short_name || party.name;
       if (!acc[key]) {
         acc[key] = { name: party.name, shortName: party.short_name, hex: party.colour_hex, count: 0 };
       }
