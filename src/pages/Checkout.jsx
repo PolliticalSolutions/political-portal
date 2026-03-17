@@ -148,7 +148,10 @@ export default function Checkout({ basePath = "" }) {
       <div className="page stack">
         <Card>
           <h1 style={{ margin: "0 0 12px", fontSize: 22 }}>Checkout</h1>
-          <p className="muted">Your cart is empty. Add products before requesting a quote.</p>
+          <p className="muted">
+            Your cart is empty. Add an Association subscription or Marked Register Processing before requesting
+            a quote.
+          </p>
           <Button as={Link} to={buildPath("/subscriptions")} variant="primary" style={{ marginTop: 16 }}>
             View subscriptions
           </Button>
@@ -162,8 +165,9 @@ export default function Checkout({ basePath = "" }) {
       <Card>
         <h1 style={{ margin: "0 0 12px", fontSize: 22 }}>Request a quote</h1>
         <p className="muted">
-          Provide your details and we will prepare a quote or invoice request. Subscriptions are
-          capability-focused and election-specific work is contracted separately.
+          This form submits a quote or invoice request rather than taking payment immediately. Use it to confirm
+          Association subscriptions, request Marked Register Processing, and provide the contact details needed
+          for follow-up.
         </p>
       </Card>
 

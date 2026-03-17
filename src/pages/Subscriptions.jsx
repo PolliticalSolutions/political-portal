@@ -144,7 +144,7 @@ export default function Subscriptions() {
       <section className="hero subscription-hero">
         <Badge tone="accent">Subscriptions</Badge>
         <div>
-          <h1>Association Subscriptions: Campaign Capability as a Service</h1>
+          <h1>Association subscriptions for campaign operations</h1>
           <p>
             Build operational readiness with clear workflows, consistent data processing, and insight packs.
             Select the association or constituency first, then pick the tier that fits your circumstances.
@@ -297,17 +297,17 @@ export default function Subscriptions() {
             </p>
           </Card>
 
-          <Card title="More products">
+          <Card title="Marked Register Processing">
             <div className="stack" style={{ gap: 12 }}>
               <div className="subtle-row">
                 <div>
-                  <div style={{ fontWeight: 700 }}>Marked Register Entry</div>
-                  <div className="muted">Data processing service for marked registers.</div>
+                  <div style={{ fontWeight: 700 }}>Marked Register Processing</div>
+                  <div className="muted">One-off marked register processing for PDF or CSV inputs.</div>
                 </div>
                 <div style={{ fontWeight: 700 }}>{formatCurrency(65)}</div>
               </div>
               <Button variant="secondary" onClick={handleAddMarkedRegister}>
-                Add Marked Register Entry
+                Add Marked Register Processing
               </Button>
             </div>
           </Card>
@@ -316,7 +316,7 @@ export default function Subscriptions() {
             <div className="cta-row">
               <div>
                 <div style={{ fontWeight: 700 }}>
-                  {selectedTier ? `${selectedTier.name} subscription` : "Select a tier to continue"}
+                  {selectedTier ? `${selectedTier.name} Association Subscription` : "Select a tier to continue"}
                 </div>
                 <div className="muted">
                   {selection.association || selection.constituency

@@ -9,13 +9,19 @@ import "./Cart.css";
 const resolveClusterLabel = (clusterSizeId) =>
   CLUSTER_SIZES.find((size) => size.id === clusterSizeId)?.label || "";
 
+const resolveItemCategoryLabel = (item) => {
+  if (item.category === "subscription") return "Association subscription";
+  if (item.productId === "marked-register-entry") return "Marked Register Processing";
+  return "One-off service";
+};
+
 const CartLineItem = ({ item, onRemove }) => (
   <div className="cart-line">
     <div className="cart-line-main">
       <div>
         <div style={{ fontWeight: 700 }}>{item.name}</div>
         <div className="muted" style={{ marginTop: 4, fontSize: 12 }}>
-          {item.category === "subscription" ? "Subscription" : "One-off"}
+          {resolveItemCategoryLabel(item)}
         </div>
         {item.category === "subscription" && (
           <div className="pill" style={{ marginTop: 6 }}>
@@ -86,7 +92,9 @@ export default function Cart({ basePath = "" }) {
       <div className="page stack">
         <Card>
           <h1 style={{ margin: "0 0 12px", fontSize: 22 }}>Cart</h1>
-          <p className="muted">Your cart is empty. Add a subscription or product to continue.</p>
+          <p className="muted">
+            Your cart is empty. Add an Association subscription or Marked Register Processing to continue.
+          </p>
           <div style={{ display: "flex", gap: 12, flexWrap: "wrap", marginTop: 16 }}>
             <Button as={Link} to={buildPath("/subscriptions")} variant="primary">
               View subscriptions
@@ -104,11 +112,14 @@ export default function Cart({ basePath = "" }) {
     <div className="page stack">
       <Card>
         <h1 style={{ margin: "0 0 12px", fontSize: 22 }}>Cart</h1>
-        <p className="muted">Review your selections and continue to request a quote or invoice.</p>
+        <p className="muted">
+          This cart prepares a quote or invoice request. Association subscriptions set up access and recurring
+          billing, while Marked Register Processing is requested here as a one-off service.
+        </p>
       </Card>
 
       {subscriptionItems.length > 0 && (
-        <Card title="Subscriptions">
+        <Card title="Association subscriptions">
           <div className="cart-lines" role="list">
             {subscriptionItems.map((item) => (
               <CartLineItem key={item.lineId} item={item} onRemove={removeItem} />
@@ -118,7 +129,7 @@ export default function Cart({ basePath = "" }) {
       )}
 
       {oneOffItems.length > 0 && (
-        <Card title="One-off products">
+        <Card title="Marked Register Processing">
           <div className="cart-lines" role="list">
             {oneOffItems.map((item) => (
               <CartLineItem key={item.lineId} item={item} onRemove={removeItem} />

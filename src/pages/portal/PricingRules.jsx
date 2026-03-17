@@ -151,7 +151,7 @@ export default function PricingRules() {
             <span className="portal-page-header__eyebrow">Account and Pricing</span>
             <h1 className="portal-page-header__title">Pricing rules</h1>
             <p className="portal-page-header__subtitle">
-              Review association or federation pricing for the current selection and prepare the next account
+              Review Association subscription pricing for the current selection and prepare the next account
               setup step.
             </p>
           </div>
@@ -167,7 +167,7 @@ export default function PricingRules() {
         <div className="portal-page-header" style={{ marginBottom: 16 }}>
           <div className="portal-page-header__content">
             <p className="portal-page-header__subtitle">
-              VAT is calculated at the applicable rate for the selected association or federation.
+              VAT is calculated at the applicable rate for the selected association or federation account.
             </p>
           </div>
           <div className="no-print pricing-rules-actions" style={{ textAlign: "right" }}>

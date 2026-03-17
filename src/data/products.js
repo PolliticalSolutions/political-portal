@@ -23,7 +23,7 @@ export const sanitizeSubscriptionMetadata = (metadata) => {
 export const PRODUCT_CATALOG = {
   "marked-register-entry": {
     id: "marked-register-entry",
-    name: "Marked Register Entry",
+    name: "Marked Register Processing",
     price: 65,
     billingPeriod: "one-off",
     category: "data",
@@ -64,7 +64,7 @@ export const createSubscriptionLineItem = ({
   });
   return {
     productId: `subscription-${tier.id}`,
-    name: `${tier.name} subscription`,
+    name: `${tier.name} Association Subscription`,
     unitPrice,
     billingPeriod,
     category: "subscription",
