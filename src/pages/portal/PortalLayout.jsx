@@ -395,6 +395,9 @@ export default function PortalLayout() {
               <NavLink className={navClass} to="/portal/constituency/reform-threat">
                 Reform Threat
               </NavLink>
+              <NavLink className={navClass} to="/portal/analytics/by-election-watch">
+                By-Election Watch
+              </NavLink>
               <NavLink className={navClass} to="/portal/alerts">
                 My Alerts
               </NavLink>

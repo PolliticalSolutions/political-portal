@@ -165,6 +165,26 @@ export async function getHighRiskByElectionSeats() {
   return data ?? [];
 }
 
+export async function getByElectionWatchSeats() {
+  const { data, error } = await supabase
+    .from("by_election_risk")
+    .select(`
+      constituency_id,
+      risk_score,
+      risk_level,
+      majority_factor,
+      council_instability_factor,
+      defection_risk_factor,
+      polling_trend_factor,
+      risk_summary,
+      calculated_at
+    `)
+    .gt("risk_score", 7)
+    .order("risk_score", { ascending: false });
+  if (error) return [];
+  return data ?? [];
+}
+
 export async function getVulnerabilityScore(constituencyId) {
   const { data, error } = await supabase
     .from("vulnerability_scores")
@@ -253,6 +273,8 @@ export async function getLatestElectionWinners() {
     .from("results")
     .select(`
       constituency_id,
+      majority,
+      candidates(id, first_name, last_name),
       parties(id, name, short_name, colour_hex),
       constituencies(id, ons_code, name, region, country, constituency_type, electorate_current)
     `)
