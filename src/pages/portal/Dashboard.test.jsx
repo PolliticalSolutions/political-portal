@@ -28,6 +28,7 @@ describe("Dashboard", () => {
     );
 
     expect(screen.getByRole("heading", { name: "Dashboard" })).toBeInTheDocument();
+    expect(document.querySelector(".portal-dashboard-grid")).toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "Marked Register Processing" })).toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "Constituency Intelligence" })).toBeInTheDocument();
     expect(

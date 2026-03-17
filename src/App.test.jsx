@@ -51,6 +51,7 @@ describe("App top navigation", () => {
 
     renderApp();
 
+    expect(screen.queryByRole("link", { name: "Pricing" })).not.toBeInTheDocument();
     expect(screen.queryByRole("link", { name: "Portal" })).not.toBeInTheDocument();
   });
 
@@ -65,6 +66,7 @@ describe("App top navigation", () => {
 
     renderApp();
 
+    expect(screen.queryByRole("link", { name: "Pricing" })).not.toBeInTheDocument();
     expect(screen.getByRole("link", { name: "Portal" })).toHaveAttribute("href", "/portal");
   });
 });

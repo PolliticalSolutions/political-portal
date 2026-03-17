@@ -3,7 +3,12 @@ import { Link } from "react-router-dom";
 import Button from "../../../components/Button.jsx";
 import Card from "../../../components/Card.jsx";
 import { getLatestElectionWinners } from "./constituencyApi.js";
-import { buildSeatsByPartySummary, getCurrentStatus, normalizePartyName } from "./constituencyPresentation.js";
+import {
+  buildSeatsByPartySummary,
+  CURRENT_COMPOSITION,
+  getCurrentStatus,
+  normalizePartyName,
+} from "./constituencyPresentation.js";
 
 const ConstituencyMapClient = lazy(() => import("./ConstituencyMapClient.jsx"));
 
@@ -25,25 +30,34 @@ function PartyDot({ hex, size = 10 }) {
   );
 }
 
-function SeatBar({ label, shortName, hex, count, total }) {
-  const pct = total > 0 ? (count / total) * 100 : 0;
+function formatSignedChange(value) {
+  if (value === null || value === undefined) return "—";
+  if (value === 0) return "0";
+  return `${value > 0 ? "+" : ""}${value}`;
+}
+
+function changeClassName(value) {
+  if (value > 0) return "portal-change portal-change--positive";
+  if (value < 0) return "portal-change portal-change--negative";
+  return "portal-change";
+}
+
+function SeatsWonRow({ label, shortName, hex, count, total, change }) {
+  const pct = total > 0 ? Math.round((count / total) * 1000) / 10 : 0;
   return (
-    <div className="portal-kpi-row">
-      <PartyDot hex={hex} />
-      <span className="portal-kpi-label" title={label}>
-        {shortName || label}
-      </span>
-      <div className="portal-kpi-bar">
-        <div
-          className="portal-kpi-bar__fill"
-          style={{
-            width: `${pct}%`,
-            background: toHexColor(hex) ?? "#94a3b8",
-          }}
-        />
-      </div>
-      <span className="portal-kpi-value">{count}</span>
-    </div>
+    <tr>
+      <td>
+        <span className="party-chip">
+          <PartyDot hex={hex} />
+          <span title={label}>{shortName || label}</span>
+        </span>
+      </td>
+      <td>{count}</td>
+      <td>{pct}%</td>
+      <td>
+        <span className={changeClassName(change)}>{formatSignedChange(change)}</span>
+      </td>
+    </tr>
   );
 }
 
@@ -174,7 +188,6 @@ export default function ConstituencyIndex() {
         <Card>
           <div className="portal-page-header">
             <div className="portal-page-header__content">
-              <span className="portal-page-header__eyebrow">Constituency Intelligence</span>
               <h1 className="portal-page-header__title">Constituency Intelligence</h1>
               <p className="portal-page-header__subtitle">Loading constituency data.</p>
             </div>
@@ -189,7 +202,6 @@ export default function ConstituencyIndex() {
       <Card>
         <div className="portal-page-header">
           <div className="portal-page-header__content">
-            <span className="portal-page-header__eyebrow">Constituency Intelligence</span>
             <h1 className="portal-page-header__title">UK constituency intelligence</h1>
             <p className="portal-page-header__subtitle">
               Review winners, election context, and constituency reference data in one search-led workspace.
@@ -313,20 +325,60 @@ export default function ConstituencyIndex() {
 
           {seatsByParty.length > 0 && (
             <Card title="Seats won">
-              <div className="portal-stack-compact">
-                {seatsByParty.map((party) => (
-                  <SeatBar
-                    key={party.name}
-                    label={party.name}
-                    shortName={party.shortName}
-                    hex={party.hex}
-                    count={party.count}
-                    total={totalSeats}
-                  />
-                ))}
+              <div className="table-wrap">
+                <table className="table table--compact">
+                  <thead>
+                    <tr>
+                      <th>Party</th>
+                      <th>Seats</th>
+                      <th>Share</th>
+                      <th>Change</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {seatsByParty.map((party) => (
+                      <SeatsWonRow
+                        key={party.name}
+                        label={party.name}
+                        shortName={party.shortName}
+                        hex={party.hex}
+                        count={party.count}
+                        total={totalSeats}
+                        change={party.change}
+                      />
+                    ))}
+                  </tbody>
+                </table>
               </div>
             </Card>
           )}
+
+          <Card title="Current composition">
+            <div className="table-wrap">
+              <table className="table table--compact">
+                <thead>
+                  <tr>
+                    <th>Party</th>
+                    <th>Seats at GE2024</th>
+                    <th>Current seats</th>
+                    <th>Change</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {CURRENT_COMPOSITION.map((row) => (
+                    <tr key={row.party}>
+                      <td>{row.party}</td>
+                      <td>{row.electedSeats}</td>
+                      <td>{row.currentSeats}</td>
+                      <td>
+                        <span className={changeClassName(row.change)}>{formatSignedChange(row.change)}</span>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </Card>
         </div>
       </div>
 

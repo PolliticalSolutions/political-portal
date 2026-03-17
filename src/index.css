@@ -422,7 +422,28 @@ p {
 }
 
 .dashboard-module-card {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
   padding: var(--space-5);
+}
+
+.dashboard-module-card .card-header {
+  align-items: flex-start;
+  margin-bottom: var(--space-4);
+}
+
+.dashboard-module-card .product-card__body {
+  flex: 1;
+}
+
+.portal-dashboard-grid {
+  align-items: stretch;
+}
+
+.portal-dashboard-grid > * {
+  height: 100%;
+  align-self: stretch;
 }
 
 .product-card__body {
@@ -1040,14 +1061,44 @@ p {
 }
 
 .portal-map-canvas {
+  position: relative;
   display: grid;
-  gap: var(--space-3);
 }
 
 .portal-map-controls {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  z-index: 2;
   display: inline-flex;
+  flex-direction: column;
   gap: var(--space-2);
-  justify-content: flex-end;
+}
+
+.portal-map-control-button {
+  width: 36px;
+  height: 36px;
+  border: 1px solid rgba(11, 46, 77, 0.28);
+  border-radius: 10px;
+  background: var(--primary);
+  color: #ffffff;
+  font-size: 20px;
+  font-weight: 700;
+  line-height: 1;
+  box-shadow: 0 12px 24px rgba(11, 46, 77, 0.22);
+  cursor: pointer;
+  transition: background 160ms ease, transform 140ms ease, box-shadow 160ms ease;
+}
+
+.portal-map-control-button:hover {
+  background: var(--primary-hover);
+  transform: translateY(-1px);
+  box-shadow: 0 14px 28px rgba(11, 46, 77, 0.26);
+}
+
+.portal-map-control-button:focus-visible {
+  outline: none;
+  box-shadow: var(--focus-ring), 0 14px 28px rgba(11, 46, 77, 0.26);
 }
 
 .portal-map-frame {
@@ -1072,40 +1123,6 @@ p {
 .portal-kpi-list {
   display: grid;
   gap: var(--space-3);
-}
-
-.portal-kpi-row {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-}
-
-.portal-kpi-label {
-  width: 120px;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  font-size: 13px;
-}
-
-.portal-kpi-bar {
-  flex: 1;
-  height: 10px;
-  border-radius: 999px;
-  overflow: hidden;
-  background: #e2e8f0;
-}
-
-.portal-kpi-bar__fill {
-  height: 100%;
-  border-radius: 999px;
-}
-
-.portal-kpi-value {
-  width: 30px;
-  text-align: right;
-  font-size: 12px;
-  color: var(--text-muted);
 }
 
 .portal-kpi-note {
@@ -1215,6 +1232,11 @@ p {
   border-top: 1px solid rgba(215, 221, 231, 0.8);
 }
 
+.table--compact th,
+.table--compact td {
+  padding: 10px 12px;
+}
+
 .table tbody tr:hover {
   background: rgba(11, 46, 77, 0.03);
 }
@@ -1255,6 +1277,19 @@ p {
 .status-pill.warning {
   background: #fef3c7;
   color: #92400e;
+}
+
+.portal-change {
+  font-weight: 700;
+  color: var(--text-muted);
+}
+
+.portal-change--positive {
+  color: #15803d;
+}
+
+.portal-change--negative {
+  color: #b91c1c;
 }
 
 .portal-comparison-list {
@@ -1576,6 +1611,7 @@ p {
   display: grid;
   gap: var(--space-3);
   grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  align-items: stretch;
 }
 
 .token-block {

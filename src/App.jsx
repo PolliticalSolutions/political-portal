@@ -97,9 +97,6 @@ function TopNav({ authed, onLogout, cartCount }) {
             <NavLinkButton to="/services" onClick={closeMenu}>
               Services
             </NavLinkButton>
-            <NavLinkButton to="/subscriptions" onClick={closeMenu}>
-              Pricing
-            </NavLinkButton>
             <NavLinkButton to="/enquire" onClick={closeMenu} end>
               Contact
             </NavLinkButton>

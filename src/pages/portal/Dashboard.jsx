@@ -51,7 +51,7 @@ export default function Dashboard() {
         </div>
       </Card>
 
-      <div className="card-grid">
+      <div className="card-grid portal-dashboard-grid">
         <Card title="Marked Register Processing" className="product-card dashboard-module-card">
           <div className="product-card__body">
             <p>

@@ -11,6 +11,23 @@ function toHexColor(hex) {
   return hex.startsWith("#") ? hex : `#${hex}`;
 }
 
+function blendHexWithWhite(hex, blend = 0.3) {
+  const normalized = toHexColor(hex);
+  if (!normalized || !/^#[0-9a-fA-F]{6}$/.test(normalized)) {
+    return "#94a3b8";
+  }
+
+  const red = parseInt(normalized.slice(1, 3), 16);
+  const green = parseInt(normalized.slice(3, 5), 16);
+  const blue = parseInt(normalized.slice(5, 7), 16);
+
+  const mix = (channel) => Math.round(channel + (255 - channel) * blend);
+
+  return `#${[mix(red), mix(green), mix(blue)]
+    .map((channel) => channel.toString(16).padStart(2, "0"))
+    .join("")}`;
+}
+
 function MapError({ reason }) {
   return (
     <div
@@ -73,7 +90,7 @@ export default function ConstituencyMapClient({
 
       return geographies.map((geo) => {
         const onsCode = geo.properties.PCON24CD;
-        const fill = winnerColoursByOnsCode[onsCode] ?? "#94a3b8";
+        const fill = blendHexWithWhite(winnerColoursByOnsCode[onsCode], 0.35);
         const hasCurrentDifference = Boolean(currentStatusByOnsCode[onsCode]);
 
         return (
@@ -107,7 +124,7 @@ export default function ConstituencyMapClient({
       <div className="portal-map-controls" aria-label="Map zoom controls">
         <button
           type="button"
-          className="button secondary button--small"
+          className="portal-map-control-button"
           onClick={() => setPosition((current) => ({ ...current, zoom: Math.min(current.zoom * 1.25, 8) }))}
           aria-label="Zoom in"
         >
@@ -115,7 +132,7 @@ export default function ConstituencyMapClient({
         </button>
         <button
           type="button"
-          className="button secondary button--small"
+          className="portal-map-control-button"
           onClick={() => setPosition((current) => ({ ...current, zoom: Math.max(current.zoom / 1.25, 1) }))}
           aria-label="Zoom out"
         >
