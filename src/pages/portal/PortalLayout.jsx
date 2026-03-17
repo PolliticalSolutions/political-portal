@@ -401,6 +401,9 @@ export default function PortalLayout() {
               <NavLink className={navClass} to="/portal/analytics/correlations">
                 Correlations
               </NavLink>
+              <NavLink className={navClass} to="/portal/analytics/model-performance">
+                Model Performance
+              </NavLink>
             </div>
             <div className="portal-nav-group">
               <span className="portal-nav-group__label">Account</span>

@@ -168,6 +168,28 @@ describe("Portal routing", () => {
     expect(await screen.findByText("Local Government detail destination")).toBeInTheDocument();
   });
 
+  it("renders the model performance route inside the portal layout", async () => {
+    renderWithHelmet(
+      <MemoryRouter initialEntries={["/portal/analytics/model-performance"]}>
+        <Routes>
+          <Route element={<ProtectedRoute authed={true} session={{}} />}>
+            <Route path="/portal" element={<PortalLayout />}>
+              <Route index element={<Portal tokens={null} onLogout={null} />} />
+              <Route
+                path="analytics/model-performance"
+                element={<div>Model performance destination</div>}
+              />
+              <Route path="uploads" element={<Uploads />} />
+              <Route path="*" element={<PortalNotFound />} />
+            </Route>
+          </Route>
+        </Routes>
+      </MemoryRouter>
+    );
+
+    expect(await screen.findByText("Model performance destination")).toBeInTheDocument();
+  });
+
   it("blocks upload route when /me returns PENDING", async () => {
     uploadApi.getMe.mockResolvedValue({ user: { status: "PENDING" } });
 

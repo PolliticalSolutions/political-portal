@@ -49,6 +49,10 @@ describe("PortalLayout", () => {
       "href",
       "/portal/analytics/correlations"
     );
+    expect(screen.getByRole("link", { name: "Model Performance" })).toHaveAttribute(
+      "href",
+      "/portal/analytics/model-performance"
+    );
     expect(screen.queryByRole("link", { name: "Subscriptions" })).not.toBeInTheDocument();
     expect(screen.queryByRole("link", { name: "Pricing rules" })).not.toBeInTheDocument();
   });
