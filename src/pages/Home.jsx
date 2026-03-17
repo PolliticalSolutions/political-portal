@@ -6,56 +6,25 @@ import Footer from "../components/Footer.jsx";
 import campaignDataPng from "../assets/campaign-data.png";
 import campaignDataWebp from "../assets/campaign-data.webp";
 
-const features = [
-  {
-    title: "Operational clarity",
-    body: "Structured workflows that reduce manual effort, improve accuracy, and keep teams aligned across the UK.",
-  },
-  {
-    title: "Data quality",
-    body: "Validation, consistency checks, and reliable data handling for reporting you can trust.",
-  },
-  {
-    title: "Access control",
-    body: "Permissioned tools, role-aware views, and clear session handling for authorised users.",
-  },
-  {
-    title: "Audit-friendly",
-    body: "Traceable activity, export-ready records, and processes designed for oversight.",
-  },
-  {
-    title: "Insight delivery",
-    body: "Dashboards and reporting blocks that surface trends without exposing sensitive data.",
-  },
-  {
-    title: "Compliance support",
-    body: "Secure by design, with Cognito-hosted authentication and controlled data flows.",
-  },
-];
-
 const trustItems = [
-  "Delivery scopes are agreed in writing before operational work starts.",
-  "Secure authentication and session controls are provided via AWS Cognito.",
-  "Role-aware access keeps tools and data limited to authorised users.",
-  "Audit-ready workflows support governance, review, and exportable reporting.",
+  "Secure authentication and role-aware access are built into the platform.",
+  "Marked Register work is processed to an agreed scope before delivery starts.",
+  "Operational workflows support review, reporting, and audit-ready handover.",
+  "Election support is quoted separately so campaign teams know what is included.",
 ];
 
-const steps = [
+const nextSteps = [
   {
-    title: "Scope the brief",
-    body: "Confirm objectives, data inputs, governance requirements, and delivery timelines.",
+    title: "Choose the product that matches the job",
+    body: "Use Marked Register Processing when you need clean operational outputs. Use Constituency Intelligence when you need fast constituency context and comparison.",
   },
   {
-    title: "Agree delivery plan",
-    body: "Set service package, responsibilities, and secure access for the working team.",
+    title: "Confirm scope, access, and ownership",
+    body: "Subscriptions, portal access, and service work are scoped clearly so teams know who can use the platform and what they are buying.",
   },
   {
-    title: "Run managed delivery",
-    body: "Execute register processing, insight reporting, and operational support to plan.",
-  },
-  {
-    title: "Review and refine",
-    body: "Issue outputs, review performance, and adjust the next delivery cycle.",
+    title: "Work through one secure portal",
+    body: "Upload files, review outputs, and access constituency information in the same controlled environment.",
   },
 ];
 
@@ -67,26 +36,23 @@ export default function Home() {
       <section className="section">
         <div className="container hero">
           <div>
-            <h1>UK political operations platform for clean delivery</h1>
+            <h1>Political data products for campaign teams that need clean delivery</h1>
             <p>
-              Political Solutions provides UK marked register processing, data insights, and managed campaign
-              operations support with secure delivery plans for authorised teams.
+              Political Solutions provides two core products: Marked Register Processing for turning marked
+              register files into structured operational outputs, and Constituency Intelligence for reviewing
+              constituency results, demographics, and electoral context in one portal.
             </p>
             <div className="hero-actions">
-              <Button as={Link} to="/enquire" variant="primary">
-                Request support
+              <Button as={Link} to="/subscriptions" variant="primary">
+                View Marked Register plans
               </Button>
-              <Button as={Link} to="/services" variant="ghost">
-                View services
+              <Button as={Link} to="/enquire" variant="ghost">
+                Request a platform briefing
               </Button>
             </div>
-            <ul className="muted" style={{ marginTop: 16, paddingLeft: 20, maxWidth: 72 + "ch" }}>
-              <li>Send marked register PDFs or service request details.</li>
-              <li>We process and return structured outputs to an agreed scope and turnaround.</li>
-              <li>Delivery includes reporting notes for audit-ready handover.</li>
-            </ul>
-            <p className="muted" style={{ marginTop: 8, maxWidth: 72 + "ch" }}>
-              Clear scope and delivery timings are confirmed before work starts.
+            <p className="muted" style={{ marginTop: 16, maxWidth: "72ch" }}>
+              Built for candidates, agents, association officers, and campaign teams who need operationally
+              useful data tools rather than generic campaign software.
             </p>
           </div>
           <div className="hero-visual">
@@ -123,76 +89,55 @@ export default function Home() {
       <section className="section surface">
         <div className="container stack">
           <div>
-            <h2 className="section-title">Core services for UK political operations</h2>
-            <p className="muted" style={{ maxWidth: 72 + "ch" }}>
-              Managed delivery for campaign teams with secure access, clear scopes, and accountable delivery
-              plans.
-            </p>
-          </div>
-          <div className="feature-grid">
-            <Card title="Marked register processing">
-              <p className="muted">Standardised processing for clean, usable operational data.</p>
-            </Card>
-            <Card title="Data insights and reporting">
-              <p className="muted">Turnout analysis, dashboards, and reporting built from lawful inputs.</p>
-            </Card>
-            <Card title="Managed service delivery">
-              <p className="muted">Secure portal access, workflow tooling, and operational readiness support.</p>
-            </Card>
-          </div>
-          <div style={{ display: "flex", flexWrap: "wrap", gap: 12 }}>
-            <Button as={Link} to="/services" variant="secondary">
-              Explore services
-            </Button>
-            <Button as={Link} to="/services/election-support" variant="ghost">
-              Request election support
-            </Button>
-          </div>
-        </div>
-      </section>
-
-      <section className="section" id="how-it-works">
-        <div className="container stack">
-          <div>
-            <h2 className="section-title">How it works</h2>
-            <p className="muted" style={{ maxWidth: 72 + "ch" }}>
-              A straightforward four-step delivery flow from scoping through managed execution and review.
-            </p>
-          </div>
-          <div className="steps">
-            {steps.map((step, index) => (
-              <div key={step.title} className="step">
-                <div className="step-number">{index + 1}</div>
-                <h3>{step.title}</h3>
-                <p className="muted">{step.body}</p>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      <section className="section muted">
-        <div className="container stack">
-          <div>
-            <h2 className="section-title">Practical tools for reliable teams</h2>
-            <p className="muted" style={{ maxWidth: 72 + "ch" }}>
-              Built for UK political operations that need repeatable workflows, defensible data handling, and
-              clear reporting.
+            <h2 className="section-title">Choose the product that fits the job</h2>
+            <p className="muted" style={{ maxWidth: "72ch" }}>
+              The platform is built around two different operational needs. One handles marked register
+              processing. The other gives campaign teams a searchable constituency view.
             </p>
           </div>
           <div className="feature-grid feature-grid--equal">
-            {features.map((feature) => (
-              <Card key={feature.title} title={feature.title}>
-                <p>{feature.body}</p>
-              </Card>
-            ))}
+            <Card title="Marked Register Processing">
+              <p>
+                Turn marked register PDFs and CSVs into structured outputs your team can use quickly.
+              </p>
+              <p className="muted" style={{ marginTop: 12 }}>
+                <strong>Who it is for:</strong> Association officers, agents, candidates, and teams managing
+                marked register returns.
+              </p>
+              <div className="hero-actions" style={{ marginTop: 16 }}>
+                <Button as={Link} to="/subscriptions" variant="primary">
+                  View Marked Register plans
+                </Button>
+              </div>
+            </Card>
+            <Card title="Constituency Intelligence">
+              <p>
+                Search constituency winners, election history, and demographic context in one secure portal
+                workflow.
+              </p>
+              <p className="muted" style={{ marginTop: 12 }}>
+                <strong>Who it is for:</strong> Campaign planners, researchers, association leads, and
+                headquarters teams comparing seats.
+              </p>
+              <div className="hero-actions" style={{ marginTop: 16 }}>
+                <Button as={Link} to="/enquire" variant="secondary">
+                  Request a Constituency Intelligence briefing
+                </Button>
+              </div>
+            </Card>
           </div>
         </div>
       </section>
 
       <section className="section muted">
         <div className="container stack">
-          <h2 className="section-title">Trusted delivery</h2>
+          <div>
+            <h2 className="section-title">Why teams trust Political Solutions</h2>
+            <p className="muted" style={{ maxWidth: "72ch" }}>
+              The platform is designed for controlled delivery: clear scope, secure access, and operational
+              outputs that can be reviewed and handed over properly.
+            </p>
+          </div>
           <div className="trust-strip">
             {trustItems.map((item) => (
               <div key={item} className="trust-item">
@@ -204,26 +149,22 @@ export default function Home() {
         </div>
       </section>
 
-      <section className="section" id="resources">
+      <section className="section">
         <div className="container stack">
           <div>
-            <h2 className="section-title">Resources and governance</h2>
-            <p className="muted" style={{ maxWidth: 72 + "ch" }}>
-              Clear documentation for decision-makers, compliance teams, and operational leads.
+            <h2 className="section-title">What happens next</h2>
+            <p className="muted" style={{ maxWidth: "72ch" }}>
+              Buyers should be able to understand the route from interest to delivery without guesswork.
             </p>
           </div>
-          <div className="feature-grid">
-            <Card title="Compliance posture">
-              <p className="muted">
-                Service packages and delivery plans are scoped separately from election support requests.
-              </p>
-            </Card>
-            <Card title="Security overview">
-              <p className="muted">Hosted authentication with session controls and audit-ready workflows.</p>
-            </Card>
-            <Card title="Policy library">
-              <p className="muted">Privacy, terms, and cookie guidance available online.</p>
-            </Card>
+          <div className="steps">
+            {nextSteps.map((step, index) => (
+              <div key={step.title} className="step">
+                <div className="step-number">{index + 1}</div>
+                <h3>{step.title}</h3>
+                <p className="muted">{step.body}</p>
+              </div>
+            ))}
           </div>
         </div>
       </section>
@@ -231,17 +172,18 @@ export default function Home() {
       <section className="section">
         <div className="container cta-section">
           <div>
-            <h2>Ready to scope your operational support?</h2>
-            <p className="muted" style={{ maxWidth: 72 + "ch" }}>
-              Request a scoping call to confirm delivery needs, timelines, and the right service package.
+            <h2>Need to confirm the right product for your team?</h2>
+            <p className="muted" style={{ maxWidth: "72ch" }}>
+              We can confirm whether you need Marked Register Processing, Constituency Intelligence, or a
+              separate election support brief before any work is scoped.
             </p>
           </div>
           <div className="hero-actions">
             <Button as={Link} to="/enquire" variant="primary">
-              Book a scoping call
+              Request a scoping call
             </Button>
             <Button as={Link} to="/services" variant="secondary">
-              Explore services
+              View services
             </Button>
           </div>
         </div>
