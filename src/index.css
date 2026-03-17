@@ -421,6 +421,10 @@ p {
   height: 100%;
 }
 
+.dashboard-module-card {
+  padding: var(--space-5);
+}
+
 .product-card__body {
   display: grid;
   gap: 12px;
@@ -1340,6 +1344,102 @@ p {
   align-items: center;
 }
 
+.portal-section-actions--stack {
+  width: 100%;
+}
+
+.portal-section-actions--stack .button {
+  width: 100%;
+}
+
+.portal-inline-action {
+  margin-left: 10px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--primary);
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.portal-skeleton-shell {
+  display: grid;
+  gap: var(--space-3);
+}
+
+.portal-skeleton-card {
+  display: grid;
+  gap: 12px;
+  padding: var(--space-5);
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--border);
+  background: var(--surface);
+  box-shadow: var(--shadow-soft);
+}
+
+.portal-skeleton-card--wide {
+  min-height: 164px;
+}
+
+.portal-skeleton-line,
+.portal-skeleton-cta {
+  position: relative;
+  overflow: hidden;
+  border-radius: 999px;
+  background: rgba(11, 46, 77, 0.08);
+}
+
+.portal-skeleton-line::after,
+.portal-skeleton-cta::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  transform: translateX(-100%);
+  background: linear-gradient(
+    90deg,
+    rgba(255, 255, 255, 0),
+    rgba(255, 255, 255, 0.7),
+    rgba(255, 255, 255, 0)
+  );
+  animation: skeleton-shimmer 1.4s ease-in-out infinite;
+}
+
+.portal-skeleton-line--label {
+  width: 140px;
+  height: 12px;
+}
+
+.portal-skeleton-line--title {
+  width: min(320px, 72%);
+  height: 28px;
+  border-radius: 10px;
+}
+
+.portal-skeleton-line--card-title {
+  width: 70%;
+  height: 22px;
+  border-radius: 10px;
+}
+
+.portal-skeleton-line--body {
+  width: 100%;
+  height: 14px;
+}
+
+.portal-skeleton-line--body-short {
+  width: 82%;
+  height: 14px;
+}
+
+.portal-skeleton-cta {
+  width: 100%;
+  height: 44px;
+  margin-top: auto;
+}
+
 .portal-nav-groups {
   display: flex;
   align-items: center;
@@ -1397,6 +1497,12 @@ p {
 @keyframes spin {
   to {
     transform: rotate(360deg);
+  }
+}
+
+@keyframes skeleton-shimmer {
+  100% {
+    transform: translateX(100%);
   }
 }
 

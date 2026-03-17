@@ -221,6 +221,32 @@ function ServiceUnavailableView({ message, onRetry, loading }) {
   );
 }
 
+function PortalSkeletonView() {
+  return (
+    <div className="page stack">
+      <div className="container">
+        <div className="portal-skeleton-shell">
+          <div className="portal-skeleton-card portal-skeleton-card--wide">
+            <div className="portal-skeleton-line portal-skeleton-line--label" />
+            <div className="portal-skeleton-line portal-skeleton-line--title" />
+            <div className="portal-skeleton-line portal-skeleton-line--body" />
+          </div>
+          <div className="card-grid">
+            {Array.from({ length: 4 }).map((_, index) => (
+              <div key={index} className="portal-skeleton-card">
+                <div className="portal-skeleton-line portal-skeleton-line--card-title" />
+                <div className="portal-skeleton-line portal-skeleton-line--body" />
+                <div className="portal-skeleton-line portal-skeleton-line--body-short" />
+                <div className="portal-skeleton-cta" />
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function PortalLayout() {
   const navClass = ({ isActive }) => (isActive ? "navLink active" : "navLink");
   const [loading, setLoading] = useState(true);
@@ -245,21 +271,23 @@ export default function PortalLayout() {
 
       try {
         const result = await getMe();
+        const status = normalizeUserStatus(result?.user);
         if (!cancelled) {
           setUser(result?.user || null);
           setError("");
           setServiceUnavailable(false);
-        }
-        const status = normalizeUserStatus(result?.user);
-        if (status === "APPROVED") {
-          try {
-            const admin = await getAdminMe();
-            if (!cancelled) setIsAdmin(Boolean(admin?.isAdmin));
-          } catch {
-            if (!cancelled) setIsAdmin(false);
-          }
-        } else if (!cancelled) {
+          setLoading(false);
           setIsAdmin(false);
+        }
+
+        if (status === "APPROVED") {
+          void getAdminMe()
+            .then((admin) => {
+              if (!cancelled) setIsAdmin(Boolean(admin?.isAdmin));
+            })
+            .catch(() => {
+              if (!cancelled) setIsAdmin(false);
+            });
         }
       } catch (err) {
         if (!cancelled) {
@@ -285,15 +313,7 @@ export default function PortalLayout() {
   const status = useMemo(() => normalizeUserStatus(user), [user]);
 
   if (loading) {
-    return (
-      <div className="page stack">
-        <div className="container">
-          <Card title="Portal">
-            <p className="muted">Loading account status...</p>
-          </Card>
-        </div>
-      </div>
-    );
+    return <PortalSkeletonView />;
   }
 
   if (status === "PENDING") {
@@ -368,9 +388,6 @@ export default function PortalLayout() {
               <span className="portal-nav-group__label">Account</span>
               <NavLink className={navClass} to="/portal/subscriptions">
                 Subscriptions
-              </NavLink>
-              <NavLink className={navClass} to="/portal/pricing-rules">
-                Pricing rules
               </NavLink>
               <NavLink className={navClass} to="/portal/cart">
                 Cart

@@ -62,7 +62,7 @@ describe("Dashboard", () => {
       "/portal/pricing-rules?association=Big+Federation&constituency=Seat+A"
     );
 
-    fireEvent.click(screen.getByRole("button", { name: "Clear selection" }));
+    fireEvent.click(screen.getByRole("button", { name: "Clear saved selection" }));
     expect(sessionStorage.getItem("ps_signup_context_v1")).toBeNull();
     expect(screen.queryByText(/Current selection:/)).not.toBeInTheDocument();
   });

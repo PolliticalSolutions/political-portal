@@ -37,6 +37,31 @@ describe("PortalLayout", () => {
 
     expect(await screen.findByRole("navigation", { name: "Portal" })).toBeInTheDocument();
     expect(await screen.findByRole("link", { name: "Dashboard" })).toBeInTheDocument();
+    expect(screen.queryByRole("link", { name: "Pricing rules" })).not.toBeInTheDocument();
+  });
+
+  it("shows loading skeleton cards while account status is loading", async () => {
+    let resolveMe;
+    uploadApi.getMe.mockReturnValue(
+      new Promise((resolve) => {
+        resolveMe = resolve;
+      })
+    );
+    sessionStorage.setItem("cognito_tokens", JSON.stringify({ access_token: "token" }));
+
+    const { container } = render(
+      <HelmetProvider>
+        <MemoryRouter>
+          <PortalLayout />
+        </MemoryRouter>
+      </HelmetProvider>
+    );
+
+    expect(container.querySelectorAll(".portal-skeleton-cta")).toHaveLength(4);
+
+    resolveMe({ user: { status: "APPROVED" } });
+
+    expect(await screen.findByRole("navigation", { name: "Portal" })).toBeInTheDocument();
   });
 
   it("renders pending approval screen when /me returns PENDING", async () => {
