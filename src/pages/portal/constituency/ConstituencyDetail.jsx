@@ -7,7 +7,11 @@ import {
   getConstituencyDemographics,
   getConstituencyResults,
   getConstituencySwings,
-  getLinkedAuthorities,
+  getMarginalityScore,
+  getElectorateTrend,
+  getSwingTimeline,
+  getByElectionRisk,
+  getVulnerabilityScore,
 } from "./constituencyApi.js";
 import { getCurrentStatus } from "./constituencyPresentation.js";
 
@@ -31,6 +35,7 @@ const TABS = [
   { id: "demographics", label: "Demographics" },
   { id: "candidates", label: "Candidates" },
   { id: "councils", label: "Local Councils" },
+  { id: "mp", label: "MP Profile" },
 ];
 
 const DEMOGRAPHIC_FIELDS = [
@@ -263,7 +268,7 @@ function groupByElection(results) {
   return [...grouped.values()];
 }
 
-function ElectionHistoryTab({ results, swings, nationals, partyMap }) {
+function ElectionHistoryTab({ results, swings, nationals, partyMap, electorateTrend, swingTimeline }) {
   const groups = useMemo(() => groupByElection(results), [results]);
 
   if (groups.length === 0) {
@@ -356,6 +361,8 @@ function ElectionHistoryTab({ results, swings, nationals, partyMap }) {
           </div>
         );
       })}
+      <ElectorateTrendPanel trend={electorateTrend} />
+      <SwingTimelinePanel swingTimeline={swingTimeline} />
     </div>
   );
 }
@@ -787,48 +794,8 @@ function CouncilCard({ council }) {
   );
 }
 
-function LinkedAuthorityCard({ authority }) {
-  // Adapts local_authorities schema to match CouncilCard shape
-  const council = {
-    id: authority.id,
-    council_name: authority.name,
-    council_type: authority.authority_type,
-    council_tier: authority.tier,
-    election_date: authority.last_election_date,
-    next_election_date: authority.next_election_date,
-    total_seats: authority.total_seats,
-    controlling_party: authority.controlling_party,
-    control_type: authority.control_type,
-    composition: authority.composition,
-    recent_changes: null,
-    political_context: null,
-    alert_level: null,
-    alert_reason: null,
-    source_url: authority.website_url,
-  };
-  return (
-    <div style={{ position: "relative" }}>
-      <CouncilCard council={council} />
-      <div style={{ marginTop: -8, marginBottom: 12 }}>
-        <Link
-          to={`/portal/local-government/${authority.gss_code}`}
-          style={{ fontSize: 12, color: "#1d4ed8", textDecoration: "none", fontWeight: 600 }}
-        >
-          Full intelligence profile for {authority.name} →
-        </Link>
-      </div>
-    </div>
-  );
-}
-
-function CouncilsTab({ councils, linkedAuthorities }) {
-  // Prefer linked authorities (new schema); fall back to legacy council_data
-  // Deduplicate: if a council_data entry's name matches a linked authority, skip it
-  const linkedNames = new Set((linkedAuthorities ?? []).map((a) => a.name));
-  const legacyOnly = (councils ?? []).filter((c) => !linkedNames.has(c.council_name));
-  const hasData = (linkedAuthorities?.length ?? 0) + legacyOnly.length > 0;
-
-  if (!hasData) {
+function CouncilsTab({ councils, electedWinner }) {
+  if (!councils || councils.length === 0) {
     return (
       <div className="portal-placeholder-panel">
         <p className="portal-placeholder-panel__title">No council data available</p>
@@ -841,17 +808,417 @@ function CouncilsTab({ councils, linkedAuthorities }) {
 
   return (
     <div className="portal-data-section">
-      {(linkedAuthorities ?? []).map((auth) => (
-        <LinkedAuthorityCard key={auth.id} authority={auth} />
-      ))}
-      {legacyOnly.map((council) => (
+      {councils.map((council) => (
         <CouncilCard key={council.id} council={council} />
       ))}
+      <LocalNationalAlignmentPanel councils={councils} electedWinner={electedWinner} />
     </div>
   );
 }
 
-function ConstituencyHeader({ constituency, electedWinner, currentStatus, swings, nationals }) {
+// ─── Feature 2: Electorate Trend Chart ───────────────────────────────────────
+function SparkLine({ points, colour = "#3b82f6", height = 60 }) {
+  if (!points || points.length < 2) return null;
+  const vals = points.map((p) => p.value);
+  const min = Math.min(...vals);
+  const max = Math.max(...vals);
+  const range = max - min || 1;
+  const w = 320;
+  const h = height;
+  const xs = points.map((_, i) => (i / (points.length - 1)) * w);
+  const ys = vals.map((v) => h - ((v - min) / range) * (h - 8) - 4);
+  const d = xs.map((x, i) => `${i === 0 ? "M" : "L"} ${x.toFixed(1)} ${ys[i].toFixed(1)}`).join(" ");
+  return (
+    <svg viewBox={`0 0 ${w} ${h}`} style={{ width: "100%", height, display: "block" }}>
+      <path d={d} fill="none" stroke={colour} strokeWidth={2} strokeLinejoin="round" />
+      {points.map((p, i) => (
+        <circle key={i} cx={xs[i]} cy={ys[i]} r={3} fill={colour} />
+      ))}
+    </svg>
+  );
+}
+
+function ElectorateTrendPanel({ trend }) {
+  if (!trend || trend.length < 2) return null;
+  const points = trend.map((r) => ({
+    year: new Date(r.elections.election_date).getFullYear(),
+    value: r.electorate,
+  }));
+  const first = points[0];
+  const last = points[points.length - 1];
+  const change = last.value - first.value;
+  const years = last.year - first.year || 1;
+  const avgAnnual = change / years;
+  const growthClass = avgAnnual > 500 ? "Growing Fast" : avgAnnual > 0 ? "Growing" : avgAnnual < -200 ? "Declining" : "Stable";
+  return (
+    <div className="portal-record" style={{ marginTop: 16 }}>
+      <div className="portal-data-section__header">
+        <p className="portal-data-section__title">Electorate trend ({first.year}–{last.year})</p>
+        <div className="portal-data-section__meta">
+          {growthClass} · {change >= 0 ? "+" : ""}{formatNumber(change)} since {first.year}
+          {" "} · avg {avgAnnual >= 0 ? "+" : ""}{Math.round(avgAnnual).toLocaleString("en-GB")}/yr
+        </div>
+      </div>
+      <SparkLine points={points} colour="#3b82f6" height={60} />
+      <div style={{ display: "flex", justifyContent: "space-between", fontSize: 11, color: "#64748b", marginTop: 4 }}>
+        <span>{first.year}: {formatNumber(first.value)}</span>
+        <span>{last.year}: {formatNumber(last.value)}</span>
+      </div>
+    </div>
+  );
+}
+
+// ─── Feature 6: Swing Timeline Chart ─────────────────────────────────────────
+function SwingTimelinePanel({ swingTimeline }) {
+  if (!swingTimeline || swingTimeline.length < 2) return null;
+  const points = swingTimeline.map((r) => ({
+    year: new Date(r.elections.election_date).getFullYear(),
+    value: parseFloat(r.vote_share) || 0,
+    party: r.parties?.short_name || r.parties?.name || "?",
+    hex: r.parties?.colour_hex,
+  }));
+
+  // Colour points by winning party
+  const w = 320;
+  const h = 60;
+  const vals = points.map((p) => p.value);
+  const min = Math.min(...vals) - 2;
+  const max = Math.max(...vals) + 2;
+  const range = max - min || 1;
+  const xs = points.map((_, i) => (i / (points.length - 1)) * w);
+  const ys = vals.map((v) => h - ((v - min) / range) * (h - 8) - 4);
+  const d = xs.map((x, i) => `${i === 0 ? "M" : "L"} ${x.toFixed(1)} ${ys[i].toFixed(1)}`).join(" ");
+
+  return (
+    <div className="portal-record" style={{ marginTop: 16 }}>
+      <div className="portal-data-section__header">
+        <p className="portal-data-section__title">Winner vote share timeline</p>
+        <div className="portal-data-section__meta">First-place vote share across general elections</div>
+      </div>
+      <svg viewBox={`0 0 ${w} ${h}`} style={{ width: "100%", height: h, display: "block" }}>
+        <path d={d} fill="none" stroke="#94a3b8" strokeWidth={1.5} strokeDasharray="4 2" strokeLinejoin="round" />
+        {points.map((p, i) => (
+          <circle
+            key={i}
+            cx={xs[i]}
+            cy={ys[i]}
+            r={4}
+            fill={p.hex ? (p.hex.startsWith("#") ? p.hex : `#${p.hex}`) : "#94a3b8"}
+          >
+            <title>{p.year}: {p.party} {p.value.toFixed(1)}%</title>
+          </circle>
+        ))}
+      </svg>
+      <div style={{ display: "flex", justifyContent: "space-between", fontSize: 11, color: "#64748b", marginTop: 4 }}>
+        <span>{points[0].year}: {points[0].value.toFixed(1)}%</span>
+        <span>{points[points.length - 1].year}: {points[points.length - 1].value.toFixed(1)}%</span>
+      </div>
+      <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginTop: 8 }}>
+        {points.map((p, i) => (
+          <span key={i} className="party-chip" style={{ fontSize: 11 }}>
+            <PartyDot hex={p.hex} size={8} />
+            <span>{p.year} {p.party}</span>
+          </span>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+// ─── Feature 8: Local–National Alignment ─────────────────────────────────────
+function LocalNationalAlignmentPanel({ councils, electedWinner }) {
+  if (!councils || councils.length === 0 || !electedWinner) return null;
+  const primaryCouncil = councils[0];
+  if (!primaryCouncil?.controlling_party && !primaryCouncil?.composition) return null;
+
+  const localParty = primaryCouncil.controlling_party || Object.entries(primaryCouncil.composition || {}).sort((a, b) => b[1] - a[1])[0]?.[0];
+  const nationalParty = electedWinner.partyName;
+  if (!localParty || !nationalParty) return null;
+
+  const normalizeParty = (name) => name?.toLowerCase().replace(/\s+/g, "");
+  const aligned = normalizeParty(localParty) === normalizeParty(nationalParty);
+
+  const interpretation = aligned
+    ? `${localParty} controls the local council and holds the Westminster seat — aligned at both tiers.`
+    : `${localParty} leads locally while ${nationalParty} holds the Westminster seat — a divergence that can signal electoral volatility and may precede realignment.`;
+
+  return (
+    <div style={{
+      background: aligned ? "#f0fdf4" : "#fff7ed",
+      border: `1px solid ${aligned ? "#bbf7d0" : "#fed7aa"}`,
+      borderLeft: `4px solid ${aligned ? "#16a34a" : "#f97316"}`,
+      borderRadius: 6,
+      padding: "12px 16px",
+      marginTop: 16,
+    }}>
+      <p style={{ margin: "0 0 6px", fontWeight: 700, fontSize: 13, color: aligned ? "#15803d" : "#c2410c" }}>
+        Local–National alignment: {aligned ? "Aligned" : "Divergent"}
+      </p>
+      <div style={{ display: "flex", gap: 16, flexWrap: "wrap", marginBottom: 8 }}>
+        <span style={{ fontSize: 12 }}>
+          <span style={{ color: "#64748b" }}>Local dominant:</span>{" "}
+          <strong>{localParty}</strong>
+        </span>
+        <span style={{ fontSize: 12 }}>
+          <span style={{ color: "#64748b" }}>Westminster (2024):</span>{" "}
+          <strong>{nationalParty}</strong>
+        </span>
+      </div>
+      <p style={{ margin: 0, fontSize: 13, color: "#374151", lineHeight: 1.55 }}>
+        {interpretation}
+      </p>
+    </div>
+  );
+}
+
+// ─── Feature 9: MP Profile Tab ────────────────────────────────────────────────
+function MpProfileTab({ constituency, electedWinner, results, marginalityScore, byElectionRisk, vulnerabilityScore }) {
+  const latestResult = useMemo(() => {
+    return results
+      .filter((r) => r.is_winner && r.elections?.election_type === "general")
+      .sort((a, b) => (b.elections?.election_date ?? "").localeCompare(a.elections?.election_date ?? ""))[0] ?? null;
+  }, [results]);
+
+  const yearsInParliament = useMemo(() => {
+    const earliest = results
+      .filter((r) => r.is_winner && r.elections?.election_type === "general")
+      .sort((a, b) => (a.elections?.election_date ?? "").localeCompare(b.elections?.election_date ?? ""))[0];
+    if (!earliest?.elections?.election_date) return null;
+    return new Date().getFullYear() - new Date(earliest.elections.election_date).getFullYear();
+  }, [results]);
+
+  return (
+    <div className="portal-data-section">
+      <div className="portal-record">
+        <div className="portal-data-section__header">
+          <p className="portal-data-section__title">
+            {electedWinner?.candidateName || constituency.name}
+          </p>
+          <div className="portal-data-section__meta">
+            {electedWinner?.partyName} · Elected 2024
+          </div>
+        </div>
+
+        <div className="portal-summary-grid" style={{ marginTop: 16 }}>
+          <div className="portal-stat">
+            <span className="portal-stat__label">Party</span>
+            <span className="portal-stat__value" style={{ fontSize: 18 }}>
+              {electedWinner?.partyName || "—"}
+            </span>
+          </div>
+          <div className="portal-stat">
+            <span className="portal-stat__label">2024 majority</span>
+            <span className="portal-stat__value" style={{ fontSize: 18 }}>
+              {electedWinner?.majority != null ? formatNumber(electedWinner.majority) : "—"}
+            </span>
+          </div>
+          <div className="portal-stat">
+            <span className="portal-stat__label">Vote share</span>
+            <span className="portal-stat__value" style={{ fontSize: 18 }}>
+              {latestResult?.vote_share != null ? formatPct(latestResult.vote_share) : "—"}
+            </span>
+          </div>
+          {yearsInParliament != null && (
+            <div className="portal-stat">
+              <span className="portal-stat__label">Years in Parliament</span>
+              <span className="portal-stat__value" style={{ fontSize: 18 }}>
+                {yearsInParliament}+
+              </span>
+              <span className="portal-stat__meta">Estimated from first win</span>
+            </div>
+          )}
+        </div>
+
+        <div className="portal-data-note" style={{ marginTop: 16 }}>
+          <strong>TheyWorkForYou integration:</strong> To show rebellion rate, committee memberships, and voting record,
+          register for a free API key at{" "}
+          <a href="https://www.theyworkforyou.com/api/key" target="_blank" rel="noopener noreferrer">
+            theyworkforyou.com/api/key
+          </a>{" "}
+          and add it as <code>VITE_TWFY_API_KEY</code> in your environment.
+        </div>
+      </div>
+
+      {(marginalityScore || byElectionRisk || vulnerabilityScore) && (
+        <div className="portal-record">
+          <div className="portal-data-section__header">
+            <p className="portal-data-section__title">Seat intelligence summary</p>
+          </div>
+          <div className="portal-summary-grid" style={{ marginTop: 12 }}>
+            {marginalityScore && (
+              <div className="portal-stat">
+                <span className="portal-stat__label">Marginality score</span>
+                <span className="portal-stat__value" style={{ fontSize: 22 }}>
+                  {Number(marginalityScore.marginality_score).toFixed(1)}
+                  <span style={{ fontSize: 13, color: "#64748b" }}>/10</span>
+                </span>
+                <span className="portal-stat__meta">{marginalityScore.classification}</span>
+              </div>
+            )}
+            {byElectionRisk && (
+              <div className="portal-stat">
+                <span className="portal-stat__label">By-election risk</span>
+                <span className="portal-stat__value" style={{ fontSize: 22 }}>
+                  {Number(byElectionRisk.risk_score).toFixed(1)}
+                  <span style={{ fontSize: 13, color: "#64748b" }}>/10</span>
+                </span>
+                <span className="portal-stat__meta">{byElectionRisk.risk_level}</span>
+              </div>
+            )}
+            {vulnerabilityScore && (
+              <div className="portal-stat">
+                <span className="portal-stat__label">Vulnerability score</span>
+                <span className="portal-stat__value" style={{ fontSize: 22 }}>
+                  {Number(vulnerabilityScore.vulnerability_score).toFixed(1)}
+                  <span style={{ fontSize: 13, color: "#64748b" }}>/10</span>
+                </span>
+                <span className="portal-stat__meta">{vulnerabilityScore.vulnerability_level}</span>
+              </div>
+            )}
+          </div>
+          {vulnerabilityScore?.primary_threat && (
+            <div className="portal-data-note" style={{ marginTop: 8 }}>
+              Primary threat: <strong>{vulnerabilityScore.primary_threat}</strong>
+              {vulnerabilityScore.labour_threat != null && ` · Labour threat ${Number(vulnerabilityScore.labour_threat).toFixed(1)}`}
+              {vulnerabilityScore.reform_threat != null && ` · Reform threat ${Number(vulnerabilityScore.reform_threat).toFixed(1)}`}
+              {vulnerabilityScore.libdem_threat != null && ` · Lib Dem threat ${Number(vulnerabilityScore.libdem_threat).toFixed(1)}`}
+            </div>
+          )}
+          {byElectionRisk?.risk_summary && (
+            <div className="portal-data-note" style={{ marginTop: 8 }}>
+              {byElectionRisk.risk_summary}
+            </div>
+          )}
+        </div>
+      )}
+
+      <div className="portal-record">
+        <div className="portal-data-section__header">
+          <p className="portal-data-section__title">External links</p>
+        </div>
+        <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginTop: 12 }}>
+          <a
+            href={`https://www.theyworkforyou.com/search/?q=${encodeURIComponent(electedWinner?.candidateName || constituency.name)}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="button ghost"
+            style={{ fontSize: 13 }}
+          >
+            TheyWorkForYou profile
+          </a>
+          <a
+            href={`https://members.parliament.uk/constituency/${encodeURIComponent(constituency.name)}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="button ghost"
+            style={{ fontSize: 13 }}
+          >
+            Parliament.uk
+          </a>
+          <a
+            href={`https://www.electoralcalculus.co.uk/electdata_local.html`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="button ghost"
+            style={{ fontSize: 13 }}
+          >
+            Electoral Calculus
+          </a>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+const MARGINALITY_COLOURS = {
+  "Ultra Marginal":  { bg: "#dc2626", text: "#fff" },
+  "Highly Marginal": { bg: "#ea580c", text: "#fff" },
+  "Marginal":        { bg: "#d97706", text: "#fff" },
+  "Likely":          { bg: "#1d4ed8", text: "#fff" },
+  "Safe":            { bg: "#15803d", text: "#fff" },
+};
+
+function MarginalityBadge({ score }) {
+  if (!score) return null;
+  const cls = MARGINALITY_COLOURS[score.classification] ?? { bg: "#64748b", text: "#fff" };
+  return (
+    <span style={{
+      display: "inline-flex",
+      alignItems: "center",
+      gap: 6,
+      background: cls.bg,
+      color: cls.text,
+      fontSize: 11,
+      fontWeight: 700,
+      padding: "3px 10px",
+      borderRadius: 12,
+      letterSpacing: "0.04em",
+      textTransform: "uppercase",
+    }}>
+      {score.classification} · {Number(score.marginality_score).toFixed(1)}/10
+    </span>
+  );
+}
+
+function ByElectionRiskBadge({ risk }) {
+  if (!risk) return null;
+  const colours = {
+    "Very High": { bg: "#7c3aed", text: "#fff" },
+    "High":      { bg: "#dc2626", text: "#fff" },
+    "Medium":    { bg: "#d97706", text: "#fff" },
+    "Low":       { bg: "#15803d", text: "#fff" },
+  };
+  const cls = colours[risk.risk_level] ?? { bg: "#64748b", text: "#fff" };
+  if (risk.risk_level === "Low") return null; // only show Medium+
+  return (
+    <span style={{
+      display: "inline-flex",
+      alignItems: "center",
+      gap: 5,
+      background: cls.bg,
+      color: cls.text,
+      fontSize: 11,
+      fontWeight: 700,
+      padding: "3px 10px",
+      borderRadius: 12,
+      letterSpacing: "0.04em",
+      textTransform: "uppercase",
+    }}>
+      By-election risk: {risk.risk_level}
+    </span>
+  );
+}
+
+function VulnerabilityBadge({ score }) {
+  if (!score) return null;
+  const colours = {
+    "Critical":    { bg: "#7c3aed", text: "#fff" },
+    "High":        { bg: "#dc2626", text: "#fff" },
+    "Medium":      { bg: "#d97706", text: "#fff" },
+    "Low":         { bg: "#15803d", text: "#fff" },
+  };
+  const cls = colours[score.vulnerability_level] ?? { bg: "#64748b", text: "#fff" };
+  if (score.vulnerability_level === "Low") return null;
+  return (
+    <span style={{
+      display: "inline-flex",
+      alignItems: "center",
+      gap: 5,
+      background: cls.bg,
+      color: cls.text,
+      fontSize: 11,
+      fontWeight: 700,
+      padding: "3px 10px",
+      borderRadius: 12,
+      letterSpacing: "0.04em",
+      textTransform: "uppercase",
+    }}>
+      Vulnerability: {score.vulnerability_level}
+    </span>
+  );
+}
+
+function ConstituencyHeader({ constituency, electedWinner, currentStatus, swings, nationals, marginalityScore, byElectionRisk, vulnerabilityScore }) {
   // Pick the most relevant swing to highlight in the header
   const keySwingStat = useMemo(() => {
     if (!swings || swings.length === 0) return null;
@@ -873,6 +1240,13 @@ function ConstituencyHeader({ constituency, electedWinner, currentStatus, swings
         <div className="portal-page-header__content">
           <span className="portal-page-header__eyebrow">Constituency Intelligence</span>
           <h1 className="portal-page-header__title">{constituency.name}</h1>
+          {(marginalityScore || byElectionRisk || vulnerabilityScore) && (
+            <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginTop: 8, marginBottom: 4 }}>
+              <MarginalityBadge score={marginalityScore} />
+              <ByElectionRiskBadge risk={byElectionRisk} />
+              <VulnerabilityBadge score={vulnerabilityScore} />
+            </div>
+          )}
           <p className="portal-page-header__subtitle">
             Current seat summary, election history, candidate record, and constituency reference data.
           </p>
@@ -962,7 +1336,11 @@ export default function ConstituencyDetail() {
   const [swings, setSwings] = useState([]);
   const [nationals, setNationals] = useState([]);
   const [councils, setCouncils] = useState([]);
-  const [linkedAuthorities, setLinkedAuthorities] = useState([]);
+  const [marginalityScore, setMarginalityScore] = useState(null);
+  const [electorateTrend, setElectorateTrend] = useState([]);
+  const [swingTimeline, setSwingTimeline] = useState([]);
+  const [byElectionRisk, setByElectionRisk] = useState(null);
+  const [vulnerabilityScore, setVulnerabilityScore] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [activeTab, setActiveTab] = useState("history");
@@ -979,12 +1357,20 @@ export default function ConstituencyDetail() {
         if (cancelled) return;
         setConstituency(nextConstituency);
 
-        const [nextResults, nextDemographics, nextSwings, nextCouncils, nextLinked] = await Promise.all([
+        const [
+          nextResults, nextDemographics, nextSwings, nextCouncils,
+          nextMarginality, nextElectorateTrend, nextSwingTimeline,
+          nextByElectionRisk, nextVulnerability,
+        ] = await Promise.all([
           getConstituencyResults(nextConstituency.id),
           getConstituencyDemographics(nextConstituency.id),
           getConstituencySwings(nextConstituency.id),
           getCouncilData(nextConstituency.id),
-          getLinkedAuthorities(nextConstituency.id),
+          getMarginalityScore(nextConstituency.id),
+          getElectorateTrend(nextConstituency.id),
+          getSwingTimeline(nextConstituency.id),
+          getByElectionRisk(nextConstituency.id),
+          getVulnerabilityScore(nextConstituency.id),
         ]);
 
         if (cancelled) return;
@@ -993,7 +1379,11 @@ export default function ConstituencyDetail() {
         setSwings(nextSwings.swings);
         setNationals(nextSwings.nationals);
         setCouncils(nextCouncils);
-        setLinkedAuthorities(nextLinked);
+        setMarginalityScore(nextMarginality);
+        setElectorateTrend(nextElectorateTrend);
+        setSwingTimeline(nextSwingTimeline);
+        setByElectionRisk(nextByElectionRisk);
+        setVulnerabilityScore(nextVulnerability);
       } catch (err) {
         if (!cancelled) setError(err.message || "Failed to load constituency.");
       } finally {
@@ -1087,6 +1477,9 @@ export default function ConstituencyDetail() {
         currentStatus={currentStatus}
         swings={swings}
         nationals={nationals}
+        marginalityScore={marginalityScore}
+        byElectionRisk={byElectionRisk}
+        vulnerabilityScore={vulnerabilityScore}
       />
 
       <Card>
@@ -1097,11 +1490,33 @@ export default function ConstituencyDetail() {
             swings={swings}
             nationals={nationals}
             partyMap={partyMap}
+            electorateTrend={electorateTrend}
+            swingTimeline={swingTimeline}
           />
         )}
-        {activeTab === "demographics" && <DemographicsTab demographics={demographics} />}
+        {activeTab === "demographics" && (
+          <DemographicsTab
+            demographics={demographics}
+            region={constituency.region}
+          />
+        )}
         {activeTab === "candidates" && <CandidatesTab results={results} />}
-        {activeTab === "councils" && <CouncilsTab councils={councils} linkedAuthorities={linkedAuthorities} />}
+        {activeTab === "councils" && (
+          <CouncilsTab
+            councils={councils}
+            electedWinner={electedWinner}
+          />
+        )}
+        {activeTab === "mp" && (
+          <MpProfileTab
+            constituency={constituency}
+            electedWinner={electedWinner}
+            results={results}
+            marginalityScore={marginalityScore}
+            byElectionRisk={byElectionRisk}
+            vulnerabilityScore={vulnerabilityScore}
+          />
+        )}
       </Card>
     </div>
   );

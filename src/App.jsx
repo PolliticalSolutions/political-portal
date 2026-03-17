@@ -33,8 +33,9 @@ import QuoteDetail from "./pages/portal/QuoteDetail.jsx";
 import ManualReviewPage from "./pages/portal/admin/ManualReviewPage.jsx";
 const ConstituencyIndex = lazy(() => import("./pages/portal/constituency/ConstituencyIndex.jsx"));
 const ConstituencyDetail = lazy(() => import("./pages/portal/constituency/ConstituencyDetail.jsx"));
-const LocalGovIndex = lazy(() => import("./pages/portal/local-government/LocalGovIndex.jsx"));
-const LocalGovDetail = lazy(() => import("./pages/portal/local-government/LocalGovDetail.jsx"));
+const VulnerabilityDashboard = lazy(() => import("./pages/portal/constituency/VulnerabilityDashboard.jsx"));
+const ReformThreatIndex = lazy(() => import("./pages/portal/constituency/ReformThreatIndex.jsx"));
+const AlertsPage = lazy(() => import("./pages/portal/alerts/AlertsPage.jsx"));
 import Session from "./pages/Session.jsx";
 import SignUp from "./pages/SignUp.jsx";
 import CookiesPage from "./pages/legal/CookiesPage.jsx";
@@ -313,18 +314,26 @@ export default function App() {
                   }
                 />
                 <Route
-                  path="local-government"
+                  path="constituency/vulnerability"
                   element={
                     <Suspense fallback={<div className="page stack"><p className="muted">Loading…</p></div>}>
-                      <LocalGovIndex />
+                      <VulnerabilityDashboard />
                     </Suspense>
                   }
                 />
                 <Route
-                  path="local-government/:gssCode"
+                  path="constituency/reform-threat"
                   element={
                     <Suspense fallback={<div className="page stack"><p className="muted">Loading…</p></div>}>
-                      <LocalGovDetail />
+                      <ReformThreatIndex />
+                    </Suspense>
+                  }
+                />
+                <Route
+                  path="alerts"
+                  element={
+                    <Suspense fallback={<div className="page stack"><p className="muted">Loading…</p></div>}>
+                      <AlertsPage />
                     </Suspense>
                   }
                 />
