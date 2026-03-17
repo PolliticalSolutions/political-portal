@@ -185,6 +185,43 @@ export async function getByElectionWatchSeats() {
   return data ?? [];
 }
 
+// Returns Conservative 2024 seats meeting objective watchlist criteria.
+// Criteria checked here: majority < 5000.
+// Council territory and incumbency are evaluated in the page component
+// using council_data and candidates.first_elected_year respectively.
+export async function getByElectionWatchlist() {
+  // Latest general election
+  const { data: elections, error: elErr } = await supabase
+    .from("elections")
+    .select("id")
+    .eq("election_type", "general")
+    .order("election_date", { ascending: false })
+    .limit(1);
+  if (elErr || !elections?.length) return [];
+  const latestId = elections[0].id;
+
+  const CON_PARTY_ID = "a4f20caf-ba89-4fb0-9ae3-313a7f937719";
+
+  const { data, error } = await supabase
+    .from("results")
+    .select(`
+      constituency_id,
+      candidate_id,
+      majority,
+      electorate,
+      vote_share,
+      constituencies(id, ons_code, name, region, leave_vote_share),
+      candidates(id, first_name, last_name, first_elected_year)
+    `)
+    .eq("election_id", latestId)
+    .eq("party_id", CON_PARTY_ID)
+    .eq("is_winner", true)
+    .lt("majority", 5000)
+    .order("majority", { ascending: true });
+  if (error) return [];
+  return data ?? [];
+}
+
 export async function getVulnerabilityScore(constituencyId) {
   const { data, error } = await supabase
     .from("vulnerability_scores")

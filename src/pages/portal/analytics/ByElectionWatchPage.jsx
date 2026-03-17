@@ -1,171 +1,123 @@
-import { lazy, Suspense, useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import Card from "../../../components/Card.jsx";
-import { getScoringModel } from "../../../config/scoringModels.js";
-import DataProvenancePanel from "../../../components/DataProvenancePanel.jsx";
-import ModelConfidenceBadge from "../../../components/ModelConfidenceBadge.jsx";
-import ScoringMethodologyPanel from "../../../components/ScoringMethodologyPanel.jsx";
 import { byElectionAlerts } from "../../../data/byElectionAlerts.js";
-import { getIntelligenceMetadata } from "../../../lib/intelligenceMetadataApi.js";
-import { getModelConfidence } from "../../../lib/modelConfidence.js";
-import { getByElectionWatchSeats, getLatestElectionWinners } from "../constituency/constituencyApi.js";
-import { getCurrentStatus } from "../constituency/constituencyPresentation.js";
+import { getByElectionWatchlist, getCouncilData } from "../constituency/constituencyApi.js";
 
-const AnalyticsChoroplethMapClient = lazy(
-  () => import("../constituency/AnalyticsChoroplethMapClient.jsx")
-);
+// Criteria a seat can meet. Each is a boolean flag derived from data.
+const CRITERIA = [
+  { key: "narrowMajority",  label: "Majority < 5,000",          colour: "#dc2626" },
+  { key: "firstTermMp",     label: "First/second-term MP",       colour: "#ea580c" },
+  { key: "reformCouncil",   label: "Reform/NOC council",         colour: "#12B6CF" },
+  { key: "hasAlert",        label: "Active political alert",     colour: "#7c3aed" },
+];
 
-function getRiskFill(score) {
-  const numericScore = Number(score) || 0;
-  if (numericScore >= 9) return "#b91c1c";
-  if (numericScore >= 8.25) return "#dc2626";
-  return "#f97316";
-}
-
-function getRiskFactorLabel(seat) {
-  const factors = [
-    { key: "majority_factor", label: "Majority exposure", value: Number(seat.majority_factor) || 0 },
-    {
-      key: "council_instability_factor",
-      label: "Council instability",
-      value: Number(seat.council_instability_factor) || 0,
-    },
-    {
-      key: "defection_risk_factor",
-      label: "Defection and member movement",
-      value: Number(seat.defection_risk_factor) || 0,
-    },
-    {
-      key: "polling_trend_factor",
-      label: "Polling and trend pressure",
-      value: Number(seat.polling_trend_factor) || 0,
-    },
-  ].sort((a, b) => b.value - a.value);
-
-  return factors[0]?.value > 0 ? factors[0].label : "Risk model summary unavailable";
-}
-
-function RiskBadge({ level }) {
-  const palette = {
-    "Very High": "#b91c1c",
-    High: "#dc2626",
-    Medium: "#f97316",
-  };
-
+function CriteriaBadge({ met, label, colour }) {
+  if (!met) return null;
   return (
-    <span className="status-pill" style={{ background: palette[level] || "#64748b", color: "#ffffff" }}>
-      {level || "Unrated"}
+    <span
+      className="status-pill"
+      style={{ background: colour, color: "#ffffff", fontSize: 11, padding: "2px 8px" }}
+    >
+      {label}
     </span>
   );
 }
 
-function AlertList({ items }) {
-  if (!items.length) {
-    return <span className="portal-current-status__meta">No constituency-specific alert recorded.</span>;
-  }
-
+function CriteriaCount({ count }) {
+  const colour = count >= 3 ? "#b91c1c" : count === 2 ? "#ea580c" : "#64748b";
   return (
-    <div className="portal-stack-compact">
-      {items.map((alert, index) => (
-        <span key={`${alert.alertType}-${index}`} className="portal-current-status__meta">
-          {alert.summary}
-        </span>
-      ))}
-    </div>
+    <span style={{ fontWeight: 700, color: colour, fontSize: 13 }}>
+      {count} {count === 1 ? "criterion" : "criteria"}
+    </span>
   );
 }
 
 export default function ByElectionWatchPage() {
-  const model = getScoringModel("byElectionRisk");
   const [seats, setSeats] = useState([]);
-  const [winnerMap, setWinnerMap] = useState({});
+  const [councilMap, setCouncilMap] = useState({});
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
-  const [metadata, setMetadata] = useState(null);
 
   useEffect(() => {
     let cancelled = false;
-
     async function load() {
       try {
-        const [watchSeats, electionData] = await Promise.all([
-          getByElectionWatchSeats(),
-          getLatestElectionWinners(),
-        ]);
+        const watchlist = await getByElectionWatchlist();
         if (cancelled) return;
+        setSeats(watchlist);
 
-        const nextWinnerMap = {};
-        electionData.winners.forEach((winner) => {
-          if (!winner.constituencies?.id) return;
-          nextWinnerMap[winner.constituencies.id] = winner;
+        // Load council data for each constituency to check Reform/NOC territory
+        const cids = watchlist.map((s) => s.constituency_id).filter(Boolean);
+        const councilResults = await Promise.all(
+          cids.map((cid) => getCouncilData(cid).catch(() => null))
+        );
+        if (cancelled) return;
+        const nextCouncilMap = {};
+        cids.forEach((cid, i) => {
+          nextCouncilMap[cid] = councilResults[i];
         });
-
-        setSeats(watchSeats);
-        setWinnerMap(nextWinnerMap);
-        const nextMetadata = await getIntelligenceMetadata({
-          modelKey: "byElectionRisk",
-        });
-        if (!cancelled) setMetadata(nextMetadata);
+        setCouncilMap(nextCouncilMap);
       } catch (err) {
-        if (!cancelled) setError(err.message || "Failed to load by-election watch data.");
+        if (!cancelled) setError(err.message || "Failed to load watchlist.");
       } finally {
         if (!cancelled) setLoading(false);
       }
     }
-
     load();
-    return () => {
-      cancelled = true;
-    };
+    return () => { cancelled = true; };
   }, []);
 
   const enrichedSeats = useMemo(() => {
     return seats.map((seat) => {
-      const winner = winnerMap[seat.constituency_id];
-      const constituency = winner?.constituencies;
-      const currentStatus = constituency
-        ? getCurrentStatus(constituency.name, winner?.parties?.name || winner?.parties?.short_name || "")
-        : null;
+      const con = seat.constituencies;
+      const candidate = seat.candidates;
+
+      // Criterion 1: majority < 5,000 — guaranteed by the API query
+      const narrowMajority = true;
+
+      // Criterion 2: first/second-term MP (first_elected_year >= 2019)
+      // Requires candidates.first_elected_year to be populated
+      const firstElectedYear = candidate?.first_elected_year ?? null;
+      const firstTermMp = firstElectedYear != null ? firstElectedYear >= 2019 : null; // null = unknown
+
+      // Criterion 3: Reform UK holds seats or council is NOC
+      const council = councilMap[seat.constituency_id];
+      let reformCouncil = false;
+      if (council) {
+        const comp = council.composition || {};
+        const reformSeats = Number(comp["Reform UK"] || comp["Reform"] || 0);
+        const isNoc = (council.control_type || "").toLowerCase().includes("no overall");
+        reformCouncil = reformSeats > 0 || isNoc;
+      }
+
+      // Criterion 4: active political alert
       const matchingAlerts = byElectionAlerts.filter(
-        (alert) => alert.constituencyName && alert.constituencyName === constituency?.name
+        (a) => a.constituencyName === con?.name || a.councilName != null
       );
+      const hasAlert = matchingAlerts.length > 0;
+
+      const criteriaMetCount = [
+        narrowMajority,
+        firstTermMp === true,
+        reformCouncil,
+        hasAlert,
+      ].filter(Boolean).length;
 
       return {
         ...seat,
-        winner,
-        constituency,
-        currentStatus,
+        constituency: con,
+        candidate,
+        narrowMajority,
+        firstTermMp,
+        reformCouncil,
+        hasAlert,
         matchingAlerts,
-        primaryRiskFactor: getRiskFactorLabel(seat),
+        criteriaMetCount,
+        majorityPct: seat.electorate ? ((seat.majority / seat.electorate) * 100).toFixed(1) : null,
       };
-    });
-  }, [seats, winnerMap]);
-
-  const mapSeatsByOnsCode = useMemo(() => {
-    const nextMap = {};
-    enrichedSeats.forEach((seat) => {
-      const onsCode = seat.constituency?.ons_code?.toUpperCase();
-      if (!onsCode) return;
-      nextMap[onsCode] = {
-        fill: getRiskFill(seat.risk_score),
-        stroke: "#ffffff",
-        strokeWidth: 0.45,
-        title: `${seat.constituency.name}: ${seat.risk_level} by-election risk (${Number(
-          seat.risk_score
-        ).toFixed(1)}/10)`,
-      };
-    });
-    return nextMap;
-  }, [enrichedSeats]);
-
-  const confidence = useMemo(
-    () =>
-      getModelConfidence({
-        modelKey: "byElectionRisk",
-        availableSignalKeys: model?.signalKeys ?? [],
-      }),
-    [model]
-  );
+    }).sort((a, b) => b.criteriaMetCount - a.criteriaMetCount || a.majority - b.majority);
+  }, [seats, councilMap]);
 
   if (loading) {
     return (
@@ -174,7 +126,7 @@ export default function ByElectionWatchPage() {
           <div className="portal-page-header">
             <div className="portal-page-header__content">
               <span className="portal-page-header__eyebrow">Analytics Engine</span>
-              <h1 className="portal-page-header__title">Loading by-election watch…</h1>
+              <h1 className="portal-page-header__title">Loading By-Election Watch…</h1>
             </div>
           </div>
         </Card>
@@ -182,7 +134,7 @@ export default function ByElectionWatchPage() {
     );
   }
 
-  if (error || enrichedSeats.length === 0) {
+  if (error) {
     return (
       <div className="page stack">
         <Card>
@@ -190,30 +142,16 @@ export default function ByElectionWatchPage() {
             <div className="portal-page-header__content">
               <span className="portal-page-header__eyebrow">Analytics Engine</span>
               <h1 className="portal-page-header__title">By-Election Watch</h1>
-              <p className="portal-page-header__subtitle">
-                Monitor constituencies with the highest modelled risk of a near-term by-election event.
-              </p>
-            </div>
-            <div className="portal-page-header__actions">
-              <Link to="/portal/constituency" className="button ghost">
-                Constituencies
-              </Link>
             </div>
           </div>
-          {error && <div className="status error" role="alert">{error}</div>}
-          {!error && (
-            <div className="portal-placeholder-panel">
-              <p className="portal-placeholder-panel__title">No by-election watch data yet</p>
-              <p className="portal-placeholder-panel__body">
-                Run <code>python scripts/calculate_by_election_risk.py</code> after creating the{" "}
-                <code>by_election_risk</code> table in Supabase.
-              </p>
-            </div>
-          )}
+          <div className="status error" role="alert">{error}</div>
         </Card>
       </div>
     );
   }
+
+  const multiCriteria = enrichedSeats.filter((s) => s.criteriaMetCount >= 2);
+  const incumbencyDataAvailable = seats.some((s) => s.candidates?.first_elected_year != null);
 
   return (
     <div className="page stack">
@@ -223,157 +161,191 @@ export default function ByElectionWatchPage() {
             <span className="portal-page-header__eyebrow">Analytics Engine</span>
             <h1 className="portal-page-header__title">By-Election Watch</h1>
             <p className="portal-page-header__subtitle">
-              Seats with a modelled by-election risk score above 7. {model?.description}
+              Conservative seats under structured monitoring based on objective criteria. This is not
+              a prediction of by-elections — it is a watchlist of seats where structural conditions
+              warrant closer attention.
             </p>
           </div>
           <div className="portal-page-header__actions">
-            <Link to="/portal/constituency" className="button ghost">
-              Constituencies
-            </Link>
+            <Link to="/portal/constituency" className="button ghost">All constituencies</Link>
           </div>
         </div>
 
         <div className="portal-summary-grid" style={{ marginTop: 24 }}>
           <div className="portal-stat">
-            <span className="portal-stat__label">Seats on watch</span>
+            <span className="portal-stat__label">Seats monitored</span>
             <span className="portal-stat__value">{enrichedSeats.length}</span>
-            <span className="portal-stat__meta">Risk score above 7.0</span>
+            <span className="portal-stat__meta">Conservative seats with majority under 5,000</span>
           </div>
           <div className="portal-stat">
-            <span className="portal-stat__label">Highest model score</span>
+            <span className="portal-stat__label">Multiple criteria</span>
+            <span className="portal-stat__value">{multiCriteria.length}</span>
+            <span className="portal-stat__meta">Meeting 2 or more watchlist criteria</span>
+          </div>
+          <div className="portal-stat">
+            <span className="portal-stat__label">Smallest majority</span>
             <span className="portal-stat__value">
-              {Math.max(...enrichedSeats.map((seat) => Number(seat.risk_score) || 0)).toFixed(1)}
+              {enrichedSeats.length > 0
+                ? enrichedSeats[enrichedSeats.length - 1]?.majority?.toLocaleString("en-GB") ?? "—"
+                : "—"}
             </span>
-            <span className="portal-stat__meta">Across all watched seats</span>
-          </div>
-          <div className="portal-stat">
-            <span className="portal-stat__label">Next scheduled vote date</span>
-            <span className="portal-stat__value">Not available</span>
-            <span className="portal-stat__meta">No scheduled election trigger recorded</span>
+            <span className="portal-stat__meta">Votes</span>
           </div>
         </div>
       </Card>
 
-      <DataProvenancePanel
-        metadata={metadata}
-        fallbackCopy="By-election watch provenance will appear here when the model and source links are recorded in the metadata layer."
-      />
-
-      <ScoringMethodologyPanel model={model} />
-
-      <ModelConfidenceBadge confidence={confidence} />
-
-      <div className="portal-split-grid">
-        <Card title="High-risk seats map">
-          <div className="portal-map-shell">
-            <div className="portal-map-frame">
-              <Suspense fallback={<div className="portal-map-fallback" />}>
-                <AnalyticsChoroplethMapClient
-                  ariaLabel="By-election risk map"
-                  seatsByOnsCode={mapSeatsByOnsCode}
-                  defaultFill="#e5e7eb"
-                />
-              </Suspense>
+      <Card title="Watchlist criteria">
+        <div className="portal-data-note" style={{ marginTop: 0 }}>
+          A seat appears on this watchlist if it meets the majority threshold below. Additional
+          criteria are flagged where data is available. Seats meeting more criteria are listed first.
+        </div>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: 12, marginTop: 16 }}>
+          {CRITERIA.map((c) => (
+            <div key={c.key} style={{ display: "flex", alignItems: "center", gap: 10 }}>
+              <span style={{ width: 12, height: 12, borderRadius: "50%", background: c.colour, flexShrink: 0 }} />
+              <span style={{ fontSize: 13 }}>{c.label}</span>
             </div>
-            <div className="portal-legend">
-              <span className="portal-legend__title">Risk intensity</span>
-              <div className="portal-legend__items">
-                <span className="portal-legend__item">
-                  <span className="portal-legend__swatch" style={{ background: "#f97316" }} />
-                  Elevated
-                </span>
-                <span className="portal-legend__item">
-                  <span className="portal-legend__swatch" style={{ background: "#dc2626" }} />
-                  High
-                </span>
-                <span className="portal-legend__item">
-                  <span className="portal-legend__swatch" style={{ background: "#b91c1c" }} />
-                  Acute
-                </span>
-                <span className="portal-legend__item">
-                  <span className="portal-legend__swatch" style={{ background: "#e5e7eb" }} />
-                  Other seats
-                </span>
-              </div>
-            </div>
+          ))}
+        </div>
+        {!incumbencyDataAvailable && (
+          <div className="portal-data-note" style={{ marginTop: 12 }}>
+            <strong>Incumbency data not yet loaded.</strong> The "First/second-term MP" criterion
+            requires <code>candidates.first_elected_year</code> to be populated.
+            Until then, this criterion shows as unknown for all seats.
+          </div>
+        )}
+      </Card>
+
+      {enrichedSeats.length === 0 ? (
+        <Card>
+          <div className="portal-placeholder-panel">
+            <p className="portal-placeholder-panel__title">No seats meet the majority threshold</p>
+            <p className="portal-placeholder-panel__body">
+              No Conservative seats with a majority under 5,000 were found in the 2024 results.
+            </p>
           </div>
         </Card>
+      ) : (
+        <Card title={`Monitored seats (${enrichedSeats.length})`}>
+          <div className="table-wrap">
+            <table className="table">
+              <thead>
+                <tr>
+                  <th>Constituency</th>
+                  <th>MP</th>
+                  <th>Majority</th>
+                  <th>Maj %</th>
+                  <th>Criteria met</th>
+                  <th>Flags</th>
+                </tr>
+              </thead>
+              <tbody>
+                {enrichedSeats.map((seat) => {
+                  const mpName = seat.candidate
+                    ? `${seat.candidate.first_name} ${seat.candidate.last_name}`
+                    : "—";
 
-        <div className="portal-kpi-list">
-          <Card title="Operational guidance">
-            <ModelConfidenceBadge confidence={confidence} compact />
-            <div className="portal-data-note" style={{ marginTop: 0 }}>
-              {model?.interpretation}
-            </div>
-          </Card>
+                  return (
+                    <tr key={seat.constituency_id}>
+                      <td>
+                        {seat.constituency ? (
+                          <Link
+                            className="table-link"
+                            to={`/portal/constituency/${seat.constituency.ons_code}`}
+                          >
+                            {seat.constituency.name}
+                          </Link>
+                        ) : "—"}
+                      </td>
+                      <td>
+                        <div className="portal-stack-compact">
+                          <span style={{ fontSize: 13 }}>{mpName}</span>
+                          {seat.firstTermMp === true && (
+                            <span className="portal-current-status__meta">
+                              First elected {seat.candidate?.first_elected_year}
+                            </span>
+                          )}
+                          {seat.firstTermMp === null && (
+                            <span className="portal-current-status__meta" style={{ color: "#9ca3af" }}>
+                              Term unknown
+                            </span>
+                          )}
+                        </div>
+                      </td>
+                      <td style={{ fontWeight: 700 }}>
+                        {seat.majority != null ? seat.majority.toLocaleString("en-GB") : "—"}
+                      </td>
+                      <td style={{ color: Number(seat.majorityPct) < 3 ? "#dc2626" : "#374151" }}>
+                        {seat.majorityPct != null ? `${seat.majorityPct}%` : "—"}
+                      </td>
+                      <td>
+                        <CriteriaCount count={seat.criteriaMetCount} />
+                      </td>
+                      <td>
+                        <div style={{ display: "flex", flexWrap: "wrap", gap: 4 }}>
+                          <CriteriaBadge met={seat.narrowMajority} label="Narrow majority" colour="#dc2626" />
+                          <CriteriaBadge met={seat.firstTermMp === true} label="First/2nd term" colour="#ea580c" />
+                          <CriteriaBadge met={seat.reformCouncil} label="Reform/NOC council" colour="#12B6CF" />
+                          <CriteriaBadge met={seat.hasAlert} label="Active alert" colour="#7c3aed" />
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        </Card>
+      )}
+
+      <Card title="Active political alerts">
+        {byElectionAlerts.length === 0 ? (
+          <p className="portal-current-status__meta">No active alerts recorded.</p>
+        ) : (
+          <div className="portal-stack-compact">
+            {byElectionAlerts.map((alert, i) => (
+              <div key={i} className="portal-record">
+                <div style={{ display: "flex", justifyContent: "space-between", gap: 12 }}>
+                  <div>
+                    <p style={{ margin: "0 0 4px", fontWeight: 700, fontSize: 13 }}>
+                      {alert.constituencyName || alert.councilName || "General"}
+                    </p>
+                    <p style={{ margin: 0, fontSize: 12, color: "#374151" }}>{alert.summary}</p>
+                  </div>
+                  <span
+                    className="status-pill"
+                    style={{
+                      background: alert.riskLevel === "high" ? "#dc2626" : "#ea580c",
+                      color: "#ffffff",
+                      alignSelf: "flex-start",
+                      flexShrink: 0,
+                      fontSize: 11,
+                    }}
+                  >
+                    {alert.riskLevel}
+                  </span>
+                </div>
+                <p style={{ margin: "6px 0 0", fontSize: 11, color: "#9ca3af" }}>
+                  Updated {alert.lastUpdated}
+                </p>
+              </div>
+            ))}
+          </div>
+        )}
+        <div className="portal-data-note" style={{ marginTop: 12 }}>
+          Alerts are manually maintained in <code>src/data/byElectionAlerts.js</code>.
+          Add entries for MP health issues, pending standards investigations, local party collapses,
+          or other circumstances that could trigger a vacancy.
         </div>
-      </div>
+      </Card>
 
-      <Card title={`Watched seats (${enrichedSeats.length})`}>
-        <div className="table-wrap">
-          <table className="table">
-            <thead>
-              <tr>
-                <th>Constituency</th>
-                <th>Risk level</th>
-                <th>Current MP</th>
-                <th>Majority</th>
-                <th>Primary risk factor</th>
-                <th>Active political alerts</th>
-              </tr>
-            </thead>
-            <tbody>
-              {enrichedSeats.map((seat) => {
-                const currentHolderName =
-                  seat.currentStatus?.currentMemberName ||
-                  (seat.winner?.candidates
-                    ? `${seat.winner.candidates.first_name} ${seat.winner.candidates.last_name}`
-                    : "Current holder not available");
-
-                return (
-                  <tr key={seat.constituency_id}>
-                    <td>
-                      {seat.constituency ? (
-                        <Link className="table-link" to={`/portal/constituency/${seat.constituency.ons_code}`}>
-                          {seat.constituency.name}
-                        </Link>
-                      ) : (
-                        "—"
-                      )}
-                    </td>
-                    <td>
-                      <div className="portal-stack-compact">
-                        <RiskBadge level={seat.risk_level} />
-                        <span className="portal-current-status__meta">
-                          {Number(seat.risk_score).toFixed(1)}/10
-                        </span>
-                      </div>
-                    </td>
-                    <td>
-                      <div className="portal-stack-compact">
-                        <span>{currentHolderName}</span>
-                        {seat.currentStatus?.differsFromElected && (
-                          <span className="portal-current-status__meta">
-                            Current party: {seat.currentStatus.currentPartyName}
-                          </span>
-                        )}
-                      </div>
-                    </td>
-                    <td>{seat.winner?.majority != null ? seat.winner.majority.toLocaleString("en-GB") : "—"}</td>
-                    <td>
-                      <div className="portal-stack-compact">
-                        <span>{seat.primaryRiskFactor}</span>
-                        <span className="portal-current-status__meta">{seat.risk_summary || "—"}</span>
-                      </div>
-                    </td>
-                    <td>
-                      <AlertList items={seat.matchingAlerts} />
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
+      <Card title="About this watchlist">
+        <div className="portal-data-note" style={{ marginTop: 0 }}>
+          <strong>This is not a by-election prediction model.</strong> No statistical score is assigned.
+          The watchlist surface seats where one or more observable structural conditions make a vacancy
+          or contest materially plausible within a parliament. Inclusion does not imply a by-election
+          is likely — it means the seat warrants monitoring. Seats are removed when their majority
+          increases (at the next general election) or criteria no longer apply.
         </div>
       </Card>
     </div>
