@@ -8,11 +8,12 @@ vi.mock("../lib/cognito.js", async () => {
   return {
     ...actual,
     startLogin: vi.fn().mockResolvedValue(),
+    exchangeCodeForTokens: vi.fn(),
   };
 });
 
 import Callback from "./Callback.jsx";
-import { savePkce, startLogin } from "../lib/cognito.js";
+import { exchangeCodeForTokens, savePkce, startLogin } from "../lib/cognito.js";
 
 function LocationDisplay() {
   const location = useLocation();
@@ -42,13 +43,7 @@ describe("Callback", () => {
   });
 
   it("completes auth when PKCE exists only in localStorage", async () => {
-    const fetchMock = vi.fn().mockResolvedValue({
-      ok: true,
-      json: async () => ({ access_token: "token" }),
-    });
-    vi.stubGlobal("fetch", fetchMock);
-    savePkce("state-123", "verifier-local", { flow: "signup" });
-    sessionStorage.removeItem("cognito_pkce_state_v1:state-123");
+    exchangeCodeForTokens.mockResolvedValue({ access_token: "token" });
 
     renderWithHelmet(
       <MemoryRouter initialEntries={["/callback?code=code-abc&state=state-123"]}>
@@ -62,10 +57,14 @@ describe("Callback", () => {
     await waitFor(() => {
       expect(screen.getByTestId("location-display").textContent).toContain("/portal");
     });
+    expect(exchangeCodeForTokens).toHaveBeenCalledWith("code-abc", "state-123");
     expect(screen.queryByText("Restart sign-in")).not.toBeInTheDocument();
   });
 
   it("shows handoff-missing message and restarts sign-in", async () => {
+    const pkceErr = Object.assign(new Error("Missing PKCE handoff data."), { code: "PKCE_HANDOFF_MISSING" });
+    exchangeCodeForTokens.mockRejectedValue(pkceErr);
+
     renderWithHelmet(
       <MemoryRouter initialEntries={["/callback?code=code-abc&state=missing-state"]}>
         <Routes>
