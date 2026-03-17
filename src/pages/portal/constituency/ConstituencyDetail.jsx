@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import Card from "../../../components/Card.jsx";
 import { resolvePartyColour, toHexColor } from "../../../utils/partyColours.js";
+import { hasTwfyApiKey } from "../../../utils/twfy.js";
 import {
   getCouncilData,
   getConstituency,
@@ -1002,6 +1003,7 @@ function LocalNationalAlignmentPanel({ councils, electedWinner }) {
 
 // ─── Feature 9: MP Profile Tab ────────────────────────────────────────────────
 function MpProfileTab({ constituency, electedWinner, results, marginalityScore, byElectionRisk, vulnerabilityScore }) {
+  const twfyConfigured = hasTwfyApiKey();
   const latestResult = useMemo(() => {
     return results
       .filter((r) => r.is_winner && r.elections?.election_type === "general")
@@ -1058,14 +1060,22 @@ function MpProfileTab({ constituency, electedWinner, results, marginalityScore, 
           )}
         </div>
 
-        <div className="portal-data-note" style={{ marginTop: 16 }}>
-          <strong>TheyWorkForYou integration:</strong> To show rebellion rate, committee memberships, and voting record,
-          register for a free API key at{" "}
-          <a href="https://www.theyworkforyou.com/api/key" target="_blank" rel="noopener noreferrer">
-            theyworkforyou.com/api/key
-          </a>{" "}
-          and add it as <code>VITE_TWFY_API_KEY</code> in your environment.
-        </div>
+        {twfyConfigured ? (
+          <div className="portal-data-note" style={{ marginTop: 16 }}>
+            <strong>TheyWorkForYou API key configured.</strong> MP profile enrichment is enabled for this environment.
+            Additional fields such as rebellion rate, committee memberships, and voting record will appear once the
+            TheyWorkForYou fetch layer is connected.
+          </div>
+        ) : (
+          <div className="portal-data-note" style={{ marginTop: 16 }}>
+            <strong>TheyWorkForYou integration unavailable.</strong> MP profile enrichment is unavailable because the
+            TheyWorkForYou API key is not configured. Register for a free API key at{" "}
+            <a href="https://www.theyworkforyou.com/api/key" target="_blank" rel="noopener noreferrer">
+              theyworkforyou.com/api/key
+            </a>{" "}
+            and add it as <code>VITE_TWFY_API_KEY</code>.
+          </div>
+        )}
       </div>
 
       {(marginalityScore || byElectionRisk || vulnerabilityScore) && (
