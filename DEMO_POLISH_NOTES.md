@@ -36,6 +36,7 @@
 - Reworked dashboard cards to use equal-height modules with consistent CTA sizing, clearer spacing, and cleaner hierarchy.
 - Removed the public `Pricing` link from the top navigation so subscriptions stay accessible through the portal flow rather than the public header.
 - Tightened dashboard card layout again so the four product/account cards stretch to a consistent height and keep CTA buttons aligned at the bottom.
+- Replaced the dashboard’s generic card treatment with a dedicated `portal-dashboard-card` layout and a four-column dashboard grid so all four cards use the same class and flex structure.
 - Removed the out-of-place `Portal` eyebrow label from the dashboard heading.
 - Updated the constituency winners query to use the latest general election rather than the latest election of any type.
 - Fixed the seats-won summary logic so:
@@ -47,6 +48,8 @@
 - Added party-colour fills to the constituency map using winner data already loaded on the index page, with lighter blended fills so the map remains readable.
 - Increased the visibility of the map zoom controls with stronger positioning, navy buttons, and clearer hover states.
 - Removed the duplicate `Constituency Intelligence` eyebrow label from the constituency index page header.
+- Added temporary console logging in the constituency index and map components to trace winner rows, derived colour lookup values, and the first geography fill applied. This is in place specifically to verify the colour path during visual review.
+- Changed the map colour flow so `ConstituencyMapClient` receives winner-party data directly, derives the colour lookup locally, and applies fills through the `Geography` style object. This is intended to fix the grey-fill issue seen in review.
 - Added current-holder status handling using `src/data/currentMPs.js`.
 - Surface current-holder changes on:
   - constituency detail header
@@ -63,18 +66,22 @@
 - The `Current composition` card is intentionally hard-coded to the agreed demo numbers supplied for this pass. It should not be treated as a live parliamentary feed.
 - Constituency Intelligence still uses the enquiry route as the public commercial CTA rather than a dedicated public product page.
 - The constituency map uses winner party colours from the election-result dataset with product-side fallbacks for known parties. If a party record is missing colour data, seats still fall back to a neutral slate fill.
+- The map currently includes explicit debug logging requested for diagnosis. Remove those logs after visual confirmation if they are no longer needed for the demo environment.
 
 ## Still needs review before the demo
 
 - Browser QA on the constituency map controls across desktop trackpad, mouse wheel, and smaller laptop viewports.
 - Quick visual QA on the new `Seats won` and `Current composition` tables at tablet widths, since both are denser than the previous KPI card treatment.
+- Visual confirmation that the choropleth map is now rendering party colours rather than grey fills.
 - Commercial review of the current-holder override list and the wording used when elected and current parties differ.
 - Visual QA of the updated footer and blog templates against the homepage and services page to confirm they now feel like the same product family.
+- Confirm the dashboard cards now render at equal heights in the live portal with real data.
 
 ## Not completed
 
 - No deeper data-model change was attempted for current-holder status. The override file is deliberate because the demo requirement is urgent and the live schema does not appear to model post-election party changes cleanly.
 - No performance rewrite was attempted for the constituency GeoJSON bundle. The perceived loading state is improved, but the heavy map bundle still exists.
+- No changes were made to the red intelligence alert banner in this pass. It remains as previously committed and should survive the next merge unchanged.
 
 ## Verification
 

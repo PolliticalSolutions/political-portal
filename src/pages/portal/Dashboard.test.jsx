@@ -19,7 +19,7 @@ describe("Dashboard", () => {
   });
 
   it("renders the basic dashboard sections", () => {
-    render(
+    const { container } = render(
       <MemoryRouter initialEntries={["/portal"]}>
         <Routes>
           <Route path="/portal" element={<Dashboard />} />
@@ -29,6 +29,12 @@ describe("Dashboard", () => {
 
     expect(screen.getByRole("heading", { name: "Dashboard" })).toBeInTheDocument();
     expect(document.querySelector(".portal-dashboard-grid")).toBeInTheDocument();
+    const cards = [...container.querySelectorAll(".portal-dashboard-card")];
+    expect(cards).toHaveLength(4);
+    cards.forEach((card) => {
+      expect(card).toHaveClass("product-card");
+      expect(card).toHaveClass("portal-dashboard-card");
+    });
     expect(screen.getByRole("heading", { name: "Marked Register Processing" })).toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "Constituency Intelligence" })).toBeInTheDocument();
     expect(

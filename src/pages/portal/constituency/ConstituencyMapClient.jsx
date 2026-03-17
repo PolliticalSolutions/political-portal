@@ -28,6 +28,18 @@ function blendHexWithWhite(hex, blend = 0.3) {
     .join("")}`;
 }
 
+const PARTY_COLOUR_FALLBACKS = {
+  Labour: "#E4003B",
+  Conservative: "#0087DC",
+  "Liberal Democrat": "#FAA61A",
+  "Reform UK": "#12B6CF",
+  SNP: "#FDF38E",
+  Green: "#00B140",
+  "Plaid Cymru": "#005B54",
+  DUP: "#D46A4C",
+  "Sinn Féin": "#326760",
+};
+
 function MapError({ reason }) {
   return (
     <div
@@ -52,7 +64,7 @@ function MapError({ reason }) {
 }
 
 export default function ConstituencyMapClient({
-  winnerColoursByOnsCode = {},
+  winnersByOnsCode = {},
   currentStatusByOnsCode = {},
   onConstituencyClick,
 }) {
@@ -60,6 +72,26 @@ export default function ConstituencyMapClient({
   const [mapError, setMapError] = useState(null);
   const [position, setPosition] = useState({ coordinates: [-2, 55.4], zoom: 1 });
   const errorLoggedRef = useRef(false);
+  const fillLoggedRef = useRef(false);
+
+  console.log(
+    "[ConstituencyMapClient] Winners prop received:",
+    Object.entries(winnersByOnsCode)
+      .slice(0, 3)
+      .map(([onsCode, party]) => ({
+        ons_code: onsCode,
+        party_short_name: party?.short_name ?? party?.name ?? null,
+        colour_hex: party?.colour_hex ?? null,
+      }))
+  );
+
+  const winnerColoursByOnsCode = Object.fromEntries(
+    Object.entries(winnersByOnsCode).map(([onsCode, party]) => {
+      const rawColour = toHexColor(party?.colour_hex);
+      const fallbackColour = PARTY_COLOUR_FALLBACKS[party?.name] ?? PARTY_COLOUR_FALLBACKS[party?.short_name] ?? null;
+      return [onsCode.toUpperCase(), rawColour || fallbackColour || "#94a3b8"];
+    })
+  );
 
   const handleClick = (onsCode) => {
     if (!onsCode) return;
@@ -89,22 +121,31 @@ export default function ConstituencyMapClient({
       }
 
       return geographies.map((geo) => {
-        const onsCode = geo.properties.PCON24CD;
-        const fill = blendHexWithWhite(winnerColoursByOnsCode[onsCode], 0.35);
+        const onsCode = (geo.properties.PCON24CD || "").toUpperCase();
+        const baseColour = winnerColoursByOnsCode[onsCode] || "#94a3b8";
+        const fill = blendHexWithWhite(baseColour, 0.35);
         const hasCurrentDifference = Boolean(currentStatusByOnsCode[onsCode]);
+
+        if (!fillLoggedRef.current && onsCode) {
+          fillLoggedRef.current = true;
+          console.log("[ConstituencyMapClient] First geography fill applied:", {
+            ons_code: onsCode,
+            base_colour: baseColour,
+            fill,
+          });
+        }
 
         return (
           <Geography
             key={geo.rsmKey}
             geography={geo}
-            fill={fill}
             stroke={hasCurrentDifference ? "#c89b4a" : "#ffffff"}
             strokeWidth={hasCurrentDifference ? 0.7 : 0.3}
             title={geo.properties.PCON24NM ?? onsCode}
             style={{
-              default: { outline: "none" },
-              hover: { outline: "none", opacity: 0.75, cursor: "pointer" },
-              pressed: { outline: "none", opacity: 0.6 },
+              default: { outline: "none", fill },
+              hover: { outline: "none", fill, opacity: 0.78, cursor: "pointer" },
+              pressed: { outline: "none", fill, opacity: 0.62 },
             }}
             onClick={() => handleClick(onsCode)}
           />

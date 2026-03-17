@@ -220,6 +220,25 @@ export default function ConstituencyIndex() {
           }
         });
 
+        console.log(
+          "[ConstituencyIndex] First 3 winner rows:",
+          electionData.winners.slice(0, 3).map((winner) => ({
+            ons_code: winner.constituencies?.ons_code ?? null,
+            party_short_name: winner.parties?.short_name ?? winner.parties?.name ?? null,
+            colour_hex: winner.parties?.colour_hex ?? null,
+          }))
+        );
+        console.log(
+          "[ConstituencyIndex] First 3 winner map entries:",
+          Object.entries(winnerMap)
+            .slice(0, 3)
+            .map(([onsCode, party]) => ({
+              ons_code: onsCode,
+              party_short_name: party?.short_name ?? party?.name ?? null,
+              colour_hex: party?.colour_hex ?? null,
+            }))
+        );
+
         setAllConstituencies(constituencies);
         setRegions(nextRegions);
         setCountries(nextCountries);
@@ -381,9 +400,7 @@ export default function ConstituencyIndex() {
             <div className="portal-map-frame">
               <Suspense fallback={<div className="portal-map-fallback" />}>
                 <ConstituencyMapClient
-                  winnerColoursByOnsCode={Object.fromEntries(
-                    Object.entries(winnersByOnsCode).map(([onsCode, party]) => [onsCode, toHexColor(party?.colour_hex)])
-                  )}
+                  winnersByOnsCode={winnersByOnsCode}
                   currentStatusByOnsCode={currentStatusByOnsCode}
                 />
               </Suspense>

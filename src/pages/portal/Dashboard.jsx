@@ -51,8 +51,8 @@ export default function Dashboard() {
         </div>
       </Card>
 
-      <div className="card-grid portal-dashboard-grid">
-        <Card title="Marked Register Processing" className="product-card dashboard-module-card">
+      <div className="portal-dashboard-grid">
+        <Card title="Marked Register Processing" className="product-card portal-dashboard-card">
           <div className="product-card__body">
             <p>
               Upload marked register files, track processing, and download structured outputs for campaign use.
@@ -67,7 +67,7 @@ export default function Dashboard() {
           </div>
         </Card>
 
-        <Card title="Constituency Intelligence" className="product-card dashboard-module-card">
+        <Card title="Constituency Intelligence" className="product-card portal-dashboard-card">
           <div className="product-card__body">
             <p>
               Search constituencies, compare results and demographics, and review constituency detail from one
@@ -83,7 +83,7 @@ export default function Dashboard() {
           </div>
         </Card>
 
-        <Card title="Campaigning, Training & Election Support" className="product-card dashboard-module-card">
+        <Card title="Campaigning, Training & Election Support" className="product-card portal-dashboard-card">
           <div className="product-card__body">
             <p>
               Request practical support for campaigning, training, by-election preparation, and delivery when
@@ -99,7 +99,7 @@ export default function Dashboard() {
           </div>
         </Card>
 
-        <Card title="Account and subscriptions" className="product-card dashboard-module-card">
+        <Card title="Account and subscriptions" className="product-card portal-dashboard-card">
           <div className="product-card__body">
             <p>
               Review subscription pricing, manage current selections, and continue account setup where needed.
