@@ -3,7 +3,7 @@ import { Link } from "react-router-dom";
 import Button from "../../../components/Button.jsx";
 import Card from "../../../components/Card.jsx";
 import { byElectionAlerts } from "../../../data/byElectionAlerts.js";
-import { getLatestElectionWinners } from "./constituencyApi.js";
+import { getLatestElectionWinners, getAllMarginalityScores, getHighRiskByElectionSeats } from "./constituencyApi.js";
 import {
   buildSeatsByPartySummary,
   CURRENT_COMPOSITION,
@@ -170,9 +170,13 @@ export default function ConstituencyIndex() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
+  const [marginalityByConId, setMarginalityByConId] = useState({});
+  const [highRiskSeats, setHighRiskSeats] = useState([]);
+
   const [query, setQuery] = useState("");
   const [selectedRegion, setSelectedRegion] = useState("");
   const [selectedCountry, setSelectedCountry] = useState("");
+  const [selectedMarginality, setSelectedMarginality] = useState("");
 
   useEffect(() => {
     let cancelled = false;
@@ -245,6 +249,17 @@ export default function ConstituencyIndex() {
         setLatestElection({ name: electionData.electionName, date: electionData.electionDate });
         setWinnerRows(electionData.winners);
         setWinnersByOnsCode(winnerMap);
+
+        // Non-blocking: load analytics data after main data is ready
+        Promise.all([getAllMarginalityScores(), getHighRiskByElectionSeats()]).then(
+          ([scores, riskSeats]) => {
+            if (cancelled) return;
+            const mMap = {};
+            scores.forEach((s) => { mMap[s.constituency_id] = s; });
+            setMarginalityByConId(mMap);
+            setHighRiskSeats(riskSeats ?? []);
+          }
+        ).catch(() => {}); // analytics tables may not exist yet
       } catch (err) {
         if (!cancelled) setError(err.message || "Failed to load constituency data.");
       } finally {
@@ -263,6 +278,10 @@ export default function ConstituencyIndex() {
     return allConstituencies.filter((constituency) => {
       if (normalizedQuery && !constituency.name.toLowerCase().includes(normalizedQuery)) return false;
       if (selectedRegion && constituency.region !== selectedRegion) return false;
+      if (selectedMarginality) {
+        const ms = marginalityByConId[constituency.id];
+        if (!ms || ms.classification !== selectedMarginality) return false;
+      }
       if (selectedCountry && constituency.country !== selectedCountry) return false;
       return true;
     });
@@ -289,7 +308,7 @@ export default function ConstituencyIndex() {
     return statusMap;
   }, [allConstituencies, winnersByOnsCode]);
 
-  const hasFilters = Boolean(query || selectedRegion || selectedCountry);
+  const hasFilters = Boolean(query || selectedRegion || selectedCountry || selectedMarginality);
 
   if (loading) {
     return (
@@ -373,6 +392,22 @@ export default function ConstituencyIndex() {
                 ))}
               </select>
             </label>
+            <label className="field" htmlFor="constituency-marginality">
+              <span>Marginality</span>
+              <select
+                id="constituency-marginality"
+                className="input"
+                value={selectedMarginality}
+                onChange={(event) => setSelectedMarginality(event.target.value)}
+              >
+                <option value="">All seats</option>
+                <option value="Ultra Marginal">Ultra Marginal</option>
+                <option value="Highly Marginal">Highly Marginal</option>
+                <option value="Marginal">Marginal</option>
+                <option value="Likely">Likely</option>
+                <option value="Safe">Safe</option>
+              </select>
+            </label>
           </div>
           <div className="portal-page-header__actions">
             <Button
@@ -382,6 +417,7 @@ export default function ConstituencyIndex() {
                 setQuery("");
                 setSelectedRegion("");
                 setSelectedCountry("");
+                setSelectedMarginality("");
               }}
               disabled={!hasFilters}
             >
@@ -515,12 +551,14 @@ export default function ConstituencyIndex() {
                   <th>Country</th>
                   <th>Type</th>
                   <th>Latest winner</th>
+                  <th>Marginality</th>
                 </tr>
               </thead>
               <tbody>
                 {filteredConstituencies.map((constituency) => {
                   const winner = winnersByOnsCode[constituency.ons_code];
                   const currentStatus = currentStatusByOnsCode[constituency.ons_code] || null;
+                  const marginality = marginalityByConId[constituency.id] ?? null;
                   const hasCurrentDifference =
                     currentStatus &&
                     normalizePartyName(currentStatus.currentPartyName) !==
@@ -554,6 +592,19 @@ export default function ConstituencyIndex() {
                         ) : (
                           "—"
                         )}
+                      </td>
+                      <td>
+                        {marginality ? (
+                          <span style={{ fontSize: 12, fontWeight: 600, color:
+                            marginality.classification === "Ultra Marginal" ? "#dc2626" :
+                            marginality.classification === "Highly Marginal" ? "#ea580c" :
+                            marginality.classification === "Marginal" ? "#d97706" :
+                            marginality.classification === "Likely" ? "#1d4ed8" :
+                            "#15803d"
+                          }}>
+                            {marginality.classification}
+                          </span>
+                        ) : "—"}
                       </td>
                     </tr>
                   );

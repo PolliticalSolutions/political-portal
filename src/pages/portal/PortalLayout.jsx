@@ -385,6 +385,18 @@ export default function PortalLayout() {
               </NavLink>
             </div>
             <div className="portal-nav-group">
+              <span className="portal-nav-group__label">Analytics</span>
+              <NavLink className={navClass} to="/portal/constituency/vulnerability">
+                Vulnerability
+              </NavLink>
+              <NavLink className={navClass} to="/portal/constituency/reform-threat">
+                Reform Threat
+              </NavLink>
+              <NavLink className={navClass} to="/portal/alerts">
+                My Alerts
+              </NavLink>
+            </div>
+            <div className="portal-nav-group">
               <span className="portal-nav-group__label">Account</span>
               <NavLink className={navClass} to="/portal/subscriptions">
                 Subscriptions
