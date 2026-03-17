@@ -217,16 +217,6 @@ function persistRedirectPath(path) {
   }
 }
 
-export function consumePostLoginRedirect(defaultPath = "/portal") {
-  if (!hasWindow) return defaultPath;
-  const stored = sessionStorage.getItem(redirectKey);
-  if (stored) {
-    sessionStorage.removeItem(redirectKey);
-    return isSafeInternalPath(stored) ? stored : defaultPath;
-  }
-  return defaultPath;
-}
-
 export function clearStoredSession({ preserveRedirect = false } = {}) {
   if (!hasWindow) return;
   clearSession(window.sessionStorage, { preserveRedirect });
