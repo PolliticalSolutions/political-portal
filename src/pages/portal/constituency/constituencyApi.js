@@ -224,6 +224,10 @@ export async function getRegionalCorrelations(region) {
   return data ?? [];
 }
 
+export async function getNationalCorrelations() {
+  return getRegionalCorrelations("National");
+}
+
 export async function getAlertSubscriptions(email) {
   const { data, error } = await supabase
     .from("alert_subscriptions")
