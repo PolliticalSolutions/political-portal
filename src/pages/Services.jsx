@@ -10,11 +10,10 @@ export default function Services() {
       <section className="section">
         <div className="container hero">
           <div>
-            <h1>What services do we offer?</h1>
+            <h1>Operational support for campaign teams that need clean delivery</h1>
             <p className="muted">
-              Political Solutions offers a wide range of solutions to help your campaigning efforts. These vary
-              from Marked Register processing, to specialised by-election support, to ongoing campaigning
-              consultancy work. See below for more information on how each service operates.
+              Political Solutions supports campaign teams with Marked Register Processing, election support,
+              and practical advisory work that helps associations and candidates move faster with fewer errors.
             </p>
           </div>
           <div className="hero-visual services-hero-visual">
@@ -37,6 +36,11 @@ export default function Services() {
                 any Marked Register for your association/federation area. Once the .csv file is ready you will
                 receive an email alerting you the CSV file is ready.
               </p>
+              <div className="hero-actions" style={{ marginTop: 16 }}>
+                <Button as={Link} to="/subscriptions" variant="primary">
+                  View Marked Register plans
+                </Button>
+              </div>
             </Card>
 
             <Card title="Training & Support">
@@ -44,6 +48,11 @@ export default function Services() {
                 Various levels of consultancy help are available, from one-off sessions to ongoing remote support
                 for your association/federation and candidates.
               </p>
+              <div className="hero-actions" style={{ marginTop: 16 }}>
+                <Button as={Link} to="/enquire" variant="secondary">
+                  Discuss support needs
+                </Button>
+              </div>
             </Card>
 
             <Card title="Election & By-Election Support">
@@ -51,12 +60,12 @@ export default function Services() {
                 UK-wide planning, field operations support, volunteer training, and print or data operations
                 coordination. This service is quoted and billed separately from subscriptions.
               </p>
+              <div className="hero-actions" style={{ marginTop: 16 }}>
+                <Button as={Link} to="/services/election-support" variant="secondary">
+                  Request election support
+                </Button>
+              </div>
             </Card>
-          </div>
-          <div data-testid="services-primary-cta">
-            <Button as={Link} to="/enquire" variant="primary" style={{ width: "100%" }}>
-              Enquire about our services here
-            </Button>
           </div>
           <div data-testid="services-compliance-note">
             <Card title="Compliance note" className="service-compliance-note">

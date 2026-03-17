@@ -9,7 +9,7 @@ import { getRuntimeConfig } from "../config/runtimeConfig.js";
 import enquireIllustration from "../assets/enquire-illustration.png";
 
 const SERVICE_OPTIONS = [
-  "Marked Register entry",
+  "Marked Register Processing",
   "By-Election campaign consultancy",
   "General campaigning consultancy",
   "Automated content generation for literature",
@@ -205,9 +205,9 @@ export default function EnquirePage() {
           <div>
             <h1>Enquire</h1>
             <p className="muted">
-              Get in touch with us using the form below. Highlight which of the services offered you're
-              interested in (you can select more than one!) and I will get back in touch with you as quickly
-              as possible. Please provide as much information as possible so the best solution can be offered
+              Tell us what you need, who it is for, and which service you want to discuss. We use this to route
+              the enquiry properly and confirm the next step quickly. If your request is urgent, say so clearly
+              in the message box.
             </p>
           </div>
           <div className="hero-visual">
@@ -225,7 +225,14 @@ export default function EnquirePage() {
       </section>
 
       <section className="section">
-        <div className="container">
+        <div className="container stack">
+          <Card title="What happens next">
+            <p className="muted">
+              We review the enquiry, confirm whether it is a subscription question, a Marked Register
+              Processing request, or a separate support brief, and then reply with the appropriate next step.
+            </p>
+          </Card>
+
           <Card>
             <form className="stack" onSubmit={handleSubmit} noValidate>
               <label className="field">
