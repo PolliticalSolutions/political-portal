@@ -7,8 +7,6 @@ import {
   getConstituencyResults,
 } from "./constituencyApi.js";
 
-// Approximate 2021 England & Wales census national averages.
-// Used for comparison bars in the Demographics tab.
 const NATIONAL_AVERAGES = {
   pct_owner_occupied: 64.8,
   pct_social_rented: 17.1,
@@ -24,7 +22,25 @@ const NATIONAL_AVERAGES = {
   median_household_income: 31400,
 };
 
-// ─── Helpers ────────────────────────────────────────────────────────────────
+const TABS = [
+  { id: "history", label: "Election History" },
+  { id: "demographics", label: "Demographics" },
+  { id: "candidates", label: "Candidates" },
+  { id: "councils", label: "Local Councils" },
+];
+
+const DEMOGRAPHIC_FIELDS = [
+  { key: "pct_owner_occupied", label: "Owner occupied" },
+  { key: "pct_social_rented", label: "Social rented" },
+  { key: "pct_private_rented", label: "Private rented" },
+  { key: "pct_degree_qualified", label: "Degree qualified" },
+  { key: "pct_no_qualifications", label: "No qualifications" },
+  { key: "pct_white_british", label: "White British" },
+  { key: "pct_born_uk", label: "Born in UK" },
+  { key: "pct_christian", label: "Christian" },
+  { key: "pct_employed", label: "Employed" },
+  { key: "pct_self_employed", label: "Self-employed" },
+];
 
 function toHexColor(hex) {
   if (!hex) return null;
@@ -34,66 +50,55 @@ function toHexColor(hex) {
 function formatDate(iso) {
   if (!iso) return "—";
   return new Date(iso).toLocaleDateString("en-GB", {
-    day: "numeric", month: "long", year: "numeric",
+    day: "numeric",
+    month: "long",
+    year: "numeric",
   });
 }
 
-function formatNumber(n) {
-  if (n == null) return "—";
-  return Number(n).toLocaleString("en-GB");
+function formatNumber(value) {
+  if (value == null) return "—";
+  return Number(value).toLocaleString("en-GB");
 }
 
-function formatPct(n) {
-  if (n == null) return "—";
-  const v = parseFloat(n);
-  return isNaN(v) ? "—" : `${v.toFixed(1)}%`;
+function formatPct(value) {
+  if (value == null) return "—";
+  const parsed = parseFloat(value);
+  return Number.isNaN(parsed) ? "—" : `${parsed.toFixed(1)}%`;
 }
 
-function formatChange(n) {
-  if (n == null) return null;
-  const v = parseFloat(n);
-  if (isNaN(v)) return null;
-  const sign = v >= 0 ? "+" : "";
-  return `${sign}${v.toFixed(1)}`;
+function formatChange(value) {
+  if (value == null) return null;
+  const parsed = parseFloat(value);
+  if (Number.isNaN(parsed)) return null;
+  const sign = parsed >= 0 ? "+" : "";
+  return `${sign}${parsed.toFixed(1)}`;
 }
 
-// ─── Tab navigation ─────────────────────────────────────────────────────────
-
-const TABS = [
-  { id: "history", label: "Election History" },
-  { id: "demographics", label: "Demographics" },
-  { id: "candidates", label: "Candidates" },
-  { id: "councils", label: "Local Councils" },
-];
+function PartyDot({ hex, size = 10 }) {
+  return (
+    <span
+      className="party-dot"
+      style={{
+        width: size,
+        height: size,
+        background: toHexColor(hex) ?? "#94a3b8",
+      }}
+    />
+  );
+}
 
 function TabBar({ active, onChange }) {
   return (
-    <div
-      style={{
-        display: "flex",
-        borderBottom: "2px solid #e2e8f0",
-        marginBottom: 20,
-        gap: 0,
-        overflowX: "auto",
-      }}
-    >
+    <div className="portal-tabs" role="tablist" aria-label="Constituency detail sections">
       {TABS.map((tab) => (
         <button
           key={tab.id}
           type="button"
+          role="tab"
+          aria-selected={active === tab.id}
+          className={`portal-tab${active === tab.id ? " active" : ""}`}
           onClick={() => onChange(tab.id)}
-          style={{
-            background: "none",
-            border: "none",
-            padding: "10px 20px",
-            fontWeight: active === tab.id ? 700 : 400,
-            color: active === tab.id ? "#1e293b" : "#64748b",
-            borderBottom: active === tab.id ? "2px solid #1e293b" : "2px solid transparent",
-            cursor: "pointer",
-            marginBottom: -2,
-            fontSize: 14,
-            whiteSpace: "nowrap",
-          }}
         >
           {tab.label}
         </button>
@@ -102,142 +107,105 @@ function TabBar({ active, onChange }) {
   );
 }
 
-// ─── Vote share bar ──────────────────────────────────────────────────────────
-
 function VoteBar({ voteShare, hex, isWinner }) {
   const pct = Math.min(Math.max(parseFloat(voteShare) || 0, 0), 100);
   return (
-    <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-      <div
-        style={{
-          width: 120,
-          height: 8,
-          background: "#e2e8f0",
-          borderRadius: 4,
-          overflow: "hidden",
-        }}
-      >
-        <div
-          style={{
-            width: `${pct}%`,
-            height: "100%",
-            background: toHexColor(hex) ?? "#94a3b8",
-            borderRadius: 4,
-          }}
-        />
-      </div>
-      <span style={{ fontSize: 12, color: "#64748b" }}>{formatPct(voteShare)}</span>
-      {isWinner && (
-        <span
-          style={{
-            fontSize: 11,
-            fontWeight: 700,
-            background: "#dcfce7",
-            color: "#15803d",
-            padding: "1px 6px",
-            borderRadius: 4,
-          }}
-        >
-          Won
+    <div className="portal-stack-compact">
+      <div className="portal-kpi-row">
+        <div className="portal-kpi-bar">
+          <div
+            className="portal-kpi-bar__fill"
+            style={{
+              width: `${pct}%`,
+              background: toHexColor(hex) ?? "#94a3b8",
+            }}
+          />
+        </div>
+        <span className="portal-kpi-value" style={{ width: 56 }}>
+          {formatPct(voteShare)}
         </span>
-      )}
+        {isWinner && <span className="status-pill success">Won</span>}
+      </div>
     </div>
   );
 }
 
-// ─── Election History tab ────────────────────────────────────────────────────
-
 function groupByElection(results) {
-  const map = new Map();
-  results.forEach((r) => {
-    const eid = r.elections?.id ?? "unknown";
-    if (!map.has(eid)) {
-      map.set(eid, { election: r.elections, rows: [] });
+  const grouped = new Map();
+  results.forEach((row) => {
+    const electionId = row.elections?.id ?? "unknown";
+    if (!grouped.has(electionId)) {
+      grouped.set(electionId, { election: row.elections, rows: [] });
     }
-    map.get(eid).rows.push(r);
+    grouped.get(electionId).rows.push(row);
   });
-  // already sorted by date desc from the API
-  return [...map.values()];
+  return [...grouped.values()];
 }
 
 function ElectionHistoryTab({ results }) {
   const groups = useMemo(() => groupByElection(results), [results]);
 
   if (groups.length === 0) {
-    return <p className="muted">No election results found for this constituency.</p>;
+    return (
+      <div className="portal-placeholder-panel">
+        <p className="portal-placeholder-panel__title">No election history available</p>
+        <p className="portal-placeholder-panel__body">
+          Election results for this constituency have not been loaded yet.
+        </p>
+      </div>
+    );
   }
 
   return (
-    <div className="stack" style={{ gap: 24 }}>
+    <div className="portal-data-section">
       {groups.map(({ election, rows }) => {
-        const winner = rows.find((r) => r.is_winner);
+        const winner = rows.find((row) => row.is_winner);
         return (
-          <div key={election?.id ?? "unknown"}>
-            <div style={{ marginBottom: 10 }}>
-              <div style={{ fontWeight: 700, fontSize: 15 }}>{election?.name ?? "Unknown election"}</div>
-              <div style={{ fontSize: 13, color: "#64748b" }}>{formatDate(election?.election_date)}</div>
-              {winner?.turnout != null && (
-                <div style={{ fontSize: 13, color: "#64748b" }}>
-                  Turnout: {formatPct(winner.turnout)}
-                  {winner.electorate ? ` (electorate: ${formatNumber(winner.electorate)})` : ""}
-                </div>
-              )}
+          <div key={election?.id ?? "unknown"} className="portal-record">
+            <div className="portal-data-section__header">
+              <p className="portal-data-section__title">{election?.name ?? "Unknown election"}</p>
+              <div className="portal-data-section__meta">
+                {formatDate(election?.election_date)}
+                {winner?.turnout != null ? ` • Turnout ${formatPct(winner.turnout)}` : ""}
+                {winner?.electorate ? ` • Electorate ${formatNumber(winner.electorate)}` : ""}
+              </div>
             </div>
-            <div style={{ overflowX: "auto" }}>
-              <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
+            <div className="table-wrap">
+              <table className="table">
                 <thead>
-                  <tr style={{ borderBottom: "1px solid #e2e8f0", textAlign: "left" }}>
-                    <th style={{ padding: "5px 8px" }}>Candidate</th>
-                    <th style={{ padding: "5px 8px" }}>Party</th>
-                    <th style={{ padding: "5px 8px", textAlign: "right" }}>Votes</th>
-                    <th style={{ padding: "5px 8px", textAlign: "right" }}>Change</th>
-                    <th style={{ padding: "5px 8px" }}>Share</th>
+                  <tr>
+                    <th>Candidate</th>
+                    <th>Party</th>
+                    <th>Votes</th>
+                    <th>Change</th>
+                    <th>Share</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {rows.map((r) => {
-                    const change = formatChange(r.votes_change);
+                  {rows.map((row) => {
+                    const change = formatChange(row.votes_change);
                     const changeColor =
-                      r.votes_change > 0 ? "#15803d" : r.votes_change < 0 ? "#b91c1c" : "#64748b";
+                      row.votes_change > 0 ? "#15803d" : row.votes_change < 0 ? "#b91c1c" : "#64748b";
                     return (
-                      <tr
-                        key={r.id}
-                        style={{
-                          borderBottom: "1px solid #f1f5f9",
-                          background: r.is_winner ? "#f0fdf4" : "transparent",
-                        }}
-                      >
-                        <td style={{ padding: "5px 8px", fontWeight: r.is_winner ? 600 : 400 }}>
-                          {r.candidates
-                            ? `${r.candidates.first_name} ${r.candidates.last_name}`
+                      <tr key={row.id}>
+                        <td style={{ fontWeight: row.is_winner ? 700 : 500 }}>
+                          {row.candidates
+                            ? `${row.candidates.first_name} ${row.candidates.last_name}`
                             : "—"}
                         </td>
-                        <td style={{ padding: "5px 8px" }}>
-                          <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
-                            <span
-                              style={{
-                                width: 10,
-                                height: 10,
-                                borderRadius: "50%",
-                                background: toHexColor(r.parties?.colour_hex) ?? "#94a3b8",
-                                display: "inline-block",
-                                flexShrink: 0,
-                              }}
-                            />
-                            {r.parties?.short_name || r.parties?.name || "—"}
+                        <td>
+                          <span className="party-chip">
+                            <PartyDot hex={row.parties?.colour_hex} />
+                            <span>{row.parties?.short_name || row.parties?.name || "—"}</span>
                           </span>
                         </td>
-                        <td style={{ padding: "5px 8px", textAlign: "right" }}>
-                          {formatNumber(r.votes)}
-                        </td>
-                        <td style={{ padding: "5px 8px", textAlign: "right", color: changeColor }}>
-                          {change ?? "—"}
-                        </td>
-                        <td style={{ padding: "5px 8px" }}>
+                        <td>{formatNumber(row.votes)}</td>
+                        <td style={{ color: changeColor }}>{change ?? "—"}</td>
+                        <td>
                           <VoteBar
-                            voteShare={r.vote_share}
-                            hex={r.parties?.colour_hex}
-                            isWinner={r.is_winner}
+                            voteShare={row.vote_share}
+                            hex={row.parties?.colour_hex}
+                            isWinner={row.is_winner}
                           />
                         </td>
                       </tr>
@@ -245,12 +213,12 @@ function ElectionHistoryTab({ results }) {
                   })}
                 </tbody>
               </table>
-              {winner?.majority != null && (
-                <p style={{ margin: "8px 0 0", fontSize: 12, color: "#64748b" }}>
-                  Majority: <strong>{formatNumber(winner.majority)}</strong>
-                </p>
-              )}
             </div>
+            {winner?.majority != null && (
+              <div className="portal-data-note">
+                Majority: <strong>{formatNumber(winner.majority)}</strong>
+              </div>
+            )}
           </div>
         );
       })}
@@ -258,60 +226,37 @@ function ElectionHistoryTab({ results }) {
   );
 }
 
-// ─── Demographics tab ────────────────────────────────────────────────────────
-
-const DEMO_FIELDS = [
-  { key: "pct_owner_occupied", label: "Owner occupied", pct: true },
-  { key: "pct_social_rented", label: "Social rented", pct: true },
-  { key: "pct_private_rented", label: "Private rented", pct: true },
-  { key: "pct_degree_qualified", label: "Degree qualified", pct: true },
-  { key: "pct_no_qualifications", label: "No qualifications", pct: true },
-  { key: "pct_white_british", label: "White British", pct: true },
-  { key: "pct_born_uk", label: "Born in UK", pct: true },
-  { key: "pct_christian", label: "Christian", pct: true },
-  { key: "pct_employed", label: "Employed", pct: true },
-  { key: "pct_self_employed", label: "Self-employed", pct: true },
-];
-
-function ComparisonBar({ value, national, label }) {
+function ComparisonCard({ label, value, national }) {
   if (value == null) return null;
-  const v = parseFloat(value);
-  const n = national ?? 0;
-  const maxVal = Math.max(v, n, 1);
-  const barScale = 180; // px
+
+  const constituencyValue = parseFloat(value);
+  const nationalValue = national ?? 0;
+  const maxValue = Math.max(constituencyValue, nationalValue, 1);
 
   return (
-    <div style={{ marginBottom: 10 }}>
-      <div style={{ display: "flex", justifyContent: "space-between", fontSize: 13, marginBottom: 3 }}>
-        <span>{label}</span>
-        <span style={{ color: "#64748b", fontSize: 12 }}>
-          {formatPct(v)} vs {formatPct(n)} national
+    <div className="portal-comparison-card">
+      <div className="portal-comparison-card__header">
+        <strong>{label}</strong>
+        <span className="portal-comparison-card__meta">
+          {formatPct(constituencyValue)} vs {formatPct(nationalValue)} national
         </span>
       </div>
-      <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-          <span style={{ width: 70, fontSize: 11, color: "#374151" }}>Constituency</span>
-          <div style={{ height: 8, background: "#dbeafe", borderRadius: 4, overflow: "hidden", width: barScale }}>
+      <div className="portal-comparison-bars">
+        <div className="portal-comparison-bar">
+          <span className="portal-comparison-bar__label">Constituency</span>
+          <div className="portal-comparison-bar__track primary">
             <div
-              style={{
-                width: `${Math.min((v / maxVal) * 100, 100)}%`,
-                height: "100%",
-                background: "#3b82f6",
-                borderRadius: 4,
-              }}
+              className="portal-comparison-bar__fill primary"
+              style={{ width: `${Math.min((constituencyValue / maxValue) * 100, 100)}%` }}
             />
           </div>
         </div>
-        <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-          <span style={{ width: 70, fontSize: 11, color: "#94a3b8" }}>National</span>
-          <div style={{ height: 8, background: "#f1f5f9", borderRadius: 4, overflow: "hidden", width: barScale }}>
+        <div className="portal-comparison-bar">
+          <span className="portal-comparison-bar__label muted">National</span>
+          <div className="portal-comparison-bar__track secondary">
             <div
-              style={{
-                width: `${Math.min((n / maxVal) * 100, 100)}%`,
-                height: "100%",
-                background: "#94a3b8",
-                borderRadius: 4,
-              }}
+              className="portal-comparison-bar__fill secondary"
+              style={{ width: `${Math.min((nationalValue / maxValue) * 100, 100)}%` }}
             />
           </div>
         </div>
@@ -322,181 +267,144 @@ function ComparisonBar({ value, national, label }) {
 
 function DemographicsTab({ demographics }) {
   if (demographics.length === 0) {
-    return <p className="muted">No demographic data found for this constituency.</p>;
+    return (
+      <div className="portal-placeholder-panel">
+        <p className="portal-placeholder-panel__title">No demographic data available</p>
+        <p className="portal-placeholder-panel__body">
+          Demographic comparison data has not been loaded for this constituency.
+        </p>
+      </div>
+    );
   }
 
   const latest = demographics[0];
 
   return (
-    <div>
-      <div style={{ marginBottom: 16, fontSize: 13, color: "#64748b" }}>
-        Census year: <strong>{latest.census_year ?? "—"}</strong>
-        {latest.is_estimated && (
-          <span
-            style={{
-              marginLeft: 8,
-              fontSize: 11,
-              background: "#fef3c7",
-              color: "#92400e",
-              padding: "1px 6px",
-              borderRadius: 4,
-            }}
-          >
-            Estimated
+    <div className="portal-data-section">
+      <div className="portal-summary-grid">
+        <div className="portal-stat">
+          <span className="portal-stat__label">Census year</span>
+          <span className="portal-stat__value">{latest.census_year ?? "—"}</span>
+          <span className="portal-stat__meta">
+            {latest.is_estimated ? "Estimated dataset" : "Published dataset"}
           </span>
-        )}
-        <span style={{ marginLeft: 16 }}>
-          Population: <strong>{formatNumber(latest.population)}</strong>
-        </span>
-        {latest.median_age != null && (
-          <span style={{ marginLeft: 16 }}>
-            Median age: <strong>{latest.median_age}</strong>
+        </div>
+        <div className="portal-stat">
+          <span className="portal-stat__label">Population</span>
+          <span className="portal-stat__value">{formatNumber(latest.population)}</span>
+          <span className="portal-stat__meta">Latest available constituency population.</span>
+        </div>
+        <div className="portal-stat">
+          <span className="portal-stat__label">Median age</span>
+          <span className="portal-stat__value">{latest.median_age ?? "—"}</span>
+          <span className="portal-stat__meta">Compared against England and Wales averages.</span>
+        </div>
+        <div className="portal-stat">
+          <span className="portal-stat__label">Median household income</span>
+          <span className="portal-stat__value">
+            {latest.median_household_income != null
+              ? `£${formatNumber(latest.median_household_income)}`
+              : "—"}
           </span>
-        )}
-        {latest.median_household_income != null && (
-          <span style={{ marginLeft: 16 }}>
-            Median household income: <strong>£{formatNumber(latest.median_household_income)}</strong>
-          </span>
-        )}
+          <span className="portal-stat__meta">Household income reference measure.</span>
+        </div>
       </div>
-      <p style={{ fontSize: 12, color: "#94a3b8", marginBottom: 16 }}>
-        National averages shown are approximate 2021 England &amp; Wales census figures.
-      </p>
-      {DEMO_FIELDS.map((f) => (
-        <ComparisonBar
-          key={f.key}
-          label={f.label}
-          value={latest[f.key]}
-          national={NATIONAL_AVERAGES[f.key]}
-        />
-      ))}
+      <div className="portal-data-note">
+        National averages shown here are approximate 2021 England and Wales census figures.
+      </div>
+      <div className="portal-comparison-list">
+        {DEMOGRAPHIC_FIELDS.map((field) => (
+          <ComparisonCard
+            key={field.key}
+            label={field.label}
+            value={latest[field.key]}
+            national={NATIONAL_AVERAGES[field.key]}
+          />
+        ))}
+      </div>
     </div>
   );
 }
 
-// ─── Candidates tab ──────────────────────────────────────────────────────────
-
 function CandidatesTab({ results }) {
   const candidates = useMemo(() => {
-    const map = new Map();
-    results.forEach((r) => {
-      const cid = r.candidates?.id;
-      if (!cid) return;
-      if (!map.has(cid)) {
-        map.set(cid, {
-          id: cid,
-          name: `${r.candidates.first_name} ${r.candidates.last_name}`,
+    const grouped = new Map();
+
+    results.forEach((row) => {
+      const candidateId = row.candidates?.id;
+      if (!candidateId) return;
+
+      if (!grouped.has(candidateId)) {
+        grouped.set(candidateId, {
+          id: candidateId,
+          name: `${row.candidates.first_name} ${row.candidates.last_name}`,
           contests: [],
         });
       }
-      map.get(cid).contests.push({
-        electionName: r.elections?.name ?? "—",
-        electionDate: r.elections?.election_date ?? "",
-        partyName: r.parties?.short_name || r.parties?.name || "—",
-        partyHex: r.parties?.colour_hex,
-        votes: r.votes,
-        voteShare: r.vote_share,
-        isWinner: r.is_winner,
+
+      grouped.get(candidateId).contests.push({
+        electionName: row.elections?.name ?? "—",
+        electionDate: row.elections?.election_date ?? "",
+        partyName: row.parties?.short_name || row.parties?.name || "—",
+        partyHex: row.parties?.colour_hex,
+        votes: row.votes,
+        voteShare: row.vote_share,
+        isWinner: row.is_winner,
       });
     });
 
-    return [...map.values()]
-      .map((c) => ({
-        ...c,
-        // Sort this candidate's contests by date desc
-        contests: c.contests.sort((a, b) => b.electionDate.localeCompare(a.electionDate)),
-        // Best vote share
-        bestShare: Math.max(...c.contests.map((x) => parseFloat(x.voteShare) || 0)),
-        won: c.contests.some((x) => x.isWinner),
+    return [...grouped.values()]
+      .map((candidate) => ({
+        ...candidate,
+        contests: candidate.contests.sort((a, b) => b.electionDate.localeCompare(a.electionDate)),
+        bestShare: Math.max(...candidate.contests.map((contest) => parseFloat(contest.voteShare) || 0)),
+        won: candidate.contests.some((contest) => contest.isWinner),
       }))
       .sort((a, b) => b.bestShare - a.bestShare);
   }, [results]);
 
   if (candidates.length === 0) {
-    return <p className="muted">No candidate data found for this constituency.</p>;
+    return (
+      <div className="portal-placeholder-panel">
+        <p className="portal-placeholder-panel__title">No candidate history available</p>
+        <p className="portal-placeholder-panel__body">
+          Candidate records for this constituency have not been loaded yet.
+        </p>
+      </div>
+    );
   }
 
   return (
-    <div className="stack" style={{ gap: 16 }}>
+    <div className="portal-record-list">
       {candidates.map((candidate) => (
-        <div
-          key={candidate.id}
-          style={{
-            padding: "12px 16px",
-            background: "#f8fafc",
-            borderRadius: 8,
-            border: "1px solid #e2e8f0",
-          }}
-        >
-          <div style={{ display: "flex", justifyContent: "space-between", flexWrap: "wrap", gap: 4 }}>
-            <span style={{ fontWeight: 700, fontSize: 14 }}>{candidate.name}</span>
-            <span style={{ display: "flex", gap: 6, alignItems: "center" }}>
-              {candidate.won && (
-                <span
-                  style={{
-                    fontSize: 11,
-                    fontWeight: 700,
-                    background: "#dcfce7",
-                    color: "#15803d",
-                    padding: "1px 6px",
-                    borderRadius: 4,
-                  }}
-                >
-                  Elected
-                </span>
-              )}
-              <span style={{ fontSize: 12, color: "#64748b" }}>
+        <div key={candidate.id} className="portal-record">
+          <div className="portal-record__header">
+            <div>
+              <p className="portal-record__title">{candidate.name}</p>
+              <p className="portal-record__meta">
                 {candidate.contests.length} contest{candidate.contests.length !== 1 ? "s" : ""}
-              </span>
-            </span>
+              </p>
+            </div>
+            {candidate.won && <span className="status-pill success">Elected</span>}
           </div>
-          <div style={{ marginTop: 8, display: "flex", flexDirection: "column", gap: 4 }}>
-            {candidate.contests.map((contest, i) => (
+          <div className="portal-record__rows">
+            {candidate.contests.map((contest) => (
               <div
-                key={i}
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  gap: 10,
-                  fontSize: 13,
-                  flexWrap: "wrap",
-                }}
+                key={`${candidate.id}-${contest.electionName}-${contest.electionDate}`}
+                className="portal-record__row"
               >
-                <span style={{ color: "#64748b", minWidth: 90 }}>
-                  {contest.electionDate
-                    ? new Date(contest.electionDate).getFullYear()
-                    : "—"}
+                <span className="portal-record__meta">
+                  {contest.electionDate ? new Date(contest.electionDate).getFullYear() : "—"}
                 </span>
-                <span style={{ display: "inline-flex", alignItems: "center", gap: 5 }}>
-                  <span
-                    style={{
-                      width: 10,
-                      height: 10,
-                      borderRadius: "50%",
-                      background: toHexColor(contest.partyHex) ?? "#94a3b8",
-                      display: "inline-block",
-                      flexShrink: 0,
-                    }}
-                  />
-                  {contest.partyName}
+                <span className="party-chip">
+                  <PartyDot hex={contest.partyHex} />
+                  <span>{contest.partyName}</span>
                 </span>
-                <span style={{ color: "#64748b" }}>
+                <span className="portal-record__meta">{contest.electionName}</span>
+                <span className="portal-record__meta">
                   {formatNumber(contest.votes)} votes ({formatPct(contest.voteShare)})
                 </span>
-                {contest.isWinner && (
-                  <span
-                    style={{
-                      fontSize: 11,
-                      fontWeight: 700,
-                      background: "#dcfce7",
-                      color: "#15803d",
-                      padding: "1px 5px",
-                      borderRadius: 4,
-                    }}
-                  >
-                    Won
-                  </span>
-                )}
+                {contest.isWinner && <span className="status-pill success">Won</span>}
               </div>
             ))}
           </div>
@@ -505,8 +413,6 @@ function CandidatesTab({ results }) {
     </div>
   );
 }
-
-// ─── Local Councils tab ──────────────────────────────────────────────────────
 
 function CouncilsTab() {
   return (
@@ -519,74 +425,58 @@ function CouncilsTab() {
   );
 }
 
-// ─── Header ──────────────────────────────────────────────────────────────────
-
 function ConstituencyHeader({ constituency, currentWinner }) {
   return (
     <Card>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", flexWrap: "wrap", gap: 12 }}>
-        <div>
-          <h1 style={{ margin: "0 0 4px", fontSize: 22 }}>{constituency.name}</h1>
-          <div style={{ display: "flex", gap: 12, flexWrap: "wrap", fontSize: 13, color: "#64748b" }}>
-            {constituency.region && <span>Region: <strong style={{ color: "#374151" }}>{constituency.region}</strong></span>}
-            {constituency.country && <span>Country: <strong style={{ color: "#374151" }}>{constituency.country}</strong></span>}
-            {constituency.constituency_type && (
-              <span>Type: <strong style={{ color: "#374151" }}>{constituency.constituency_type}</strong></span>
-            )}
-            {constituency.electorate_current != null && (
-              <span>Electorate: <strong style={{ color: "#374151" }}>{formatNumber(constituency.electorate_current)}</strong></span>
-            )}
-          </div>
+      <div className="portal-page-header">
+        <div className="portal-page-header__content">
+          <span className="portal-page-header__eyebrow">Constituency Intelligence</span>
+          <h1 className="portal-page-header__title">{constituency.name}</h1>
+          <p className="portal-page-header__subtitle">
+            Current seat summary, election history, candidate record, and constituency reference data.
+          </p>
         </div>
-        <Link to="/portal/constituency" className="button ghost" style={{ whiteSpace: "nowrap" }}>
-          ← Back to search
-        </Link>
+        <div className="portal-page-header__actions">
+          <Link to="/portal/constituency" className="button ghost">
+            Back to constituency search
+          </Link>
+        </div>
       </div>
 
-      {currentWinner && (
-        <div
-          style={{
-            marginTop: 12,
-            paddingTop: 12,
-            borderTop: "1px solid #e2e8f0",
-            display: "flex",
-            gap: 16,
-            flexWrap: "wrap",
-            fontSize: 13,
-          }}
-        >
-          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-            <span
-              style={{
-                display: "inline-block",
-                width: 14,
-                height: 14,
-                borderRadius: "50%",
-                background: toHexColor(currentWinner.partyHex) ?? "#94a3b8",
-                flexShrink: 0,
-              }}
-            />
-            <span>
-              <strong>{currentWinner.candidateName}</strong>
-              {" — "}
-              {currentWinner.partyName}
+      <div className="portal-summary-grid" style={{ marginTop: 24 }}>
+        <div className="portal-stat">
+          <span className="portal-stat__label">Current winner</span>
+          <span className="portal-stat__value">
+            {currentWinner?.candidateName || "—"}
+          </span>
+          <span className="portal-stat__meta">
+            <span className="party-chip">
+              {currentWinner?.partyName ? <PartyDot hex={currentWinner.partyHex} size={12} /> : null}
+              <span>{currentWinner?.partyName || "No winner loaded"}</span>
             </span>
-          </div>
-          {currentWinner.majority != null && (
-            <span style={{ color: "#64748b" }}>
-              Majority: <strong style={{ color: "#374151" }}>{formatNumber(currentWinner.majority)}</strong>
-            </span>
-          )}
-          {currentWinner.electionName && (
-            <span style={{ color: "#94a3b8", fontSize: 12 }}>{currentWinner.electionName}</span>
-          )}
+          </span>
         </div>
-      )}
+        <div className="portal-stat">
+          <span className="portal-stat__label">Majority</span>
+          <span className="portal-stat__value">
+            {currentWinner?.majority != null ? formatNumber(currentWinner.majority) : "—"}
+          </span>
+          <span className="portal-stat__meta">{currentWinner?.electionName || "Latest available election"}</span>
+        </div>
+        <div className="portal-stat">
+          <span className="portal-stat__label">Region</span>
+          <span className="portal-stat__value">{constituency.region || "—"}</span>
+          <span className="portal-stat__meta">{constituency.country || "Country not listed"}</span>
+        </div>
+        <div className="portal-stat">
+          <span className="portal-stat__label">Electorate</span>
+          <span className="portal-stat__value">{formatNumber(constituency.electorate_current)}</span>
+          <span className="portal-stat__meta">{constituency.constituency_type || "Constituency type not listed"}</span>
+        </div>
+      </div>
     </Card>
   );
 }
-
-// ─── Main component ──────────────────────────────────────────────────────────
 
 export default function ConstituencyDetail() {
   const { onsCode } = useParams();
@@ -605,17 +495,18 @@ export default function ConstituencyDetail() {
       setLoading(true);
       setError("");
       try {
-        const c = await getConstituency(onsCode);
+        const nextConstituency = await getConstituency(onsCode);
         if (cancelled) return;
-        setConstituency(c);
+        setConstituency(nextConstituency);
 
-        const [r, d] = await Promise.all([
-          getConstituencyResults(c.id),
-          getConstituencyDemographics(c.id),
+        const [nextResults, nextDemographics] = await Promise.all([
+          getConstituencyResults(nextConstituency.id),
+          getConstituencyDemographics(nextConstituency.id),
         ]);
+
         if (cancelled) return;
-        setResults(r);
-        setDemographics(d);
+        setResults(nextResults);
+        setDemographics(nextDemographics);
       } catch (err) {
         if (!cancelled) setError(err.message || "Failed to load constituency.");
       } finally {
@@ -624,14 +515,16 @@ export default function ConstituencyDetail() {
     }
 
     load();
-    return () => { cancelled = true; };
+    return () => {
+      cancelled = true;
+    };
   }, [onsCode]);
 
   const currentWinner = useMemo(() => {
     if (!results.length) return null;
-    // Results are sorted date desc — first winner is the most recent
-    const winner = results.find((r) => r.is_winner);
+    const winner = results.find((row) => row.is_winner);
     if (!winner) return null;
+
     return {
       candidateName: winner.candidates
         ? `${winner.candidates.first_name} ${winner.candidates.last_name}`
@@ -647,7 +540,15 @@ export default function ConstituencyDetail() {
     return (
       <div className="page stack">
         <Card>
-          <p className="muted">Loading constituency data...</p>
+          <div className="portal-page-header">
+            <div className="portal-page-header__content">
+              <span className="portal-page-header__eyebrow">Constituency Intelligence</span>
+              <h1 className="portal-page-header__title">Loading constituency detail</h1>
+              <p className="portal-page-header__subtitle">
+                Preparing the current constituency summary and reference data.
+              </p>
+            </div>
+          </div>
         </Card>
       </div>
     );
@@ -657,12 +558,14 @@ export default function ConstituencyDetail() {
     return (
       <div className="page stack">
         <Card>
-          <p role="alert" style={{ color: "#b91c1c" }}>
+          <div className="status error" role="alert">
             {error || "Constituency not found."}
-          </p>
-          <Link to="/portal/constituency" className="button ghost" style={{ marginTop: 12, display: "inline-block" }}>
-            ← Back to search
-          </Link>
+          </div>
+          <div className="portal-page-header__actions" style={{ marginTop: 16 }}>
+            <Link to="/portal/constituency" className="button ghost">
+              Back to constituency search
+            </Link>
+          </div>
         </Card>
       </div>
     );
