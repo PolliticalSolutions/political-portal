@@ -820,6 +820,27 @@ p {
   gap: var(--space-3);
 }
 
+.portal-placeholder-panel {
+  padding: var(--space-5);
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--border);
+  background: linear-gradient(180deg, rgba(11, 46, 77, 0.03), rgba(255, 255, 255, 0.98));
+  text-align: center;
+}
+
+.portal-placeholder-panel__title {
+  margin: 0;
+  color: var(--primary);
+  font-size: 18px;
+  font-weight: 700;
+}
+
+.portal-placeholder-panel__body {
+  margin: var(--space-2) auto 0;
+  max-width: 48ch;
+  color: var(--text-muted);
+}
+
 .card-grid {
   display: grid;
   gap: var(--space-3);

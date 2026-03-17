@@ -510,19 +510,10 @@ function CandidatesTab({ results }) {
 
 function CouncilsTab() {
   return (
-    <div
-      style={{
-        padding: "32px 24px",
-        textAlign: "center",
-        background: "#f8fafc",
-        borderRadius: 8,
-        border: "1px dashed #cbd5e1",
-      }}
-    >
-      <div style={{ fontSize: 28, marginBottom: 8 }}>🏛️</div>
-      <p style={{ margin: 0, fontWeight: 600, color: "#374151" }}>Council data coming soon</p>
-      <p className="muted" style={{ margin: "8px 0 0", fontSize: 13 }}>
-        Local authority and council data for this constituency will appear here in a future update.
+    <div className="portal-placeholder-panel">
+      <p className="portal-placeholder-panel__title">Council data</p>
+      <p className="portal-placeholder-panel__body">
+        Council data will be available in a future release.
       </p>
     </div>
   );

@@ -368,7 +368,7 @@ export default function PortalLayout() {
               Uploads
             </NavLink>
             <NavLink className={navClass} to="/portal/ops/quotes">
-              Ops quotes
+              Quotes
             </NavLink>
             {isAdmin && (
               <NavLink className={navClass} to="/portal/admin/manual-review">
