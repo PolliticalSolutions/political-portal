@@ -5,6 +5,7 @@ import {
   getConstituency,
   getConstituencyDemographics,
   getConstituencyResults,
+  getConstituencySwings,
 } from "./constituencyApi.js";
 
 const NATIONAL_AVERAGES = {
@@ -75,6 +76,123 @@ function formatChange(value) {
   return `${sign}${parsed.toFixed(1)}`;
 }
 
+// Party IDs used for swing key-pairing logic
+const LAB_ID   = "7cf90c7d-1540-4737-b581-48613d4715c2";
+const CON_ID   = "a4f20caf-ba89-4fb0-9ae3-313a7f937719";
+const LD_ID    = "fcd69d3d-d445-428e-87e4-09adf95a4a1e";
+const RUK_ID   = "a2b82e7c-5f8d-425d-a1b2-36db57c7268e";
+const SNP_ID   = "a72cbc23-e79e-4868-9e70-61b3460acbc9";
+
+// Ordered list of swing pairings to display (from_party_id, to_party_id, label)
+const SWING_PAIRINGS = [
+  { from: CON_ID, to: LAB_ID,  label: "Con \u2192 Labour" },
+  { from: CON_ID, to: LD_ID,   label: "Con \u2192 Lib Dem" },
+  { from: CON_ID, to: RUK_ID,  label: "Con \u2192 Reform" },
+  { from: LAB_ID, to: LD_ID,   label: "Lab \u2192 Lib Dem" },
+  { from: LAB_ID, to: SNP_ID,  label: "Lab \u2192 SNP" },
+  { from: CON_ID, to: SNP_ID,  label: "Con \u2192 SNP" },
+];
+
+function formatSwing(value) {
+  if (value == null) return null;
+  const v = parseFloat(value);
+  if (Number.isNaN(v)) return null;
+  const sign = v >= 0 ? "+" : "";
+  return `${sign}${(v * 100).toFixed(1)}%`;
+}
+
+// Given the winning party_id, return the most relevant swing pairing to show in the header
+function primaryPairing(winnerPartyId) {
+  if (winnerPartyId === LAB_ID)  return { from: CON_ID, to: LAB_ID };
+  if (winnerPartyId === LD_ID)   return { from: CON_ID, to: LD_ID };
+  if (winnerPartyId === RUK_ID)  return { from: CON_ID, to: RUK_ID };
+  if (winnerPartyId === SNP_ID)  return { from: LAB_ID, to: SNP_ID };
+  return { from: CON_ID, to: LAB_ID }; // default
+}
+
+function SwingBar({ value, hex }) {
+  const v = parseFloat(value) || 0;
+  // Clamp display: treat ±50pp as 100% bar width
+  const pct = Math.min(Math.abs(v) * 200, 100);
+  const positive = v >= 0;
+  return (
+    <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+      <div style={{ flex: 1, height: 8, background: "#e2e8f0", borderRadius: 4, overflow: "hidden" }}>
+        <div
+          style={{
+            width: `${pct}%`,
+            height: "100%",
+            background: positive ? (hex ?? "#3b82f6") : "#94a3b8",
+            borderRadius: 4,
+          }}
+        />
+      </div>
+      <span style={{ fontSize: 13, fontWeight: 600, width: 60, textAlign: "right", color: positive ? "#15803d" : "#b91c1c" }}>
+        {formatSwing(value) ?? "—"}
+      </span>
+    </div>
+  );
+}
+
+function SwingPanel({ swings, nationals, partyMap, latestElectionId }) {
+  // Only show swings for the notional 2019 → 2024 comparison
+  // (all swings in the table are for this pair, so no filter needed)
+  if (!swings || swings.length === 0) return null;
+
+  // Index by from+to key
+  const swingIndex = {};
+  swings.forEach((s) => { swingIndex[`${s.from_party_id}:${s.to_party_id}`] = s.swing_value; });
+
+  const nationalIndex = {};
+  nationals.forEach((s) => { nationalIndex[`${s.from_party_id}:${s.to_party_id}`] = s.swing_value; });
+
+  const rows = SWING_PAIRINGS.filter(({ from, to }) => `${from}:${to}` in swingIndex);
+  if (rows.length === 0) return null;
+
+  return (
+    <div className="portal-record" style={{ marginTop: 16 }}>
+      <div className="portal-data-section__header">
+        <p className="portal-data-section__title">Swing (notional 2019 \u2192 2024)</p>
+        <div className="portal-data-section__meta">
+          Standard UK two-party swing formula
+        </div>
+      </div>
+      <div style={{ padding: "8px 0" }}>
+        {rows.map(({ from, to, label }) => {
+          const key = `${from}:${to}`;
+          const val = swingIndex[key];
+          const natVal = nationalIndex[key];
+          const toParty = partyMap[to];
+          const diff = (val != null && natVal != null) ? val - natVal : null;
+          return (
+            <div key={key} style={{ marginBottom: 10 }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 3 }}>
+                <span style={{ fontSize: 13, color: "#374151" }}>
+                  <span className="party-chip">
+                    {toParty?.colour_hex && <PartyDot hex={toParty.colour_hex} />}
+                    <span>{label}</span>
+                  </span>
+                </span>
+                {diff != null && (
+                  <span style={{ fontSize: 11, color: diff >= 0 ? "#15803d" : "#b91c1c" }}>
+                    {diff >= 0 ? "+" : ""}{(diff * 100).toFixed(1)}% vs national
+                  </span>
+                )}
+              </div>
+              <SwingBar value={val} hex={toHexColor(toParty?.colour_hex)} />
+              {natVal != null && (
+                <div style={{ fontSize: 11, color: "#64748b", marginTop: 2 }}>
+                  National average: {formatSwing(natVal)}
+                </div>
+              )}
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
 function PartyDot({ hex, size = 10 }) {
   return (
     <span
@@ -142,7 +260,7 @@ function groupByElection(results) {
   return [...grouped.values()];
 }
 
-function ElectionHistoryTab({ results }) {
+function ElectionHistoryTab({ results, swings, nationals, partyMap }) {
   const groups = useMemo(() => groupByElection(results), [results]);
 
   if (groups.length === 0) {
@@ -156,68 +274,81 @@ function ElectionHistoryTab({ results }) {
     );
   }
 
+  // Show swing panel after the most recent (first) election group
+  const mostRecentId = groups[0]?.election?.id;
+
   return (
     <div className="portal-data-section">
-      {groups.map(({ election, rows }) => {
+      {groups.map(({ election, rows }, groupIndex) => {
         const winner = rows.find((row) => row.is_winner);
         return (
-          <div key={election?.id ?? "unknown"} className="portal-record">
-            <div className="portal-data-section__header">
-              <p className="portal-data-section__title">{election?.name ?? "Unknown election"}</p>
-              <div className="portal-data-section__meta">
-                {formatDate(election?.election_date)}
-                {winner?.turnout != null ? ` • Turnout ${formatPct(winner.turnout)}` : ""}
-                {winner?.electorate ? ` • Electorate ${formatNumber(winner.electorate)}` : ""}
+          <div key={election?.id ?? "unknown"}>
+            <div className="portal-record">
+              <div className="portal-data-section__header">
+                <p className="portal-data-section__title">{election?.name ?? "Unknown election"}</p>
+                <div className="portal-data-section__meta">
+                  {formatDate(election?.election_date)}
+                  {winner?.turnout != null ? ` • Turnout ${formatPct(winner.turnout)}` : ""}
+                  {winner?.electorate ? ` • Electorate ${formatNumber(winner.electorate)}` : ""}
+                </div>
               </div>
-            </div>
-            <div className="table-wrap">
-              <table className="table">
-                <thead>
-                  <tr>
-                    <th>Candidate</th>
-                    <th>Party</th>
-                    <th>Votes</th>
-                    <th>Change</th>
-                    <th>Share</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {rows.map((row) => {
-                    const change = formatChange(row.votes_change);
-                    const changeColor =
-                      row.votes_change > 0 ? "#15803d" : row.votes_change < 0 ? "#b91c1c" : "#64748b";
-                    return (
-                      <tr key={row.id}>
-                        <td style={{ fontWeight: row.is_winner ? 700 : 500 }}>
-                          {row.candidates
-                            ? `${row.candidates.first_name} ${row.candidates.last_name}`
-                            : "—"}
-                        </td>
-                        <td>
-                          <span className="party-chip">
-                            <PartyDot hex={row.parties?.colour_hex} />
-                            <span>{row.parties?.short_name || row.parties?.name || "—"}</span>
-                          </span>
-                        </td>
-                        <td>{formatNumber(row.votes)}</td>
-                        <td style={{ color: changeColor }}>{change ?? "—"}</td>
-                        <td>
-                          <VoteBar
-                            voteShare={row.vote_share}
-                            hex={row.parties?.colour_hex}
-                            isWinner={row.is_winner}
-                          />
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </div>
-            {winner?.majority != null && (
-              <div className="portal-data-note">
-                Majority: <strong>{formatNumber(winner.majority)}</strong>
+              <div className="table-wrap">
+                <table className="table">
+                  <thead>
+                    <tr>
+                      <th>Candidate</th>
+                      <th>Party</th>
+                      <th>Votes</th>
+                      <th>Change</th>
+                      <th>Share</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {rows.map((row) => {
+                      const change = formatChange(row.votes_change);
+                      const changeColor =
+                        row.votes_change > 0 ? "#15803d" : row.votes_change < 0 ? "#b91c1c" : "#64748b";
+                      return (
+                        <tr key={row.id}>
+                          <td style={{ fontWeight: row.is_winner ? 700 : 500 }}>
+                            {row.candidates
+                              ? `${row.candidates.first_name} ${row.candidates.last_name}`
+                              : "—"}
+                          </td>
+                          <td>
+                            <span className="party-chip">
+                              <PartyDot hex={row.parties?.colour_hex} />
+                              <span>{row.parties?.short_name || row.parties?.name || "—"}</span>
+                            </span>
+                          </td>
+                          <td>{formatNumber(row.votes)}</td>
+                          <td style={{ color: changeColor }}>{change ?? "—"}</td>
+                          <td>
+                            <VoteBar
+                              voteShare={row.vote_share}
+                              hex={row.parties?.colour_hex}
+                              isWinner={row.is_winner}
+                            />
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
               </div>
+              {winner?.majority != null && (
+                <div className="portal-data-note">
+                  Majority: <strong>{formatNumber(winner.majority)}</strong>
+                </div>
+              )}
+            </div>
+            {groupIndex === 0 && (
+              <SwingPanel
+                swings={swings}
+                nationals={nationals}
+                partyMap={partyMap}
+                latestElectionId={mostRecentId}
+              />
             )}
           </div>
         );
@@ -425,7 +556,22 @@ function CouncilsTab() {
   );
 }
 
-function ConstituencyHeader({ constituency, currentWinner }) {
+function ConstituencyHeader({ constituency, currentWinner, swings, nationals }) {
+  // Pick the most relevant swing to highlight in the header
+  const keySwingStat = useMemo(() => {
+    if (!swings || swings.length === 0) return null;
+    const { from, to } = primaryPairing(currentWinner?.partyId);
+    const match = swings.find((s) => s.from_party_id === from && s.to_party_id === to);
+    if (!match) return null;
+    const national = nationals?.find((s) => s.from_party_id === from && s.to_party_id === to);
+    const pairing = SWING_PAIRINGS.find((p) => p.from === from && p.to === to);
+    return {
+      label: pairing?.label ?? "Swing",
+      value: match.swing_value,
+      national: national?.swing_value ?? null,
+    };
+  }, [swings, nationals, currentWinner]);
+
   return (
     <Card>
       <div className="portal-page-header">
@@ -468,11 +614,25 @@ function ConstituencyHeader({ constituency, currentWinner }) {
           <span className="portal-stat__value">{constituency.region || "—"}</span>
           <span className="portal-stat__meta">{constituency.country || "Country not listed"}</span>
         </div>
-        <div className="portal-stat">
-          <span className="portal-stat__label">Electorate</span>
-          <span className="portal-stat__value">{formatNumber(constituency.electorate_current)}</span>
-          <span className="portal-stat__meta">{constituency.constituency_type || "Constituency type not listed"}</span>
-        </div>
+        {keySwingStat ? (
+          <div className="portal-stat">
+            <span className="portal-stat__label">Key swing ({keySwingStat.label})</span>
+            <span className="portal-stat__value" style={{ color: keySwingStat.value >= 0 ? "#15803d" : "#b91c1c" }}>
+              {formatSwing(keySwingStat.value) ?? "—"}
+            </span>
+            <span className="portal-stat__meta">
+              {keySwingStat.national != null
+                ? `National avg: ${formatSwing(keySwingStat.national)} • notional 2019\u21922024`
+                : "notional 2019\u21922024"}
+            </span>
+          </div>
+        ) : (
+          <div className="portal-stat">
+            <span className="portal-stat__label">Electorate</span>
+            <span className="portal-stat__value">{formatNumber(constituency.electorate_current)}</span>
+            <span className="portal-stat__meta">{constituency.constituency_type || "Constituency type not listed"}</span>
+          </div>
+        )}
       </div>
     </Card>
   );
@@ -483,6 +643,8 @@ export default function ConstituencyDetail() {
   const [constituency, setConstituency] = useState(null);
   const [results, setResults] = useState([]);
   const [demographics, setDemographics] = useState([]);
+  const [swings, setSwings] = useState([]);
+  const [nationals, setNationals] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [activeTab, setActiveTab] = useState("history");
@@ -499,14 +661,17 @@ export default function ConstituencyDetail() {
         if (cancelled) return;
         setConstituency(nextConstituency);
 
-        const [nextResults, nextDemographics] = await Promise.all([
+        const [nextResults, nextDemographics, nextSwings] = await Promise.all([
           getConstituencyResults(nextConstituency.id),
           getConstituencyDemographics(nextConstituency.id),
+          getConstituencySwings(nextConstituency.id),
         ]);
 
         if (cancelled) return;
         setResults(nextResults);
         setDemographics(nextDemographics);
+        setSwings(nextSwings.swings);
+        setNationals(nextSwings.nationals);
       } catch (err) {
         if (!cancelled) setError(err.message || "Failed to load constituency.");
       } finally {
@@ -520,9 +685,22 @@ export default function ConstituencyDetail() {
     };
   }, [onsCode]);
 
+  // Build a party id → party object lookup from results (covers all parties in this constituency)
+  const partyMap = useMemo(() => {
+    const map = {};
+    results.forEach((row) => {
+      if (row.parties?.id) map[row.parties.id] = row.parties;
+    });
+    return map;
+  }, [results]);
+
   const currentWinner = useMemo(() => {
     if (!results.length) return null;
-    const winner = results.find((row) => row.is_winner);
+    // Find the most recent election's winner
+    const sorted = [...results].sort((a, b) =>
+      (b.elections?.election_date ?? "").localeCompare(a.elections?.election_date ?? "")
+    );
+    const winner = sorted.find((row) => row.is_winner);
     if (!winner) return null;
 
     return {
@@ -531,6 +709,7 @@ export default function ConstituencyDetail() {
         : null,
       partyName: winner.parties?.short_name || winner.parties?.name,
       partyHex: winner.parties?.colour_hex,
+      partyId: winner.parties?.id,
       majority: winner.majority,
       electionName: winner.elections?.name,
     };
@@ -573,11 +752,23 @@ export default function ConstituencyDetail() {
 
   return (
     <div className="page stack">
-      <ConstituencyHeader constituency={constituency} currentWinner={currentWinner} />
+      <ConstituencyHeader
+        constituency={constituency}
+        currentWinner={currentWinner}
+        swings={swings}
+        nationals={nationals}
+      />
 
       <Card>
         <TabBar active={activeTab} onChange={setActiveTab} />
-        {activeTab === "history" && <ElectionHistoryTab results={results} />}
+        {activeTab === "history" && (
+          <ElectionHistoryTab
+            results={results}
+            swings={swings}
+            nationals={nationals}
+            partyMap={partyMap}
+          />
+        )}
         {activeTab === "demographics" && <DemographicsTab demographics={demographics} />}
         {activeTab === "candidates" && <CandidatesTab results={results} />}
         {activeTab === "councils" && <CouncilsTab />}

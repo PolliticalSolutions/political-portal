@@ -46,6 +46,22 @@ export async function getConstituencyResults(constituencyId) {
   });
 }
 
+export async function getConstituencySwings(constituencyId) {
+  const [{ data: swings, error: swErr }, { data: nationals, error: natErr }] = await Promise.all([
+    supabase
+      .from("swings")
+      .select("id, swing_value, from_party_id, to_party_id")
+      .eq("constituency_id", constituencyId),
+    supabase
+      .from("swings")
+      .select("id, swing_value, from_party_id, to_party_id")
+      .is("constituency_id", null),
+  ]);
+  if (swErr) throw new Error(swErr.message);
+  if (natErr) throw new Error(natErr.message);
+  return { swings: swings ?? [], nationals: nationals ?? [] };
+}
+
 export async function getConstituencyDemographics(constituencyId) {
   const { data, error } = await supabase
     .from("demographics")
