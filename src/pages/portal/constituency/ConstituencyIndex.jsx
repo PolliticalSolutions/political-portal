@@ -10,22 +10,21 @@ import {
   getCurrentStatus,
   normalizePartyName,
 } from "./constituencyPresentation.js";
+import { resolvePartyColour, toHexColor } from "../../../utils/partyColours.js";
 
 const ConstituencyMapClient = lazy(() => import("./ConstituencyMapClient.jsx"));
 
-function toHexColor(hex) {
-  if (!hex) return null;
-  return hex.startsWith("#") ? hex : `#${hex}`;
-}
-
-function PartyDot({ hex, size = 10 }) {
+function PartyDot({ hex, party, size = 10 }) {
   return (
     <span
       className="party-dot"
       style={{
         width: size,
         height: size,
-        background: toHexColor(hex) ?? "#94a3b8",
+        background: resolvePartyColour(
+          party ?? { colour_hex: hex },
+          toHexColor(hex) ?? "#94a3b8"
+        ),
       }}
     />
   );
@@ -577,7 +576,7 @@ export default function ConstituencyIndex() {
                         {winner ? (
                           <div className="portal-stack-compact">
                             <span className="party-chip">
-                              <PartyDot hex={winner.colour_hex} />
+                              <PartyDot hex={winner.colour_hex} party={winner} />
                               <span>{winner.short_name || winner.name}</span>
                             </span>
                             {hasCurrentDifference && (

@@ -5,11 +5,7 @@ import { useCallback, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { ComposableMap, Geographies, Geography, ZoomableGroup } from "react-simple-maps";
 import geoData from "/src/data/uk-constituencies.geojson";
-
-function toHexColor(hex) {
-  if (!hex) return null;
-  return hex.startsWith("#") ? hex : `#${hex}`;
-}
+import { resolvePartyColour, toHexColor } from "../../../utils/partyColours.js";
 
 function blendHexWithWhite(hex, blend = 0.3) {
   const normalized = toHexColor(hex);
@@ -27,31 +23,6 @@ function blendHexWithWhite(hex, blend = 0.3) {
     .map((channel) => channel.toString(16).padStart(2, "0"))
     .join("")}`;
 }
-
-const PARTY_COLOUR_FALLBACKS = {
-  Labour: "#E4003B",
-  Conservative: "#0087DC",
-  "Liberal Democrat": "#FAA61A",
-  "Reform UK": "#12B6CF",
-  SNP: "#FDF38E",
-  Green: "#00B140",
-  "Plaid Cymru": "#005B54",
-  "Democratic Unionist Party": "#D46A4C",
-  DUP: "#D46A4C",
-  "Sinn Féin": "#326760",
-  "Sinn Fein": "#326760",
-  SF: "#326760",
-  "Social Democratic and Labour Party": "#006B54",
-  SDLP: "#006B54",
-  "Alliance Party of Northern Ireland": "#F6CB2F",
-  "Alliance Party": "#F6CB2F",
-  Alliance: "#F6CB2F",
-  APNI: "#F6CB2F",
-  "Ulster Unionist Party": "#48A5EE",
-  UUP: "#48A5EE",
-  "Traditional Unionist Voice": "#0C3A6A",
-  TUV: "#0C3A6A",
-};
 
 function MapError({ reason }) {
   return (
@@ -100,9 +71,7 @@ export default function ConstituencyMapClient({
 
   const winnerColoursByOnsCode = Object.fromEntries(
     Object.entries(winnersByOnsCode).map(([onsCode, party]) => {
-      const rawColour = toHexColor(party?.colour_hex);
-      const fallbackColour = PARTY_COLOUR_FALLBACKS[party?.name] ?? PARTY_COLOUR_FALLBACKS[party?.short_name] ?? null;
-      return [onsCode.toUpperCase(), rawColour || fallbackColour || "#94a3b8"];
+      return [onsCode.toUpperCase(), resolvePartyColour(party)];
     })
   );
 

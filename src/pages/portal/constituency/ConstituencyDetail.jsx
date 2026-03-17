@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import Card from "../../../components/Card.jsx";
+import { resolvePartyColour, toHexColor } from "../../../utils/partyColours.js";
 import {
   getCouncilData,
   getConstituency,
@@ -51,11 +52,6 @@ const DEMOGRAPHIC_FIELDS = [
   { key: "pct_employed", label: "Employed" },
   { key: "pct_self_employed", label: "Self-employed" },
 ];
-
-function toHexColor(hex) {
-  if (!hex) return null;
-  return hex.startsWith("#") ? hex : `#${hex}`;
-}
 
 function formatDate(iso) {
   if (!iso) return "—";
@@ -178,7 +174,7 @@ function SwingPanel({ swings, nationals, partyMap, latestElectionId }) {
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 3 }}>
                 <span style={{ fontSize: 13, color: "#374151" }}>
                   <span className="party-chip">
-                    {toParty?.colour_hex && <PartyDot hex={toParty.colour_hex} />}
+                    {toParty && <PartyDot hex={toParty.colour_hex} party={toParty} />}
                     <span>{label}</span>
                   </span>
                 </span>
@@ -188,7 +184,7 @@ function SwingPanel({ swings, nationals, partyMap, latestElectionId }) {
                   </span>
                 )}
               </div>
-              <SwingBar value={val} hex={toHexColor(toParty?.colour_hex)} />
+              <SwingBar value={val} hex={resolvePartyColour(toParty)} />
               {natVal != null && (
                 <div style={{ fontSize: 11, color: "#64748b", marginTop: 2 }}>
                   National average: {formatSwing(natVal)}
@@ -202,14 +198,17 @@ function SwingPanel({ swings, nationals, partyMap, latestElectionId }) {
   );
 }
 
-function PartyDot({ hex, size = 10 }) {
+function PartyDot({ hex, party, size = 10 }) {
   return (
     <span
       className="party-dot"
       style={{
         width: size,
         height: size,
-        background: toHexColor(hex) ?? "#94a3b8",
+        background: resolvePartyColour(
+          party ?? { colour_hex: hex },
+          toHexColor(hex) ?? "#94a3b8"
+        ),
       }}
     />
   );
@@ -326,7 +325,7 @@ function ElectionHistoryTab({ results, swings, nationals, partyMap, electorateTr
                           </td>
                           <td>
                             <span className="party-chip">
-                              <PartyDot hex={row.parties?.colour_hex} />
+                              <PartyDot hex={row.parties?.colour_hex} party={row.parties} />
                               <span>{row.parties?.short_name || row.parties?.name || "—"}</span>
                             </span>
                           </td>
@@ -335,7 +334,7 @@ function ElectionHistoryTab({ results, swings, nationals, partyMap, electorateTr
                           <td>
                             <VoteBar
                               voteShare={row.vote_share}
-                              hex={row.parties?.colour_hex}
+                              hex={resolvePartyColour(row.parties)}
                               isWinner={row.is_winner}
                             />
                           </td>
@@ -488,7 +487,7 @@ function CandidatesTab({ results }) {
         electionName: row.elections?.name ?? "—",
         electionDate: row.elections?.election_date ?? "",
         partyName: row.parties?.short_name || row.parties?.name || "—",
-        partyHex: row.parties?.colour_hex,
+        partyHex: resolvePartyColour(row.parties),
         votes: row.votes,
         voteShare: row.vote_share,
         isWinner: row.is_winner,
@@ -557,21 +556,8 @@ function CandidatesTab({ results }) {
 }
 
 // ── Council party colour palette (local councils, not in parties table) ──────
-const COUNCIL_PARTY_COLOURS = {
-  "Reform UK":          "#12B6CF",
-  "Liberal Democrat":   "#FAA61A",
-  "Conservative":       "#0087DC",
-  "Green":              "#02A95B",
-  "Labour":             "#E4003B",
-  "Restore Britain":    "#8B5CF6",
-  "SNP":                "#FDF38E",
-  "Plaid Cymru":        "#3F8428",
-  "Independent":        "#6B7280",
-};
-
 function councilPartyHex(name) {
-  if (!name) return "#94a3b8";
-  return COUNCIL_PARTY_COLOURS[name] ?? "#94a3b8";
+  return resolvePartyColour(name);
 }
 
 function ControlBadge({ controlType }) {
@@ -918,7 +904,7 @@ function SwingTimelinePanel({ swingTimeline }) {
     year: new Date(r.elections.election_date).getFullYear(),
     value: parseFloat(r.vote_share) || 0,
     party: r.parties?.short_name || r.parties?.name || "?",
-    hex: r.parties?.colour_hex,
+    hex: resolvePartyColour(r.parties),
   }));
 
   // Colour points by winning party
@@ -1469,7 +1455,7 @@ export default function ConstituencyDetail() {
         ? `${winner.candidates.first_name} ${winner.candidates.last_name}`
         : null,
       partyName: winner.parties?.short_name || winner.parties?.name,
-      partyHex: winner.parties?.colour_hex,
+      partyHex: resolvePartyColour(winner.parties),
       partyId: winner.parties?.id,
       majority: winner.majority,
       electionName: winner.elections?.name,

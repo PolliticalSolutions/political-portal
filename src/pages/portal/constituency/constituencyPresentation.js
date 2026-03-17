@@ -1,17 +1,5 @@
 import { findCurrentMpStatus } from "../../../data/currentMPs.js";
-
-const PARTY_COLOUR_FALLBACKS = {
-  Labour: "#E4003B",
-  Conservative: "#0087DC",
-  "Liberal Democrat": "#FAA61A",
-  "Reform UK": "#12B6CF",
-  SNP: "#FDF38E",
-  Green: "#00B140",
-  "Plaid Cymru": "#005B54",
-  DUP: "#D46A4C",
-  "Sinn Féin": "#326760",
-  Independent: "#64748b",
-};
+import { resolvePartyColour } from "../../../utils/partyColours.js";
 
 export const GE2024_SEAT_CHANGES = {
   Labour: 211,
@@ -64,7 +52,7 @@ export function normalizePartyRecord(party = {}) {
       key: "Labour",
       name: "Labour",
       shortName: "Lab",
-      colourHex: party.colour_hex || PARTY_COLOUR_FALLBACKS.Labour,
+      colourHex: resolvePartyColour({ ...party, name: "Labour", short_name: "Lab" }),
     };
   }
 
@@ -72,7 +60,7 @@ export function normalizePartyRecord(party = {}) {
     key: name || "Unknown",
     name: name || party.name || "Unknown",
     shortName: party.short_name || name || "Unknown",
-    colourHex: party.colour_hex || PARTY_COLOUR_FALLBACKS[name] || null,
+    colourHex: resolvePartyColour(party, null),
   };
 }
 

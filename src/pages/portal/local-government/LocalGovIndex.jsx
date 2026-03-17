@@ -2,28 +2,11 @@ import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import Button from "../../../components/Button.jsx";
 import Card from "../../../components/Card.jsx";
+import { resolvePartyColour, toHexColor } from "../../../utils/partyColours.js";
 import { getAllActiveAlerts, getLocalAuthorities } from "./localGovApi.js";
 
-function toHexColor(hex) {
-  if (!hex) return null;
-  return hex.startsWith("#") ? hex : `#${hex}`;
-}
-
-const LOCAL_GOV_PARTY_COLOURS = {
-  "Reform UK":        "#12B6CF",
-  "Liberal Democrat": "#FAA61A",
-  "Conservative":     "#0087DC",
-  "Green":            "#02A95B",
-  "Labour":           "#E4003B",
-  "Restore Britain":  "#8B5CF6",
-  "SNP":              "#FDF38E",
-  "Plaid Cymru":      "#3F8428",
-  "Independent":      "#6B7280",
-};
-
 function partyHex(name) {
-  if (!name) return "#94a3b8";
-  return LOCAL_GOV_PARTY_COLOURS[name] ?? "#94a3b8";
+  return resolvePartyColour(name);
 }
 
 function formatDate(iso) {

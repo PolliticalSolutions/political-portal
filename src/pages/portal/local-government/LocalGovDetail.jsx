@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import Card from "../../../components/Card.jsx";
+import { resolvePartyColour, toHexColor } from "../../../utils/partyColours.js";
 import {
   getAuthorityAlerts,
   getAuthorityElections,
@@ -12,25 +13,8 @@ import {
 
 // ── Shared helpers ────────────────────────────────────────────────────────────
 
-const PARTY_COLOURS = {
-  "Reform UK":        "#12B6CF",
-  "Liberal Democrat": "#FAA61A",
-  "Conservative":     "#0087DC",
-  "Green":            "#02A95B",
-  "Labour":           "#E4003B",
-  "Restore Britain":  "#8B5CF6",
-  "SNP":              "#FDF38E",
-  "Plaid Cymru":      "#3F8428",
-  "Independent":      "#6B7280",
-};
-
 function partyHex(name) {
-  return PARTY_COLOURS[name] ?? "#94a3b8";
-}
-
-function toHexColor(hex) {
-  if (!hex) return null;
-  return hex.startsWith("#") ? hex : `#${hex}`;
+  return resolvePartyColour(name);
 }
 
 function formatDate(iso) {
