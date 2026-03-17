@@ -64,7 +64,10 @@ export const startXeroConnect = () => {
     if (!redirectUrl) {
       throw new Error("Missing Xero redirect URL.");
     }
-    if (redirectUrl && typeof window !== "undefined") {
+    if (!redirectUrl.startsWith("https://login.xero.com/")) {
+      throw new Error("Xero redirect URL did not match expected origin.");
+    }
+    if (typeof window !== "undefined") {
       window.location.assign(redirectUrl);
     }
     return redirectUrl;
