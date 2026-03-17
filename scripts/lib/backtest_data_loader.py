@@ -11,12 +11,19 @@ from typing import Any, Dict, List, Mapping
 import urllib.parse
 import urllib.request
 
+from scripts.lib.vulnerability_model import (  # type: ignore
+    SUPPORTED_VULNERABILITY_VARIANTS,
+    get_variant_feature_columns,
+)
 
 GENERAL_ELECTION_CYCLES = [2015, 2017, 2019, 2024]
 SUPPORTED_VULNERABILITY_TARGET_CYCLES = [2017, 2019, 2024]
 SUPABASE_URL = "https://pkpeevhmrjizvxkgvwhr.supabase.co"
 FEATURE_ARTIFACT_DIR = Path("artifacts") / "backtests" / "features"
 CONSERVATIVE_SHORT_NAMES = {"Con", "Conservative"}
+DEMOGRAPHIC_TARGET_YEARS = {2017: 2011, 2019: 2011, 2024: 2021}
+DEMOGRAPHIC_FALLBACK_YEARS = {2024: 2011}
+LOCAL_VARIANT_MIN_COVERAGE = 0.5
 
 PYTHON_SIGNAL_INVENTORY: Dict[str, Mapping[str, object]] = {
     "conservative_majority_pct": {
@@ -194,12 +201,12 @@ def _ensure_feature_dir() -> Path:
     return FEATURE_ARTIFACT_DIR
 
 
-def _feature_csv_path(target_cycle: int) -> Path:
-    return _ensure_feature_dir() / f"vulnerability_{target_cycle}_features.csv"
+def _feature_csv_path(target_cycle: int, variant: str) -> Path:
+    return _ensure_feature_dir() / f"vulnerability_{target_cycle}_{variant}.csv"
 
 
-def _feature_summary_path(target_cycle: int) -> Path:
-    return _ensure_feature_dir() / f"vulnerability_{target_cycle}_features.json"
+def _feature_summary_path(target_cycle: int, variant: str) -> Path:
+    return _ensure_feature_dir() / f"vulnerability_{target_cycle}_{variant}.json"
 
 
 def _normalise_vote_share(raw_value: Any) -> float:
@@ -324,6 +331,132 @@ def _fetch_results_for_election(election_id: str) -> list[dict[str, Any]]:
     )
 
 
+def _fetch_demographics_for_year(census_year: int) -> dict[str, dict[str, Any]]:
+    rows = _supabase_fetch_all(
+        "demographics",
+        "constituency_id,census_year,pct_owner_occupied,pct_private_rented,pct_white_british,pct_born_uk",
+        {"census_year": f"eq.{census_year}"},
+    )
+    return {row["constituency_id"]: row for row in rows if row.get("constituency_id")}
+
+
+def _fetch_constituency_council_lookup() -> list[dict[str, Any]]:
+    return _supabase_fetch_all(
+        "constituency_council_lookup",
+        "constituency_id,local_authority_id",
+    )
+
+
+def _fetch_local_authorities() -> dict[str, dict[str, Any]]:
+    rows = _supabase_fetch_all(
+        "local_authorities",
+        "id,name,controlling_party,control_type,total_seats",
+    )
+    return {row["id"]: row for row in rows if row.get("id")}
+
+
+def _fetch_council_results() -> list[dict[str, Any]]:
+    return _supabase_fetch_all(
+        "council_results",
+        "local_authority_id,party_name,seats_won",
+    )
+
+
+def _normalise_optional_percentage(raw_value: Any) -> float | None:
+    if raw_value is None:
+        return None
+    value = float(raw_value)
+    return value * 100 if value <= 1 else value
+
+
+def _build_demographic_feature_map(target_cycle: int) -> tuple[dict[str, dict[str, float | int]], list[str]]:
+    warnings: list[str] = []
+    preferred_year = DEMOGRAPHIC_TARGET_YEARS[target_cycle]
+    preferred = _fetch_demographics_for_year(preferred_year)
+    fallback: dict[str, dict[str, Any]] = {}
+    if target_cycle in DEMOGRAPHIC_FALLBACK_YEARS:
+        fallback_year = DEMOGRAPHIC_FALLBACK_YEARS[target_cycle]
+        fallback = _fetch_demographics_for_year(fallback_year)
+        warnings.append(
+            f"Demographic enrichment prefers {preferred_year} census data for {target_cycle} and falls back to {fallback_year} where {preferred_year} rows are missing."
+        )
+
+    feature_map: dict[str, dict[str, float | int]] = {}
+    for constituency_id in set(preferred) | set(fallback):
+        source = preferred.get(constituency_id) or fallback.get(constituency_id)
+        if not source:
+            continue
+        feature_map[constituency_id] = {
+            "demographic_owner_occupied_pct": _normalise_optional_percentage(source.get("pct_owner_occupied")),
+            "demographic_private_rented_pct": _normalise_optional_percentage(source.get("pct_private_rented")),
+            "demographic_source_year": int(source["census_year"]),
+        }
+
+    return feature_map, warnings
+
+
+def _build_local_feature_map() -> tuple[dict[str, dict[str, float | int]], dict[str, int]]:
+    lookup_rows = _fetch_constituency_council_lookup()
+    authorities = _fetch_local_authorities()
+    result_rows = _fetch_council_results()
+
+    results_by_authority: dict[str, list[dict[str, Any]]] = {}
+    for row in result_rows:
+        authority_id = row.get("local_authority_id")
+        if authority_id:
+            results_by_authority.setdefault(authority_id, []).append(row)
+
+    lookup_by_constituency: dict[str, list[str]] = {}
+    for row in lookup_rows:
+        constituency_id = row.get("constituency_id")
+        authority_id = row.get("local_authority_id")
+        if constituency_id and authority_id:
+            lookup_by_constituency.setdefault(constituency_id, []).append(authority_id)
+
+    feature_map: dict[str, dict[str, float | int]] = {}
+    coverage = {
+        "lookup_rows": len(lookup_rows),
+        "authority_count": len(authorities),
+        "result_row_count": len(result_rows),
+        "mapped_constituencies": len(lookup_by_constituency),
+    }
+
+    for constituency_id, authority_ids in lookup_by_constituency.items():
+        conservative_control_values: list[float] = []
+        noc_values: list[float] = []
+        reform_seat_shares: list[float] = []
+        for authority_id in authority_ids:
+            authority = authorities.get(authority_id)
+            if not authority:
+                continue
+            controlling_party = (authority.get("controlling_party") or "").strip().lower()
+            control_type = (authority.get("control_type") or "").strip().lower()
+            total_seats = authority.get("total_seats") or 0
+            conservative_control_values.append(1.0 if controlling_party == "conservative" else 0.0)
+            noc_values.append(1.0 if control_type == "noc" else 0.0)
+
+            authority_results = results_by_authority.get(authority_id, [])
+            reform_seats = sum(
+                int(row.get("seats_won") or 0)
+                for row in authority_results
+                if str(row.get("party_name") or "").strip().lower() == "reform uk"
+            )
+            reform_share = (reform_seats / total_seats * 100) if total_seats else 0.0
+            reform_seat_shares.append(reform_share)
+
+        if conservative_control_values:
+            feature_map[constituency_id] = {
+                "local_conservative_control_flag": round(
+                    sum(conservative_control_values) / len(conservative_control_values),
+                    4,
+                ),
+                "local_no_overall_control_flag": round(sum(noc_values) / len(noc_values), 4),
+                "local_reform_seat_share_pct": round(sum(reform_seat_shares) / len(reform_seat_shares), 4),
+            }
+
+    return feature_map, coverage
+
+
 def _build_constituency_result_map(rows: list[dict[str, Any]]) -> dict[str, dict[str, Any]]:
     seats: dict[str, dict[str, Any]] = {}
     for row in rows:
@@ -391,9 +524,15 @@ def _validate_vulnerability_rows(rows: list[dict[str, Any]]) -> list[str]:
     return warnings
 
 
-def build_vulnerability_feature_dataset(target_cycle: int, write_artifacts: bool = False) -> dict[str, Any]:
+def build_vulnerability_feature_dataset(
+    target_cycle: int,
+    variant: str = "baseline",
+    write_artifacts: bool = False,
+) -> dict[str, Any]:
     if target_cycle not in SUPPORTED_VULNERABILITY_TARGET_CYCLES:
         raise ValueError(f"Unsupported vulnerability target cycle: {target_cycle}")
+    if variant not in SUPPORTED_VULNERABILITY_VARIANTS:
+        raise ValueError(f"Unsupported vulnerability variant: {variant}")
 
     cycle_spec = VULNERABILITY_CYCLE_SPECS[target_cycle]
     baseline_cycle = cycle_spec["baseline_cycle"]
@@ -408,6 +547,17 @@ def build_vulnerability_feature_dataset(target_cycle: int, write_artifacts: bool
 
     warnings: list[str] = []
     rows: list[dict[str, Any]] = []
+    uses_demographics = "demographic" in variant
+    uses_local = "local" in variant
+    demographic_feature_map: dict[str, dict[str, float | int]] = {}
+    local_feature_map: dict[str, dict[str, float | int]] = {}
+    local_coverage_meta = {"lookup_rows": 0, "authority_count": 0, "result_row_count": 0, "mapped_constituencies": 0}
+
+    if uses_demographics:
+        demographic_feature_map, demographic_warnings = _build_demographic_feature_map(target_cycle)
+        warnings.extend(demographic_warnings)
+    if uses_local:
+        local_feature_map, local_coverage_meta = _build_local_feature_map()
 
     baseline_conservative_seats = [
         seat for seat in baseline_map.values() if seat["seat_held_by_conservative"]
@@ -419,6 +569,10 @@ def build_vulnerability_feature_dataset(target_cycle: int, write_artifacts: bool
     previous_overlap = 0
     previous_missing = 0
     target_missing = 0
+    demographic_missing = 0
+    demographic_used = 0
+    local_missing = 0
+    local_used = 0
 
     for seat in baseline_conservative_seats:
         constituency_id = seat["constituency_id"]
@@ -474,6 +628,37 @@ def build_vulnerability_feature_dataset(target_cycle: int, write_artifacts: bool
             "target_majority_change_pct": round(target_margin_pct - baseline_margin_pct, 4),
             "observed_loss": not bool(target_seat["seat_held_by_conservative"]),
         }
+
+        if uses_demographics:
+            demographic_features = demographic_feature_map.get(constituency_id)
+            if demographic_features:
+                demographic_used += 1
+                row.update(demographic_features)
+            else:
+                demographic_missing += 1
+                row.update(
+                    {
+                        "demographic_owner_occupied_pct": None,
+                        "demographic_private_rented_pct": None,
+                        "demographic_source_year": None,
+                    }
+                )
+
+        if uses_local:
+            local_features = local_feature_map.get(constituency_id)
+            if local_features:
+                local_used += 1
+                row.update(local_features)
+            else:
+                local_missing += 1
+                row.update(
+                    {
+                        "local_conservative_control_flag": None,
+                        "local_no_overall_control_flag": None,
+                        "local_reform_seat_share_pct": None,
+                    }
+                )
+
         rows.append(row)
 
     if target_missing:
@@ -493,10 +678,43 @@ def build_vulnerability_feature_dataset(target_cycle: int, write_artifacts: bool
             "2024 backtest uses the 2019 notional baseline on 2024 boundaries to avoid boundary-change leakage."
         )
 
+    demographic_coverage = (demographic_used / len(rows)) if rows and uses_demographics else None
+    local_coverage = (local_used / len(rows)) if rows and uses_local else None
+    variant_ready = True
+    not_ready_reasons: list[str] = []
+
+    if uses_demographics:
+        warnings.append(
+            f"Demographic feature coverage for {variant} on {target_cycle}: {demographic_used}/{len(rows)} seats."
+        )
+        if demographic_missing:
+            warnings.append(
+                f"{demographic_missing} seats are missing cycle-appropriate demographic rows for {variant}."
+            )
+        if demographic_coverage is not None and demographic_coverage < 0.75:
+            variant_ready = False
+            not_ready_reasons.append(
+                f"Demographic coverage is too incomplete for credible enrichment testing ({demographic_used}/{len(rows)} seats)."
+            )
+
+    if uses_local:
+        warnings.append(
+            f"Local government feature coverage for {variant} on {target_cycle}: {local_used}/{len(rows)} seats."
+        )
+        warnings.append(
+            f"Local data inventory currently includes {local_coverage_meta['mapped_constituencies']} mapped constituencies, {local_coverage_meta['authority_count']} authorities, and {local_coverage_meta['result_row_count']} council result rows."
+        )
+        if local_coverage is not None and local_coverage < LOCAL_VARIANT_MIN_COVERAGE:
+            variant_ready = False
+            not_ready_reasons.append(
+                f"Local-government coverage is too sparse for national backtesting ({local_used}/{len(rows)} seats; minimum {int(LOCAL_VARIANT_MIN_COVERAGE * 100)}% coverage required)."
+            )
+
     warnings.extend(_validate_vulnerability_rows(rows))
 
     summary = {
         "model_key": "vulnerability",
+        "variant": variant,
         "target_cycle": target_cycle,
         "baseline_cycle": baseline_cycle,
         "previous_cycle": previous_cycle,
@@ -506,14 +724,16 @@ def build_vulnerability_feature_dataset(target_cycle: int, write_artifacts: bool
         "previous_overlap_count": previous_overlap,
         "previous_missing_count": previous_missing,
         "target_missing_count": target_missing,
+        "variant_ready": variant_ready,
+        "not_ready_reasons": not_ready_reasons,
+        "uses_demographics": uses_demographics,
+        "uses_local": uses_local,
+        "demographic_feature_coverage": demographic_coverage,
+        "local_feature_coverage": local_coverage,
+        "demographic_source_year": DEMOGRAPHIC_TARGET_YEARS.get(target_cycle) if uses_demographics else None,
+        "local_data_inventory": local_coverage_meta if uses_local else None,
         "warnings": warnings,
-        "feature_columns": [
-            "baseline_conservative_vote_share_pct",
-            "baseline_conservative_majority_pct",
-            "baseline_challenger_vote_share_pct",
-            "baseline_challenger_gap_pct",
-            "conservative_vote_share_change_input_pct",
-        ],
+        "feature_columns": get_variant_feature_columns(variant),
         "outcome_columns": [
             "target_seat_held_by_conservative",
             "target_conservative_vote_share_change_pct",
@@ -524,8 +744,8 @@ def build_vulnerability_feature_dataset(target_cycle: int, write_artifacts: bool
 
     if write_artifacts:
         feature_dir = _ensure_feature_dir()
-        csv_path = _feature_csv_path(target_cycle)
-        json_path = _feature_summary_path(target_cycle)
+        csv_path = _feature_csv_path(target_cycle, variant)
+        json_path = _feature_summary_path(target_cycle, variant)
         with csv_path.open("w", newline="", encoding="utf-8") as handle:
             writer = csv.DictWriter(handle, fieldnames=list(rows[0].keys()))
             writer.writeheader()
@@ -537,8 +757,12 @@ def build_vulnerability_feature_dataset(target_cycle: int, write_artifacts: bool
     return {"summary": summary, "rows": rows}
 
 
-def load_vulnerability_feature_dataset(target_cycle: int, require_artifact: bool = False) -> dict[str, Any]:
-    csv_path = _feature_csv_path(target_cycle)
+def load_vulnerability_feature_dataset(
+    target_cycle: int,
+    variant: str = "baseline",
+    require_artifact: bool = False,
+) -> dict[str, Any]:
+    csv_path = _feature_csv_path(target_cycle, variant)
     if require_artifact and not csv_path.exists():
         raise RuntimeError(f"Expected feature artifact not found: {csv_path}")
     if csv_path.exists():
@@ -553,18 +777,25 @@ def load_vulnerability_feature_dataset(target_cycle: int, require_artifact: bool
                         if value in {"", "None", "null"}
                         else value.lower() == "true"
                         if value in {"True", "False", "true", "false"}
+                        else int(value)
+                        if key in {"target_cycle", "baseline_cycle", "previous_cycle", "demographic_source_year"}
                         else float(value)
-                        if key.endswith("_pct") or key in {"target_cycle", "baseline_cycle", "previous_cycle"}
+                        if key.endswith("_pct") or key.endswith("_flag")
                         else value
                     )
                     for key, value in row.items()
                 }
             )
-        return {"summary": json.loads(_feature_summary_path(target_cycle).read_text(encoding="utf-8")), "rows": parsed_rows}
-    return build_vulnerability_feature_dataset(target_cycle, write_artifacts=False)
+        return {"summary": json.loads(_feature_summary_path(target_cycle, variant).read_text(encoding="utf-8")), "rows": parsed_rows}
+    return build_vulnerability_feature_dataset(target_cycle, variant=variant, write_artifacts=False)
 
 
-def load_backtest_dataset(model_key: str, target_cycle: int, dry_run: bool = False) -> Mapping[str, object]:
+def load_backtest_dataset(
+    model_key: str,
+    target_cycle: int,
+    dry_run: bool = False,
+    variant: str = "baseline",
+) -> Mapping[str, object]:
     plan = build_backtest_plan(model_key, target_cycle, dry_run=dry_run)
 
     if model_key != "vulnerability" or dry_run:
@@ -580,28 +811,30 @@ def load_backtest_dataset(model_key: str, target_cycle: int, dry_run: bool = Fal
             "warnings": list(plan.leakage_warnings),
         }
 
-    feature_dataset = build_vulnerability_feature_dataset(target_cycle, write_artifacts=True)
+    feature_dataset = build_vulnerability_feature_dataset(target_cycle, variant=variant, write_artifacts=True)
     rows = feature_dataset["rows"]
+    summary = feature_dataset["summary"]
     labels = [bool(row["observed_loss"]) for row in rows]
-    warnings = list(plan.leakage_warnings) + list(feature_dataset["summary"]["warnings"])
+    warnings = list(plan.leakage_warnings) + list(summary["warnings"])
+
+    execution_status = "completed" if summary["variant_ready"] else "not_ready"
+    if not summary["variant_ready"]:
+        warnings.extend(summary["not_ready_reasons"])
 
     return {
         "plan": plan,
+        "variant": variant,
         "rows": rows,
         "labels": labels,
         "feature_matrix": [
-            {
-                "baseline_conservative_majority_pct": row["baseline_conservative_majority_pct"],
-                "baseline_challenger_gap_pct": row["baseline_challenger_gap_pct"],
-                "conservative_vote_share_change_input_pct": row["conservative_vote_share_change_input_pct"],
-            }
+            {column: row.get(column) for column in get_variant_feature_columns(variant)}
             for row in rows
         ],
         "signal_inventory": {
             key: PYTHON_SIGNAL_INVENTORY[key]
             for key in MODEL_BACKTEST_SPECS[model_key]["signal_keys"]
         },
-        "execution_status": "completed",
+        "execution_status": execution_status,
         "warnings": warnings,
-        "feature_summary": feature_dataset["summary"],
+        "feature_summary": summary,
     }

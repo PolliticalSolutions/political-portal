@@ -34,6 +34,44 @@ Real runs differ from dry-run mode in three ways:
 - only baseline-period features are scored
 - target-cycle outcomes are attached for evaluation only and remain outside the feature set
 
+## Controlled vulnerability enrichment testing
+
+The vulnerability spine can now be tested as named variants:
+
+- `baseline`
+- `baseline_demographic`
+- `baseline_local`
+- `baseline_demographic_local`
+
+This keeps enrichment testing disciplined:
+
+- the core electoral spine remains the control
+- one enrichment family is added at a time
+- combined variants are only considered after the isolated families have been tested
+- enrichments that cannot be supported credibly are reported as `not_ready`, not scored anyway
+
+### What counts as improvement
+
+Variant testing compares each enrichment run against the baseline spine on:
+
+- top-decile capture rate
+- precision at 20
+- Spearman rank correlation
+
+An enrichment should only be treated as a candidate improvement if it helps across more than one cycle without materially weakening the top of the ranking. Single-cycle gains are not enough.
+
+### Current variant status
+
+- Demographic enrichment is testable with cycle-appropriate census data:
+  - `2017` and `2019` use `2011` census rows
+  - `2024` prefers `2021` census rows and falls back to `2011` only where `2021` is missing
+  - first-pass comparison currently reads as `neutral`: it helps `2024`, is flat-to-weaker on earlier cycles, and does not yet justify replacing the baseline by default
+- Local-government enrichment is not yet ready for national vulnerability backtesting:
+  - current lookup coverage is far too sparse
+  - current council data is skewed to a small imported subset rather than a national historical panel
+
+As a result, local variants are generated structurally but return `not_ready` until coverage improves.
+
 ## Leakage prevention
 
 The scaffold treats the target cycle as the outcome period and uses the prior general election cycle as the baseline/reference period.
@@ -63,6 +101,8 @@ For the real vulnerability run specifically, the dataset must include:
 
 - Real execution is currently implemented only for `vulnerability`.
 - `2024` trend coverage is structurally weaker because the clean baseline uses 2019 notional results on 2024 boundaries, while the prior real cycle uses different constituency identifiers.
+- Demographic enrichments are currently limited to the cleanest available tenure-style census fields rather than a full demographic engine.
+- Local-government enrichments cannot yet be validated nationally because only a small subset of constituency-to-council mappings and council result rows are available.
 - `vulnerability` is the strongest candidate for immediate historical backtesting.
 - `reform_threat` is only partially comparable historically because party structure changes materially across cycles.
 - `by_election_risk` remains structurally backtestable but is currently limited by event-history coverage.
