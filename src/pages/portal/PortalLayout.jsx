@@ -383,6 +383,9 @@ export default function PortalLayout() {
               <NavLink className={navClass} to="/portal/constituency">
                 Constituency Intelligence
               </NavLink>
+              <NavLink className={navClass} to="/portal/local-government">
+                Local Government
+              </NavLink>
             </div>
             <div className="portal-nav-group">
               <span className="portal-nav-group__label">Account</span>

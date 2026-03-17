@@ -74,6 +74,22 @@ export async function getCouncilData(constituencyId) {
   return data ?? [];
 }
 
+export async function getLinkedAuthorities(constituencyId) {
+  const { data, error } = await supabase
+    .from("constituency_council_lookup")
+    .select(`
+      id, overlap_type, is_primary,
+      local_authorities(id, gss_code, name, authority_type, tier, region, country,
+        total_seats, controlling_party, control_type, composition,
+        last_election_date, next_election_date, website_url)
+    `)
+    .eq("constituency_id", constituencyId)
+    .order("is_primary", { ascending: false });
+  // Table may not exist during transition — return empty rather than throw
+  if (error) return [];
+  return (data ?? []).map((row) => row.local_authorities).filter(Boolean);
+}
+
 export async function getConstituencyDemographics(constituencyId) {
   const { data, error } = await supabase
     .from("demographics")
