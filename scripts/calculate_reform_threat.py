@@ -98,6 +98,7 @@ def fetch_all(table, select, filters=None, key=None):
 
 
 def main():
+    sys.stdout.reconfigure(encoding='utf-8')
     print("=" * 65)
     print("FEATURE 5 — REFORM UK THREAT INDEX")
     print("=" * 65)

@@ -113,6 +113,7 @@ def pearson(xs, ys):
 
 
 def main():
+    sys.stdout.reconfigure(encoding='utf-8')
     print("=" * 65)
     print("FEATURE 7 — DEMOGRAPHIC CORRELATION ENGINE")
     print("=" * 65)

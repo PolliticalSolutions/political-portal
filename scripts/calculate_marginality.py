@@ -178,6 +178,7 @@ def calculate_score(majority, electorate, swing_val, national_swing, vote_shares
 
 
 def main():
+    sys.stdout.reconfigure(encoding='utf-8')
     print("=" * 65)
     print("FEATURE 1 — MARGINALITY INDEX CALCULATOR")
     print("=" * 65)

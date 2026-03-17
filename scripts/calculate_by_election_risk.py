@@ -117,6 +117,7 @@ def risk_level(score):
 
 
 def main():
+    sys.stdout.reconfigure(encoding='utf-8')
     print("=" * 65)
     print("FEATURE 3 — BY-ELECTION RISK SCORER")
     print("=" * 65)
