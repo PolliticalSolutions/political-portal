@@ -351,39 +351,48 @@ export default function PortalLayout() {
           style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}
         >
           <div style={{ fontSize: 18, fontWeight: 700 }}>Portal</div>
-          <nav className="nav" aria-label="Portal">
-            <NavLink className={navClass} to="/portal" end>
-              Dashboard
-            </NavLink>
-            <NavLink className={navClass} to="/portal/constituency">
-              Constituency Intelligence
-            </NavLink>
-            <NavLink className={navClass} to="/portal/pricing-rules">
-              Pricing rules
-            </NavLink>
-            <NavLink className={navClass} to="/portal/settings/integrations">
-              Integrations
-            </NavLink>
-            <NavLink className={navClass} to="/portal/uploads">
-              Uploads
-            </NavLink>
-            <NavLink className={navClass} to="/portal/ops/quotes">
-              Quotes
-            </NavLink>
-            {isAdmin && (
-              <NavLink className={navClass} to="/portal/admin/manual-review">
-                Manual review
+          <nav className="nav portal-nav-groups" aria-label="Portal">
+            <div className="portal-nav-group">
+              <span className="portal-nav-group__label">Products</span>
+              <NavLink className={navClass} to="/portal" end>
+                Dashboard
               </NavLink>
+              <NavLink className={navClass} to="/portal/uploads">
+                Uploads
+              </NavLink>
+              <NavLink className={navClass} to="/portal/constituency">
+                Constituency Intelligence
+              </NavLink>
+            </div>
+            <div className="portal-nav-group">
+              <span className="portal-nav-group__label">Account</span>
+              <NavLink className={navClass} to="/portal/subscriptions">
+                Subscriptions
+              </NavLink>
+              <NavLink className={navClass} to="/portal/pricing-rules">
+                Pricing rules
+              </NavLink>
+              <NavLink className={navClass} to="/portal/cart">
+                Cart
+              </NavLink>
+              <NavLink className={navClass} to="/portal/settings/integrations">
+                Integrations
+              </NavLink>
+              <NavLink className={navClass} to="/portal/ops/quotes">
+                Quotes
+              </NavLink>
+              <NavLink className={navClass} to="/services">
+                Services
+              </NavLink>
+            </div>
+            {isAdmin && (
+              <div className="portal-nav-group">
+                <span className="portal-nav-group__label">Admin</span>
+                <NavLink className={navClass} to="/portal/admin/manual-review">
+                  Manual review
+                </NavLink>
+              </div>
             )}
-            <NavLink className={navClass} to="/portal/subscriptions">
-              Subscriptions
-            </NavLink>
-            <NavLink className={navClass} to="/services">
-              Services
-            </NavLink>
-            <NavLink className={navClass} to="/portal/cart">
-              Cart
-            </NavLink>
           </nav>
         </div>
         <Outlet />
