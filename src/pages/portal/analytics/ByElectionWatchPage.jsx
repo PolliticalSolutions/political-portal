@@ -1,6 +1,7 @@
 import { lazy, Suspense, useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import Card from "../../../components/Card.jsx";
+import { getScoringModel } from "../../../config/scoringModels.js";
 import DataProvenancePanel from "../../../components/DataProvenancePanel.jsx";
 import { byElectionAlerts } from "../../../data/byElectionAlerts.js";
 import { getIntelligenceMetadata } from "../../../lib/intelligenceMetadataApi.js";
@@ -72,6 +73,7 @@ function AlertList({ items }) {
 }
 
 export default function ByElectionWatchPage() {
+  const model = getScoringModel("byElectionRisk");
   const [seats, setSeats] = useState([]);
   const [winnerMap, setWinnerMap] = useState({});
   const [loading, setLoading] = useState(true);
@@ -209,8 +211,7 @@ export default function ByElectionWatchPage() {
             <span className="portal-page-header__eyebrow">Analytics Engine</span>
             <h1 className="portal-page-header__title">By-Election Watch</h1>
             <p className="portal-page-header__subtitle">
-              Seats with a modelled by-election risk score above 7, combining majority pressure, council
-              instability, member movement, and wider political trend indicators.
+              Seats with a modelled by-election risk score above 7. {model?.description}
             </p>
           </div>
           <div className="portal-page-header__actions">
@@ -285,9 +286,7 @@ export default function ByElectionWatchPage() {
         <div className="portal-kpi-list">
           <Card title="Operational guidance">
             <div className="portal-data-note" style={{ marginTop: 0 }}>
-              Use this page as a live watchlist rather than a forecast. It identifies seats where a by-election
-              could plausibly be triggered by member movement, local instability, or wider political deterioration,
-              and gives the campaign team a ranked list for contingency planning.
+              {model?.interpretation}
             </div>
           </Card>
         </div>

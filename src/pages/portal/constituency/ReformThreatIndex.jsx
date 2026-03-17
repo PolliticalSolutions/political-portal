@@ -2,6 +2,7 @@ import { lazy, Suspense, useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import Card from "../../../components/Card.jsx";
 import DataProvenancePanel from "../../../components/DataProvenancePanel.jsx";
+import { getScoringModel } from "../../../config/scoringModels.js";
 import { getIntelligenceMetadata } from "../../../lib/intelligenceMetadataApi.js";
 import { getReformThreatIndex, getLatestElectionWinners } from "./constituencyApi.js";
 
@@ -36,6 +37,7 @@ function getThreatBand(score) {
 }
 
 export default function ReformThreatIndex() {
+  const model = getScoringModel("reformThreat");
   const [threats, setThreats] = useState([]);
   const [constituencyMap, setConstituencyMap] = useState({});
   const [loading, setLoading] = useState(true);
@@ -153,11 +155,10 @@ export default function ReformThreatIndex() {
         <div className="portal-page-header">
           <div className="portal-page-header__content">
             <span className="portal-page-header__eyebrow">Analytics Engine</span>
-            <h1 className="portal-page-header__title">Reform UK Threat Index</h1>
+            <h1 className="portal-page-header__title">{model?.title || "Reform UK Threat Index"}</h1>
             <p className="portal-page-header__subtitle">
-              Top {threats.length} Conservative seats at greatest risk from Reform UK, ranked by composite threat score.
-              Combines Con→Reform swing, Reform 2024 vote share, majority size, council-level Reform strength, and
-              demographic alignment.
+              Top {threats.length} Conservative seats at greatest risk from Reform UK, ranked by a shared model
+              definition. {model?.description}
             </p>
           </div>
           <div className="portal-page-header__actions">
@@ -249,9 +250,7 @@ export default function ReformThreatIndex() {
           <Card title="Analytical readout">
             <div className="portal-stack-compact">
               <div className="portal-data-note" style={{ marginTop: 0 }}>
-                Reform UK polled 14.3% nationally in 2024 and converted that base into five Westminster seats.
-                This index surfaces the Conservative seats where local Reform strength, Con→Reform swing, and
-                majority exposure combine into the sharpest general-election risk.
+                {model?.explanationText}
               </div>
               <div className="portal-summary-grid">
                 <div className="portal-stat">
@@ -274,9 +273,7 @@ export default function ReformThreatIndex() {
         <div className="portal-insight-callout portal-insight-callout--warning">
           <p className="portal-insight-callout__title">National context</p>
           <p className="portal-insight-callout__body">
-            The highest-risk Conservative seats combine a narrow majority with strong Reform 2024 vote share
-            and evidence of an active local Reform base. Use this view to identify where Reform is not just
-            splitting the right-of-centre vote, but becoming the main destabilising force on the ground.
+            {model?.interpretation}
           </p>
         </div>
 
