@@ -37,6 +37,7 @@ describe("ModelPerformancePage", () => {
     expect(await screen.findByRole("heading", { name: "Model performance" })).toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "Overview" })).toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "Model maturity summary" })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Cross-model priorities" })).toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "Detailed model cards" })).toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "Signal quality and validation caveats" })).toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "Backtest availability and run status" })).toBeInTheDocument();
@@ -50,6 +51,9 @@ describe("ModelPerformancePage", () => {
     expect(
       (await screen.findAllByText(/historical backtest artifacts not yet available in runtime context/i)).length
     ).toBeGreaterThan(0);
+    expect(screen.getAllByText(/Calibration recommendations/i).length).toBeGreaterThan(0);
+    expect(screen.getByText(/Most important data gaps/i)).toBeInTheDocument();
+    expect(screen.getByText(/Signals safest to retain/i)).toBeInTheDocument();
     expect(screen.getByText(/planning tool only/i)).toBeInTheDocument();
     expect(screen.getByText(/watchlist-grade validation/i)).toBeInTheDocument();
   });

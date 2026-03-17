@@ -1930,6 +1930,49 @@ p {
   line-height: 1.7;
 }
 
+.model-performance-recommendation {
+  padding: 14px 16px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--surface-muted);
+}
+
+.model-performance-recommendation__header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: var(--space-2);
+  margin-bottom: 10px;
+}
+
+.model-performance-recommendation__priority {
+  color: var(--text-muted);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.model-performance-recommendation__title {
+  margin: 0;
+  color: var(--primary);
+  font-size: 15px;
+  font-weight: 700;
+}
+
+.model-performance-recommendation__body {
+  margin: 8px 0 0;
+  color: var(--text);
+  line-height: 1.65;
+}
+
+.model-performance-recommendation__meta {
+  margin: 10px 0 0;
+  color: var(--text-muted);
+  font-size: 13px;
+  line-height: 1.65;
+}
+
 @media (max-width: 900px) {
   .model-performance-grid {
     grid-template-columns: 1fr;

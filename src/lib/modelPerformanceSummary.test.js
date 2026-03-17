@@ -42,4 +42,16 @@ describe("modelPerformanceSummary", () => {
     expect(vulnerability.metricLabels).toEqual(["Precision At 20", "Top Decile Capture"]);
     expect(pageSummary.maturityCounts.strong).toBe(1);
   });
+
+  it("adds calibration guidance and cross-model priorities to the page summary", () => {
+    const pageSummary = buildModelPerformancePageSummary({
+      runtimeBacktests: {
+        models: {},
+      },
+    });
+
+    expect(pageSummary.models[0].calibration.immediateNextStep).toBeTruthy();
+    expect(pageSummary.crossModelPriorities.bestTuningCandidate).toBe("Conservative Seat Vulnerability");
+    expect(pageSummary.crossModelPriorities.overInterpretationRisk).toContain("Reform UK Threat Index");
+  });
 });

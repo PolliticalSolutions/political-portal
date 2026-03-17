@@ -133,6 +133,48 @@ export default function ModelPerformancePage() {
 
       <section className="stack">
         <div className="portal-data-section__header">
+          <h2 className="portal-data-section__title">Cross-model priorities</h2>
+          <p className="portal-data-section__meta">
+            This summary highlights where deeper work is most likely to improve model credibility, and where stronger claims should still be avoided.
+          </p>
+        </div>
+
+        <Card>
+          <div className="model-performance-list-grid">
+            <div>
+              <h4 className="model-performance-list-title">Best candidate for deeper historical tuning</h4>
+              <p className="model-performance-note">{summary.crossModelPriorities.bestTuningCandidate}</p>
+            </div>
+            <div>
+              <h4 className="model-performance-list-title">Models at highest risk of over-interpretation</h4>
+              <ul className="model-performance-list">
+                {summary.crossModelPriorities.overInterpretationRisk.map((item) => (
+                  <li key={item}>{item}</li>
+                ))}
+              </ul>
+            </div>
+            <div>
+              <h4 className="model-performance-list-title">Most important data gaps</h4>
+              <ul className="model-performance-list">
+                {summary.crossModelPriorities.keyDataGaps.map((item) => (
+                  <li key={item}>{item}</li>
+                ))}
+              </ul>
+            </div>
+            <div>
+              <h4 className="model-performance-list-title">Signals safest to retain</h4>
+              <ul className="model-performance-list">
+                {summary.crossModelPriorities.strongestRetainSignals.map((item) => (
+                  <li key={item}>{item}</li>
+                ))}
+              </ul>
+            </div>
+          </div>
+        </Card>
+      </section>
+
+      <section className="stack">
+        <div className="portal-data-section__header">
           <h2 className="portal-data-section__title">Detailed model cards</h2>
           <p className="portal-data-section__meta">
             Each card sets out the model question, intended universe, signal basis, historical testing boundary, and what must not be claimed.
@@ -260,6 +302,65 @@ export default function ModelPerformancePage() {
                 <div>
                   <h4 className="model-performance-list-title">Validation notes</h4>
                   <p className="model-performance-note">{model.validationNotes}</p>
+                </div>
+              </div>
+
+              <div className="model-performance-list-grid">
+                <div>
+                  <h4 className="model-performance-list-title">Calibration recommendations</h4>
+                  <div className="portal-stack-compact">
+                    {model.calibration.recommendations.map((item) => (
+                      <div key={`${model.modelKey}-${item.title}`} className="model-performance-recommendation">
+                        <div className="model-performance-recommendation__header">
+                          <span
+                            className={`status-pill ${
+                              item.recommendationLevel === "retain"
+                                ? "success"
+                                : item.recommendationLevel === "review"
+                                  ? "info"
+                                  : item.recommendationLevel === "not_applicable"
+                                    ? "info"
+                                    : item.recommendationLevel === "downgrade"
+                                      ? "warning"
+                                      : "danger"
+                            }`}
+                          >
+                            {item.recommendationLevel.replace(/_/g, " ")}
+                          </span>
+                          <span className="model-performance-recommendation__priority">{item.priority} priority</span>
+                        </div>
+                        <p className="model-performance-recommendation__title">{item.title}</p>
+                        <p className="model-performance-recommendation__body">{item.summary}</p>
+                        <p className="model-performance-recommendation__meta">
+                          {item.reasoning} Immediate next step: {item.suggestedAction}
+                        </p>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+                <div>
+                  <h4 className="model-performance-list-title">Signals safe to retain</h4>
+                  <ul className="model-performance-list">
+                    {model.calibration.strongestRetainedSignals.length ? (
+                      model.calibration.strongestRetainedSignals.map((item) => <li key={item}>{item}</li>)
+                    ) : (
+                      <li>No strongly retained signal set identified yet.</li>
+                    )}
+                  </ul>
+                </div>
+                <div>
+                  <h4 className="model-performance-list-title">Key data gaps</h4>
+                  <ul className="model-performance-list">
+                    {model.calibration.keyDataGaps.length ? (
+                      model.calibration.keyDataGaps.map((item) => <li key={item}>{item}</li>)
+                    ) : (
+                      <li>No immediate data-gap signal flagged beyond existing validation caveats.</li>
+                    )}
+                  </ul>
+                </div>
+                <div>
+                  <h4 className="model-performance-list-title">Immediate next step</h4>
+                  <p className="model-performance-note">{model.calibration.immediateNextStep}</p>
                 </div>
               </div>
             </Card>

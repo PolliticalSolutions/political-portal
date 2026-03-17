@@ -1,6 +1,7 @@
 import { getIntelligenceSignal } from "../config/intelligenceSignals.js";
 import { getCanonicalValidationKey, getModelValidationSpec } from "../config/modelValidationSpecs.js";
 import { getScoringModel } from "../config/scoringModels.js";
+import { getModelCalibrationSummary } from "./modelCalibrationSummary.js";
 import { getModelConfidence } from "./modelConfidence.js";
 import { getSignalAuditForModel } from "./signalAudit.js";
 
@@ -127,6 +128,11 @@ export function buildModelPerformanceSummary({ modelKey, runtimeBacktestsByModel
     spec: validationSpec,
     runtimeBacktestsByModel,
   });
+  const calibration = getModelCalibrationSummary({
+    modelKey: canonicalKey,
+    runtimeBacktestsByModel,
+    availableSignalKeys: declaredSignals,
+  });
 
   return {
     modelKey: canonicalKey,
@@ -153,6 +159,7 @@ export function buildModelPerformanceSummary({ modelKey, runtimeBacktestsByModel
     signalAudit,
     maturity,
     backtest,
+    calibration,
     scoringVersion: scoringModel?.version ?? "Validation spec only",
     metricLabels: backtest.metricNames.map(toMetricLabel),
   };
@@ -180,5 +187,19 @@ export function buildModelPerformancePageSummary({ runtimeBacktests }) {
     constrainedModels: models
       .filter((model) => model.confidence.confidenceLevel === "low" || model.confidence.confidenceLevel === "insufficient_data")
       .map((model) => model.label),
+    crossModelPriorities: {
+      bestTuningCandidate:
+        models.find((model) => model.historicalBacktestability === "strong")?.label ??
+        "No strong historical tuning candidate currently defined",
+      overInterpretationRisk: models
+        .filter((model) => ["review", "downgrade", "data_gap"].includes(model.calibration.overallPosture))
+        .map((model) => model.label),
+      keyDataGaps: [
+        ...new Set(models.flatMap((model) => model.calibration.keyDataGaps).filter(Boolean)),
+      ].slice(0, 5),
+      strongestRetainSignals: [
+        ...new Set(models.flatMap((model) => model.calibration.strongestRetainedSignals).filter(Boolean)),
+      ].slice(0, 5),
+    },
   };
 }
