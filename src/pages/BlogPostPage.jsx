@@ -72,11 +72,15 @@ export default function BlogPostPage() {
             Back to blog
           </Link>
 
-          <header className="stack" style={{ gap: 8 }}>
+          <header className="blog-post-header stack" style={{ gap: 8 }}>
+            <div className="blog-post-header__meta">
+              <span className="blog-post-header__label">Operational briefing</span>
+              <p className="muted blog-meta">
+                {formatBlogDate(publishedDate)} | {post.meta.author}
+              </p>
+            </div>
             <h1 id="blog-post-title">{post.meta.title}</h1>
-            <p className="muted blog-meta">
-              {formatBlogDate(publishedDate)} | {post.meta.author}
-            </p>
+            <p className="blog-post-header__description">{post.meta.description}</p>
             {post.meta.tags.length > 0 && (
               <div className="blog-tags" aria-label="Tags">
                 {post.meta.tags.map((tag) => (

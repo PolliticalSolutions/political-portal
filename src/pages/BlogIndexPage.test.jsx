@@ -15,6 +15,11 @@ describe("BlogIndexPage", () => {
     );
 
     expect(screen.getByRole("heading", { name: "Blog" })).toBeInTheDocument();
+    expect(
+      screen.getByText(
+        /Operational guidance for UK campaign professionals who need practical answers on data handling/
+      )
+    ).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "Building a campaign data operations baseline" })).toBeInTheDocument();
     expect(
       screen.getByRole("link", { name: "Reducing field-team friction with better handoffs" })

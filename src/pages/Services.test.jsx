@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react";
+import { render, screen, within } from "@testing-library/react";
 import { HelmetProvider } from "react-helmet-async";
 import { MemoryRouter } from "react-router-dom";
 import { describe, expect, it } from "vitest";
@@ -31,9 +31,11 @@ describe("Services", () => {
     const grid = screen.getByTestId("services-card-grid");
     expect(grid).toBeInTheDocument();
     expect(grid).toHaveClass("feature-grid--equal");
-    expect(screen.getByText("Marked Register Processing")).toBeInTheDocument();
-    expect(screen.getByText("Constituency Intelligence")).toBeInTheDocument();
-    expect(screen.getByText("Campaigning, Training & Election Support")).toBeInTheDocument();
+    expect(within(grid).getByRole("heading", { level: 3, name: "Marked Register Processing" })).toBeInTheDocument();
+    expect(within(grid).getByRole("heading", { level: 3, name: "Constituency Intelligence" })).toBeInTheDocument();
+    expect(
+      within(grid).getByRole("heading", { level: 3, name: "Campaigning, Training & Election Support" })
+    ).toBeInTheDocument();
     const complianceTitle = screen.getByRole("heading", { name: "Compliance note" });
     expect(screen.getByRole("link", { name: "View Marked Register plans" })).toHaveAttribute(
       "href",

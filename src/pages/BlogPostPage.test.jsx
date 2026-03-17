@@ -20,6 +20,12 @@ describe("BlogPostPage", () => {
     renderRoute("/blog/2026-02-25-example-post-1");
 
     expect(screen.getByRole("heading", { name: "Building a campaign data operations baseline" })).toBeInTheDocument();
+    expect(screen.getByText("Operational briefing")).toBeInTheDocument();
+    expect(
+      screen.getByText(
+        "How local campaign teams can reduce operational risk with a disciplined data baseline before peak election periods."
+      )
+    ).toBeInTheDocument();
     expect(screen.getByText("What to standardise first")).toBeInTheDocument();
   });
 

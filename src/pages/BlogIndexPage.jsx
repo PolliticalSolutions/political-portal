@@ -11,11 +11,29 @@ export default function BlogIndexPage() {
     <div className="page">
       <section className="section">
         <div className="container stack">
-          <h1>Blog</h1>
-          <p className="muted">
-            Latest writing on campaign operations, data delivery, and practical execution patterns for
-            political teams.
-          </p>
+          <div className="blog-index-hero">
+            <h1>Blog</h1>
+            <p className="blog-index-intro">
+              Operational guidance for UK campaign professionals who need practical answers on data handling,
+              marked registers, constituency research, and delivery discipline rather than generic political
+              commentary.
+            </p>
+            <p className="muted">
+              Articles focus on workflows, decision points, and avoidable operational mistakes across campaign
+              teams, associations, and headquarters functions.
+            </p>
+          </div>
+        </div>
+      </section>
+
+      <section className="section tight">
+        <div className="container stack">
+          <div className="blog-index-section-header">
+            <h2 className="section-title">Latest operational guidance</h2>
+            <p className="muted">
+              Published notes from the Political Solutions team on campaign operations and constituency work.
+            </p>
+          </div>
         </div>
       </section>
 
@@ -23,7 +41,7 @@ export default function BlogIndexPage() {
         <div className="container stack">
           {posts.map((post) => (
             <article className="card stack blog-card" key={post.slug}>
-              <div className="stack" style={{ gap: 8 }}>
+              <div className="stack blog-card__content" style={{ gap: 8 }}>
                 <h2 className="card-title blog-title-link">
                   <Link to={`/blog/${post.slug}`}>{post.meta.title}</Link>
                 </h2>
