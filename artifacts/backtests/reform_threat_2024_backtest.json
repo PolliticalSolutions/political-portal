@@ -1,0 +1,55 @@
+{
+  "model_key": "reform_threat",
+  "target_cycle": 2024,
+  "baseline_cycle": 2019,
+  "run_timestamp": "2026-03-17T19:41:28.667032+00:00",
+  "run_mode": "dry-run",
+  "status": "dry_run_ready",
+  "signal_coverage_summary": {
+    "available_signals": [
+      "reform_vote_share",
+      "con_reform_swing",
+      "conservative_majority_pct",
+      "demographic_headwinds",
+      "fragmentation_pressure"
+    ],
+    "missing_signals": [
+      "local_reform_presence",
+      "local_government_instability"
+    ],
+    "excluded_signals": []
+  },
+  "excluded_signals": [],
+  "metrics": {},
+  "planned_metrics": [
+    "top_decile_capture_rate",
+    "precision_at_10",
+    "precision_at_20",
+    "precision_at_50",
+    "recall_at_10",
+    "recall_at_20",
+    "recall_at_50",
+    "false_positive_count_at_20",
+    "false_positive_rate_at_20",
+    "false_negative_count_at_20",
+    "ranking_quality_spearman"
+  ],
+  "leakage_warnings": [],
+  "data_limitations": [
+    "No future-cycle or post-target signals should be included in a full run.",
+    "Signals flagged as missing or excluded must remain out of the scored feature set unless a historically valid source is added."
+  ],
+  "data_dependencies": [
+    "Historical Westminster election results by constituency",
+    "Named signal extracts aligned to baseline cycle only",
+    "Outcome labelling for target cycle without post-target leakage",
+    "Structured local government and event-history extracts where available"
+  ],
+  "notes": [
+    "Baseline cycle: 2019",
+    "Run mode: dry-run",
+    "Universe: Conservative-held seats with a defensible Reform/right-fragmentation analogue",
+    "No live historical rows were loaded; metrics are listed but not executed.",
+    "Use this artifact to confirm leakage exclusions, signal availability, and data requirements before enabling full runs."
+  ]
+}
