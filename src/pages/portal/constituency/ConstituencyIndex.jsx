@@ -1,8 +1,12 @@
-import { useEffect, useMemo, useState } from "react";
+import { lazy, Suspense, useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import Card from "../../../components/Card.jsx";
-import ConstituencyMap from "./ConstituencyMap.jsx";
 import { getLatestElectionWinners } from "./constituencyApi.js";
+
+// Lazy-loaded so react-simple-maps (browser-only) is never in the SSR module graph.
+// The double lazy chain (App → ConstituencyIndex → ConstituencyMapClient) ensures
+// the map bundle is fully code-split from both the SSR entry and the main client bundle.
+const ConstituencyMapClient = lazy(() => import("./ConstituencyMapClient.jsx"));
 
 function toHexColor(hex) {
   if (!hex) return null;
@@ -238,7 +242,9 @@ export default function ConstituencyIndex() {
         }}
       >
         <Card>
-          <ConstituencyMap winnersByOnsCode={winnersByOnsCode} />
+          <Suspense fallback={<div style={{ width: "100%", aspectRatio: "500 / 750", background: "#f8fafc", borderRadius: 8 }} />}>
+            <ConstituencyMapClient winnersByOnsCode={winnersByOnsCode} />
+          </Suspense>
         </Card>
 
         <div className="stack" style={{ gap: 12 }}>

@@ -10,7 +10,7 @@ import {
   runScheduledBlogPipeline,
   selectNextEligibleTopic,
   validateArticleContent,
-} from "./blog-automation.mjs";
+} from "../../scripts/blog-automation.mjs";
 
 const tempDirs = [];
 

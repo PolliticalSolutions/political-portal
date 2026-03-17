@@ -1027,6 +1027,24 @@ export const runScheduledBlogPipeline = async ({
       requireHumanReview,
     });
 
+    if (autoPublish && publishEligibility.publishable) {
+      const published = await publishBlogPost({
+        rootDir,
+        slug: generation.frontmatter.slug,
+        now,
+        requireClaudeReview,
+        requireHumanReview,
+      });
+
+      return {
+        status: "published",
+        topicId: topic.id,
+        slug: generation.frontmatter.slug,
+        published,
+        cadence,
+      };
+    }
+
     return {
       status: "draft_created",
       topicId: topic.id,

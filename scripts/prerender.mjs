@@ -5,6 +5,11 @@ import { getPrerenderRoutes } from "./prerender-routes.mjs";
 
 process.env.PRERENDER_SKIP_ENV_VALIDATION = "1";
 
+// SSR-excluded browser-only components (never server-rendered).
+// These are isolated via React.lazy so they never appear in the SSR module graph.
+// Do not add static imports for these anywhere in the SSR import chain.
+//   - src/pages/portal/constituency/ConstituencyMapClient.jsx (react-simple-maps, GeoJSON data)
+
 const distDir = path.resolve("dist");
 const ssrEntry = path.resolve("dist-ssr", "entry-server.js");
 
