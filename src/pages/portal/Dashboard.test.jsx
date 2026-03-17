@@ -56,7 +56,7 @@ describe("Dashboard", () => {
       <MemoryRouter initialEntries={["/portal"]}>
         <Routes>
           <Route path="/portal" element={<Dashboard />} />
-          <Route path="/portal/pricing-rules" element={<LocationDisplay />} />
+          <Route path="/portal/subscriptions" element={<LocationDisplay />} />
         </Routes>
       </MemoryRouter>
     );
@@ -65,7 +65,7 @@ describe("Dashboard", () => {
     expect(screen.getByText("Seat A")).toBeInTheDocument();
     const reviewLink = screen.getByRole("link", { name: "Review account pricing" });
     expect(reviewLink.getAttribute("href")).toBe(
-      "/portal/pricing-rules?association=Big+Federation&constituency=Seat+A"
+      "/portal/subscriptions?association=Big+Federation&constituency=Seat+A"
     );
 
     fireEvent.click(screen.getByRole("button", { name: "Clear saved selection" }));

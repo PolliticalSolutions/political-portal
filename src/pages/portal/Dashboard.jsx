@@ -41,12 +41,12 @@ export default function Dashboard() {
   }, []);
 
   const pricingLink = useMemo(() => {
-    if (!signupContext) return "/portal/pricing-rules";
+    if (!signupContext) return "/portal/subscriptions";
     const params = new URLSearchParams();
     if (signupContext.association) params.set("association", signupContext.association);
     if (signupContext.constituency) params.set("constituency", signupContext.constituency);
     const query = params.toString();
-    return query ? `/portal/pricing-rules?${query}` : "/portal/pricing-rules";
+    return query ? `/portal/subscriptions?${query}` : "/portal/subscriptions";
   }, [signupContext]);
 
   const handleClearSelection = () => {
