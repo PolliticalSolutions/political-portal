@@ -23,7 +23,10 @@ export default defineConfig({
     setupFiles: "./src/setupTests.js",
     include: ["src/**/*.test.{js,jsx,ts,tsx}"],
     exclude: ["infra/enquiry-api/test/**", "node_modules/**", "dist/**"],
-    cache: false,
+    pool: "vmThreads",
+    alias: {
+      "react-router-dom": new URL("./node_modules/react-router-dom/dist/index.mjs", import.meta.url).pathname,
+    },
     disableConsoleIntercept: true,
   },
 });
