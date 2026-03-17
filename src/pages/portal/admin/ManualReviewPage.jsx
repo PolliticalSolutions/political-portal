@@ -98,6 +98,18 @@ export default function ManualReviewPage() {
 
   return (
     <div className="page stack">
+      <Card>
+        <div className="portal-page-header">
+          <div className="portal-page-header__content">
+            <span className="portal-page-header__eyebrow">Admin</span>
+            <h1 className="portal-page-header__title">Manual review</h1>
+            <p className="portal-page-header__subtitle">
+              Review upload exceptions, confirm election context, and record the decision cleanly.
+            </p>
+          </div>
+        </div>
+      </Card>
+
       <Card title="Manual review queue">
         {loading && <p className="muted">Loading manual review jobs...</p>}
         {!loading && jobs.length === 0 && <p className="muted">No open manual review jobs.</p>}
@@ -107,36 +119,36 @@ export default function ManualReviewPage() {
           </p>
         )}
         {banner && (
-          <p role="status" style={{ color: "#15803d" }}>
+          <p role="status" className="status">
             {banner}
           </p>
         )}
         {jobs.length > 0 && (
-          <div style={{ overflowX: "auto" }}>
-            <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 14 }}>
+          <div className="table-wrap">
+            <table className="table">
               <thead>
-                <tr style={{ borderBottom: "2px solid #e2e8f0" }}>
-                  <th style={{ textAlign: "left", padding: "8px 12px" }}>Created</th>
-                  <th style={{ textAlign: "left", padding: "8px 12px" }}>Org</th>
-                  <th style={{ textAlign: "left", padding: "8px 12px" }}>PCON</th>
-                  <th style={{ textAlign: "left", padding: "8px 12px" }}>Election</th>
-                  <th style={{ textAlign: "left", padding: "8px 12px" }}>Reason</th>
-                  <th style={{ textAlign: "left", padding: "8px 12px" }}>Job ID</th>
+                <tr>
+                  <th>Created</th>
+                  <th>Org</th>
+                  <th>PCON</th>
+                  <th>Election</th>
+                  <th>Reason</th>
+                  <th>Job ID</th>
                 </tr>
               </thead>
               <tbody>
                 {jobs.map((job) => (
                   <tr
                     key={job.jobId}
-                    style={{ borderBottom: "1px solid #f1f5f9", cursor: "pointer" }}
+                    style={{ cursor: "pointer" }}
                     onClick={() => setSelectedJobId(job.jobId)}
                   >
-                    <td style={{ padding: "8px 12px" }}>{new Date(job.createdAt).toLocaleString()}</td>
-                    <td style={{ padding: "8px 12px" }}>{job.orgId || "—"}</td>
-                    <td style={{ padding: "8px 12px" }}>{job.pconCode || "—"}</td>
-                    <td style={{ padding: "8px 12px" }}>{job.electionId || "—"}</td>
-                    <td style={{ padding: "8px 12px" }}>{(job.manualReviewReason || "").slice(0, 80)}</td>
-                    <td style={{ padding: "8px 12px", fontFamily: "monospace" }}>{job.jobId}</td>
+                    <td>{new Date(job.createdAt).toLocaleString()}</td>
+                    <td>{job.orgId || "—"}</td>
+                    <td>{job.pconCode || "—"}</td>
+                    <td>{job.electionId || "—"}</td>
+                    <td>{(job.manualReviewReason || "").slice(0, 80)}</td>
+                    <td style={{ fontFamily: "monospace" }}>{job.jobId}</td>
                   </tr>
                 ))}
               </tbody>
@@ -172,40 +184,40 @@ export default function ManualReviewPage() {
             <strong>Reason:</strong> {selectedJob?.manualReviewReason || selectedSummary?.manualReviewReason || "—"}
           </p>
 
-          <label htmlFor="reviewDecision" style={{ fontWeight: 600, display: "block", marginTop: 12 }}>
-            Decision
+          <label className="field" htmlFor="reviewDecision" style={{ marginTop: 12 }}>
+            <span>Decision</span>
+            <select className="input" id="reviewDecision" value={decision} onChange={(e) => setDecision(e.target.value)}>
+              <option value="APPROVE">Approve</option>
+              <option value="REJECT">Reject</option>
+              <option value="NEEDS_INFO">Needs info</option>
+            </select>
           </label>
-          <select id="reviewDecision" value={decision} onChange={(e) => setDecision(e.target.value)}>
-            <option value="APPROVE">Approve</option>
-            <option value="REJECT">Reject</option>
-            <option value="NEEDS_INFO">Needs info</option>
-          </select>
 
           {decision === "APPROVE" && (
-            <>
-              <label htmlFor="correctedElectionId" style={{ fontWeight: 600, display: "block", marginTop: 12 }}>
-                Corrected election ID (optional)
-              </label>
+            <label className="field" htmlFor="correctedElectionId" style={{ marginTop: 12 }}>
+              <span>Corrected election ID (optional)</span>
               <input
+                className="input"
                 id="correctedElectionId"
                 type="text"
                 value={correctedElectionId}
                 onChange={(e) => setCorrectedElectionId(e.target.value)}
                 placeholder="election id"
               />
-            </>
+            </label>
           )}
 
-          <label htmlFor="reviewNote" style={{ fontWeight: 600, display: "block", marginTop: 12 }}>
-            Note (required, min 10 chars)
+          <label className="field" htmlFor="reviewNote" style={{ marginTop: 12 }}>
+            <span>Note (required, min 10 chars)</span>
+            <textarea
+              className="input"
+              id="reviewNote"
+              rows={4}
+              value={note}
+              onChange={(e) => setNote(e.target.value)}
+              placeholder="Enter manual review decision context"
+            />
           </label>
-          <textarea
-            id="reviewNote"
-            rows={4}
-            value={note}
-            onChange={(e) => setNote(e.target.value)}
-            placeholder="Enter manual review decision context"
-          />
 
           <div style={{ marginTop: 12 }}>
             <Button

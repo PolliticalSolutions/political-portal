@@ -87,11 +87,17 @@ export default function Integrations() {
   const connectState = searchParams.get("xero");
 
   return (
-    <div className="stack">
-      <Card title="Integrations">
-        <p className="muted" style={{ marginTop: 0 }}>
-          Connect Xero to create invoices and collect payment securely via Xero.
-        </p>
+    <div className="page stack">
+      <Card>
+        <div className="portal-page-header">
+          <div className="portal-page-header__content">
+            <span className="portal-page-header__eyebrow">Account and Billing</span>
+            <h1 className="portal-page-header__title">Integrations</h1>
+            <p className="portal-page-header__subtitle">
+              Connect billing services and confirm whether invoice creation is available.
+            </p>
+          </div>
+        </div>
         {connectState === "connected" && (
           <div className="status" style={{ marginTop: 12 }}>
             Xero connection updated.

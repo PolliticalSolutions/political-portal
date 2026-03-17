@@ -286,18 +286,20 @@ export default function Uploads() {
   const validStaged = staged.filter((s) => !s.error);
   const invalidStaged = staged.filter((s) => s.error);
 
-  const dropzoneStyle = {
-    border: `2px dashed ${dragOver ? "#2563eb" : "#cbd5e1"}`,
-    borderRadius: 8,
-    padding: "32px 16px",
-    textAlign: "center",
-    cursor: "pointer",
-    background: dragOver ? "#eff6ff" : "#f8fafc",
-    transition: "border-color 0.15s, background 0.15s",
-  };
-
   return (
     <div className="page stack">
+      <Card>
+        <div className="portal-page-header">
+          <div className="portal-page-header__content">
+            <span className="portal-page-header__eyebrow">Marked Register Processing</span>
+            <h1 className="portal-page-header__title">Uploads</h1>
+            <p className="portal-page-header__subtitle">
+              Upload marked register files, define the election context, and monitor processing in one place.
+            </p>
+          </div>
+        </div>
+      </Card>
+
       <Card title="Upload files">
         <p className="muted" style={{ marginBottom: 16 }}>
           Upload PDF or CSV files (max 200 MB each). Each file becomes a separate
@@ -305,7 +307,7 @@ export default function Uploads() {
         </p>
 
         <div
-          style={dropzoneStyle}
+          className={`portal-dropzone${dragOver ? " is-active" : ""}`}
           onDragOver={(e) => {
             e.preventDefault();
             setDragOver(true);
@@ -318,11 +320,11 @@ export default function Uploads() {
           tabIndex={0}
           aria-label="Drop files here or click to choose"
         >
-          <p style={{ margin: 0, color: "#475569" }}>
+          <p className="portal-dropzone__title">
             Drag &amp; drop PDF or CSV files here, or{" "}
             <strong style={{ color: "#2563eb" }}>click to browse</strong>
           </p>
-          <p style={{ margin: "8px 0 0", fontSize: 12, color: "#94a3b8" }}>
+          <p className="portal-dropzone__meta">
             Accepted: .pdf, .csv — max 200 MB per file
           </p>
           <input
@@ -339,22 +341,16 @@ export default function Uploads() {
         {staged.length > 0 && (
           <div className="stack" style={{ marginTop: 16, gap: 6 }}>
             <strong>Selected files ({staged.length}):</strong>
-            <ul style={{ listStyle: "none", margin: 0, padding: 0 }}>
+            <ul className="portal-file-list">
               {staged.map(({ file, error }, i) => (
                 <li
                   key={`${file.name}-${i}`}
-                  style={{
-                    display: "flex",
-                    alignItems: "flex-start",
-                    gap: 8,
-                    padding: "6px 0",
-                    borderBottom: "1px solid #f1f5f9",
-                    color: error ? "#b91c1c" : "inherit",
-                  }}
+                  className="portal-file-list__item"
+                  style={{ color: error ? "#b91c1c" : "inherit" }}
                 >
                   <span style={{ flex: 1 }}>
                     {file.name}{" "}
-                    <span style={{ color: "#94a3b8", fontSize: 12 }}>
+                    <span className="portal-file-list__meta">
                       ({(file.size / 1024 / 1024).toFixed(1)} MB)
                     </span>
                     {error && (
@@ -365,21 +361,14 @@ export default function Uploads() {
                       </span>
                     )}
                   </span>
-                  <button
+                  <Button
                     type="button"
+                    variant="ghost"
                     onClick={() => removeStaged(i)}
-                    aria-label={`Remove ${file.name}`}
-                    style={{
-                      border: "none",
-                      background: "none",
-                      cursor: "pointer",
-                      color: "#94a3b8",
-                      padding: "0 4px",
-                      fontSize: 16,
-                    }}
+                    className="button--small"
                   >
-                    ✕
-                  </button>
+                    Remove
+                  </Button>
                 </li>
               ))}
             </ul>
@@ -393,14 +382,12 @@ export default function Uploads() {
 
         {validStaged.length > 0 && (
           <div className="stack" style={{ marginTop: 20, gap: 12 }}>
-            <div>
-              <label
-                htmlFor="pconCode"
-                style={{ display: "block", fontWeight: 600, marginBottom: 4 }}
-              >
+            <label className="field" htmlFor="pconCode">
+              <span>
                 Constituency code (PCON24CD)
-              </label>
+              </span>
               <input
+                className="input"
                 id="pconCode"
                 type="text"
                 value={submissionScope.pconCode}
@@ -408,24 +395,14 @@ export default function Uploads() {
                   setSubmissionScope((scope) => ({ ...scope, pconCode: e.target.value }))
                 }
                 placeholder="e.g. E14000637"
-                style={{
-                  width: "100%",
-                  padding: "8px 12px",
-                  border: "1px solid #cbd5e1",
-                  borderRadius: 6,
-                  fontSize: 14,
-                  boxSizing: "border-box",
-                }}
               />
-            </div>
-            <div>
-              <label
-                htmlFor="wardCodes"
-                style={{ display: "block", fontWeight: 600, marginBottom: 4 }}
-              >
+            </label>
+            <label className="field" htmlFor="wardCodes">
+              <span>
                 Ward codes (optional, comma-separated WD24CD)
-              </label>
+              </span>
               <input
+                className="input"
                 id="wardCodes"
                 type="text"
                 value={submissionScope.wards}
@@ -433,24 +410,14 @@ export default function Uploads() {
                   setSubmissionScope((scope) => ({ ...scope, wards: e.target.value }))
                 }
                 placeholder="e.g. W1001,W1002"
-                style={{
-                  width: "100%",
-                  padding: "8px 12px",
-                  border: "1px solid #cbd5e1",
-                  borderRadius: 6,
-                  fontSize: 14,
-                  boxSizing: "border-box",
-                }}
               />
-            </div>
-            <div>
-              <label
-                htmlFor="electionId"
-                style={{ display: "block", fontWeight: 600, marginBottom: 4 }}
-              >
+            </label>
+            <div className="field">
+              <label htmlFor="electionId">
                 Election
               </label>
               <select
+                className="input"
                 id="electionId"
                 value={submissionScope.electionId}
                 onChange={(e) =>
@@ -461,14 +428,6 @@ export default function Uploads() {
                   }))
                 }
                 disabled={!submissionScope.pconCode.trim() || loadingElections}
-                style={{
-                  width: "100%",
-                  padding: "8px 12px",
-                  border: "1px solid #cbd5e1",
-                  borderRadius: 6,
-                  fontSize: 14,
-                  boxSizing: "border-box",
-                }}
               >
                 <option value="">Select an election</option>
                 {elections.map((election) => (
@@ -497,14 +456,12 @@ export default function Uploads() {
               )}
             </div>
             {submissionScope.electionId === "OTHER" && (
-              <div>
-                <label
-                  htmlFor="manualReviewReason"
-                  style={{ display: "block", fontWeight: 600, marginBottom: 4 }}
-                >
+              <label className="field" htmlFor="manualReviewReason">
+                <span>
                   Manual review reason
-                </label>
+                </span>
                 <textarea
+                  className="input"
                   id="manualReviewReason"
                   rows={3}
                   value={submissionScope.manualReviewReason}
@@ -512,26 +469,15 @@ export default function Uploads() {
                     setSubmissionScope((scope) => ({ ...scope, manualReviewReason: e.target.value }))
                   }
                   placeholder="Explain why this election is not listed (minimum 10 characters)."
-                  style={{
-                    width: "100%",
-                    padding: "8px 12px",
-                    border: "1px solid #cbd5e1",
-                    borderRadius: 6,
-                    fontSize: 14,
-                    boxSizing: "border-box",
-                    resize: "vertical",
-                  }}
                 />
-              </div>
-            )}
-            <div>
-              <label
-                htmlFor="clientName"
-                style={{ display: "block", fontWeight: 600, marginBottom: 4 }}
-              >
-                Client name (optional)
               </label>
+            )}
+            <label className="field" htmlFor="clientName">
+              <span>
+                Client name (optional)
+              </span>
               <input
+                className="input"
                 id="clientName"
                 type="text"
                 value={metadata.clientName}
@@ -539,24 +485,14 @@ export default function Uploads() {
                   setMetadata((m) => ({ ...m, clientName: e.target.value }))
                 }
                 placeholder="e.g. North Association"
-                style={{
-                  width: "100%",
-                  padding: "8px 12px",
-                  border: "1px solid #cbd5e1",
-                  borderRadius: 6,
-                  fontSize: 14,
-                  boxSizing: "border-box",
-                }}
               />
-            </div>
-            <div>
-              <label
-                htmlFor="notes"
-                style={{ display: "block", fontWeight: 600, marginBottom: 4 }}
-              >
+            </label>
+            <label className="field" htmlFor="notes">
+              <span>
                 Notes (optional)
-              </label>
+              </span>
               <textarea
+                className="input"
                 id="notes"
                 rows={3}
                 value={metadata.notes}
@@ -564,17 +500,8 @@ export default function Uploads() {
                   setMetadata((m) => ({ ...m, notes: e.target.value }))
                 }
                 placeholder="Any additional notes about this batch"
-                style={{
-                  width: "100%",
-                  padding: "8px 12px",
-                  border: "1px solid #cbd5e1",
-                  borderRadius: 6,
-                  fontSize: 14,
-                  boxSizing: "border-box",
-                  resize: "vertical",
-                }}
               />
-            </div>
+            </label>
             <Button
               onClick={handleUpload}
               loading={uploading}
@@ -592,17 +519,9 @@ export default function Uploads() {
         )}
 
         {uploadErrors.length > 0 && (
-          <div
-            style={{
-              marginTop: 12,
-              padding: 12,
-              background: "#fee2e2",
-              borderRadius: 6,
-              color: "#b91c1c",
-            }}
-          >
+          <div className="status error" style={{ marginTop: 12, display: "block" }}>
             <strong>Errors:</strong>
-            <ul style={{ margin: "6px 0 0", paddingLeft: 18 }}>
+            <ul className="portal-error-list">
               {uploadErrors.map((e) => (
                 <li key={e}>{e}</li>
               ))}
@@ -614,14 +533,9 @@ export default function Uploads() {
       <Card
         title="Processing jobs"
         action={
-          <button
-            type="button"
-            className="navLink"
-            onClick={handleRefresh}
-            style={{ fontSize: 14 }}
-          >
+          <Button type="button" variant="ghost" className="button--small" onClick={handleRefresh}>
             Refresh
-          </button>
+          </Button>
         }
       >
         {loadError && (
@@ -633,54 +547,46 @@ export default function Uploads() {
           </p>
         )}
         {jobs.length > 0 && (
-          <div style={{ overflowX: "auto" }}>
-            <table
-              style={{
-                width: "100%",
-                borderCollapse: "collapse",
-                fontSize: 14,
-              }}
-            >
+          <div className="table-wrap">
+            <table className="table">
               <thead>
-                <tr style={{ borderBottom: "2px solid #e2e8f0" }}>
-                  <th style={{ textAlign: "left", padding: "8px 12px" }}>File</th>
-                  <th style={{ textAlign: "left", padding: "8px 12px" }}>Type</th>
-                  <th style={{ textAlign: "left", padding: "8px 12px" }}>Status</th>
-                  <th style={{ textAlign: "left", padding: "8px 12px" }}>Created</th>
-                  <th style={{ textAlign: "left", padding: "8px 12px" }}>Updated</th>
-                  <th style={{ textAlign: "left", padding: "8px 12px" }}>Actions</th>
+                <tr>
+                  <th>File</th>
+                  <th>Type</th>
+                  <th>Status</th>
+                  <th>Created</th>
+                  <th>Updated</th>
+                  <th>Actions</th>
                 </tr>
               </thead>
               <tbody>
                 {jobs.map((job) => (
-                  <tr
-                    key={job.jobId}
-                    style={{ borderBottom: "1px solid #f1f5f9" }}
-                  >
-                    <td style={{ padding: "8px 12px" }} title={job.jobId}>
+                  <tr key={job.jobId}>
+                    <td title={job.jobId}>
                       {job.filename}
                     </td>
-                    <td style={{ padding: "8px 12px" }}>
+                    <td>
                       {job.fileType?.toUpperCase()}
                     </td>
-                    <td style={{ padding: "8px 12px" }}>
+                    <td>
                       <StatusBadge status={job.status} />
                     </td>
-                    <td style={{ padding: "8px 12px" }}>
+                    <td>
                       {job.createdAt
                         ? new Date(job.createdAt).toLocaleString()
                         : "—"}
                     </td>
-                    <td style={{ padding: "8px 12px" }}>
+                    <td>
                       {job.updatedAt
                         ? new Date(job.updatedAt).toLocaleString()
                         : "—"}
                     </td>
-                    <td style={{ padding: "8px 12px" }}>
-                      <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+                    <td>
+                      <div className="portal-section-actions">
                         {job.status === "SUCCEEDED" && (
                           <Button
                             variant="secondary"
+                            className="button--small"
                             onClick={() => handleDownload(job)}
                           >
                             Download

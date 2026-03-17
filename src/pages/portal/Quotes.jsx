@@ -58,11 +58,25 @@ export default function Quotes() {
   });
 
   return (
-    <div className="stack">
+    <div className="page stack">
+      <Card>
+        <div className="portal-page-header">
+          <div className="portal-page-header__content">
+            <span className="portal-page-header__eyebrow">Account and Billing</span>
+            <h1 className="portal-page-header__title">Quotes</h1>
+            <p className="portal-page-header__subtitle">
+              Review quote requests, checkout submissions, and invoice status in one list.
+            </p>
+          </div>
+          <div className="portal-page-header__actions">
+            <Button variant="ghost" className="button--small" onClick={() => loadQuotes("replace")} disabled={state.loading}>
+              Refresh
+            </Button>
+          </div>
+        </div>
+      </Card>
+
       <Card title="Quote requests">
-        <p className="muted" style={{ marginTop: 0 }}>
-          Monitor quote requests and Xero invoice status.
-        </p>
         <label className="field" style={{ maxWidth: 280 }}>
           <span>Filter</span>
           <select className="input" value={filter} onChange={(event) => setFilter(event.target.value)}>
@@ -73,43 +87,43 @@ export default function Quotes() {
         </label>
         {state.loading && <div className="muted">Loading quotes...</div>}
         {state.error && <div className="status error">{state.error}</div>}
-        <div style={{ overflowX: "auto" }}>
-          <table className="table" style={{ width: "100%", borderCollapse: "collapse" }}>
+        <div className="table-wrap">
+          <table className="table">
             <thead>
-              <tr className="muted" style={{ textAlign: "left" }}>
-                <th style={{ padding: "8px 4px" }}>Reference</th>
-                <th style={{ padding: "8px 4px" }}>Created</th>
-                <th style={{ padding: "8px 4px" }}>Type</th>
-                <th style={{ padding: "8px 4px" }}>Organisation</th>
-                <th style={{ padding: "8px 4px" }}>Email</th>
-                <th style={{ padding: "8px 4px" }}>Total</th>
-                <th style={{ padding: "8px 4px" }}>Xero</th>
+              <tr>
+                <th>Reference</th>
+                <th>Created</th>
+                <th>Type</th>
+                <th>Organisation</th>
+                <th>Email</th>
+                <th>Total</th>
+                <th>Xero</th>
               </tr>
             </thead>
             <tbody>
               {filteredItems.map((item) => (
-                <tr key={item.referenceId} style={{ borderTop: "1px solid #e5e7eb" }}>
-                  <td style={{ padding: "8px 4px" }}>
-                    <Link to={`/portal/ops/quotes/${encodeURIComponent(item.referenceId)}`}>
+                <tr key={item.referenceId}>
+                  <td>
+                    <Link className="table-link" to={`/portal/ops/quotes/${encodeURIComponent(item.referenceId)}`}>
                       {item.referenceId}
                     </Link>
                   </td>
-                  <td style={{ padding: "8px 4px" }}>{formatDate(item.createdAt)}</td>
-                  <td style={{ padding: "8px 4px" }}>
+                  <td>{formatDate(item.createdAt)}</td>
+                  <td>
                     {(item.requestType || "CHECKOUT") === "SERVICE_ENQUIRY" ? "Service enquiry" : "Checkout"}
                   </td>
-                  <td style={{ padding: "8px 4px" }}>{item.customerOrganisation || "N/A"}</td>
-                  <td style={{ padding: "8px 4px" }}>{item.customerEmailMasked || "N/A"}</td>
-                  <td style={{ padding: "8px 4px" }}>
+                  <td>{item.customerOrganisation || "N/A"}</td>
+                  <td>{item.customerEmailMasked || "N/A"}</td>
+                  <td>
                     {formatCurrency(item.totals?.subtotal || 0)}
                   </td>
-                  <td style={{ padding: "8px 4px" }}>{renderXeroStatus(item.xero)}</td>
+                  <td>{renderXeroStatus(item.xero)}</td>
                 </tr>
               ))}
             </tbody>
           </table>
         </div>
-        <div style={{ display: "flex", gap: 8, marginTop: 16 }}>
+        <div className="portal-section-actions" style={{ marginTop: 16 }}>
           <Button variant="secondary" onClick={() => loadQuotes("replace")} disabled={state.loading}>
             Refresh
           </Button>

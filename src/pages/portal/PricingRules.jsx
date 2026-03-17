@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
+import Button from "../../components/Button.jsx";
 import Card from "../../components/Card.jsx";
 import associations from "../../data/associations.json";
 import { calculateFederationPricing } from "../../portal/pricing/federationPricing.js";
@@ -145,36 +146,41 @@ export default function PricingRules() {
   return (
     <div className="page stack">
       <Card>
-        <div
-          style={{
-            display: "flex",
-            alignItems: "flex-start",
-            justifyContent: "space-between",
-            gap: 16,
-            flexWrap: "wrap",
-          }}
-        >
-          <div>
-            <h1 style={{ margin: "0 0 12px", fontSize: 22 }}>Pricing Rules</h1>
-            <p className="muted" style={{ marginBottom: 16 }}>
-              VAT calculated at the applicable rate per association or federation.
+        <div className="portal-page-header">
+          <div className="portal-page-header__content">
+            <span className="portal-page-header__eyebrow">Account and Pricing</span>
+            <h1 className="portal-page-header__title">Pricing rules</h1>
+            <p className="portal-page-header__subtitle">
+              Review association or federation pricing for the current selection and prepare the next account
+              setup step.
+            </p>
+          </div>
+          <div className="portal-page-header__actions no-print">
+            <Button type="button" variant="ghost" className="button--small" onClick={() => window.print()}>
+              Print / Save as PDF
+            </Button>
+          </div>
+        </div>
+      </Card>
+
+      <Card>
+        <div className="portal-page-header" style={{ marginBottom: 16 }}>
+          <div className="portal-page-header__content">
+            <p className="portal-page-header__subtitle">
+              VAT is calculated at the applicable rate for the selected association or federation.
             </p>
           </div>
           <div className="no-print pricing-rules-actions" style={{ textAlign: "right" }}>
-            <button type="button" onClick={() => window.print()}>
-              Print / Save as PDF
-            </button>
-            <div className="muted" style={{ marginTop: 6, fontSize: 12 }}>
-              Tip: choose "Save as PDF" in your print dialog.
-            </div>
+            <div className="portal-kpi-note">Use your print dialog to save this breakdown as a PDF.</div>
           </div>
         </div>
-        <div className="no-print pricing-rules-controls" style={{ display: "grid", gap: 12, marginBottom: 16 }}>
-          <div style={{ display: "grid", gap: 6 }}>
-            <label htmlFor="association-select" style={{ fontWeight: 600 }}>
+        <div className="no-print pricing-rules-controls portal-filter-grid" style={{ marginBottom: 16 }}>
+          <div className="field">
+            <label htmlFor="association-select">
               Association/Federation
             </label>
             <input
+              className="input"
               id="association-filter"
               type="text"
               placeholder="Filter associations..."
@@ -182,10 +188,16 @@ export default function PricingRules() {
               onChange={(event) => setAssociationFilter(event.target.value)}
               aria-label="Filter associations"
             />
-            <button type="button" onClick={() => setAssociationFilter("")} aria-label="Clear association filter">
+            <Button
+              type="button"
+              variant="ghost"
+              className="button--small"
+              onClick={() => setAssociationFilter("")}
+              aria-label="Clear association filter"
+            >
               Clear
-            </button>
-            <select id="association-select" value={selectedAssociation} onChange={handleAssociationChange}>
+            </Button>
+            <select className="input" id="association-select" value={selectedAssociation} onChange={handleAssociationChange}>
               <option value="">Select an association/federation</option>
               {filteredAssociationOptions.map((association) => (
                 <option key={association} value={association}>
@@ -199,11 +211,12 @@ export default function PricingRules() {
               </span>
             ) : null}
           </div>
-          <div style={{ display: "grid", gap: 6 }}>
-            <label htmlFor="constituency-select" style={{ fontWeight: 600 }}>
+          <div className="field">
+            <label htmlFor="constituency-select">
               Constituency
             </label>
             <input
+              className="input"
               id="constituency-filter"
               type="text"
               placeholder="Filter constituencies..."
@@ -211,10 +224,16 @@ export default function PricingRules() {
               onChange={(event) => setConstituencyFilter(event.target.value)}
               aria-label="Filter constituencies"
             />
-            <button type="button" onClick={() => setConstituencyFilter("")} aria-label="Clear constituency filter">
+            <Button
+              type="button"
+              variant="ghost"
+              className="button--small"
+              onClick={() => setConstituencyFilter("")}
+              aria-label="Clear constituency filter"
+            >
               Clear
-            </button>
-            <select id="constituency-select" value={selectedConstituency} onChange={handleConstituencyChange}>
+            </Button>
+            <select className="input" id="constituency-select" value={selectedConstituency} onChange={handleConstituencyChange}>
               <option value="">Select a constituency</option>
               {filteredConstituencyOptions.map((constituency) => (
                 <option key={constituency} value={constituency}>
@@ -247,39 +266,39 @@ export default function PricingRules() {
                 </ul>
               </div>
             </div>
-            <div style={{ overflowX: "auto" }}>
-              <table className="pricing-rules-table" style={{ width: "100%", borderCollapse: "collapse" }}>
+            <div className="table-wrap">
+              <table className="pricing-rules-table table">
                 <tbody>
                   <tr>
-                    <td style={{ padding: "6px 0" }}>Base fee</td>
-                    <td style={{ textAlign: "right", padding: "6px 0" }}>{gbp.format(pricing.baseFee)}</td>
+                    <td>Base fee</td>
+                    <td style={{ textAlign: "right" }}>{gbp.format(pricing.baseFee)}</td>
                   </tr>
                   <tr>
-                    <td style={{ padding: "6px 0" }}>
+                    <td>
                       Additional constituencies: {Math.max(0, constituencyCount - 1)} ×{" "}
                       {gbp.format(pricing.additionalFee)}
                     </td>
-                    <td style={{ textAlign: "right", padding: "6px 0" }}>
+                    <td style={{ textAlign: "right" }}>
                       {gbp.format(pricing.additionalFee * Math.max(0, constituencyCount - 1))}
                     </td>
                   </tr>
                 </tbody>
                 <tfoot className="pricing-rules-totals">
                   <tr>
-                    <td style={{ paddingTop: 10, fontWeight: 600 }}>Total (ex VAT)</td>
-                    <td style={{ textAlign: "right", paddingTop: 10, fontWeight: 600 }}>
+                    <td style={{ fontWeight: 600 }}>Total (ex VAT)</td>
+                    <td style={{ textAlign: "right", fontWeight: 600 }}>
                       {gbp.format(pricing.netTotal)}
                     </td>
                   </tr>
                   <tr>
-                    <td style={{ paddingTop: 6, fontWeight: 600 }}>VAT (20%)</td>
-                    <td style={{ textAlign: "right", paddingTop: 6, fontWeight: 600 }}>
+                    <td style={{ fontWeight: 600 }}>VAT (20%)</td>
+                    <td style={{ textAlign: "right", fontWeight: 600 }}>
                       {gbp.format(pricing.vatTotal)}
                     </td>
                   </tr>
                   <tr>
-                    <td style={{ paddingTop: 6, fontWeight: 700 }}>Total (inc VAT)</td>
-                    <td style={{ textAlign: "right", paddingTop: 6, fontWeight: 700 }}>
+                    <td style={{ fontWeight: 700 }}>Total (inc VAT)</td>
+                    <td style={{ textAlign: "right", fontWeight: 700 }}>
                       {gbp.format(pricing.grossTotal)}
                     </td>
                   </tr>
@@ -287,9 +306,9 @@ export default function PricingRules() {
               </table>
             </div>
             <div className="no-print" style={{ marginTop: 16 }}>
-              <button type="button" onClick={handleSignUp}>
+              <Button type="button" variant="primary" onClick={handleSignUp}>
                 Sign Up
-              </button>
+              </Button>
             </div>
           </>
         )}
