@@ -20,6 +20,20 @@ This framework provides a controlled structure for testing intelligence models a
 - metrics that would be calculated once real rows are available
 - dependencies required for a full run
 
+## Real vulnerability runs
+
+The vulnerability model now supports a real historical backtest path for:
+
+- `2017` using baseline `2015`
+- `2019` using baseline `2017`
+- `2024` using baseline `2019` notional results on 2024 boundaries
+
+Real runs differ from dry-run mode in three ways:
+
+- a cycle-aligned constituency feature dataset is built from Supabase election results
+- only baseline-period features are scored
+- target-cycle outcomes are attached for evaluation only and remain outside the feature set
+
 ## Leakage prevention
 
 The scaffold treats the target cycle as the outcome period and uses the prior general election cycle as the baseline/reference period.
@@ -37,9 +51,18 @@ Full runs require:
 - clear target outcomes for the target cycle
 - richer event and local-government history for `reform_threat` and `by_election_risk`
 
+For the real vulnerability run specifically, the dataset must include:
+
+- baseline Conservative vote share
+- baseline Conservative majority as a share of electorate
+- baseline challenger vote share and challenger gap
+- baseline-to-previous Conservative vote-share trend where a clean previous-cycle constituency match exists
+- target-cycle held/lost outcome and target margin change for evaluation only
+
 ## Current limitations
 
-- Dry-run mode is the default safe path when no live historical dataset is available.
+- Real execution is currently implemented only for `vulnerability`.
+- `2024` trend coverage is structurally weaker because the clean baseline uses 2019 notional results on 2024 boundaries, while the prior real cycle uses different constituency identifiers.
 - `vulnerability` is the strongest candidate for immediate historical backtesting.
 - `reform_threat` is only partially comparable historically because party structure changes materially across cycles.
 - `by_election_risk` remains structurally backtestable but is currently limited by event-history coverage.

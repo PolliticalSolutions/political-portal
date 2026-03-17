@@ -38,3 +38,18 @@ def append_summary_csv(rows: Iterable[Mapping[str, object]], filename: str = "su
             writer.writeheader()
         writer.writerows(row_list)
     return output_path
+
+
+def write_summary_csv(rows: Iterable[Mapping[str, object]], filename: str) -> Path:
+    artifact_dir = ensure_artifact_dir()
+    output_path = artifact_dir / filename
+    row_list = list(rows)
+    if not row_list:
+        return output_path
+
+    fieldnames = list(row_list[0].keys())
+    with output_path.open("w", newline="", encoding="utf-8") as handle:
+        writer = csv.DictWriter(handle, fieldnames=fieldnames)
+        writer.writeheader()
+        writer.writerows(row_list)
+    return output_path
