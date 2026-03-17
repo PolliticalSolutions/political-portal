@@ -41,6 +41,15 @@ describe("PortalLayout", () => {
       "href",
       "/portal/local-government"
     );
+    expect(screen.getByRole("link", { name: "By-Election Watch" })).toHaveAttribute(
+      "href",
+      "/portal/analytics/by-election-watch"
+    );
+    expect(screen.getByRole("link", { name: "Correlations" })).toHaveAttribute(
+      "href",
+      "/portal/analytics/correlations"
+    );
+    expect(screen.queryByRole("link", { name: "Subscriptions" })).not.toBeInTheDocument();
     expect(screen.queryByRole("link", { name: "Pricing rules" })).not.toBeInTheDocument();
   });
 

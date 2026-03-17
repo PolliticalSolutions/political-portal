@@ -368,7 +368,7 @@ export default function PortalLayout() {
         )}
         <div
           className="no-print"
-          style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}
+          style={{ display: "grid", gap: 16 }}
         >
           <div style={{ fontSize: 18, fontWeight: 700 }}>Portal</div>
           <nav className="nav portal-nav-groups" aria-label="Portal">
@@ -389,11 +389,11 @@ export default function PortalLayout() {
             </div>
             <div className="portal-nav-group">
               <span className="portal-nav-group__label">Analytics</span>
-              <NavLink className={navClass} to="/portal/constituency/vulnerability">
-                Vulnerability
-              </NavLink>
               <NavLink className={navClass} to="/portal/constituency/reform-threat">
                 Reform Threat
+              </NavLink>
+              <NavLink className={navClass} to="/portal/constituency/vulnerability">
+                Vulnerability
               </NavLink>
               <NavLink className={navClass} to="/portal/analytics/by-election-watch">
                 By-Election Watch
@@ -401,36 +401,33 @@ export default function PortalLayout() {
               <NavLink className={navClass} to="/portal/analytics/correlations">
                 Correlations
               </NavLink>
-              <NavLink className={navClass} to="/portal/alerts">
-                My Alerts
-              </NavLink>
             </div>
             <div className="portal-nav-group">
               <span className="portal-nav-group__label">Account</span>
-              <NavLink className={navClass} to="/portal/subscriptions">
-                Subscriptions
-              </NavLink>
               <NavLink className={navClass} to="/portal/cart">
                 Cart
               </NavLink>
               <NavLink className={navClass} to="/portal/settings/integrations">
                 Integrations
               </NavLink>
+              <NavLink className={navClass} to="/portal/alerts">
+                My Alerts
+              </NavLink>
+            </div>
+            <div className="portal-nav-group">
+              <span className="portal-nav-group__label">Admin</span>
               <NavLink className={navClass} to="/portal/ops/quotes">
                 Quotes
               </NavLink>
               <NavLink className={navClass} to="/services">
                 Services
               </NavLink>
-            </div>
-            {isAdmin && (
-              <div className="portal-nav-group">
-                <span className="portal-nav-group__label">Admin</span>
+              {isAdmin && (
                 <NavLink className={navClass} to="/portal/admin/manual-review">
                   Manual review
                 </NavLink>
-              </div>
-            )}
+              )}
+            </div>
           </nav>
         </div>
         <Outlet />
