@@ -15,6 +15,23 @@ function parseSignupContext(rawValue) {
   }
 }
 
+const dashboardCardStyle = {
+  display: "flex",
+  flexDirection: "column",
+  height: "100%",
+  background: "white",
+  borderRadius: "12px",
+  border: "1px solid #d7dde7",
+  padding: "24px",
+  boxShadow: "0 1px 3px rgba(0,0,0,0.1)",
+};
+
+const dashboardCtaStyle = {
+  marginTop: "auto",
+  alignSelf: "stretch",
+  paddingTop: "24px",
+};
+
 export default function Dashboard() {
   const [signupContext, setSignupContext] = useState(null);
 
@@ -52,55 +69,83 @@ export default function Dashboard() {
       </Card>
 
       <div className="portal-dashboard-grid">
-        <Card title="Marked Register Processing" className="product-card portal-dashboard-card">
-          <div className="product-card__body">
+        <div
+          className="portal-dashboard-card"
+          data-testid="dashboard-card-marked-register"
+          style={dashboardCardStyle}
+        >
+          <div className="portal-dashboard-card__header">
+            <h2 className="portal-dashboard-card__title">Marked Register Processing</h2>
+          </div>
+          <div className="portal-dashboard-card__body">
             <p>
               Upload marked register files, track processing, and download structured outputs for campaign use.
             </p>
           </div>
-          <div className="product-card__cta">
+          <div className="portal-dashboard-card__cta" style={dashboardCtaStyle}>
             <div className="portal-section-actions portal-section-actions--stack">
               <Button as={Link} to="/portal/uploads" variant="primary">
                 Open uploads
               </Button>
             </div>
           </div>
-        </Card>
+        </div>
 
-        <Card title="Constituency Intelligence" className="product-card portal-dashboard-card">
-          <div className="product-card__body">
+        <div
+          className="portal-dashboard-card"
+          data-testid="dashboard-card-constituency"
+          style={dashboardCardStyle}
+        >
+          <div className="portal-dashboard-card__header">
+            <h2 className="portal-dashboard-card__title">Constituency Intelligence</h2>
+          </div>
+          <div className="portal-dashboard-card__body">
             <p>
               Search constituencies, compare results and demographics, and review constituency detail from one
               intelligence workspace.
             </p>
           </div>
-          <div className="product-card__cta">
+          <div className="portal-dashboard-card__cta" style={dashboardCtaStyle}>
             <div className="portal-section-actions portal-section-actions--stack">
               <Button as={Link} to="/portal/constituency" variant="primary">
                 Open constituency intelligence
               </Button>
             </div>
           </div>
-        </Card>
+        </div>
 
-        <Card title="Campaigning, Training & Election Support" className="product-card portal-dashboard-card">
-          <div className="product-card__body">
+        <div
+          className="portal-dashboard-card"
+          data-testid="dashboard-card-support"
+          style={dashboardCardStyle}
+        >
+          <div className="portal-dashboard-card__header">
+            <h2 className="portal-dashboard-card__title">Campaigning, Training & Election Support</h2>
+          </div>
+          <div className="portal-dashboard-card__body">
             <p>
               Request practical support for campaigning, training, by-election preparation, and delivery when
               your team needs a scoped operational brief.
             </p>
           </div>
-          <div className="product-card__cta">
+          <div className="portal-dashboard-card__cta" style={dashboardCtaStyle}>
             <div className="portal-section-actions portal-section-actions--stack">
               <Button as={Link} to="/enquire" variant="primary">
                 Request support
               </Button>
             </div>
           </div>
-        </Card>
+        </div>
 
-        <Card title="Account and subscriptions" className="product-card portal-dashboard-card">
-          <div className="product-card__body">
+        <div
+          className="portal-dashboard-card"
+          data-testid="dashboard-card-account"
+          style={dashboardCardStyle}
+        >
+          <div className="portal-dashboard-card__header">
+            <h2 className="portal-dashboard-card__title">Account and subscriptions</h2>
+          </div>
+          <div className="portal-dashboard-card__body">
             <p>
               Review subscription pricing, manage current selections, and continue account setup where needed.
             </p>
@@ -114,14 +159,14 @@ export default function Dashboard() {
               </div>
             )}
           </div>
-          <div className="product-card__cta">
+          <div className="portal-dashboard-card__cta" style={dashboardCtaStyle}>
             <div className="portal-section-actions portal-section-actions--stack">
               <Button as={Link} to={pricingLink} variant="primary">
                 Review account pricing
               </Button>
             </div>
           </div>
-        </Card>
+        </div>
       </div>
     </div>
   );
