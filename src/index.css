@@ -1828,6 +1828,114 @@ p {
   align-items: stretch;
 }
 
+.model-performance-card {
+  display: grid;
+  gap: var(--space-3);
+}
+
+.model-performance-card--detail {
+  align-content: start;
+}
+
+.model-performance-card__top {
+  display: flex;
+  justify-content: space-between;
+  align-items: start;
+  gap: var(--space-3);
+}
+
+.model-performance-card__title {
+  margin: 0;
+  color: var(--primary);
+  font-size: 20px;
+  font-weight: 700;
+}
+
+.model-performance-card__meta {
+  margin: 6px 0 0;
+  color: var(--text-muted);
+  font-size: 14px;
+  line-height: 1.6;
+}
+
+.model-performance-card__body {
+  margin: 0;
+  color: var(--text);
+  line-height: 1.7;
+}
+
+.model-performance-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr);
+  gap: var(--space-3);
+  align-items: start;
+}
+
+.model-performance-kv {
+  display: grid;
+  gap: 10px;
+}
+
+.model-performance-kv__row {
+  display: grid;
+  gap: 4px;
+  padding: 12px 14px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--surface-muted);
+}
+
+.model-performance-kv__row span {
+  color: var(--text-muted);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.model-performance-kv__row strong {
+  color: var(--primary);
+  font-size: 14px;
+  line-height: 1.6;
+}
+
+.model-performance-list-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: var(--space-3);
+}
+
+.model-performance-list-title {
+  margin: 0 0 10px;
+  color: var(--primary);
+  font-size: 15px;
+  font-weight: 700;
+}
+
+.model-performance-list {
+  margin: 0;
+  padding-left: 18px;
+  color: var(--text);
+  display: grid;
+  gap: 8px;
+}
+
+.model-performance-list li {
+  line-height: 1.6;
+}
+
+.model-performance-note {
+  margin: 0;
+  color: var(--text);
+  line-height: 1.7;
+}
+
+@media (max-width: 900px) {
+  .model-performance-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
 .token-block {
   padding: 12px;
   border-radius: var(--radius-md);

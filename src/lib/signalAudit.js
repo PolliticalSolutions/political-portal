@@ -1,3 +1,4 @@
+import { getCanonicalValidationKey, getModelValidationSpec } from "../config/modelValidationSpecs.js";
 import { getScoringModel } from "../config/scoringModels.js";
 import { getIntelligenceSignal } from "../config/intelligenceSignals.js";
 
@@ -20,8 +21,16 @@ function averageCoverage(signals, field) {
 }
 
 export function getSignalAuditForModel(modelKey) {
-  const model = getScoringModel(modelKey);
-  const signalKeys = [...new Set(model?.signalKeys ?? [])];
+  const canonicalKey = getCanonicalValidationKey(modelKey);
+  const model = getScoringModel(canonicalKey);
+  const validationSpec = getModelValidationSpec(canonicalKey);
+  const signalKeys = [
+    ...new Set([
+      ...(model?.signalKeys ?? []),
+      ...(validationSpec?.minimumSignalRequirements ?? []),
+      ...(validationSpec?.optionalSignals ?? []),
+    ]),
+  ];
   const signals = signalKeys
     .map((signalKey) => getIntelligenceSignal(signalKey))
     .filter(Boolean);
@@ -42,8 +51,8 @@ export function getSignalAuditForModel(modelKey) {
           : "weak";
 
   return {
-    modelKey,
-    modelTitle: model?.title || modelKey,
+    modelKey: canonicalKey,
+    modelTitle: model?.title || validationSpec?.label || canonicalKey,
     signals,
     counts,
     historicalCoverage: averageCoverage(signals, "historicalCoverage"),
