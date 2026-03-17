@@ -64,5 +64,7 @@ describe("ByElectionWatchPage", () => {
     );
     expect(screen.getByText("Majority exposure")).toBeInTheDocument();
     expect(screen.getByText("No scheduled election trigger recorded")).toBeInTheDocument();
+    expect(screen.getByText("Scoring methodology")).toBeInTheDocument();
+    expect(screen.getByText("Council instability")).toBeInTheDocument();
   });
 });

@@ -1497,6 +1497,26 @@ p {
   font-size: 13px;
 }
 
+.portal-methodology-list {
+  display: grid;
+  gap: var(--space-3);
+}
+
+.portal-methodology-item {
+  padding: var(--space-3);
+  border-radius: var(--radius-md);
+  border: 1px solid rgba(11, 46, 77, 0.08);
+  background: var(--surface-muted);
+}
+
+.portal-methodology-item__header {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--space-3);
+  align-items: flex-start;
+  flex-wrap: wrap;
+}
+
 .portal-dropzone {
   padding: var(--space-5) var(--space-4);
   border-radius: var(--radius-lg);

@@ -2,6 +2,7 @@ import { lazy, Suspense, useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import Card from "../../../components/Card.jsx";
 import DataProvenancePanel from "../../../components/DataProvenancePanel.jsx";
+import ScoringMethodologyPanel from "../../../components/ScoringMethodologyPanel.jsx";
 import { getScoringModel } from "../../../config/scoringModels.js";
 import { getIntelligenceMetadata } from "../../../lib/intelligenceMetadataApi.js";
 import { getReformThreatIndex, getLatestElectionWinners } from "./constituencyApi.js";
@@ -206,6 +207,8 @@ export default function ReformThreatIndex() {
         metadata={metadata}
         fallbackCopy="Source links, confidence scoring, and model review dates will appear here when Reform Threat provenance records are populated."
       />
+
+      <ScoringMethodologyPanel model={model} />
 
       <div className="portal-split-grid">
         <Card title="At-risk Conservative seats map">

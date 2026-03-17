@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import Card from "../../../components/Card.jsx";
 import { getScoringModel } from "../../../config/scoringModels.js";
 import DataProvenancePanel from "../../../components/DataProvenancePanel.jsx";
+import ScoringMethodologyPanel from "../../../components/ScoringMethodologyPanel.jsx";
 import { byElectionAlerts } from "../../../data/byElectionAlerts.js";
 import { getIntelligenceMetadata } from "../../../lib/intelligenceMetadataApi.js";
 import { getByElectionWatchSeats, getLatestElectionWinners } from "../constituency/constituencyApi.js";
@@ -246,6 +247,8 @@ export default function ByElectionWatchPage() {
         metadata={metadata}
         fallbackCopy="By-election watch provenance will appear here when the model and source links are recorded in the metadata layer."
       />
+
+      <ScoringMethodologyPanel model={model} />
 
       <div className="portal-split-grid">
         <Card title="High-risk seats map">
