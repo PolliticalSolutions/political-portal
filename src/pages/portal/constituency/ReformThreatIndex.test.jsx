@@ -68,5 +68,7 @@ describe("ReformThreatIndex", () => {
     expect(screen.getAllByText("High").length).toBeGreaterThan(0);
     expect(screen.getByText("Scoring methodology")).toBeInTheDocument();
     expect(screen.getByText("Reform 2024 vote share")).toBeInTheDocument();
+    expect(screen.getAllByText("Medium confidence").length).toBeGreaterThan(0);
+    expect(screen.getAllByText("Directional assessment").length).toBeGreaterThan(0);
   });
 });

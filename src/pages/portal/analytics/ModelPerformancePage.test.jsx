@@ -29,5 +29,8 @@ describe("ModelPerformancePage", () => {
     expect(await screen.findByRole("heading", { name: "Model performance" })).toBeInTheDocument();
     expect(screen.getAllByText("Backtest data required").length).toBeGreaterThan(0);
     expect(screen.getByText("Validation standard")).toBeInTheDocument();
+    expect(screen.getByText("High confidence")).toBeInTheDocument();
+    expect(screen.getByText("Directional assessment")).toBeInTheDocument();
+    expect(screen.getByText("Watchlist mode")).toBeInTheDocument();
   });
 });

@@ -1411,6 +1411,54 @@ p {
   color: #92400e;
 }
 
+.status-pill.info {
+  background: rgba(11, 46, 77, 0.12);
+  color: var(--primary);
+}
+
+.status-pill.danger {
+  background: #fee2e2;
+  color: #b91c1c;
+}
+
+.portal-confidence-panel {
+  display: grid;
+  gap: 8px;
+  padding: 14px 16px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: rgba(11, 46, 77, 0.04);
+}
+
+.portal-confidence-panel--compact {
+  padding: 12px 14px;
+}
+
+.portal-confidence-panel__header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.portal-confidence-panel__mode {
+  color: var(--text-muted);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.portal-confidence-panel__body {
+  color: var(--primary);
+  font-weight: 600;
+}
+
+.portal-confidence-panel__meta {
+  color: var(--text-muted);
+  font-size: 13px;
+}
+
 .portal-change {
   font-weight: 700;
   color: var(--text-muted);

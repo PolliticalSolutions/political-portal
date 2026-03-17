@@ -2,9 +2,11 @@ import { lazy, Suspense, useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import Card from "../../../components/Card.jsx";
 import DataProvenancePanel from "../../../components/DataProvenancePanel.jsx";
+import ModelConfidenceBadge from "../../../components/ModelConfidenceBadge.jsx";
 import ScoringMethodologyPanel from "../../../components/ScoringMethodologyPanel.jsx";
 import { getScoringModel } from "../../../config/scoringModels.js";
 import { getIntelligenceMetadata } from "../../../lib/intelligenceMetadataApi.js";
+import { getModelConfidence } from "../../../lib/modelConfidence.js";
 import { getReformThreatIndex, getLatestElectionWinners } from "./constituencyApi.js";
 
 const AnalyticsChoroplethMapClient = lazy(() => import("./AnalyticsChoroplethMapClient.jsx"));
@@ -106,6 +108,15 @@ export default function ReformThreatIndex() {
 
     return seats;
   }, [constituencyMap, threats]);
+
+  const confidence = useMemo(
+    () =>
+      getModelConfidence({
+        modelKey: "reformThreat",
+        availableSignalKeys: model?.signalKeys ?? [],
+      }),
+    [model]
+  );
 
   if (loading) {
     return (
@@ -210,6 +221,8 @@ export default function ReformThreatIndex() {
 
       <ScoringMethodologyPanel model={model} />
 
+      <ModelConfidenceBadge confidence={confidence} />
+
       <div className="portal-split-grid">
         <Card title="At-risk Conservative seats map">
           <div className="portal-map-shell">
@@ -252,6 +265,7 @@ export default function ReformThreatIndex() {
         <div className="portal-kpi-list">
           <Card title="Analytical readout">
             <div className="portal-stack-compact">
+              <ModelConfidenceBadge confidence={confidence} compact />
               <div className="portal-data-note" style={{ marginTop: 0 }}>
                 {model?.explanationText}
               </div>

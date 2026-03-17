@@ -1,6 +1,8 @@
 import { useEffect, useMemo, useState } from "react";
 import Card from "../../../components/Card.jsx";
+import ModelConfidenceBadge from "../../../components/ModelConfidenceBadge.jsx";
 import { getScoringModel } from "../../../config/scoringModels.js";
+import { getModelConfidence } from "../../../lib/modelConfidence.js";
 import { getModelPerformanceSummaries } from "../../../lib/modelPerformanceApi.js";
 
 const MODELS = ["vulnerability", "reformThreat", "byElectionRisk"];
@@ -71,13 +73,21 @@ export default function ModelPerformancePage() {
         {MODELS.map((modelKey) => {
           const model = getScoringModel(modelKey);
           const metrics = rowsByModel[modelKey] || [];
+          const confidence = getModelConfidence({
+            modelKey,
+            availableSignalKeys: model?.signalKeys ?? [],
+          });
 
           return (
             <Card key={modelKey} title={model?.title || modelKey}>
+              <ModelConfidenceBadge confidence={confidence} compact />
               {loading ? (
                 <p className="muted">Loading model performance…</p>
               ) : metrics.length > 0 ? (
                 <div className="portal-stack-compact">
+                  <div className="portal-data-note" style={{ marginTop: 0 }}>
+                    Validation framing: {confidence.summaryText}
+                  </div>
                   <div className="portal-summary-grid">
                     <div className="portal-stat">
                       <span className="portal-stat__label">Metrics loaded</span>
@@ -120,6 +130,9 @@ export default function ModelPerformancePage() {
                     No evaluation rows were found for this model. Add historical performance data to
                     <code> model_performance_backtests </code>
                     to show calibration, hit-rate, or ranking quality metrics here.
+                  </p>
+                  <p className="portal-placeholder-panel__body">
+                    {confidence.summaryText}
                   </p>
                 </div>
               )}

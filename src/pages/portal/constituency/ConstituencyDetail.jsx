@@ -2,7 +2,9 @@ import { useEffect, useMemo, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import Card from "../../../components/Card.jsx";
 import DataProvenancePanel from "../../../components/DataProvenancePanel.jsx";
+import ModelConfidenceBadge from "../../../components/ModelConfidenceBadge.jsx";
 import { getIntelligenceMetadata } from "../../../lib/intelligenceMetadataApi.js";
+import { getModelConfidence } from "../../../lib/modelConfidence.js";
 import { resolvePartyColour, toHexColor } from "../../../utils/partyColours.js";
 import { simulateConstituencyScenario } from "../../../utils/scenarioSimulator.js";
 import { hasTwfyApiKey } from "../../../utils/twfy.js";
@@ -410,7 +412,7 @@ function ComparisonCard({ label, value, national }) {
   );
 }
 
-function DemographicsTab({ demographics }) {
+function DemographicsTab({ demographics, constituency }) {
   if (demographics.length === 0) {
     return (
       <div className="portal-placeholder-panel">
@@ -423,6 +425,11 @@ function DemographicsTab({ demographics }) {
   }
 
   const latest = demographics[0];
+  const leaveShare = constituency?.leave_vote_share != null ? Number(constituency.leave_vote_share) : null;
+  const remainShare = leaveShare != null ? Math.round((100 - leaveShare) * 10) / 10 : null;
+  const leaveColour = leaveShare != null
+    ? leaveShare >= 60 ? "#b91c1c" : leaveShare >= 52 ? "#ea580c" : leaveShare >= 48 ? "#ca8a04" : "#16a34a"
+    : null;
 
   return (
     <div className="portal-data-section">
@@ -454,7 +461,50 @@ function DemographicsTab({ demographics }) {
           <span className="portal-stat__meta">Household income reference measure.</span>
         </div>
       </div>
-      <div className="portal-data-note">
+
+      {leaveShare != null && (
+        <div style={{ margin: "20px 0 0" }}>
+          <p style={{ margin: "0 0 10px", fontWeight: 700, fontSize: 13 }}>Brexit signal — 2016 EU referendum</p>
+          <div className="portal-summary-grid" style={{ marginBottom: 8 }}>
+            <div className="portal-stat">
+              <span className="portal-stat__label">Estimated Leave vote</span>
+              <span className="portal-stat__value" style={{ color: leaveColour }}>{leaveShare.toFixed(1)}%</span>
+              <span className="portal-stat__meta">
+                {leaveShare >= 60 ? "Strongly Leave"
+                  : leaveShare >= 52 ? "Leave"
+                  : leaveShare >= 48 ? "Marginal"
+                  : "Remain"}
+              </span>
+            </div>
+            <div className="portal-stat">
+              <span className="portal-stat__label">Estimated Remain vote</span>
+              <span className="portal-stat__value">{remainShare.toFixed(1)}%</span>
+              <span className="portal-stat__meta">Inverse of Leave estimate</span>
+            </div>
+            <div className="portal-stat">
+              <span className="portal-stat__label">vs. national Leave (51.9%)</span>
+              <span className="portal-stat__value" style={{ color: leaveShare > 51.9 ? leaveColour : "#16a34a" }}>
+                {leaveShare > 51.9 ? "+" : ""}{(leaveShare - 51.9).toFixed(1)}pp
+              </span>
+              <span className="portal-stat__meta">Deviation from national result</span>
+            </div>
+          </div>
+          <div style={{ margin: "8px 0 4px", height: 12, background: "#e2e8f0", borderRadius: 6, overflow: "hidden" }}>
+            <div style={{ width: `${leaveShare}%`, height: "100%", background: leaveColour, borderRadius: 6 }} />
+          </div>
+          <div style={{ display: "flex", justifyContent: "space-between", fontSize: 11, color: "#64748b", marginTop: 4 }}>
+            <span>Leave {leaveShare.toFixed(1)}%</span>
+            <span>Remain {remainShare.toFixed(1)}%</span>
+          </div>
+          <p className="portal-data-note" style={{ marginTop: 8 }}>
+            Source: Chris Hanretty (2017) final constituency-level estimates, using FOI-sourced actual counts
+            where available. Matched to 2024 boundary constituencies by name.
+            Used as a key input in the Reform UK Threat Index.
+          </p>
+        </div>
+      )}
+
+      <div className="portal-data-note" style={{ marginTop: leaveShare != null ? 8 : 0 }}>
         National averages shown here are approximate 2021 England and Wales census figures.
       </div>
       <div className="portal-comparison-list">
@@ -1386,6 +1436,19 @@ function ScenarioSimulatorCard({ results, electedWinner, constituencyName }) {
     [results, nationalSwingToConservative, reformVoteChange, turnoutChange]
   );
 
+  const confidence = useMemo(
+    () =>
+      getModelConfidence({
+        modelKey: "scenario_simulator",
+        availableSignalKeys: [
+          "conservative_vote_share_change",
+          "reform_vote_share",
+          "turnout_volatility",
+        ],
+      }),
+    []
+  );
+
   return (
     <Card>
       <div className="portal-page-header">
@@ -1408,6 +1471,7 @@ function ScenarioSimulatorCard({ results, electedWinner, constituencyName }) {
         </div>
       ) : (
         <div className="portal-simulator">
+          <ModelConfidenceBadge confidence={confidence} compact />
           <div className="portal-simulator__controls">
             <label className="field">
               <span>National swing to Conservatives</span>
@@ -1706,6 +1770,7 @@ export default function ConstituencyDetail() {
           <DemographicsTab
             demographics={demographics}
             region={constituency.region}
+            constituency={constituency}
           />
         )}
         {activeTab === "candidates" && <CandidatesTab results={results} />}
