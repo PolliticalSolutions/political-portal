@@ -1,7 +1,9 @@
-import { useEffect, useMemo, useState } from "react";
+import { lazy, Suspense, useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import Card from "../../../components/Card.jsx";
 import { getReformThreatIndex, getLatestElectionWinners } from "./constituencyApi.js";
+
+const AnalyticsChoroplethMapClient = lazy(() => import("./AnalyticsChoroplethMapClient.jsx"));
 
 function ScoreBar({ value, max = 10 }) {
   const pct = Math.min((Number(value) / max) * 100, 100);
@@ -15,6 +17,20 @@ function ScoreBar({ value, max = 10 }) {
       </span>
     </div>
   );
+}
+
+function getThreatFill(score) {
+  const numericScore = Number(score) || 0;
+  if (numericScore >= 8.5) return "#dc2626";
+  if (numericScore >= 7) return "#f97316";
+  return "#f59e0b";
+}
+
+function getThreatBand(score) {
+  const numericScore = Number(score) || 0;
+  if (numericScore >= 8.5) return "Extreme";
+  if (numericScore >= 7) return "High";
+  return "Moderate";
 }
 
 export default function ReformThreatIndex() {
@@ -53,8 +69,33 @@ export default function ReformThreatIndex() {
     const avgShare = threats.reduce((s, t) => s + Number(t.ruk_2024_share), 0) / threats.length;
     const avgSwing = threats.reduce((s, t) => s + Number(t.con_ruk_swing), 0) / threats.length;
     const avgMaj = threats.reduce((s, t) => s + Number(t.con_majority), 0) / threats.length;
-    return { avgShare, avgSwing, avgMaj };
+    const extreme = threats.filter((seat) => Number(seat.threat_score) >= 8.5).length;
+    const high = threats.filter(
+      (seat) => Number(seat.threat_score) >= 7 && Number(seat.threat_score) < 8.5
+    ).length;
+    return { avgShare, avgSwing, avgMaj, extreme, high };
   }, [threats]);
+
+  const highlightedSeatsByOnsCode = useMemo(() => {
+    const seats = {};
+
+    threats.forEach((threat) => {
+      const constituency = constituencyMap[threat.constituency_id];
+      const onsCode = constituency?.ons_code?.toUpperCase();
+      if (!onsCode) return;
+
+      seats[onsCode] = {
+        fill: getThreatFill(threat.threat_score),
+        stroke: "#ffffff",
+        strokeWidth: 0.45,
+        title: `${constituency.name}: ${getThreatBand(threat.threat_score)} Reform threat (${Number(
+          threat.threat_score
+        ).toFixed(1)}/10)`,
+      };
+    });
+
+    return seats;
+  }, [constituencyMap, threats]);
 
   if (loading) {
     return (
@@ -135,6 +176,16 @@ export default function ReformThreatIndex() {
               <span className="portal-stat__meta">2019 notional → 2024</span>
             </div>
             <div className="portal-stat">
+              <span className="portal-stat__label">Extreme risk seats</span>
+              <span className="portal-stat__value" style={{ color: "#dc2626" }}>{stats.extreme}</span>
+              <span className="portal-stat__meta">Threat score 8.5+</span>
+            </div>
+            <div className="portal-stat">
+              <span className="portal-stat__label">High risk seats</span>
+              <span className="portal-stat__value" style={{ color: "#f97316" }}>{stats.high}</span>
+              <span className="portal-stat__meta">Threat score 7.0 to 8.4</span>
+            </div>
+            <div className="portal-stat">
               <span className="portal-stat__label">Avg Conservative majority</span>
               <span className="portal-stat__value">{stats.avgMaj.toFixed(1)}%</span>
               <span className="portal-stat__meta">Of electorate</span>
@@ -143,24 +194,77 @@ export default function ReformThreatIndex() {
         )}
       </Card>
 
+      <div className="portal-split-grid">
+        <Card title="At-risk Conservative seats map">
+          <div className="portal-map-shell">
+            <div className="portal-map-frame">
+              <Suspense fallback={<div className="portal-map-fallback" />}>
+                <AnalyticsChoroplethMapClient
+                  ariaLabel="Reform threat map"
+                  seatsByOnsCode={highlightedSeatsByOnsCode}
+                  defaultFill="#e5e7eb"
+                />
+              </Suspense>
+            </div>
+            <div className="portal-legend">
+              <span className="portal-legend__title">Threat gradient</span>
+              <div className="portal-legend__items">
+                <span className="portal-legend__item">
+                  <span className="portal-legend__swatch" style={{ background: "#f59e0b" }} />
+                  Moderate
+                </span>
+                <span className="portal-legend__item">
+                  <span className="portal-legend__swatch" style={{ background: "#f97316" }} />
+                  High
+                </span>
+                <span className="portal-legend__item">
+                  <span className="portal-legend__swatch" style={{ background: "#dc2626" }} />
+                  Extreme
+                </span>
+                <span className="portal-legend__item">
+                  <span className="portal-legend__swatch" style={{ background: "#e5e7eb" }} />
+                  Other seats
+                </span>
+              </div>
+            </div>
+            <div className="portal-data-note">
+              Only the top 50 at-risk Conservative seats are highlighted. All other constituencies are subdued.
+            </div>
+          </div>
+        </Card>
+
+        <div className="portal-kpi-list">
+          <Card title="Analytical readout">
+            <div className="portal-stack-compact">
+              <div className="portal-data-note" style={{ marginTop: 0 }}>
+                Reform UK polled 14.3% nationally in 2024 and converted that base into five Westminster seats.
+                This index surfaces the Conservative seats where local Reform strength, Con→Reform swing, and
+                majority exposure combine into the sharpest general-election risk.
+              </div>
+              <div className="portal-summary-grid">
+                <div className="portal-stat">
+                  <span className="portal-stat__label">Indexed seats</span>
+                  <span className="portal-stat__value">{threats.length}</span>
+                  <span className="portal-stat__meta">Top ranked Conservative targets</span>
+                </div>
+                <div className="portal-stat">
+                  <span className="portal-stat__label">Avg Reform share</span>
+                  <span className="portal-stat__value">{stats?.avgShare.toFixed(1)}%</span>
+                  <span className="portal-stat__meta">2024 Westminster vote share</span>
+                </div>
+              </div>
+            </div>
+          </Card>
+        </div>
+      </div>
+
       <Card>
-        <div style={{
-          background: "#fff7ed",
-          border: "1px solid #fed7aa",
-          borderLeft: "4px solid #f97316",
-          borderRadius: 6,
-          padding: "12px 16px",
-          marginBottom: 16,
-        }}>
-          <p style={{ margin: "0 0 4px", fontWeight: 700, fontSize: 13, color: "#c2410c" }}>
-            National context
-          </p>
-          <p style={{ margin: 0, fontSize: 13, color: "#374151", lineHeight: 1.6 }}>
-            Reform UK polled 14.3% nationally in 2024, winning 5 seats. National polling in early 2026 shows
-            Reform at 18–22%, ahead of Conservatives at 21–24%. In May 2025 local elections, Reform became
-            the largest party on 4 English county councils (Essex, Kent, Staffordshire, Warwickshire) and
-            won councils under NOC arrangements in 14 others. The party is building a local electoral base
-            that could amplify threat scores at the next general election.
+        <div className="portal-insight-callout portal-insight-callout--warning">
+          <p className="portal-insight-callout__title">National context</p>
+          <p className="portal-insight-callout__body">
+            The highest-risk Conservative seats combine a narrow majority with strong Reform 2024 vote share
+            and evidence of an active local Reform base. Use this view to identify where Reform is not just
+            splitting the right-of-centre vote, but becoming the main destabilising force on the ground.
           </p>
         </div>
 
@@ -170,6 +274,7 @@ export default function ReformThreatIndex() {
               <tr>
                 <th>Rank</th>
                 <th>Constituency</th>
+                <th>Threat band</th>
                 <th>Threat score</th>
                 <th>Reform 2024 share</th>
                 <th>Con→Reform swing</th>
@@ -179,6 +284,8 @@ export default function ReformThreatIndex() {
             <tbody>
               {threats.map((t) => {
                 const con = constituencyMap[t.constituency_id];
+                const threatBand = getThreatBand(t.threat_score);
+                const threatColour = getThreatFill(t.threat_score);
                 return (
                   <tr key={t.constituency_id || t.threat_rank}>
                     <td style={{ fontWeight: 700, color: "#94a3b8", fontSize: 13 }}>
@@ -190,6 +297,11 @@ export default function ReformThreatIndex() {
                           {con.name}
                         </Link>
                       ) : "—"}
+                    </td>
+                    <td>
+                      <span className="status-pill" style={{ background: threatColour, color: "#ffffff" }}>
+                        {threatBand}
+                      </span>
                     </td>
                     <td style={{ minWidth: 100 }}>
                       <ScoreBar value={t.threat_score} />
