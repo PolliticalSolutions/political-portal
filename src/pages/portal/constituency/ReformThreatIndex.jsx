@@ -1,6 +1,8 @@
 import { lazy, Suspense, useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import Card from "../../../components/Card.jsx";
+import DataProvenancePanel from "../../../components/DataProvenancePanel.jsx";
+import { getIntelligenceMetadata } from "../../../lib/intelligenceMetadataApi.js";
 import { getReformThreatIndex, getLatestElectionWinners } from "./constituencyApi.js";
 
 const AnalyticsChoroplethMapClient = lazy(() => import("./AnalyticsChoroplethMapClient.jsx"));
@@ -38,6 +40,7 @@ export default function ReformThreatIndex() {
   const [constituencyMap, setConstituencyMap] = useState({});
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [metadata, setMetadata] = useState(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -54,6 +57,10 @@ export default function ReformThreatIndex() {
         });
         setThreats(threatData);
         setConstituencyMap(conMap);
+        const nextMetadata = await getIntelligenceMetadata({
+          modelKey: "reformThreat",
+        });
+        if (!cancelled) setMetadata(nextMetadata);
       } catch (err) {
         if (!cancelled) setError(err.message || "Failed to load Reform threat index.");
       } finally {
@@ -193,6 +200,11 @@ export default function ReformThreatIndex() {
           </div>
         )}
       </Card>
+
+      <DataProvenancePanel
+        metadata={metadata}
+        fallbackCopy="Source links, confidence scoring, and model review dates will appear here when Reform Threat provenance records are populated."
+      />
 
       <div className="portal-split-grid">
         <Card title="At-risk Conservative seats map">

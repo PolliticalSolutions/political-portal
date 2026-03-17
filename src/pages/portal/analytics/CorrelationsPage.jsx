@@ -1,6 +1,8 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import Card from "../../../components/Card.jsx";
+import DataProvenancePanel from "../../../components/DataProvenancePanel.jsx";
+import { getIntelligenceMetadata } from "../../../lib/intelligenceMetadataApi.js";
 import { getNationalCorrelations, getRegionalCorrelations } from "../constituency/constituencyApi.js";
 import { resolvePartyColour } from "../../../utils/partyColours.js";
 
@@ -116,6 +118,7 @@ export default function CorrelationsPage() {
   const [regionalRows, setRegionalRows] = useState({});
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [metadata, setMetadata] = useState(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -134,6 +137,10 @@ export default function CorrelationsPage() {
         setRegionalRows(
           Object.fromEntries(regionEntries.filter(([, rows]) => Array.isArray(rows) && rows.length > 0))
         );
+        const nextMetadata = await getIntelligenceMetadata({
+          datasetKey: "demographic_correlations",
+        });
+        if (!cancelled) setMetadata(nextMetadata);
       } catch (err) {
         if (!cancelled) setError(err.message || "Failed to load demographic correlations.");
       } finally {
@@ -240,6 +247,11 @@ export default function CorrelationsPage() {
           </div>
         </div>
       </Card>
+
+      <DataProvenancePanel
+        metadata={metadata}
+        fallbackCopy="Correlation-source references and review metadata will appear here when the demographic correlation dataset is linked in the provenance layer."
+      />
 
       <Card title="National briefing">
         <div className="portal-stack-compact">

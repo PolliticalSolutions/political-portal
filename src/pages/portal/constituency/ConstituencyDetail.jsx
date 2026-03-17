@@ -1,6 +1,8 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import Card from "../../../components/Card.jsx";
+import DataProvenancePanel from "../../../components/DataProvenancePanel.jsx";
+import { getIntelligenceMetadata } from "../../../lib/intelligenceMetadataApi.js";
 import { resolvePartyColour, toHexColor } from "../../../utils/partyColours.js";
 import { hasTwfyApiKey } from "../../../utils/twfy.js";
 import {
@@ -1383,6 +1385,7 @@ export default function ConstituencyDetail() {
   const [vulnerabilityScore, setVulnerabilityScore] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [metadata, setMetadata] = useState(null);
   const [activeTab, setActiveTab] = useState("history");
 
   useEffect(() => {
@@ -1427,6 +1430,13 @@ export default function ConstituencyDetail() {
         setSwingTimeline(nextSwingTimeline);
         setByElectionRisk(nextByElectionRisk);
         setVulnerabilityScore(nextVulnerability);
+        const nextMetadata = await getIntelligenceMetadata({
+          tableName: "constituencies",
+          entityType: "constituency",
+          entityId: nextConstituency.id,
+          datasetKey: "constituency_intelligence",
+        });
+        if (!cancelled) setMetadata(nextMetadata);
       } catch (err) {
         if (!cancelled) setError(err.message || "Failed to load constituency.");
       } finally {
@@ -1562,6 +1572,11 @@ export default function ConstituencyDetail() {
           />
         )}
       </Card>
+
+      <DataProvenancePanel
+        metadata={metadata}
+        fallbackCopy="Confidence and source references for this constituency will appear once provenance records are linked in the intelligence metadata layer."
+      />
     </div>
   );
 }

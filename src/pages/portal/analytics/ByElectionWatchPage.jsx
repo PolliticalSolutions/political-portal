@@ -1,7 +1,9 @@
 import { lazy, Suspense, useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import Card from "../../../components/Card.jsx";
+import DataProvenancePanel from "../../../components/DataProvenancePanel.jsx";
 import { byElectionAlerts } from "../../../data/byElectionAlerts.js";
+import { getIntelligenceMetadata } from "../../../lib/intelligenceMetadataApi.js";
 import { getByElectionWatchSeats, getLatestElectionWinners } from "../constituency/constituencyApi.js";
 import { getCurrentStatus } from "../constituency/constituencyPresentation.js";
 
@@ -74,6 +76,7 @@ export default function ByElectionWatchPage() {
   const [winnerMap, setWinnerMap] = useState({});
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [metadata, setMetadata] = useState(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -94,6 +97,10 @@ export default function ByElectionWatchPage() {
 
         setSeats(watchSeats);
         setWinnerMap(nextWinnerMap);
+        const nextMetadata = await getIntelligenceMetadata({
+          modelKey: "byElectionRisk",
+        });
+        if (!cancelled) setMetadata(nextMetadata);
       } catch (err) {
         if (!cancelled) setError(err.message || "Failed to load by-election watch data.");
       } finally {
@@ -233,6 +240,11 @@ export default function ByElectionWatchPage() {
           </div>
         </div>
       </Card>
+
+      <DataProvenancePanel
+        metadata={metadata}
+        fallbackCopy="By-election watch provenance will appear here when the model and source links are recorded in the metadata layer."
+      />
 
       <div className="portal-split-grid">
         <Card title="High-risk seats map">

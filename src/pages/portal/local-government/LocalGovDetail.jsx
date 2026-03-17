@@ -1,6 +1,8 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import Card from "../../../components/Card.jsx";
+import DataProvenancePanel from "../../../components/DataProvenancePanel.jsx";
+import { getIntelligenceMetadata } from "../../../lib/intelligenceMetadataApi.js";
 import { resolvePartyColour, toHexColor } from "../../../utils/partyColours.js";
 import {
   getAuthorityAlerts,
@@ -487,6 +489,7 @@ export default function LocalGovDetail() {
   const [alerts, setAlerts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [metadata, setMetadata] = useState(null);
   const [activeTab, setActiveTab] = useState("composition");
 
   useEffect(() => {
@@ -501,6 +504,13 @@ export default function LocalGovDetail() {
         setAuthority(auth);
         const authAlerts = await getAuthorityAlerts(auth.id);
         if (!cancelled) setAlerts(authAlerts);
+        const nextMetadata = await getIntelligenceMetadata({
+          tableName: "local_authorities",
+          entityType: "local_authority",
+          entityId: auth.id,
+          datasetKey: "local_government_intelligence",
+        });
+        if (!cancelled) setMetadata(nextMetadata);
       } catch (err) {
         if (!cancelled) setError(err.message || "Authority not found.");
       } finally {
@@ -618,6 +628,11 @@ export default function LocalGovDetail() {
         {activeTab === "parliament" && <ParliamentaryLinkTab authorityId={authority.id} authority={authority} />}
         {activeTab === "intelligence" && <IntelligenceTab authorityId={authority.id} />}
       </Card>
+
+      <DataProvenancePanel
+        metadata={metadata}
+        fallbackCopy="Authority-level source links and confidence notes will appear here once local government provenance records are populated."
+      />
     </div>
   );
 }
