@@ -1,5 +1,6 @@
 import { cognitoConfig } from "../cognitoConfig.js";
 import { clearSession, storeTokens } from "../auth/session.js";
+import { isSafeInternalPath } from "../utils/postAuthRedirect.js";
 export { decodeJwtPayload, getSession, getStoredTokens, isTokenValid } from "../auth/session.js";
 
 const verifierKey = "cognito_code_verifier";
@@ -211,7 +212,7 @@ function persistTokens(tokens) {
 }
 
 function persistRedirectPath(path) {
-  if (hasWindow && path) {
+  if (hasWindow && path && isSafeInternalPath(path)) {
     sessionStorage.setItem(redirectKey, path);
   }
 }
@@ -221,7 +222,7 @@ export function consumePostLoginRedirect(defaultPath = "/portal") {
   const stored = sessionStorage.getItem(redirectKey);
   if (stored) {
     sessionStorage.removeItem(redirectKey);
-    return stored;
+    return isSafeInternalPath(stored) ? stored : defaultPath;
   }
   return defaultPath;
 }
