@@ -417,6 +417,30 @@ p {
   flex-direction: column;
 }
 
+.product-card {
+  height: 100%;
+}
+
+.product-card__body {
+  display: grid;
+  gap: 12px;
+}
+
+.product-card__meta {
+  color: var(--text-muted);
+}
+
+.product-card__cta {
+  margin-top: auto;
+  padding-top: var(--space-4);
+  display: flex;
+  align-items: flex-end;
+}
+
+.product-card__cta .button {
+  width: 100%;
+}
+
 .feature-grid--equal .card + .card {
   margin-top: 0;
 }

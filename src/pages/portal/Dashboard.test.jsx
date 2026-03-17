@@ -30,6 +30,9 @@ describe("Dashboard", () => {
     expect(screen.getByRole("heading", { name: "Dashboard" })).toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "Marked Register Processing" })).toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "Constituency Intelligence" })).toBeInTheDocument();
+    expect(
+      screen.getByRole("heading", { name: "Campaigning, Training & Election Support" })
+    ).toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "Account and subscriptions" })).toBeInTheDocument();
   });
 

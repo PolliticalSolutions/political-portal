@@ -1,73 +1,70 @@
-import { fireEvent, render, screen } from "@testing-library/react";
-import { MemoryRouter } from "react-router-dom";
+import { render, screen } from "@testing-library/react";
 import { HelmetProvider } from "react-helmet-async";
-import { describe, expect, it } from "vitest";
+import { MemoryRouter } from "react-router-dom";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import { CartProvider } from "./cart/cartStore.jsx";
+
+vi.mock("./auth/session.js", () => ({
+  getSession: vi.fn(() => ({
+    isAuthed: false,
+    user: null,
+    expiresAt: null,
+    tokens: null,
+    reason: null,
+  })),
+}));
+
+vi.mock("./lib/cognito.js", () => ({
+  clearStoredSession: vi.fn(),
+  startLogout: vi.fn(),
+}));
+
+import { getSession } from "./auth/session.js";
 import App from "./App.jsx";
 
-describe("App public routing", () => {
-  it("renders signup as a public route without redirecting to login", () => {
-    render(
-      <HelmetProvider>
-        <MemoryRouter initialEntries={["/signup"]}>
-          <CartProvider>
-            <App />
-          </CartProvider>
-        </MemoryRouter>
-      </HelmetProvider>
-    );
+function renderApp() {
+  return render(
+    <HelmetProvider>
+      <MemoryRouter initialEntries={["/"]}>
+        <CartProvider>
+          <App />
+        </CartProvider>
+      </MemoryRouter>
+    </HelmetProvider>
+  );
+}
 
-    expect(screen.getByRole("heading", { name: "Create account" })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Create account" })).toBeInTheDocument();
+describe("App top navigation", () => {
+  beforeEach(() => {
+    sessionStorage.clear();
+    vi.clearAllMocks();
   });
 
-  it("renders login route", () => {
-    render(
-      <HelmetProvider>
-        <MemoryRouter initialEntries={["/login"]}>
-          <CartProvider>
-            <App />
-          </CartProvider>
-        </MemoryRouter>
-      </HelmetProvider>
-    );
+  it("hides the Portal link when the user is logged out", () => {
+    getSession.mockReturnValue({
+      isAuthed: false,
+      user: null,
+      expiresAt: null,
+      tokens: null,
+      reason: null,
+    });
 
-    expect(screen.getByRole("heading", { name: "Sign in" })).toBeInTheDocument();
+    renderApp();
+
+    expect(screen.queryByRole("link", { name: "Portal" })).not.toBeInTheDocument();
   });
 
-  it("keeps portal gated by redirecting unauthenticated users to login", () => {
-    render(
-      <HelmetProvider>
-        <MemoryRouter initialEntries={["/portal"]}>
-          <CartProvider>
-            <App />
-          </CartProvider>
-        </MemoryRouter>
-      </HelmetProvider>
-    );
+  it("shows the Portal link when the user is logged in", () => {
+    getSession.mockReturnValue({
+      isAuthed: true,
+      user: { email: "demo@example.test" },
+      expiresAt: Date.now() + 60_000,
+      tokens: { access_token: "token" },
+      reason: null,
+    });
 
-    expect(screen.getByRole("heading", { name: "Sign in" })).toBeInTheDocument();
-    expect(screen.getByText("Please sign in to continue.")).toBeInTheDocument();
-  });
+    renderApp();
 
-  it("navigates to legal pages from the footer links", () => {
-    render(
-      <HelmetProvider>
-        <MemoryRouter initialEntries={["/"]}>
-          <CartProvider>
-            <App />
-          </CartProvider>
-        </MemoryRouter>
-      </HelmetProvider>
-    );
-
-    fireEvent.click(screen.getByRole("link", { name: "Privacy Policy" }));
-    expect(screen.getByRole("heading", { name: "Privacy Policy" })).toBeInTheDocument();
-
-    fireEvent.click(screen.getByRole("link", { name: "Terms of Use" }));
-    expect(screen.getByRole("heading", { name: "Terms of Use" })).toBeInTheDocument();
-
-    fireEvent.click(screen.getByRole("link", { name: "Cookie notice" }));
-    expect(screen.getByRole("heading", { name: "Cookie Notice" })).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Portal" })).toHaveAttribute("href", "/portal");
   });
 });

@@ -61,7 +61,7 @@ describe("setPostAuthRedirect / consumePostAuthRedirect", () => {
   });
 
   it("removes the stored value after consuming it (single-use)", () => {
-    setPostAuthRedirect("/portal/pricing");
+    setPostAuthRedirect("/portal/subscriptions");
     consumePostAuthRedirect();
     expect(sessionStorage.getItem(REDIRECT_KEY)).toBeNull();
   });

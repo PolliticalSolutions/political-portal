@@ -21,7 +21,7 @@ describe("Services", () => {
     ).toBeInTheDocument();
     expect(
       screen.getByText(
-        "Political Solutions supports campaign teams with Marked Register Processing, election support, and practical advisory work that helps associations and candidates move faster with fewer errors."
+        "Political Solutions provides three distinct products: Marked Register Processing, Constituency Intelligence, and Campaigning, Training & Election Support for teams that need practical delivery help alongside platform access."
       )
     ).toBeInTheDocument();
     expect(screen.getByAltText("Team using data to plan a political campaign")).toBeInTheDocument();
@@ -32,17 +32,14 @@ describe("Services", () => {
     expect(grid).toBeInTheDocument();
     expect(grid).toHaveClass("feature-grid--equal");
     expect(screen.getByText("Marked Register Processing")).toBeInTheDocument();
-    expect(screen.getByText("Training & Support")).toBeInTheDocument();
-    expect(screen.getByText("Election & By-Election Support")).toBeInTheDocument();
-    expect(screen.queryByText("Data & Insight")).not.toBeInTheDocument();
-    expect(screen.queryByText("Subscriptions & Platform")).not.toBeInTheDocument();
-    expect(screen.queryByText("Election & By-Election Support (separate charge)")).not.toBeInTheDocument();
+    expect(screen.getByText("Constituency Intelligence")).toBeInTheDocument();
+    expect(screen.getByText("Campaigning, Training & Election Support")).toBeInTheDocument();
     const complianceTitle = screen.getByRole("heading", { name: "Compliance note" });
     expect(screen.getByRole("link", { name: "View Marked Register plans" })).toHaveAttribute(
       "href",
       "/subscriptions"
     );
-    expect(screen.getByRole("link", { name: "Discuss support needs" })).toHaveAttribute(
+    expect(screen.getByRole("link", { name: "Request a Constituency Intelligence briefing" })).toHaveAttribute(
       "href",
       "/enquire"
     );

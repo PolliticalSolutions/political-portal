@@ -45,8 +45,8 @@ export default function Dashboard() {
             <span className="portal-page-header__eyebrow">Portal</span>
             <h1 className="portal-page-header__title">Dashboard</h1>
             <p className="portal-page-header__subtitle">
-              Start from the product area you need: Marked Register Processing, Constituency Intelligence, or
-              account and subscription management.
+              Start from the product area you need: Marked Register Processing, Constituency Intelligence,
+              Campaigning, Training & Election Support, or account and subscription management.
             </p>
           </div>
         </div>
@@ -75,6 +75,20 @@ export default function Dashboard() {
             <div className="portal-section-actions">
               <Button as={Link} to="/portal/constituency" variant="primary">
                 Open constituency intelligence
+              </Button>
+            </div>
+          </div>
+        </Card>
+
+        <Card title="Campaigning, Training & Election Support">
+          <div className="stack">
+            <p>
+              Request practical support for campaigning, training, by-election preparation, and delivery when
+              your team needs a scoped operational brief.
+            </p>
+            <div className="portal-section-actions">
+              <Button as={Link} to="/enquire" variant="primary">
+                Request support
               </Button>
             </div>
           </div>

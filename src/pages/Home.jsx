@@ -16,7 +16,7 @@ const trustItems = [
 const nextSteps = [
   {
     title: "Choose the product that matches the job",
-    body: "Use Marked Register Processing when you need clean operational outputs. Use Constituency Intelligence when you need fast constituency context and comparison.",
+    body: "Use Marked Register Processing for structured marked register outputs, Constituency Intelligence for seat-level analysis, and Campaigning, Training & Election Support when your team needs hands-on delivery help.",
   },
   {
     title: "Confirm scope, access, and ownership",
@@ -38,9 +38,10 @@ export default function Home() {
           <div>
             <h1>Political data products for campaign teams that need clean delivery</h1>
             <p>
-              Political Solutions provides two core products: Marked Register Processing for turning marked
-              register files into structured operational outputs, and Constituency Intelligence for reviewing
-              constituency results, demographics, and electoral context in one portal.
+              Political Solutions provides three core products: Marked Register Processing for turning marked
+              register files into structured operational outputs, Constituency Intelligence for reviewing
+              constituency results and demographics, and Campaigning, Training & Election Support for teams
+              that need practical delivery help beyond software alone.
             </p>
             <div className="hero-actions">
               <Button as={Link} to="/subscriptions" variant="primary">
@@ -91,37 +92,58 @@ export default function Home() {
           <div>
             <h2 className="section-title">Choose the product that fits the job</h2>
             <p className="muted" style={{ maxWidth: "72ch" }}>
-              The platform is built around two different operational needs. One handles marked register
-              processing. The other gives campaign teams a searchable constituency view.
+              Political Solutions is structured around three distinct operational offers so teams can move
+              directly to the right product instead of decoding a generic service list.
             </p>
           </div>
           <div className="feature-grid feature-grid--equal">
-            <Card title="Marked Register Processing">
-              <p>
-                Turn marked register PDFs and CSVs into structured outputs your team can use quickly.
-              </p>
-              <p className="muted" style={{ marginTop: 12 }}>
-                <strong>Who it is for:</strong> Association officers, agents, candidates, and teams managing
-                marked register returns.
-              </p>
-              <div className="hero-actions" style={{ marginTop: 16 }}>
+            <Card title="Marked Register Processing" className="product-card">
+              <div className="product-card__body">
+                <p>
+                  Turn marked register PDFs and CSVs into structured outputs your campaign team can use quickly.
+                </p>
+                <p className="product-card__meta">
+                  <strong>Who it is for:</strong> Association officers, agents, candidates, and teams managing
+                  marked register returns.
+                </p>
+              </div>
+              <div className="product-card__cta">
                 <Button as={Link} to="/subscriptions" variant="primary">
                   View Marked Register plans
                 </Button>
               </div>
             </Card>
-            <Card title="Constituency Intelligence">
-              <p>
-                Search constituency winners, election history, and demographic context in one secure portal
-                workflow.
-              </p>
-              <p className="muted" style={{ marginTop: 12 }}>
-                <strong>Who it is for:</strong> Campaign planners, researchers, association leads, and
-                headquarters teams comparing seats.
-              </p>
-              <div className="hero-actions" style={{ marginTop: 16 }}>
-                <Button as={Link} to="/enquire" variant="secondary">
+            <Card title="Constituency Intelligence" className="product-card">
+              <div className="product-card__body">
+                <p>
+                  Search constituency winners, election history, and demographic context in one secure portal
+                  workflow.
+                </p>
+                <p className="product-card__meta">
+                  <strong>Who it is for:</strong> Campaign planners, researchers, association leads, and
+                  headquarters teams comparing seats.
+                </p>
+              </div>
+              <div className="product-card__cta">
+                <Button as={Link} to="/enquire" variant="primary">
                   Request a Constituency Intelligence briefing
+                </Button>
+              </div>
+            </Card>
+            <Card title="Campaigning, Training & Election Support" className="product-card">
+              <div className="product-card__body">
+                <p>
+                  Bring in practical campaign support for training, by-election preparation, field planning, and
+                  delivery when your team needs more than software alone.
+                </p>
+                <p className="product-card__meta">
+                  <strong>Who it is for:</strong> Candidates, agents, association officers, and campaign teams
+                  that need operational support on a defined brief.
+                </p>
+              </div>
+              <div className="product-card__cta">
+                <Button as={Link} to="/services/election-support" variant="primary">
+                  Request election support
                 </Button>
               </div>
             </Card>
@@ -174,8 +196,8 @@ export default function Home() {
           <div>
             <h2>Need to confirm the right product for your team?</h2>
             <p className="muted" style={{ maxWidth: "72ch" }}>
-              We can confirm whether you need Marked Register Processing, Constituency Intelligence, or a
-              separate election support brief before any work is scoped.
+              We can confirm whether you need Marked Register Processing, Constituency Intelligence, or
+              Campaigning, Training & Election Support before any work is scoped.
             </p>
           </div>
           <div className="hero-actions">

@@ -12,8 +12,9 @@ export default function Services() {
           <div>
             <h1>Operational support for campaign teams that need clean delivery</h1>
             <p className="muted">
-              Political Solutions supports campaign teams with Marked Register Processing, election support,
-              and practical advisory work that helps associations and candidates move faster with fewer errors.
+              Political Solutions provides three distinct products: Marked Register Processing, Constituency
+              Intelligence, and Campaigning, Training & Election Support for teams that need practical delivery
+              help alongside platform access.
             </p>
           </div>
           <div className="hero-visual services-hero-visual">
@@ -28,40 +29,57 @@ export default function Services() {
 
       <section className="section muted">
         <div className="container stack">
-          <h2 className="section-title">What we deliver</h2>
+          <h2 className="section-title">Choose the product that matches the job</h2>
           <div className="feature-grid feature-grid--equal" data-testid="services-card-grid">
-            <Card title="Marked Register Processing">
-              <p className="muted">
-                Create your user and select the Marked Register subscription plan. You will be able to upload
-                any Marked Register for your association/federation area. Once the .csv file is ready you will
-                receive an email alerting you the CSV file is ready.
-              </p>
-              <div className="hero-actions" style={{ marginTop: 16 }}>
+            <Card title="Marked Register Processing" className="product-card">
+              <div className="product-card__body">
+                <p className="muted">
+                  Upload marked register files through the portal and receive structured outputs your campaign
+                  team can use for follow-up, planning, and reporting.
+                </p>
+                <p className="product-card__meta">
+                  <strong>Who it is for:</strong> Associations, agents, candidates, and campaign teams handling
+                  marked register returns.
+                </p>
+              </div>
+              <div className="product-card__cta">
                 <Button as={Link} to="/subscriptions" variant="primary">
                   View Marked Register plans
                 </Button>
               </div>
             </Card>
 
-            <Card title="Training & Support">
-              <p className="muted">
-                Various levels of consultancy help are available, from one-off sessions to ongoing remote support
-                for your association/federation and candidates.
-              </p>
-              <div className="hero-actions" style={{ marginTop: 16 }}>
-                <Button as={Link} to="/enquire" variant="secondary">
-                  Discuss support needs
+            <Card title="Constituency Intelligence" className="product-card">
+              <div className="product-card__body">
+                <p className="muted">
+                  Review constituency winners, demographics, and historic election results in one searchable
+                  intelligence workspace.
+                </p>
+                <p className="product-card__meta">
+                  <strong>Who it is for:</strong> Campaign planners, researchers, association officers, and
+                  headquarters teams comparing seats.
+                </p>
+              </div>
+              <div className="product-card__cta">
+                <Button as={Link} to="/enquire" variant="primary">
+                  Request a Constituency Intelligence briefing
                 </Button>
               </div>
             </Card>
 
-            <Card title="Election & By-Election Support">
-              <p className="muted">
-                UK-wide planning, field operations support, volunteer training, and print or data operations
-                coordination. This service is quoted and billed separately from subscriptions.
-              </p>
-              <div className="hero-actions" style={{ marginTop: 16 }}>
-                <Button as={Link} to="/services/election-support" variant="secondary">
+            <Card title="Campaigning, Training & Election Support" className="product-card">
+              <div className="product-card__body">
+                <p className="muted">
+                  Bring in practical support for by-election planning, volunteer training, field operations, and
+                  campaign delivery on a clearly scoped brief.
+                </p>
+                <p className="product-card__meta">
+                  <strong>Who it is for:</strong> Candidates, agents, association teams, and campaigns that need
+                  hands-on operational help.
+                </p>
+              </div>
+              <div className="product-card__cta">
+                <Button as={Link} to="/services/election-support" variant="primary">
                   Request election support
                 </Button>
               </div>

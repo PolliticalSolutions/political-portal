@@ -1,6 +1,6 @@
 import { render, screen } from "@testing-library/react";
 import { HelmetProvider } from "react-helmet-async";
-import { MemoryRouter, Route, Routes } from "react-router-dom";
+import { MemoryRouter, Navigate, Route, Routes } from "react-router-dom";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { CartProvider } from "../../cart/cartStore.jsx";
 import ProtectedRoute from "../../components/ProtectedRoute.jsx";
@@ -65,6 +65,25 @@ describe("Portal routing", () => {
     );
 
     expect(await screen.findByRole("heading", { name: "Pricing rules" })).toBeInTheDocument();
+  });
+
+  it("redirects the removed pricing route to subscriptions", async () => {
+    renderWithHelmet(
+      <MemoryRouter initialEntries={["/portal/pricing"]}>
+        <Routes>
+          <Route element={<ProtectedRoute authed={true} session={{}} />}>
+            <Route path="/portal" element={<PortalLayout />}>
+              <Route index element={<Portal tokens={null} onLogout={null} />} />
+              <Route path="pricing" element={<Navigate to="/portal/subscriptions" replace />} />
+              <Route path="subscriptions" element={<div>Subscriptions destination</div>} />
+              <Route path="*" element={<PortalNotFound />} />
+            </Route>
+          </Route>
+        </Routes>
+      </MemoryRouter>
+    );
+
+    expect(await screen.findByText("Subscriptions destination")).toBeInTheDocument();
   });
 
   it("renders portal not found for unknown routes", async () => {

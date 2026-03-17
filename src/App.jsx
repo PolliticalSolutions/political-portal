@@ -18,7 +18,6 @@ import BlogIndexPage from "./pages/BlogIndexPage.jsx";
 import BlogPostPage from "./pages/BlogPostPage.jsx";
 import Home from "./pages/Home.jsx";
 import Login from "./pages/Login.jsx";
-import Pricing from "./pages/Pricing.jsx";
 import Subscriptions from "./pages/Subscriptions.jsx";
 import SubscriptionsEntry from "./pages/SubscriptionsEntry.jsx";
 import Services from "./pages/Services.jsx";
@@ -112,9 +111,11 @@ function TopNav({ authed, onLogout, cartCount }) {
             <NavLinkButton to="/login" variant="emphasis" onClick={closeMenu} end>
               Client login
             </NavLinkButton>
-            <NavLinkButton to="/portal" onClick={closeMenu}>
-              Portal
-            </NavLinkButton>
+            {authed && (
+              <NavLinkButton to="/portal" onClick={closeMenu}>
+                Portal
+              </NavLinkButton>
+            )}
             {cartCount > 0 && (
               <NavLinkButton to="/cart" onClick={closeMenu}>
                 Cart
@@ -282,7 +283,7 @@ export default function App() {
                   path="session"
                   element={<Session session={session} onClear={handleClearSession} />}
                 />
-                <Route path="pricing" element={<Pricing />} />
+                <Route path="pricing" element={<Navigate to="/portal/subscriptions" replace />} />
                 <Route path="pricing-rules" element={<PricingRules />} />
                 <Route path="subscriptions" element={<Subscriptions />} />
                 <Route path="cart" element={<Cart basePath="/portal" />} />

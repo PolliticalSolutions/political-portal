@@ -69,10 +69,10 @@ export default function Portal({ tokens, onLogout }) {
             </Button>
           </Card>
           <Card title="Pricing">
-            <p>Preview how federation add-ons affect the subscription total.</p>
+            <p>Review subscription tiers and the detailed pricing rules that sit behind the selected package.</p>
             <div style={{ marginTop: 8, display: "flex", gap: 8, flexWrap: "wrap" }}>
-              <Button as={Link} to="/portal/pricing" variant="secondary">
-                View pricing
+              <Button as={Link} to="/portal/subscriptions" variant="secondary">
+                View subscriptions
               </Button>
               <Button as={Link} to="/portal/pricing-rules" variant="secondary">
                 Pricing rules

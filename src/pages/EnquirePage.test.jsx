@@ -57,7 +57,7 @@ describe("EnquirePage", () => {
     ).toBeInTheDocument();
     expect(
       screen.getByText(
-        "We review the enquiry, confirm whether it is a subscription question, a Marked Register Processing request, or a separate support brief, and then reply with the appropriate next step."
+        "We review the enquiry, confirm whether it is for Marked Register Processing, Constituency Intelligence, Campaigning, Training & Election Support, or subscriptions, and then reply with the appropriate next step."
       )
     ).toBeInTheDocument();
   });
