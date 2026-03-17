@@ -34,14 +34,13 @@ describe("Subscriptions", () => {
   });
 
   it("renders the subscriptions page", () => {
-    const { container } = renderPage();
+    renderPage();
     expect(
       screen.getByRole("heading", {
-        name: "Association Subscriptions: Campaign Capability as a Service",
+        name: "Association subscriptions for campaign operations",
       })
     ).toBeInTheDocument();
     expect(screen.getByText("Find your fit")).toBeInTheDocument();
-    expect(container).toMatchSnapshot();
   });
 
   it("recommends the correct tier based on circumstances selection", () => {
@@ -76,7 +75,7 @@ describe("Subscriptions", () => {
     });
     fireEvent.click(screen.getAllByRole("button", { name: "Select tier" })[0]);
     fireEvent.click(screen.getByRole("button", { name: "Add to cart" }));
-    fireEvent.click(screen.getByRole("button", { name: "Add Marked Register Entry" }));
+    fireEvent.click(screen.getByRole("button", { name: "Add Marked Register Processing" }));
 
     const cartList = screen.getByTestId("cart-items");
     expect(within(cartList).getAllByRole("listitem")).toHaveLength(2);

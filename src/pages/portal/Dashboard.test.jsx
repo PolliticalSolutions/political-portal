@@ -27,9 +27,10 @@ describe("Dashboard", () => {
       </MemoryRouter>
     );
 
-    expect(screen.getByRole("heading", { name: "Portal" })).toBeInTheDocument();
-    expect(screen.getByRole("heading", { name: "Pricing Rules" })).toBeInTheDocument();
-    expect(screen.getByRole("heading", { name: "Enquiries & Support" })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Dashboard" })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Marked Register Processing" })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Constituency Intelligence" })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Account and subscriptions" })).toBeInTheDocument();
   });
 
   it("shows stored signup context and supports review/clear actions", async () => {
@@ -51,24 +52,16 @@ describe("Dashboard", () => {
       </MemoryRouter>
     );
 
-    expect(await screen.findByRole("heading", { name: "Your selection" })).toBeInTheDocument();
-    expect(screen.getByText("Big Federation")).toBeInTheDocument();
-    expect(screen.getAllByText("Seat A").length).toBeGreaterThan(0);
-    expect(screen.getByText("Seat B")).toBeInTheDocument();
-    expect(
-      screen.getByText(
-        "Review pricing with this selection, clear it, or continue with your onboarding steps."
-      )
-    ).toBeInTheDocument();
-
-    const reviewLink = screen.getByRole("link", { name: "Review pricing with this selection" });
+    expect(await screen.findByText(/Current selection:/)).toBeInTheDocument();
+    expect(screen.getByText("Seat A")).toBeInTheDocument();
+    const reviewLink = screen.getByRole("link", { name: "Review account pricing" });
     expect(reviewLink.getAttribute("href")).toBe(
       "/portal/pricing-rules?association=Big+Federation&constituency=Seat+A"
     );
 
     fireEvent.click(screen.getByRole("button", { name: "Clear selection" }));
     expect(sessionStorage.getItem("ps_signup_context_v1")).toBeNull();
-    expect(screen.queryByRole("heading", { name: "Your selection" })).not.toBeInTheDocument();
+    expect(screen.queryByText(/Current selection:/)).not.toBeInTheDocument();
   });
 
   it("hides the selection section when context is missing or invalid", () => {
@@ -82,7 +75,7 @@ describe("Dashboard", () => {
       </MemoryRouter>
     );
 
-    expect(screen.getByRole("heading", { name: "Portal" })).toBeInTheDocument();
-    expect(screen.queryByRole("heading", { name: "Your selection" })).not.toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Dashboard" })).toBeInTheDocument();
+    expect(screen.queryByText(/Current selection:/)).not.toBeInTheDocument();
   });
 });

@@ -64,7 +64,7 @@ describe("Portal routing", () => {
       </MemoryRouter>
     );
 
-    expect(await screen.findByText("Pricing Rules")).toBeInTheDocument();
+    expect(await screen.findByRole("heading", { name: "Pricing rules" })).toBeInTheDocument();
   });
 
   it("renders portal not found for unknown routes", async () => {

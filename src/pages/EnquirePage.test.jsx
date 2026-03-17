@@ -52,14 +52,14 @@ describe("EnquirePage", () => {
 
     expect(
       screen.getByText(
-        "Get in touch with us using the form below. Highlight which of the services offered you're interested in (you can select more than one!) and I will get back in touch with you as quickly as possible. Please provide as much information as possible so the best solution can be offered"
+        "Tell us what you need, who it is for, and which service you want to discuss. We use this to route the enquiry properly and confirm the next step quickly. If your request is urgent, say so clearly in the message box."
       )
     ).toBeInTheDocument();
     expect(
-      screen.queryByText(
-        "Tell us about your operational goals and we will confirm scope, timelines, and next steps."
+      screen.getByText(
+        "We review the enquiry, confirm whether it is a subscription question, a Marked Register Processing request, or a separate support brief, and then reply with the appropriate next step."
       )
-    ).not.toBeInTheDocument();
+    ).toBeInTheDocument();
   });
 
   it("renders services as checkboxes and allows multiple selections", () => {
@@ -71,7 +71,7 @@ describe("EnquirePage", () => {
       </MemoryRouter>
     );
 
-    const markedRegister = screen.getByRole("checkbox", { name: "Marked Register entry" });
+    const markedRegister = screen.getByRole("checkbox", { name: "Marked Register Processing" });
     const byElection = screen.getByRole("checkbox", { name: "By-Election campaign consultancy" });
 
     fireEvent.click(markedRegister);
@@ -146,7 +146,7 @@ describe("EnquirePage", () => {
     fireEvent.change(screen.getByLabelText("Your role in the Association/Federation/Area/Region"), {
       target: { value: "Campaign Manager" },
     });
-    fireEvent.click(screen.getByRole("checkbox", { name: "Marked Register entry" }));
+    fireEvent.click(screen.getByRole("checkbox", { name: "Marked Register Processing" }));
     fireEvent.click(screen.getByRole("checkbox", { name: "General campaigning consultancy" }));
     fireEvent.change(screen.getByLabelText("Message *"), {
       target: { value: "Please share pricing details." },
@@ -176,7 +176,7 @@ describe("EnquirePage", () => {
     expect(body.message).toContain("Organisation: Big Federation");
     expect(body.message).toContain("Role: Campaign Manager");
     expect(body.message).toContain(
-      "Services interested in: Marked Register entry, General campaigning consultancy"
+      "Services interested in: Marked Register Processing, General campaigning consultancy"
     );
     expect(body.context).toMatchObject({
       association: "Big Federation",

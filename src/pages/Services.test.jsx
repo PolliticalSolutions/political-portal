@@ -14,10 +14,14 @@ describe("Services", () => {
       </HelmetProvider>
     );
 
-    expect(screen.getByRole("heading", { name: "What services do we offer?" })).toBeInTheDocument();
+    expect(
+      screen.getByRole("heading", {
+        name: "Operational support for campaign teams that need clean delivery",
+      })
+    ).toBeInTheDocument();
     expect(
       screen.getByText(
-        "Political Solutions offers a wide range of solutions to help your campaigning efforts. These vary from Marked Register processing, to specialised by-election support, to ongoing campaigning consultancy work. See below for more information on how each service operates."
+        "Political Solutions supports campaign teams with Marked Register Processing, election support, and practical advisory work that helps associations and candidates move faster with fewer errors."
       )
     ).toBeInTheDocument();
     expect(screen.getByAltText("Team using data to plan a political campaign")).toBeInTheDocument();
@@ -33,16 +37,19 @@ describe("Services", () => {
     expect(screen.queryByText("Data & Insight")).not.toBeInTheDocument();
     expect(screen.queryByText("Subscriptions & Platform")).not.toBeInTheDocument();
     expect(screen.queryByText("Election & By-Election Support (separate charge)")).not.toBeInTheDocument();
-    expect(screen.queryByRole("link", { name: "Request election support" })).not.toBeInTheDocument();
-
-    const cta = screen.getByRole("link", { name: "Enquire about our services here" });
-    expect(cta).toHaveAttribute("href", "/enquire");
-
     const complianceTitle = screen.getByRole("heading", { name: "Compliance note" });
-    const ctaContainer = screen.getByTestId("services-primary-cta");
-    const gridPosition = Number(grid.compareDocumentPosition(ctaContainer));
-    const ctaPosition = Number(ctaContainer.compareDocumentPosition(complianceTitle));
-    expect(gridPosition & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
-    expect(ctaPosition & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(screen.getByRole("link", { name: "View Marked Register plans" })).toHaveAttribute(
+      "href",
+      "/subscriptions"
+    );
+    expect(screen.getByRole("link", { name: "Discuss support needs" })).toHaveAttribute(
+      "href",
+      "/enquire"
+    );
+    expect(screen.getByRole("link", { name: "Request election support" })).toHaveAttribute(
+      "href",
+      "/services/election-support"
+    );
+    expect(Number(grid.compareDocumentPosition(complianceTitle)) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
   });
 });

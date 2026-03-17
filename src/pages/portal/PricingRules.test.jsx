@@ -27,7 +27,7 @@ describe("PricingRules", () => {
       </MemoryRouter>
     );
 
-    expect(screen.getByText("Pricing Rules")).toBeInTheDocument();
+    expect(screen.getByText("Pricing rules")).toBeInTheDocument();
     expect(screen.getByText("Association/Federation")).toBeInTheDocument();
     expect(screen.getByText("Constituency")).toBeInTheDocument();
     expect(screen.getByPlaceholderText("Filter associations...")).toBeInTheDocument();
