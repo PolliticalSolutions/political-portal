@@ -4,49 +4,32 @@ import { MemoryRouter } from "react-router-dom";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 vi.mock("../constituency/constituencyApi.js", () => ({
-  getByElectionWatchSeats: vi.fn(),
-  getLatestElectionWinners: vi.fn(),
-}));
-
-vi.mock("../constituency/AnalyticsChoroplethMapClient.jsx", () => ({
-  default: ({ seatsByOnsCode }) => (
-    <div data-testid="by-election-map">{Object.keys(seatsByOnsCode).length} watched seats</div>
-  ),
+  getByElectionWatchlist: vi.fn(),
+  getCouncilData: vi.fn(),
 }));
 
 import ByElectionWatchPage from "./ByElectionWatchPage.jsx";
-import { getByElectionWatchSeats, getLatestElectionWinners } from "../constituency/constituencyApi.js";
+import { getByElectionWatchlist, getCouncilData } from "../constituency/constituencyApi.js";
 
 describe("ByElectionWatchPage", () => {
   beforeEach(() => {
     vi.clearAllMocks();
   });
 
-  it("renders the by-election watch list and map", async () => {
-    getByElectionWatchSeats.mockResolvedValue([
+  it("renders the by-election watchlist criteria table", async () => {
+    getByElectionWatchlist.mockResolvedValue([
       {
         constituency_id: "seat-1",
-        risk_score: 8.9,
-        risk_level: "Very High",
-        majority_factor: 8,
-        council_instability_factor: 4,
-        defection_risk_factor: 3,
-        polling_trend_factor: 5,
-        risk_summary: "Tight majority and deteriorating local conditions.",
+        candidate_id: "cand-1",
+        majority: 1420,
+        electorate: 72000,
+        vote_share: 0.35,
+        constituencies: { id: "seat-1", ons_code: "E14000005", name: "East Mercia", region: "East Midlands", leave_vote_share: 62 },
+        candidates: { id: "cand-1", first_name: "Alex", last_name: "Harper", first_elected_year: 2019 },
       },
     ]);
 
-    getLatestElectionWinners.mockResolvedValue({
-      winners: [
-        {
-          constituency_id: "seat-1",
-          majority: 1420,
-          candidates: { first_name: "Alex", last_name: "Harper" },
-          parties: { name: "Conservative", short_name: "Con", colour_hex: "#0087DC" },
-          constituencies: { id: "seat-1", ons_code: "E14000005", name: "East Mercia" },
-        },
-      ],
-    });
+    getCouncilData.mockResolvedValue([]);
 
     render(
       <HelmetProvider>
@@ -57,16 +40,21 @@ describe("ByElectionWatchPage", () => {
     );
 
     expect(await screen.findByRole("heading", { name: "By-Election Watch" })).toBeInTheDocument();
-    expect(await screen.findByTestId("by-election-map")).toHaveTextContent("1 watched seats");
+
+    // Constituency link present
     expect(screen.getByRole("link", { name: "East Mercia" })).toHaveAttribute(
       "href",
       "/portal/constituency/E14000005"
     );
-    expect(screen.getByText("Majority exposure")).toBeInTheDocument();
-    expect(screen.getByText("No scheduled election trigger recorded")).toBeInTheDocument();
-    expect(screen.getByText("Scoring methodology")).toBeInTheDocument();
-    expect(screen.getByText("Council instability")).toBeInTheDocument();
-    expect(screen.getAllByText("Low confidence").length).toBeGreaterThan(0);
-    expect(screen.getAllByText("Watchlist mode").length).toBeGreaterThan(0);
+
+    // MP name rendered
+    expect(screen.getByText("Alex Harper")).toBeInTheDocument();
+
+    // Criteria section
+    expect(screen.getByText(/Majority < 5,000/i)).toBeInTheDocument();
+    expect(screen.getByText(/First\/second-term MP/i)).toBeInTheDocument();
+
+    // Disclaimer
+    expect(screen.getByText(/This is not a by-election prediction model/i)).toBeInTheDocument();
   });
 });

@@ -15,7 +15,7 @@ describe("ModelPerformancePage", () => {
     vi.clearAllMocks();
   });
 
-  it("renders the upgraded validation structure when runtime artifacts are unavailable", async () => {
+  it("renders the validation structure when runtime artifacts are unavailable", async () => {
     getModelBacktestAvailability.mockResolvedValue({
       ok: true,
       hasRuntimeMetrics: false,
@@ -34,26 +34,24 @@ describe("ModelPerformancePage", () => {
       </HelmetProvider>
     );
 
-    expect(await screen.findByRole("heading", { name: "Model performance" })).toBeInTheDocument();
-    expect(screen.getByRole("heading", { name: "Overview" })).toBeInTheDocument();
-    expect(screen.getByRole("heading", { name: "Model maturity summary" })).toBeInTheDocument();
-    expect(screen.getByRole("heading", { name: "Cross-model priorities" })).toBeInTheDocument();
-    expect(screen.getByRole("heading", { name: "Detailed model cards" })).toBeInTheDocument();
-    expect(screen.getByRole("heading", { name: "Signal quality and validation caveats" })).toBeInTheDocument();
-    expect(screen.getByRole("heading", { name: "Backtest availability and run status" })).toBeInTheDocument();
-    expect(screen.getByRole("heading", { name: "Limitations and next steps" })).toBeInTheDocument();
+    expect(await screen.findByRole("heading", { name: /model performance/i })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: /signal quality/i })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: /backtest status/i })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: /detailed model cards/i })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: /key priorities/i })).toBeInTheDocument();
 
     expect(screen.getAllByText("Conservative Seat Vulnerability").length).toBeGreaterThan(0);
     expect(screen.getAllByText("Reform UK Threat Index").length).toBeGreaterThan(0);
     expect(screen.getAllByText("By-Election Risk Model").length).toBeGreaterThan(0);
     expect(screen.getAllByText("Constituency Scenario Simulator").length).toBeGreaterThan(0);
 
-    expect(
-      (await screen.findAllByText(/historical backtest artifacts not yet available in runtime context/i)).length
-    ).toBeGreaterThan(0);
-    expect(screen.getAllByText(/Calibration recommendations/i).length).toBeGreaterThan(0);
-    expect(screen.getByText(/Most important data gaps/i)).toBeInTheDocument();
-    expect(screen.getByText(/Signals safest to retain/i)).toBeInTheDocument();
+    // Backtest pending state shown in table
+    expect(screen.getAllByText(/pending/i).length).toBeGreaterThan(0);
+
+    // Limitation notes rendered
+    expect(screen.getByText(/No runtime backtest metric rows are available/i)).toBeInTheDocument();
+
+    // Maturity badges present
     expect(screen.getByText(/planning tool only/i)).toBeInTheDocument();
     expect(screen.getByText(/watchlist-grade validation/i)).toBeInTheDocument();
   });
@@ -84,8 +82,8 @@ describe("ModelPerformancePage", () => {
       </HelmetProvider>
     );
 
-    expect(await screen.findByText("Runtime backtest metrics available")).toBeInTheDocument();
-    expect(screen.getByText(/precision at 20, top decile capture/i)).toBeInTheDocument();
+    // Backtest available badge shown for vulnerability model
+    expect(await screen.findByText("Backtest available")).toBeInTheDocument();
     expect(screen.getByText(/runtime status is derived from supabase metric rows/i)).toBeInTheDocument();
     expect(screen.getAllByText(/high confidence/i).length).toBeGreaterThan(0);
   });
