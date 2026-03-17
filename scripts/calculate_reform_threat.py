@@ -3,12 +3,12 @@ Feature 5 — Reform UK Threat Index
 
 Ranks the 50 Conservative seats most at risk from Reform UK.
 
-Score components:
-  30% — Con→RUK swing vs national
-  25% — Reform 2024 vote share in seat
-  25% — Con majority size (lower = more at risk)
-  10% — Council Reform strength (from council_data)
-  10% — Demographic alignment (post-industrial, lower owner-occupancy)
+Score components (v2 — historical signals added):
+  30% — Con→RUK swing vs national (contextual, kept but de-weighted as partially circular)
+  25% — 2016 EU referendum Leave vote share (strongest historical predictor)
+  15% — UKIP 2015 vote share (pre-existing populist-right base)
+  15% — Reform 2024 vote share (direct signal, de-weighted to reduce circularity)
+  15% — Demographic alignment (post-industrial, lower owner-occupancy)
 
 DDL — run in Supabase SQL Editor before this script:
 
@@ -22,10 +22,16 @@ DDL — run in Supabase SQL Editor before this script:
     con_majority          numeric(5,2),
     council_reform_strength numeric(4,2),
     demographic_alignment numeric(4,2),
+    leave_vote_share      numeric(5,2),
+    ukip_2015_share       numeric(5,2),
     calculated_at         timestamptz DEFAULT now()
   );
   ALTER TABLE public.reform_threat_index ENABLE ROW LEVEL SECURITY;
   CREATE POLICY "Allow anon read" ON public.reform_threat_index FOR SELECT TO anon USING (true);
+
+  -- If table already exists, add new columns:
+  ALTER TABLE public.reform_threat_index ADD COLUMN IF NOT EXISTS leave_vote_share numeric(5,2);
+  ALTER TABLE public.reform_threat_index ADD COLUMN IF NOT EXISTS ukip_2015_share numeric(5,2);
 
 Usage:
   python scripts/calculate_reform_threat.py
@@ -128,13 +134,13 @@ def main():
     con_ids = [w["constituency_id"] for w in con_winners]
     print(f"  {len(con_ids)} Conservative seats")
 
-    # Reform vote share per constituency
+    # Reform vote share per constituency (vote_share stored as 0-1 decimal → convert to %)
     print("\n--- Loading Reform vote shares ---")
     ruk_results = fetch_all(
         "results", "constituency_id,vote_share",
         {"election_id": f"eq.{latest_id}", "party_id": f"eq.{RUK_ID}"},
     )
-    ruk_share = {r["constituency_id"]: float(r["vote_share"] or 0) for r in ruk_results}
+    ruk_share = {r["constituency_id"]: float(r["vote_share"] or 0) * 100 for r in ruk_results}
 
     # Con→RUK swings
     print("\n--- Loading Con→Reform swings ---")
@@ -154,26 +160,62 @@ def main():
     )
     print(f"  National Con→Reform swing: {national_ruk}")
 
-    # Council Reform strength (from council_data composition)
-    councils = fetch_all("council_data", "constituency_id,composition")
-    council_reform = {}
-    for c in councils:
-        cid = c["constituency_id"]
-        comp = c.get("composition") or {}
-        if isinstance(comp, str):
-            try:
-                comp = json.loads(comp)
-            except Exception:
-                comp = {}
-        reform_seats = comp.get("Reform UK", 0)
-        total_seats = sum(comp.values()) if comp else 1
-        council_reform[cid] = (reform_seats / total_seats * 10) if total_seats else 0
-
-    # Demographics
+    # Demographics (owner-occupancy as inverse post-industrial proxy)
     demo_map = {
         d["constituency_id"]: float(d.get("pct_owner_occupied") or 65)
         for d in fetch_all("demographics", "constituency_id,pct_owner_occupied", {"census_year": "eq.2021"})
     }
+
+    # Leave vote share (2016 referendum) from constituencies table
+    print("\n--- Loading Leave vote shares ---")
+    leave_data = fetch_all(
+        "constituencies", "id,leave_vote_share",
+        {"leave_vote_share": "not.is.null"},
+    )
+    leave_map = {c["id"]: float(c["leave_vote_share"]) for c in leave_data if c.get("leave_vote_share")}
+    print(f"  {len(leave_map)} constituencies with Leave vote data")
+
+    # UKIP 2015 signals from historical_party_signals
+    # 2015 constituency IDs differ from 2024 IDs (boundary changes), so match by name
+    print("\n--- Loading UKIP 2015 signals ---")
+    ukip_data = []
+    try:
+        ukip_data = fetch_all(
+            "historical_party_signals",
+            "constituency_id,signal_value",
+            {"signal_name": "eq.ukip_2015_vote_share"},
+        )
+    except RuntimeError:
+        print("  WARNING: historical_party_signals table not found — UKIP 2015 signal zeroed.")
+
+    # Load names for all constituencies that have UKIP data (2015 IDs)
+    ukip_cids = list({r["constituency_id"] for r in ukip_data})
+    ukip_con_names = {}
+    for i in range(0, len(ukip_cids), 100):
+        batch_ids = ukip_cids[i:i + 100]
+        # Use 'in' filter — PostgREST uses (val1,val2,...) for 'in'
+        id_list = "(" + ",".join(batch_ids) + ")"
+        rows = fetch_all("constituencies", "id,name", {"id": f"in.{id_list}"})
+        for row in rows:
+            ukip_con_names[row["id"]] = row["name"].upper().strip()
+
+    # Build name → ukip_pct map
+    ukip_by_name = {}
+    for r in ukip_data:
+        name = ukip_con_names.get(r["constituency_id"])
+        if name:
+            ukip_by_name[name] = float(r["signal_value"])
+
+    # Load names for all 2024 Con constituencies
+    con_id_to_name = {}
+    if con_ids:
+        id_list = "(" + ",".join(con_ids) + ")"
+        rows = fetch_all("constituencies", "id,name", {"id": f"in.{id_list}"})
+        for row in rows:
+            con_id_to_name[row["id"]] = row["name"].upper().strip()
+
+    ukip_matched = sum(1 for name in con_id_to_name.values() if name in ukip_by_name)
+    print(f"  {len(ukip_by_name)} UKIP 2015 entries; {ukip_matched}/{len(con_ids)} Conservative seats matched by name")
 
     # Build winner map
     winner_map = {w["constituency_id"]: w for w in con_winners}
@@ -185,38 +227,43 @@ def main():
         majority = winner.get("majority")
         electorate = winner.get("electorate")
 
-        # Factor 1: Con→RUK swing (30%)
+        # Factor 1: Con→RUK swing (30%) — contextual signal, partially circular but useful
         swing = swings_con_ruk.get(cid)
         if swing is not None and national_ruk:
             swing_factor = min(10.0, max(0.0, (swing / national_ruk) * 5.0))
         else:
             swing_factor = 3.0
 
-        # Factor 2: Reform 2024 vote share (25%)
-        ruk_pct = ruk_share.get(cid, 0)
-        ruk_factor = min(10.0, ruk_pct * 0.25)  # 40% share → 10
-
-        # Factor 3: Con majority (25%)
-        if majority is not None and electorate:
-            maj_pct = (majority / electorate) * 100
-            majority_factor = max(0.0, min(10.0, 10.0 - maj_pct * 0.4))
+        # Factor 2: Leave vote share 2016 (25%) — strongest historical predictor
+        # Range ~30–75%; normalise so 30% → 0, 70% → 10
+        leave_pct = leave_map.get(cid)
+        if leave_pct is not None:
+            leave_factor = min(10.0, max(0.0, (leave_pct - 30.0) / 4.0))
         else:
-            majority_factor = 5.0
+            leave_factor = 4.0  # national median fallback (~46% Leave)
 
-        # Factor 4: Council Reform strength (10%)
-        reform_council = min(10.0, council_reform.get(cid, 0))
+        # Factor 3: UKIP 2015 vote share (15%) — pre-existing populist-right base
+        # Range 0–30%+; normalise so 20% → 10
+        con_name = con_id_to_name.get(cid, "")
+        ukip_pct = ukip_by_name.get(con_name, 0)
+        ukip_factor = min(10.0, ukip_pct * 0.5)
 
-        # Factor 5: Demographic alignment (10%)
-        # Post-industrial areas (lower owner-occupancy) align with Reform
+        # Factor 4: Reform 2024 vote share (15%) — de-weighted to reduce circularity
+        # ruk_pct is in percentage points (e.g. 25.0 for 25%); 40% → 10
+        ruk_pct = ruk_share.get(cid, 0)
+        ruk_factor = min(10.0, ruk_pct * 0.25)
+
+        # Factor 5: Demographic alignment (15%) — post-industrial proxy
+        # Lower owner-occupancy = more post-industrial = more Reform-aligned
         owner_pct = demo_map.get(cid, 65)
         demo_align = max(0.0, min(10.0, 10.0 - owner_pct * 0.125))
 
         score = round(
             0.30 * swing_factor +
-            0.25 * ruk_factor +
-            0.25 * majority_factor +
-            0.10 * reform_council +
-            0.10 * demo_align,
+            0.25 * leave_factor +
+            0.15 * ukip_factor +
+            0.15 * ruk_factor +
+            0.15 * demo_align,
             2,
         )
 
@@ -226,8 +273,10 @@ def main():
             "con_ruk_swing": round((swing or 0) * 100, 2),
             "ruk_2024_share": round(ruk_pct, 2),
             "con_majority": round((majority / electorate * 100) if (majority and electorate) else 0, 2),
-            "council_reform_strength": round(reform_council, 2),
+            "council_reform_strength": 0,
             "demographic_alignment": round(demo_align, 2),
+            "leave_vote_share": round(leave_pct, 2) if leave_pct is not None else None,
+            "ukip_2015_share": round(ukip_pct, 2) if ukip_pct else None,
         })
 
     # Sort and take top 50
@@ -246,6 +295,8 @@ def main():
             "con_majority": s["con_majority"],
             "council_reform_strength": s["council_reform_strength"],
             "demographic_alignment": s["demographic_alignment"],
+            "leave_vote_share": s.get("leave_vote_share"),
+            "ukip_2015_share": s.get("ukip_2015_share"),
         })
 
     # Upsert
@@ -264,8 +315,10 @@ def main():
     constituencies = {c["id"]: c["name"] for c in fetch_all("constituencies", "id,name")}
     for r in rows[:10]:
         name = constituencies.get(r["constituency_id"], "?")
+        leave = f"Leave {r['leave_vote_share']:.1f}%" if r.get("leave_vote_share") else "Leave n/a"
+        ukip = f"UKIP15 {r['ukip_2015_share']:.1f}%" if r.get("ukip_2015_share") else "UKIP15 n/a"
         print(f"  #{r['threat_rank']:>2}  {r['threat_score']:.2f}  {name}")
-        print(f"       RUK share {r['ruk_2024_share']:.1f}%  Con maj {r['con_majority']:.1f}%  Swing {r['con_ruk_swing']:.1f}pp")
+        print(f"       {leave}  {ukip}  RUK24 {r['ruk_2024_share']:.1f}%  Swing {r['con_ruk_swing']:.1f}pp")
 
     print("\n" + "=" * 65)
     print(f"DONE — {len(rows)} Reform threat records written")

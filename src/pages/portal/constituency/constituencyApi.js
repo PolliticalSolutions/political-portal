@@ -18,7 +18,7 @@ export async function searchConstituencies({ query = "", region = "", country = 
 export async function getConstituency(onsCode) {
   const { data, error } = await supabase
     .from("constituencies")
-    .select("id, ons_code, name, region, country, constituency_type, electorate_current")
+    .select("id, ons_code, name, region, country, constituency_type, electorate_current, leave_vote_share")
     .eq("ons_code", onsCode)
     .single();
   if (error) throw new Error(error.message);
