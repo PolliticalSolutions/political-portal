@@ -40,66 +40,70 @@ export default function Dashboard() {
   return (
     <div className="page stack">
       <Card>
-        <h1 style={{ margin: "0 0 12px", fontSize: 22 }}>Portal</h1>
-        <p className="muted">Welcome back. Use the links below to manage pricing and support.</p>
+        <div className="portal-page-header">
+          <div className="portal-page-header__content">
+            <span className="portal-page-header__eyebrow">Portal</span>
+            <h1 className="portal-page-header__title">Dashboard</h1>
+            <p className="portal-page-header__subtitle">
+              Start from the product area you need: Marked Register Processing, Constituency Intelligence, or
+              account and subscription management.
+            </p>
+          </div>
+        </div>
       </Card>
 
-      {signupContext && (
-        <Card title="Your selection">
-          <div className="stack" style={{ gap: 10 }}>
-            {signupContext.association && (
-              <div>
-                <strong>Association/Federation:</strong> {signupContext.association}
-              </div>
-            )}
-            {signupContext.constituency && (
-              <div>
-                <strong>Constituency:</strong> {signupContext.constituency}
-              </div>
-            )}
-            {Array.isArray(signupContext.constituencies) && signupContext.constituencies.length > 0 && (
-              <div>
-                <strong>Constituencies:</strong>
-                <ul style={{ margin: "6px 0 0", paddingLeft: 18 }}>
-                  {signupContext.constituencies.map((item) => (
-                    <li key={item}>{item}</li>
-                  ))}
-                </ul>
-              </div>
-            )}
-            <p className="helper">
-              Review pricing with this selection, clear it, or continue with your onboarding steps.
+      <div className="card-grid">
+        <Card title="Marked Register Processing">
+          <div className="stack">
+            <p>
+              Upload marked register files, track processing, and download structured outputs for campaign use.
             </p>
-            <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-              <Button as={Link} to={pricingLink} variant="secondary">
-                Review pricing with this selection
-              </Button>
-              <Button variant="ghost" onClick={handleClearSelection}>
-                Clear selection
+            <div className="portal-section-actions">
+              <Button as={Link} to="/portal/uploads" variant="primary">
+                Open uploads
               </Button>
             </div>
           </div>
         </Card>
-      )}
 
-      <Card title="Pricing Rules">
-        <p>Review federation pricing rules and updated calculations.</p>
-        <Button as={Link} to="/portal/pricing-rules" variant="secondary" style={{ marginTop: 8 }}>
-          View pricing rules
-        </Button>
-      </Card>
+        <Card title="Constituency Intelligence">
+          <div className="stack">
+            <p>
+              Search constituencies, compare results and demographics, and review constituency detail from one
+              intelligence workspace.
+            </p>
+            <div className="portal-section-actions">
+              <Button as={Link} to="/portal/constituency" variant="primary">
+                Open constituency intelligence
+              </Button>
+            </div>
+          </div>
+        </Card>
 
-      <Card title="Enquiries & Support">
-        <p>Need help or clarification? Send an enquiry or email support directly.</p>
-        <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginTop: 8 }}>
-          <Button as={Link} to="/enquire" variant="secondary">
-            Open enquiry form
-          </Button>
-          <Button as="a" href="mailto:paul@politicalsolutions.uk" variant="ghost">
-            Email support
-          </Button>
-        </div>
-      </Card>
+        <Card title="Account and subscriptions">
+          <div className="stack">
+            <p>
+              Review subscription pricing, manage current selections, and continue account setup where needed.
+            </p>
+            {signupContext && (
+              <div className="portal-data-note">
+                <strong>Current selection:</strong>{" "}
+                {signupContext.constituency || signupContext.association || "Saved selection available"}
+              </div>
+            )}
+            <div className="portal-section-actions">
+              <Button as={Link} to={pricingLink} variant="primary">
+                Review account pricing
+              </Button>
+              {signupContext && (
+                <Button variant="ghost" onClick={handleClearSelection}>
+                  Clear selection
+                </Button>
+              )}
+            </div>
+          </div>
+        </Card>
+      </div>
     </div>
   );
 }
