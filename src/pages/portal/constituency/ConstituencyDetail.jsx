@@ -7,6 +7,7 @@ import {
   getConstituencyDemographics,
   getConstituencyResults,
   getConstituencySwings,
+  getLinkedAuthorities,
 } from "./constituencyApi.js";
 import { getCurrentStatus } from "./constituencyPresentation.js";
 
@@ -786,8 +787,48 @@ function CouncilCard({ council }) {
   );
 }
 
-function CouncilsTab({ councils }) {
-  if (!councils || councils.length === 0) {
+function LinkedAuthorityCard({ authority }) {
+  // Adapts local_authorities schema to match CouncilCard shape
+  const council = {
+    id: authority.id,
+    council_name: authority.name,
+    council_type: authority.authority_type,
+    council_tier: authority.tier,
+    election_date: authority.last_election_date,
+    next_election_date: authority.next_election_date,
+    total_seats: authority.total_seats,
+    controlling_party: authority.controlling_party,
+    control_type: authority.control_type,
+    composition: authority.composition,
+    recent_changes: null,
+    political_context: null,
+    alert_level: null,
+    alert_reason: null,
+    source_url: authority.website_url,
+  };
+  return (
+    <div style={{ position: "relative" }}>
+      <CouncilCard council={council} />
+      <div style={{ marginTop: -8, marginBottom: 12 }}>
+        <Link
+          to={`/portal/local-government/${authority.gss_code}`}
+          style={{ fontSize: 12, color: "#1d4ed8", textDecoration: "none", fontWeight: 600 }}
+        >
+          Full intelligence profile for {authority.name} →
+        </Link>
+      </div>
+    </div>
+  );
+}
+
+function CouncilsTab({ councils, linkedAuthorities }) {
+  // Prefer linked authorities (new schema); fall back to legacy council_data
+  // Deduplicate: if a council_data entry's name matches a linked authority, skip it
+  const linkedNames = new Set((linkedAuthorities ?? []).map((a) => a.name));
+  const legacyOnly = (councils ?? []).filter((c) => !linkedNames.has(c.council_name));
+  const hasData = (linkedAuthorities?.length ?? 0) + legacyOnly.length > 0;
+
+  if (!hasData) {
     return (
       <div className="portal-placeholder-panel">
         <p className="portal-placeholder-panel__title">No council data available</p>
@@ -800,7 +841,10 @@ function CouncilsTab({ councils }) {
 
   return (
     <div className="portal-data-section">
-      {councils.map((council) => (
+      {(linkedAuthorities ?? []).map((auth) => (
+        <LinkedAuthorityCard key={auth.id} authority={auth} />
+      ))}
+      {legacyOnly.map((council) => (
         <CouncilCard key={council.id} council={council} />
       ))}
     </div>
@@ -918,6 +962,7 @@ export default function ConstituencyDetail() {
   const [swings, setSwings] = useState([]);
   const [nationals, setNationals] = useState([]);
   const [councils, setCouncils] = useState([]);
+  const [linkedAuthorities, setLinkedAuthorities] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [activeTab, setActiveTab] = useState("history");
@@ -934,11 +979,12 @@ export default function ConstituencyDetail() {
         if (cancelled) return;
         setConstituency(nextConstituency);
 
-        const [nextResults, nextDemographics, nextSwings, nextCouncils] = await Promise.all([
+        const [nextResults, nextDemographics, nextSwings, nextCouncils, nextLinked] = await Promise.all([
           getConstituencyResults(nextConstituency.id),
           getConstituencyDemographics(nextConstituency.id),
           getConstituencySwings(nextConstituency.id),
           getCouncilData(nextConstituency.id),
+          getLinkedAuthorities(nextConstituency.id),
         ]);
 
         if (cancelled) return;
@@ -947,6 +993,7 @@ export default function ConstituencyDetail() {
         setSwings(nextSwings.swings);
         setNationals(nextSwings.nationals);
         setCouncils(nextCouncils);
+        setLinkedAuthorities(nextLinked);
       } catch (err) {
         if (!cancelled) setError(err.message || "Failed to load constituency.");
       } finally {
@@ -1054,7 +1101,7 @@ export default function ConstituencyDetail() {
         )}
         {activeTab === "demographics" && <DemographicsTab demographics={demographics} />}
         {activeTab === "candidates" && <CandidatesTab results={results} />}
-        {activeTab === "councils" && <CouncilsTab councils={councils} />}
+        {activeTab === "councils" && <CouncilsTab councils={councils} linkedAuthorities={linkedAuthorities} />}
       </Card>
     </div>
   );
