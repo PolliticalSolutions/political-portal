@@ -5,6 +5,7 @@ import {
   getCouncilData,
   getConstituency,
   getConstituencyDemographics,
+  getLinkedAuthorities,
   getConstituencyResults,
   getConstituencySwings,
   getMarginalityScore,
@@ -794,8 +795,47 @@ function CouncilCard({ council }) {
   );
 }
 
-function CouncilsTab({ councils, electedWinner }) {
-  if (!councils || councils.length === 0) {
+function LinkedAuthorityCard({ authority }) {
+  return (
+    <div className="portal-record">
+      <div className="portal-data-section__header">
+        <p className="portal-data-section__title">{authority.name}</p>
+        <div className="portal-data-section__meta">
+          {authority.authority_type || "Local authority"}
+          {authority.tier ? ` • ${authority.tier}` : ""}
+          {authority.region ? ` • ${authority.region}` : ""}
+        </div>
+      </div>
+      <div className="portal-summary-grid">
+        <div className="portal-stat">
+          <span className="portal-stat__label">Control</span>
+          <span className="portal-stat__value" style={{ fontSize: 18 }}>
+            {authority.controlling_party || "—"}
+          </span>
+          <span className="portal-stat__meta">{authority.control_type || "Control type not listed"}</span>
+        </div>
+        <div className="portal-stat">
+          <span className="portal-stat__label">Total seats</span>
+          <span className="portal-stat__value">{authority.total_seats ?? "—"}</span>
+          <span className="portal-stat__meta">Current authority size</span>
+        </div>
+        <div className="portal-stat">
+          <span className="portal-stat__label">Last election</span>
+          <span className="portal-stat__value" style={{ fontSize: 18 }}>
+            {authority.last_election_date ? new Date(authority.last_election_date).getFullYear() : "—"}
+          </span>
+          <span className="portal-stat__meta">{formatDate(authority.last_election_date)}</span>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function CouncilsTab({ councils, localAuthorities, electedWinner }) {
+  const hasCouncilData = Array.isArray(councils) && councils.length > 0;
+  const hasLinkedAuthorities = Array.isArray(localAuthorities) && localAuthorities.length > 0;
+
+  if (!hasCouncilData && !hasLinkedAuthorities) {
     return (
       <div className="portal-placeholder-panel">
         <p className="portal-placeholder-panel__title">No council data available</p>
@@ -808,10 +848,13 @@ function CouncilsTab({ councils, electedWinner }) {
 
   return (
     <div className="portal-data-section">
-      {councils.map((council) => (
-        <CouncilCard key={council.id} council={council} />
+      {hasCouncilData && councils.map((council) => (
+        <CouncilCard key={`council-data-${council.id}`} council={council} />
       ))}
-      <LocalNationalAlignmentPanel councils={councils} electedWinner={electedWinner} />
+      {hasLinkedAuthorities && localAuthorities.map((authority) => (
+        <LinkedAuthorityCard key={`local-authority-${authority.id || authority.gss_code}`} authority={authority} />
+      ))}
+      {hasCouncilData && <LocalNationalAlignmentPanel councils={councils} electedWinner={electedWinner} />}
     </div>
   );
 }
@@ -1336,6 +1379,7 @@ export default function ConstituencyDetail() {
   const [swings, setSwings] = useState([]);
   const [nationals, setNationals] = useState([]);
   const [councils, setCouncils] = useState([]);
+  const [localAuthorities, setLocalAuthorities] = useState([]);
   const [marginalityScore, setMarginalityScore] = useState(null);
   const [electorateTrend, setElectorateTrend] = useState([]);
   const [swingTimeline, setSwingTimeline] = useState([]);
@@ -1359,6 +1403,7 @@ export default function ConstituencyDetail() {
 
         const [
           nextResults, nextDemographics, nextSwings, nextCouncils,
+          nextLocalAuthorities,
           nextMarginality, nextElectorateTrend, nextSwingTimeline,
           nextByElectionRisk, nextVulnerability,
         ] = await Promise.all([
@@ -1366,6 +1411,7 @@ export default function ConstituencyDetail() {
           getConstituencyDemographics(nextConstituency.id),
           getConstituencySwings(nextConstituency.id),
           getCouncilData(nextConstituency.id),
+          getLinkedAuthorities(nextConstituency.id),
           getMarginalityScore(nextConstituency.id),
           getElectorateTrend(nextConstituency.id),
           getSwingTimeline(nextConstituency.id),
@@ -1379,6 +1425,7 @@ export default function ConstituencyDetail() {
         setSwings(nextSwings.swings);
         setNationals(nextSwings.nationals);
         setCouncils(nextCouncils);
+        setLocalAuthorities(nextLocalAuthorities);
         setMarginalityScore(nextMarginality);
         setElectorateTrend(nextElectorateTrend);
         setSwingTimeline(nextSwingTimeline);
@@ -1504,6 +1551,7 @@ export default function ConstituencyDetail() {
         {activeTab === "councils" && (
           <CouncilsTab
             councils={councils}
+            localAuthorities={localAuthorities}
             electedWinner={electedWinner}
           />
         )}

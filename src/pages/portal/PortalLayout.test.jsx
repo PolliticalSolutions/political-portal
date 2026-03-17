@@ -37,6 +37,10 @@ describe("PortalLayout", () => {
 
     expect(await screen.findByRole("navigation", { name: "Portal" })).toBeInTheDocument();
     expect(await screen.findByRole("link", { name: "Dashboard" })).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Local Government" })).toHaveAttribute(
+      "href",
+      "/portal/local-government"
+    );
     expect(screen.queryByRole("link", { name: "Pricing rules" })).not.toBeInTheDocument();
   });
 

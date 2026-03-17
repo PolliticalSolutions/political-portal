@@ -127,6 +127,47 @@ describe("Portal routing", () => {
     expect(await screen.findByRole("heading", { name: "Cart" })).toBeInTheDocument();
   });
 
+  it("renders the local government index route inside the portal layout", async () => {
+    renderWithHelmet(
+      <MemoryRouter initialEntries={["/portal/local-government"]}>
+        <Routes>
+          <Route element={<ProtectedRoute authed={true} session={{}} />}>
+            <Route path="/portal" element={<PortalLayout />}>
+              <Route index element={<Portal tokens={null} onLogout={null} />} />
+              <Route path="local-government" element={<div>Local Government index destination</div>} />
+              <Route path="uploads" element={<Uploads />} />
+              <Route path="*" element={<PortalNotFound />} />
+            </Route>
+          </Route>
+        </Routes>
+      </MemoryRouter>
+    );
+
+    expect(await screen.findByText("Local Government index destination")).toBeInTheDocument();
+  });
+
+  it("renders the local government detail route inside the portal layout", async () => {
+    renderWithHelmet(
+      <MemoryRouter initialEntries={["/portal/local-government/E10000031"]}>
+        <Routes>
+          <Route element={<ProtectedRoute authed={true} session={{}} />}>
+            <Route path="/portal" element={<PortalLayout />}>
+              <Route index element={<Portal tokens={null} onLogout={null} />} />
+              <Route
+                path="local-government/:gssCode"
+                element={<div>Local Government detail destination</div>}
+              />
+              <Route path="uploads" element={<Uploads />} />
+              <Route path="*" element={<PortalNotFound />} />
+            </Route>
+          </Route>
+        </Routes>
+      </MemoryRouter>
+    );
+
+    expect(await screen.findByText("Local Government detail destination")).toBeInTheDocument();
+  });
+
   it("blocks upload route when /me returns PENDING", async () => {
     uploadApi.getMe.mockResolvedValue({ user: { status: "PENDING" } });
 
