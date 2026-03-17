@@ -37,6 +37,7 @@
 - Removed the public `Pricing` link from the top navigation so subscriptions stay accessible through the portal flow rather than the public header.
 - Tightened dashboard card layout again so the four product/account cards stretch to a consistent height and keep CTA buttons aligned at the bottom.
 - Replaced the dashboard’s generic card treatment with a dedicated `portal-dashboard-card` layout and a four-column dashboard grid so all four cards use the same class and flex structure.
+- Bypassed the shared `Card` component entirely for the four dashboard product panels and rendered them as plain flexbox `div` blocks with inline styles so card height and CTA positioning cannot be overridden elsewhere.
 - Removed the out-of-place `Portal` eyebrow label from the dashboard heading.
 - Updated the constituency winners query to use the latest general election rather than the latest election of any type.
 - Fixed the seats-won summary logic so:
@@ -50,6 +51,8 @@
 - Removed the duplicate `Constituency Intelligence` eyebrow label from the constituency index page header.
 - Added temporary console logging in the constituency index and map components to trace winner rows, derived colour lookup values, and the first geography fill applied. This is in place specifically to verify the colour path during visual review.
 - Changed the map colour flow so `ConstituencyMapClient` receives winner-party data directly, derives the colour lookup locally, and applies fills through the `Geography` style object. This is intended to fix the grey-fill issue seen in review.
+- Verified the live `parties` table values for Labour, Conservative, Liberal Democrat, Reform UK, SNP, DUP, SDLP, UUP, TUV, Sinn Fein, and Alliance. The queried rows all returned `colour_hex = null`, so the map now depends on explicit UI-side fallback colours for those parties.
+- Added hard-coded Northern Ireland party fallbacks for DUP, Sinn Féin/Sinn Fein, SDLP, Alliance/APNI, UUP, and TUV, and retained the explicit SNP fallback of `#FDF38E`.
 - Added current-holder status handling using `src/data/currentMPs.js`.
 - Surface current-holder changes on:
   - constituency detail header
@@ -66,6 +69,7 @@
 - The `Current composition` card is intentionally hard-coded to the agreed demo numbers supplied for this pass. It should not be treated as a live parliamentary feed.
 - Constituency Intelligence still uses the enquiry route as the public commercial CTA rather than a dedicated public product page.
 - The constituency map uses winner party colours from the election-result dataset with product-side fallbacks for known parties. If a party record is missing colour data, seats still fall back to a neutral slate fill.
+- Because the database currently returns `null` for the checked `colour_hex` values, the hard-coded fallback palette is now the effective source of truth for those party colours in the map.
 - The map currently includes explicit debug logging requested for diagnosis. Remove those logs after visual confirmation if they are no longer needed for the demo environment.
 
 ## Still needs review before the demo

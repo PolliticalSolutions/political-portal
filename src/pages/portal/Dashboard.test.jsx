@@ -32,7 +32,6 @@ describe("Dashboard", () => {
     const cards = [...container.querySelectorAll(".portal-dashboard-card")];
     expect(cards).toHaveLength(4);
     cards.forEach((card) => {
-      expect(card).toHaveClass("product-card");
       expect(card).toHaveClass("portal-dashboard-card");
     });
     expect(screen.getByRole("heading", { name: "Marked Register Processing" })).toBeInTheDocument();
