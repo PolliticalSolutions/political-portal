@@ -2,6 +2,7 @@ import { lazy, Suspense, useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import Button from "../../../components/Button.jsx";
 import Card from "../../../components/Card.jsx";
+import { byElectionAlerts } from "../../../data/byElectionAlerts.js";
 import { getLatestElectionWinners } from "./constituencyApi.js";
 import {
   buildSeatsByPartySummary,
@@ -68,6 +69,95 @@ function formatDate(date) {
     month: "long",
     year: "numeric",
   });
+}
+
+const ALERT_TYPE_LABELS = {
+  council_instability: "Council instability",
+  by_election_risk: "By-election risk",
+  leadership_change: "Leadership change",
+};
+
+function AlertsFeed({ alerts }) {
+  const active = alerts.filter((a) => a.riskLevel === "high" || a.riskLevel === "medium");
+  if (active.length === 0) return null;
+
+  return (
+    <div style={{
+      background: "#fef2f2",
+      border: "1px solid #fecaca",
+      borderLeft: "4px solid #dc2626",
+      borderRadius: 8,
+      overflow: "hidden",
+    }}>
+      <div style={{
+        background: "#dc2626",
+        padding: "10px 16px",
+        display: "flex",
+        alignItems: "center",
+        gap: 8,
+      }}>
+        <span style={{ fontSize: 13, fontWeight: 700, color: "#fff", letterSpacing: "0.03em" }}>
+          INTELLIGENCE ALERTS
+        </span>
+        <span style={{
+          background: "rgba(255,255,255,0.25)",
+          color: "#fff",
+          fontSize: 11,
+          fontWeight: 700,
+          padding: "1px 7px",
+          borderRadius: 10,
+        }}>
+          {active.length} active
+        </span>
+      </div>
+      <div style={{ padding: "4px 0" }}>
+        {active.map((alert, i) => (
+          <div
+            key={i}
+            style={{
+              padding: "12px 16px",
+              borderBottom: i < active.length - 1 ? "1px solid #fecaca" : "none",
+            }}
+          >
+            <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 6, flexWrap: "wrap" }}>
+              <span style={{
+                fontSize: 10,
+                fontWeight: 700,
+                letterSpacing: "0.08em",
+                textTransform: "uppercase",
+                color: "#dc2626",
+              }}>
+                {ALERT_TYPE_LABELS[alert.alertType] ?? alert.alertType}
+              </span>
+              <span style={{
+                background: alert.riskLevel === "high" ? "#dc2626" : "#d97706",
+                color: "#fff",
+                fontSize: 10,
+                fontWeight: 700,
+                padding: "1px 6px",
+                borderRadius: 4,
+                textTransform: "uppercase",
+              }}>
+                {alert.riskLevel} risk
+              </span>
+              {alert.councilName && (
+                <span style={{ fontSize: 12, color: "#6b7280" }}>{alert.councilName}</span>
+              )}
+              {alert.constituencyName && (
+                <span style={{ fontSize: 12, color: "#6b7280" }}>{alert.constituencyName}</span>
+              )}
+            </div>
+            <p style={{ margin: 0, fontSize: 13, color: "#1e293b", lineHeight: 1.55 }}>
+              {alert.summary}
+            </p>
+            <p style={{ margin: "4px 0 0", fontSize: 11, color: "#9ca3af" }}>
+              Updated {formatDate(alert.lastUpdated)}
+            </p>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
 }
 
 export default function ConstituencyIndex() {
@@ -215,6 +305,8 @@ export default function ConstituencyIndex() {
           {error}
         </div>
       )}
+
+      <AlertsFeed alerts={byElectionAlerts} />
 
       <Card title="Search and filter">
         <div className="portal-filter-bar">

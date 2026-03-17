@@ -64,6 +64,16 @@ export async function getConstituencySwings(constituencyId) {
   return { swings: swings ?? [], nationals: nationals ?? [] };
 }
 
+export async function getCouncilData(constituencyId) {
+  const { data, error } = await supabase
+    .from("council_data")
+    .select("*")
+    .eq("constituency_id", constituencyId)
+    .order("council_tier", { ascending: true });
+  if (error) throw new Error(error.message);
+  return data ?? [];
+}
+
 export async function getConstituencyDemographics(constituencyId) {
   const { data, error } = await supabase
     .from("demographics")

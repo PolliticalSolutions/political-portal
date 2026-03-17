@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import Card from "../../../components/Card.jsx";
 import {
+  getCouncilData,
   getConstituency,
   getConstituencyDemographics,
   getConstituencyResults,
@@ -546,13 +547,262 @@ function CandidatesTab({ results }) {
   );
 }
 
-function CouncilsTab() {
+// ── Council party colour palette (local councils, not in parties table) ──────
+const COUNCIL_PARTY_COLOURS = {
+  "Reform UK":          "#12B6CF",
+  "Liberal Democrat":   "#FAA61A",
+  "Conservative":       "#0087DC",
+  "Green":              "#02A95B",
+  "Labour":             "#E4003B",
+  "Restore Britain":    "#8B5CF6",
+  "SNP":                "#FDF38E",
+  "Plaid Cymru":        "#3F8428",
+  "Independent":        "#6B7280",
+};
+
+function councilPartyHex(name) {
+  if (!name) return "#94a3b8";
+  return COUNCIL_PARTY_COLOURS[name] ?? "#94a3b8";
+}
+
+function ControlBadge({ controlType }) {
+  if (!controlType) return null;
+  const label = controlType === "majority" ? "Majority" :
+                controlType === "minority" ? "Minority administration" :
+                controlType === "coalition" ? "Coalition" :
+                controlType === "noc" ? "No overall control" :
+                controlType;
+  const cls = controlType === "majority" ? "success" :
+              controlType === "minority" ? "warning" :
+              "secondary";
+  return <span className={`status-pill ${cls}`}>{label}</span>;
+}
+
+function AlertBadge({ level }) {
+  if (!level || level === "low") return null;
   return (
-    <div className="portal-placeholder-panel">
-      <p className="portal-placeholder-panel__title">Council data</p>
-      <p className="portal-placeholder-panel__body">
-        Council data will be available in a future release.
+    <span className={`status-pill ${level === "high" ? "error" : "warning"}`}>
+      {level === "high" ? "High alert" : "Medium alert"}
+    </span>
+  );
+}
+
+function CouncilAlertPanel({ alertReason }) {
+  if (!alertReason) return null;
+  return (
+    <div style={{
+      background: "#fef2f2",
+      border: "1px solid #fecaca",
+      borderLeft: "4px solid #dc2626",
+      borderRadius: 6,
+      padding: "12px 16px",
+      marginBottom: 16,
+    }}>
+      <p style={{ margin: 0, fontWeight: 700, fontSize: 13, color: "#dc2626", marginBottom: 4 }}>
+        Intelligence Alert
       </p>
+      <p style={{ margin: 0, fontSize: 13, color: "#374151", lineHeight: 1.5 }}>
+        {alertReason}
+      </p>
+    </div>
+  );
+}
+
+function CouncilCompositionTable({ composition, totalSeats }) {
+  if (!composition || Object.keys(composition).length === 0) return null;
+  const entries = Object.entries(composition).sort((a, b) => b[1] - a[1]);
+  return (
+    <div className="table-wrap" style={{ marginTop: 8 }}>
+      <table className="table table--compact">
+        <thead>
+          <tr>
+            <th>Party</th>
+            <th>Seats</th>
+            <th>Share</th>
+          </tr>
+        </thead>
+        <tbody>
+          {entries.map(([party, seats]) => {
+            const hex = councilPartyHex(party);
+            const pct = totalSeats > 0 ? ((seats / totalSeats) * 100).toFixed(1) : "—";
+            return (
+              <tr key={party}>
+                <td>
+                  <span className="party-chip">
+                    <span className="party-dot" style={{ width: 10, height: 10, background: toHexColor(hex) ?? "#94a3b8" }} />
+                    <span>{party}</span>
+                  </span>
+                </td>
+                <td style={{ fontWeight: 600 }}>{seats}</td>
+                <td>
+                  <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                    <div style={{ flex: 1, height: 6, background: "#e2e8f0", borderRadius: 3, overflow: "hidden", minWidth: 60 }}>
+                      <div style={{ width: `${pct}%`, height: "100%", background: toHexColor(hex), borderRadius: 3 }} />
+                    </div>
+                    <span style={{ fontSize: 12, color: "#64748b", width: 40, textAlign: "right" }}>{pct}%</span>
+                  </div>
+                </td>
+              </tr>
+            );
+          })}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
+function CouncilTimeline({ changes }) {
+  if (!changes || changes.length === 0) return null;
+  const sorted = [...changes].sort((a, b) => b.date.localeCompare(a.date));
+  return (
+    <div style={{ marginTop: 8 }}>
+      {sorted.map((item, i) => (
+        <div key={i} style={{ display: "flex", gap: 12, marginBottom: 12, position: "relative" }}>
+          <div style={{ display: "flex", flexDirection: "column", alignItems: "center", flexShrink: 0 }}>
+            <div style={{ width: 10, height: 10, borderRadius: "50%", background: "#3b82f6", marginTop: 3, flexShrink: 0 }} />
+            {i < sorted.length - 1 && (
+              <div style={{ width: 2, flex: 1, background: "#e2e8f0", marginTop: 2, minHeight: 20 }} />
+            )}
+          </div>
+          <div style={{ paddingBottom: 4 }}>
+            <p style={{ margin: 0, fontSize: 11, color: "#64748b", fontWeight: 600, marginBottom: 2 }}>
+              {formatDate(item.date)}
+            </p>
+            <p style={{ margin: 0, fontSize: 13, color: "#1e293b", lineHeight: 1.5 }}>
+              {item.description}
+            </p>
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function CouncilCard({ council }) {
+  const majority = council.total_seats ? Math.floor(council.total_seats / 2) + 1 : null;
+  const controllingSeats = council.composition?.[council.controlling_party] ?? null;
+  const isHigh = council.alert_level === "high";
+  const isMedium = council.alert_level === "medium";
+
+  return (
+    <div className="portal-record" style={{ marginBottom: 16 }}>
+      {/* Header */}
+      <div className="portal-data-section__header">
+        <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", flexWrap: "wrap", gap: 8 }}>
+          <div>
+            <p className="portal-data-section__title" style={{ marginBottom: 4 }}>
+              {council.council_name}
+            </p>
+            <div style={{ display: "flex", gap: 6, flexWrap: "wrap", alignItems: "center" }}>
+              {council.council_type && (
+                <span className="portal-data-section__meta">{council.council_type}</span>
+              )}
+              <ControlBadge controlType={council.control_type} />
+              {(isHigh || isMedium) && <AlertBadge level={council.alert_level} />}
+            </div>
+          </div>
+          {council.next_election_date && (
+            <div style={{ textAlign: "right", flexShrink: 0 }}>
+              <p style={{ margin: 0, fontSize: 11, color: "#64748b" }}>Next election</p>
+              <p style={{ margin: 0, fontSize: 13, fontWeight: 600, color: "#1e293b" }}>
+                {formatDate(council.next_election_date)}
+              </p>
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Key stats */}
+      <div className="portal-summary-grid" style={{ marginTop: 12, marginBottom: 16 }}>
+        <div className="portal-stat">
+          <span className="portal-stat__label">Largest party</span>
+          <span className="portal-stat__value" style={{ fontSize: 18 }}>
+            {council.controlling_party || "—"}
+          </span>
+          <span className="portal-stat__meta">
+            {controllingSeats != null ? `${controllingSeats} seats` : ""}
+          </span>
+        </div>
+        <div className="portal-stat">
+          <span className="portal-stat__label">Total council seats</span>
+          <span className="portal-stat__value" style={{ fontSize: 18 }}>
+            {council.total_seats ?? "—"}
+          </span>
+          <span className="portal-stat__meta">
+            {majority != null ? `Majority requires ${majority}` : ""}
+          </span>
+        </div>
+        <div className="portal-stat">
+          <span className="portal-stat__label">Last election</span>
+          <span className="portal-stat__value" style={{ fontSize: 18 }}>
+            {council.election_date ? new Date(council.election_date).getFullYear() : "—"}
+          </span>
+          <span className="portal-stat__meta">{formatDate(council.election_date)}</span>
+        </div>
+      </div>
+
+      {/* Alert panel */}
+      {(isHigh || isMedium) && <CouncilAlertPanel alertReason={council.alert_reason} />}
+
+      {/* Political context */}
+      {council.political_context && (
+        <div style={{ marginBottom: 16 }}>
+          <p style={{ margin: "0 0 6px", fontSize: 12, fontWeight: 700, color: "#64748b", textTransform: "uppercase", letterSpacing: "0.05em" }}>
+            Political context
+          </p>
+          <p style={{ margin: 0, fontSize: 13, color: "#374151", lineHeight: 1.65 }}>
+            {council.political_context}
+          </p>
+        </div>
+      )}
+
+      {/* Composition */}
+      {council.composition && Object.keys(council.composition).length > 0 && (
+        <div style={{ marginBottom: 16 }}>
+          <p style={{ margin: "0 0 4px", fontSize: 12, fontWeight: 700, color: "#64748b", textTransform: "uppercase", letterSpacing: "0.05em" }}>
+            Council composition
+          </p>
+          <CouncilCompositionTable composition={council.composition} totalSeats={council.total_seats} />
+        </div>
+      )}
+
+      {/* Recent changes */}
+      {council.recent_changes && council.recent_changes.length > 0 && (
+        <div>
+          <p style={{ margin: "0 0 4px", fontSize: 12, fontWeight: 700, color: "#64748b", textTransform: "uppercase", letterSpacing: "0.05em" }}>
+            Recent changes
+          </p>
+          <CouncilTimeline changes={council.recent_changes} />
+        </div>
+      )}
+
+      {/* Source */}
+      {council.source_url && (
+        <div className="portal-data-note" style={{ marginTop: 8 }}>
+          Source: {council.source_url}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function CouncilsTab({ councils }) {
+  if (!councils || councils.length === 0) {
+    return (
+      <div className="portal-placeholder-panel">
+        <p className="portal-placeholder-panel__title">No council data available</p>
+        <p className="portal-placeholder-panel__body">
+          Council intelligence for this constituency has not been loaded yet.
+        </p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="portal-data-section">
+      {councils.map((council) => (
+        <CouncilCard key={council.id} council={council} />
+      ))}
     </div>
   );
 }
@@ -667,6 +917,7 @@ export default function ConstituencyDetail() {
   const [demographics, setDemographics] = useState([]);
   const [swings, setSwings] = useState([]);
   const [nationals, setNationals] = useState([]);
+  const [councils, setCouncils] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [activeTab, setActiveTab] = useState("history");
@@ -683,10 +934,11 @@ export default function ConstituencyDetail() {
         if (cancelled) return;
         setConstituency(nextConstituency);
 
-        const [nextResults, nextDemographics, nextSwings] = await Promise.all([
+        const [nextResults, nextDemographics, nextSwings, nextCouncils] = await Promise.all([
           getConstituencyResults(nextConstituency.id),
           getConstituencyDemographics(nextConstituency.id),
           getConstituencySwings(nextConstituency.id),
+          getCouncilData(nextConstituency.id),
         ]);
 
         if (cancelled) return;
@@ -694,6 +946,7 @@ export default function ConstituencyDetail() {
         setDemographics(nextDemographics);
         setSwings(nextSwings.swings);
         setNationals(nextSwings.nationals);
+        setCouncils(nextCouncils);
       } catch (err) {
         if (!cancelled) setError(err.message || "Failed to load constituency.");
       } finally {
@@ -801,7 +1054,7 @@ export default function ConstituencyDetail() {
         )}
         {activeTab === "demographics" && <DemographicsTab demographics={demographics} />}
         {activeTab === "candidates" && <CandidatesTab results={results} />}
-        {activeTab === "councils" && <CouncilsTab />}
+        {activeTab === "councils" && <CouncilsTab councils={councils} />}
       </Card>
     </div>
   );
