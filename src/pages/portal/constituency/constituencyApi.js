@@ -38,12 +38,14 @@ export async function getConstituencyResults(constituencyId) {
     .eq("constituency_id", constituencyId);
   if (error) throw new Error(error.message);
 
-  return (data ?? []).sort((a, b) => {
-    const dateA = a.elections?.election_date ?? "";
-    const dateB = b.elections?.election_date ?? "";
-    if (dateB !== dateA) return dateB.localeCompare(dateA);
-    return (b.votes ?? 0) - (a.votes ?? 0);
-  });
+  return (data ?? [])
+    .filter((row) => row.elections?.election_type !== "notional")
+    .sort((a, b) => {
+      const dateA = a.elections?.election_date ?? "";
+      const dateB = b.elections?.election_date ?? "";
+      if (dateB !== dateA) return dateB.localeCompare(dateA);
+      return (b.votes ?? 0) - (a.votes ?? 0);
+    });
 }
 
 export async function getConstituencySwings(constituencyId) {
@@ -75,7 +77,8 @@ export async function getConstituencyDemographics(constituencyId) {
 export async function getLatestElectionWinners() {
   const { data: elections, error: elErr } = await supabase
     .from("elections")
-    .select("id, election_date, name")
+    .select("id, election_date, name, election_type")
+    .eq("election_type", "general")
     .order("election_date", { ascending: false })
     .limit(1);
   if (elErr) throw new Error(elErr.message);
