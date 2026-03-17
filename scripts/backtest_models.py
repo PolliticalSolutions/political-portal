@@ -52,11 +52,23 @@ def resolve_runs(args: argparse.Namespace) -> list[tuple[str, int, str]]:
             if cycle != GENERAL_ELECTION_CYCLES[0]
         ]
 
-    if not args.model or not args.target_cycle:
-        raise SystemExit("Specify --model and --target-cycle, or use --all.")
+    if not args.model:
+        raise SystemExit("Specify --model and --target-cycle, use --model vulnerability --all-variants, or use --all.")
 
     if args.model == "vulnerability" and args.all_variants:
-        return [(args.model, args.target_cycle, variant) for variant in SUPPORTED_VULNERABILITY_VARIANTS]
+        cycles = (
+            [args.target_cycle]
+            if args.target_cycle
+            else list(SUPPORTED_VULNERABILITY_TARGET_CYCLES)
+        )
+        return [
+            (args.model, cycle, variant)
+            for cycle in cycles
+            for variant in SUPPORTED_VULNERABILITY_VARIANTS
+        ]
+
+    if not args.target_cycle:
+        raise SystemExit("Specify --model and --target-cycle, use --model vulnerability --all-variants, or use --all.")
 
     return [(args.model, args.target_cycle, args.variant)]
 
