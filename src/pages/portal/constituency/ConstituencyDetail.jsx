@@ -4,6 +4,7 @@ import Card from "../../../components/Card.jsx";
 import DataProvenancePanel from "../../../components/DataProvenancePanel.jsx";
 import { getIntelligenceMetadata } from "../../../lib/intelligenceMetadataApi.js";
 import { resolvePartyColour, toHexColor } from "../../../utils/partyColours.js";
+import { simulateConstituencyScenario } from "../../../utils/scenarioSimulator.js";
 import { hasTwfyApiKey } from "../../../utils/twfy.js";
 import {
   getCouncilData,
@@ -1369,6 +1370,154 @@ function ConstituencyHeader({ constituency, electedWinner, currentStatus, swings
   );
 }
 
+function ScenarioSimulatorCard({ results, electedWinner, constituencyName }) {
+  const [nationalSwingToConservative, setNationalSwingToConservative] = useState(0);
+  const [reformVoteChange, setReformVoteChange] = useState(0);
+  const [turnoutChange, setTurnoutChange] = useState(0);
+
+  const simulation = useMemo(
+    () =>
+      simulateConstituencyScenario({
+        rows: results,
+        nationalSwingToConservative,
+        reformVoteChange,
+        turnoutChange,
+      }),
+    [results, nationalSwingToConservative, reformVoteChange, turnoutChange]
+  );
+
+  return (
+    <Card>
+      <div className="portal-page-header">
+        <div className="portal-page-header__content">
+          <span className="portal-page-header__eyebrow">Scenario Simulator</span>
+          <h2 className="portal-page-header__title portal-page-header__title--section">
+            Constituency planning scenario
+          </h2>
+          <p className="portal-page-header__subtitle">
+            Test simplified national swing, Reform movement, and turnout changes against the latest
+            general election baseline for {constituencyName}.
+          </p>
+        </div>
+      </div>
+
+      {!simulation.available ? (
+        <div className="portal-placeholder-panel">
+          <p className="portal-placeholder-panel__title">Scenario simulator unavailable</p>
+          <p className="portal-placeholder-panel__body">{simulation.reason}</p>
+        </div>
+      ) : (
+        <div className="portal-simulator">
+          <div className="portal-simulator__controls">
+            <label className="field">
+              <span>National swing to Conservatives</span>
+              <input
+                className="input"
+                type="number"
+                min="-25"
+                max="25"
+                step="0.5"
+                value={nationalSwingToConservative}
+                onChange={(event) => setNationalSwingToConservative(Number(event.target.value))}
+              />
+            </label>
+            <label className="field">
+              <span>Reform vote change</span>
+              <input
+                className="input"
+                type="number"
+                min="-20"
+                max="20"
+                step="0.5"
+                value={reformVoteChange}
+                onChange={(event) => setReformVoteChange(Number(event.target.value))}
+              />
+            </label>
+            <label className="field">
+              <span>Turnout change</span>
+              <input
+                className="input"
+                type="number"
+                min="-30"
+                max="30"
+                step="1"
+                value={turnoutChange}
+                onChange={(event) => setTurnoutChange(Number(event.target.value))}
+              />
+            </label>
+          </div>
+
+          <div className="portal-summary-grid">
+            <div className="portal-stat">
+              <span className="portal-stat__label">Projected winner</span>
+              <span className="portal-stat__value">
+                <span className="party-chip">
+                  <PartyDot hex={simulation.projectedWinnerColour} size={12} />
+                  <span>{simulation.projectedWinner}</span>
+                </span>
+              </span>
+              <span className="portal-stat__meta">{simulation.electionName}</span>
+            </div>
+            <div className="portal-stat">
+              <span className="portal-stat__label">Projected majority</span>
+              <span className="portal-stat__value">{formatNumber(simulation.projectedMajority)}</span>
+              <span className="portal-stat__meta">{simulation.projectedMajorityBand} majority band</span>
+            </div>
+            <div className="portal-stat">
+              <span className="portal-stat__label">Projected turnout base</span>
+              <span className="portal-stat__value">{formatNumber(simulation.projectedTotalVotes)}</span>
+              <span className="portal-stat__meta">
+                {(simulation.turnoutMultiplier * 100).toFixed(0)}% of latest baseline turnout
+              </span>
+            </div>
+          </div>
+
+          <div className="portal-record" style={{ marginTop: 16 }}>
+            <div className="portal-data-section__header">
+              <p className="portal-data-section__title">Projected party standings</p>
+              <div className="portal-data-section__meta">
+                Simplified scenario output for planning and briefing use
+              </div>
+            </div>
+            <div className="portal-table-wrapper">
+              <table className="portal-table">
+                <thead>
+                  <tr>
+                    <th>Party</th>
+                    <th>Baseline share</th>
+                    <th>Projected share</th>
+                    <th>Projected votes</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {simulation.projectedRows.map((row) => (
+                    <tr key={row.partyId}>
+                      <td>
+                        <span className="party-chip">
+                          <PartyDot hex={row.colourHex} size={10} />
+                          <span>{row.partyName}</span>
+                        </span>
+                      </td>
+                      <td>{formatPct(row.baselineShare)}</td>
+                      <td>{formatPct(row.projectedShare)}</td>
+                      <td>{formatNumber(row.projectedVotes)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <div className="portal-data-note" style={{ marginTop: 16 }}>
+            <strong>Assumptions:</strong> {simulation.assumptions.join(" ")}
+            {electedWinner?.partyName ? ` Baseline elected party: ${electedWinner.partyName}.` : ""}
+          </div>
+        </div>
+      )}
+    </Card>
+  );
+}
+
 export default function ConstituencyDetail() {
   const { onsCode } = useParams();
   const [constituency, setConstituency] = useState(null);
@@ -1533,6 +1682,12 @@ export default function ConstituencyDetail() {
         marginalityScore={marginalityScore}
         byElectionRisk={byElectionRisk}
         vulnerabilityScore={vulnerabilityScore}
+      />
+
+      <ScenarioSimulatorCard
+        results={results}
+        electedWinner={electedWinner}
+        constituencyName={constituency.name}
       />
 
       <Card>

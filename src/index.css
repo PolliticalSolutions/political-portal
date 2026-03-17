@@ -1002,6 +1002,10 @@ p {
   letter-spacing: -0.02em;
 }
 
+.portal-page-header__title--section {
+  font-size: clamp(22px, 2.1vw, 28px);
+}
+
 .portal-page-header__subtitle {
   margin: 0;
   max-width: 72ch;
@@ -1037,6 +1041,49 @@ p {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
   gap: var(--space-3);
+}
+
+.portal-simulator {
+  display: grid;
+  gap: var(--space-3);
+  margin-top: var(--space-4);
+}
+
+.portal-simulator__controls {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: var(--space-3);
+}
+
+.portal-table-wrapper {
+  width: 100%;
+  overflow-x: auto;
+}
+
+.portal-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: var(--space-3);
+}
+
+.portal-table th,
+.portal-table td {
+  padding: 12px 14px;
+  border-bottom: 1px solid var(--border);
+  text-align: left;
+  vertical-align: middle;
+}
+
+.portal-table th {
+  color: var(--text-muted);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.portal-table tbody tr:last-child td {
+  border-bottom: none;
 }
 
 .portal-stat {
