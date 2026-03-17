@@ -145,4 +145,48 @@ describe("getLatestElectionWinners", () => {
     );
     await expect(getLatestElectionWinners()).rejects.toThrow("Elections table error");
   });
+
+  it("returns the latest general election winners", async () => {
+    const electionQuery = {
+      select: () => electionQuery,
+      eq: () => electionQuery,
+      order: () => electionQuery,
+      limit: () => Promise.resolve({
+        data: [{ id: "election-2024", election_date: "2024-07-04", name: "2024 General Election" }],
+        error: null,
+      }),
+    };
+    const winnersQuery = {
+      select: () => winnersQuery,
+      eq: () => winnersQuery,
+      then: (onFulfilled) => Promise.resolve({
+        data: [
+          {
+            constituency_id: "seat-1",
+            parties: { name: "Labour", short_name: "Lab", colour_hex: "#e31d1a" },
+            constituencies: { id: "seat-1", ons_code: "E14000001", name: "Test Seat" },
+          },
+        ],
+        error: null,
+      }).then(onFulfilled),
+    };
+
+    supabase.from
+      .mockReturnValueOnce(electionQuery)
+      .mockReturnValueOnce(winnersQuery);
+
+    const result = await getLatestElectionWinners();
+
+    expect(result).toEqual({
+      electionName: "2024 General Election",
+      electionDate: "2024-07-04",
+      winners: [
+        {
+          constituency_id: "seat-1",
+          parties: { name: "Labour", short_name: "Lab", colour_hex: "#e31d1a" },
+          constituencies: { id: "seat-1", ons_code: "E14000001", name: "Test Seat" },
+        },
+      ],
+    });
+  });
 });

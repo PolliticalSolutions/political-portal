@@ -7,6 +7,7 @@ import {
   getConstituencyResults,
   getConstituencySwings,
 } from "./constituencyApi.js";
+import { getCurrentStatus } from "./constituencyPresentation.js";
 
 const NATIONAL_AVERAGES = {
   pct_owner_occupied: 64.8,
@@ -556,11 +557,11 @@ function CouncilsTab() {
   );
 }
 
-function ConstituencyHeader({ constituency, currentWinner, swings, nationals }) {
+function ConstituencyHeader({ constituency, electedWinner, currentStatus, swings, nationals }) {
   // Pick the most relevant swing to highlight in the header
   const keySwingStat = useMemo(() => {
     if (!swings || swings.length === 0) return null;
-    const { from, to } = primaryPairing(currentWinner?.partyId);
+    const { from, to } = primaryPairing(electedWinner?.partyId);
     const match = swings.find((s) => s.from_party_id === from && s.to_party_id === to);
     if (!match) return null;
     const national = nationals?.find((s) => s.from_party_id === from && s.to_party_id === to);
@@ -570,7 +571,7 @@ function ConstituencyHeader({ constituency, currentWinner, swings, nationals }) 
       value: match.swing_value,
       national: national?.swing_value ?? null,
     };
-  }, [swings, nationals, currentWinner]);
+  }, [swings, nationals, electedWinner]);
 
   return (
     <Card>
@@ -591,49 +592,70 @@ function ConstituencyHeader({ constituency, currentWinner, swings, nationals }) 
 
       <div className="portal-summary-grid" style={{ marginTop: 24 }}>
         <div className="portal-stat">
-          <span className="portal-stat__label">Current winner</span>
+          <span className="portal-stat__label">Elected in 2024</span>
           <span className="portal-stat__value">
-            {currentWinner?.candidateName || "—"}
+            {electedWinner?.candidateName || "—"}
           </span>
           <span className="portal-stat__meta">
             <span className="party-chip">
-              {currentWinner?.partyName ? <PartyDot hex={currentWinner.partyHex} size={12} /> : null}
-              <span>{currentWinner?.partyName || "No winner loaded"}</span>
+              {electedWinner?.partyName ? <PartyDot hex={electedWinner.partyHex} size={12} /> : null}
+              <span>{electedWinner?.partyName || "No winner loaded"}</span>
+            </span>
+          </span>
+        </div>
+        <div className="portal-stat">
+          <span className="portal-stat__label">Current status</span>
+          <span className="portal-stat__value">
+            {currentStatus?.currentMemberName || electedWinner?.candidateName || "—"}
+          </span>
+          <span className="portal-stat__meta">
+            <span className="party-chip">
+              {(currentStatus?.currentPartyName || electedWinner?.partyName) ? (
+                <PartyDot hex={currentStatus?.currentPartyHex || electedWinner?.partyHex} size={12} />
+              ) : null}
+              <span>{currentStatus?.currentPartyName || electedWinner?.partyName || "No current status loaded"}</span>
             </span>
           </span>
         </div>
         <div className="portal-stat">
           <span className="portal-stat__label">Majority</span>
           <span className="portal-stat__value">
-            {currentWinner?.majority != null ? formatNumber(currentWinner.majority) : "—"}
+            {electedWinner?.majority != null ? formatNumber(electedWinner.majority) : "—"}
           </span>
-          <span className="portal-stat__meta">{currentWinner?.electionName || "Latest available election"}</span>
+          <span className="portal-stat__meta">{electedWinner?.electionName || "Latest available election"}</span>
         </div>
         <div className="portal-stat">
           <span className="portal-stat__label">Region</span>
           <span className="portal-stat__value">{constituency.region || "—"}</span>
           <span className="portal-stat__meta">{constituency.country || "Country not listed"}</span>
         </div>
-        {keySwingStat ? (
-          <div className="portal-stat">
-            <span className="portal-stat__label">Key swing ({keySwingStat.label})</span>
-            <span className="portal-stat__value" style={{ color: keySwingStat.value >= 0 ? "#15803d" : "#b91c1c" }}>
-              {formatSwing(keySwingStat.value) ?? "—"}
-            </span>
-            <span className="portal-stat__meta">
-              {keySwingStat.national != null
-                ? `National avg: ${formatSwing(keySwingStat.national)} • notional 2019\u21922024`
-                : "notional 2019\u21922024"}
-            </span>
-          </div>
-        ) : (
-          <div className="portal-stat">
-            <span className="portal-stat__label">Electorate</span>
-            <span className="portal-stat__value">{formatNumber(constituency.electorate_current)}</span>
-            <span className="portal-stat__meta">{constituency.constituency_type || "Constituency type not listed"}</span>
-          </div>
-        )}
+        <div className="portal-stat">
+          <span className="portal-stat__label">Electorate</span>
+          <span className="portal-stat__value">{formatNumber(constituency.electorate_current)}</span>
+          <span className="portal-stat__meta">{constituency.constituency_type || "Constituency type not listed"}</span>
+        </div>
       </div>
+
+      {currentStatus?.differsFromElected && (
+        <div className="portal-data-note" style={{ marginTop: 16 }}>
+          Elected: <strong>{electedWinner?.partyName || "—"}</strong> | Current:{" "}
+          <strong>{currentStatus.currentPartyName}</strong>
+          {currentStatus.currentMemberName ? ` (${currentStatus.currentMemberName})` : ""}
+          {currentStatus.effectiveDate ? ` • updated ${formatDate(currentStatus.effectiveDate)}` : ""}
+        </div>
+      )}
+
+      {keySwingStat && (
+        <div className="portal-data-note" style={{ marginTop: 16 }}>
+          Key swing ({keySwingStat.label}):{" "}
+          <strong style={{ color: keySwingStat.value >= 0 ? "#15803d" : "#b91c1c" }}>
+            {formatSwing(keySwingStat.value) ?? "—"}
+          </strong>
+          {keySwingStat.national != null
+            ? ` • National avg ${formatSwing(keySwingStat.national)}`
+            : ""}
+        </div>
+      )}
     </Card>
   );
 }
@@ -694,13 +716,15 @@ export default function ConstituencyDetail() {
     return map;
   }, [results]);
 
-  const currentWinner = useMemo(() => {
+  const electedWinner = useMemo(() => {
     if (!results.length) return null;
-    // Find the most recent election's winner
-    const sorted = [...results].sort((a, b) =>
+    const sorted = [...results]
+      .filter((row) => row.elections?.election_type === "general")
+      .sort((a, b) => (b.elections?.election_date ?? "").localeCompare(a.elections?.election_date ?? ""));
+    const pool = sorted.length > 0 ? sorted : [...results].sort((a, b) =>
       (b.elections?.election_date ?? "").localeCompare(a.elections?.election_date ?? "")
     );
-    const winner = sorted.find((row) => row.is_winner);
+    const winner = pool.find((row) => row.is_winner);
     if (!winner) return null;
 
     return {
@@ -714,6 +738,11 @@ export default function ConstituencyDetail() {
       electionName: winner.elections?.name,
     };
   }, [results]);
+
+  const currentStatus = useMemo(() => {
+    if (!constituency) return null;
+    return getCurrentStatus(constituency.name, electedWinner?.partyName || "");
+  }, [constituency, electedWinner]);
 
   if (loading) {
     return (
@@ -754,7 +783,8 @@ export default function ConstituencyDetail() {
     <div className="page stack">
       <ConstituencyHeader
         constituency={constituency}
-        currentWinner={currentWinner}
+        electedWinner={electedWinner}
+        currentStatus={currentStatus}
         swings={swings}
         nationals={nationals}
       />

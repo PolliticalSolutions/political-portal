@@ -969,6 +969,17 @@ p {
   gap: var(--space-3);
 }
 
+.portal-map-canvas {
+  display: grid;
+  gap: var(--space-3);
+}
+
+.portal-map-controls {
+  display: inline-flex;
+  gap: var(--space-2);
+  justify-content: flex-end;
+}
+
 .portal-map-frame {
   padding: var(--space-3);
   border-radius: var(--radius-md);
@@ -1093,6 +1104,18 @@ p {
   background: rgba(11, 46, 77, 0.04);
   color: var(--text-muted);
   font-size: 13px;
+}
+
+.portal-current-status {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.portal-current-status__meta {
+  color: var(--text-muted);
+  font-size: 12px;
 }
 
 .table-wrap {

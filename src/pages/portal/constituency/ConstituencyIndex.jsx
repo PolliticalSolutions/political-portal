@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import Button from "../../../components/Button.jsx";
 import Card from "../../../components/Card.jsx";
 import { getLatestElectionWinners } from "./constituencyApi.js";
+import { buildSeatsByPartySummary, getCurrentStatus, normalizePartyName } from "./constituencyPresentation.js";
 
 const ConstituencyMapClient = lazy(() => import("./ConstituencyMapClient.jsx"));
 
@@ -60,6 +61,7 @@ export default function ConstituencyIndex() {
   const [regions, setRegions] = useState([]);
   const [countries, setCountries] = useState([]);
   const [latestElection, setLatestElection] = useState(null);
+  const [winnerRows, setWinnerRows] = useState([]);
   const [winnersByOnsCode, setWinnersByOnsCode] = useState({});
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -108,8 +110,9 @@ export default function ConstituencyIndex() {
         const winnerMap = {};
         electionData.winners.forEach((winner) => {
           const onsCode = winner.constituencies?.ons_code;
-          if (onsCode && validOnsCode.test(onsCode) && !winnerMap[onsCode]) {
-            winnerMap[onsCode] = winner.parties;
+          const normalizedOnsCode = (onsCode || "").toUpperCase();
+          if (normalizedOnsCode && validOnsCode.test(normalizedOnsCode) && !winnerMap[normalizedOnsCode]) {
+            winnerMap[normalizedOnsCode] = winner.parties;
           }
         });
 
@@ -117,6 +120,7 @@ export default function ConstituencyIndex() {
         setRegions(nextRegions);
         setCountries(nextCountries);
         setLatestElection({ name: electionData.electionName, date: electionData.electionDate });
+        setWinnerRows(electionData.winners);
         setWinnersByOnsCode(winnerMap);
       } catch (err) {
         if (!cancelled) setError(err.message || "Failed to load constituency data.");
@@ -142,30 +146,25 @@ export default function ConstituencyIndex() {
   }, [allConstituencies, query, selectedRegion, selectedCountry]);
 
   const seatsByParty = useMemo(() => {
-    const accumulator = {};
-    Object.values(winnersByOnsCode).forEach((party) => {
-      if (!party) return;
-      const key = party.short_name || party.name;
-      if (!accumulator[key]) {
-        accumulator[key] = {
-          name: party.name,
-          shortName: party.short_name,
-          hex: party.colour_hex,
-          count: 0,
-        };
-      }
-      accumulator[key].count += 1;
-    });
-
-    return Object.values(accumulator)
-      .sort((a, b) => b.count - a.count)
-      .slice(0, 6);
-  }, [winnersByOnsCode]);
+    return buildSeatsByPartySummary(winnerRows);
+  }, [winnerRows]);
 
   const totalSeats = useMemo(
     () => seatsByParty.reduce((sum, party) => sum + party.count, 0),
     [seatsByParty]
   );
+
+  const currentStatusByOnsCode = useMemo(() => {
+    const statusMap = {};
+    allConstituencies.forEach((constituency) => {
+      const winner = winnersByOnsCode[constituency.ons_code];
+      const currentStatus = getCurrentStatus(constituency.name, winner?.name || winner?.short_name || "");
+      if (currentStatus?.differsFromElected) {
+        statusMap[constituency.ons_code] = currentStatus;
+      }
+    });
+    return statusMap;
+  }, [allConstituencies, winnersByOnsCode]);
 
   const hasFilters = Boolean(query || selectedRegion || selectedCountry);
 
@@ -277,7 +276,12 @@ export default function ConstituencyIndex() {
           <div className="portal-map-shell">
             <div className="portal-map-frame">
               <Suspense fallback={<div className="portal-map-fallback" />}>
-                <ConstituencyMapClient winnersByOnsCode={winnersByOnsCode} />
+                <ConstituencyMapClient
+                  winnerColoursByOnsCode={Object.fromEntries(
+                    Object.entries(winnersByOnsCode).map(([onsCode, party]) => [onsCode, toHexColor(party?.colour_hex)])
+                  )}
+                  currentStatusByOnsCode={currentStatusByOnsCode}
+                />
               </Suspense>
             </div>
             {latestElection?.name && (
@@ -320,9 +324,6 @@ export default function ConstituencyIndex() {
                     total={totalSeats}
                   />
                 ))}
-                {Object.keys(winnersByOnsCode).length > totalSeats && (
-                  <p className="portal-kpi-note">Additional parties are not shown in this summary.</p>
-                )}
               </div>
             </Card>
           )}
@@ -358,6 +359,11 @@ export default function ConstituencyIndex() {
               <tbody>
                 {filteredConstituencies.map((constituency) => {
                   const winner = winnersByOnsCode[constituency.ons_code];
+                  const currentStatus = currentStatusByOnsCode[constituency.ons_code] || null;
+                  const hasCurrentDifference =
+                    currentStatus &&
+                    normalizePartyName(currentStatus.currentPartyName) !==
+                      normalizePartyName(winner?.name || winner?.short_name || "");
                   return (
                     <tr key={constituency.ons_code}>
                       <td>
@@ -370,10 +376,20 @@ export default function ConstituencyIndex() {
                       <td>{constituency.constituency_type || "—"}</td>
                       <td>
                         {winner ? (
-                          <span className="party-chip">
-                            <PartyDot hex={winner.colour_hex} />
-                            <span>{winner.short_name || winner.name}</span>
-                          </span>
+                          <div className="portal-stack-compact">
+                            <span className="party-chip">
+                              <PartyDot hex={winner.colour_hex} />
+                              <span>{winner.short_name || winner.name}</span>
+                            </span>
+                            {hasCurrentDifference && (
+                              <div className="portal-current-status">
+                                <span className="status-pill warning">Current holder differs</span>
+                                <span className="portal-current-status__meta">
+                                  Current: {currentStatus.currentPartyShortName || currentStatus.currentPartyName}
+                                </span>
+                              </div>
+                            )}
+                          </div>
                         ) : (
                           "—"
                         )}

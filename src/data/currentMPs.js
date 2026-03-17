@@ -1,0 +1,98 @@
+export const CURRENT_MP_STATUSES = [
+  {
+    constituencyName: "Canterbury",
+    currentMemberName: "Rosie Duffield",
+    currentPartyName: "Independent",
+    currentPartyShortName: "IND",
+    currentPartyHex: "#64748b",
+    effectiveDate: "2024-09-28",
+    note: "Parliamentary party affiliation changed after the 2024 General Election.",
+  },
+  {
+    constituencyName: "Great Yarmouth",
+    currentMemberName: "Rupert Lowe",
+    currentPartyName: "Independent",
+    currentPartyShortName: "IND",
+    currentPartyHex: "#64748b",
+    effectiveDate: "2025-03-07",
+    note: "Current affiliation differs from the 2024 General Election result.",
+  },
+  {
+    constituencyName: "North East Somerset and Hanham",
+    currentMemberName: "Dan Norris",
+    currentPartyName: "Independent",
+    currentPartyShortName: "IND",
+    currentPartyHex: "#64748b",
+    effectiveDate: "2025-04-04",
+    note: "Current affiliation differs from the 2024 General Election result.",
+  },
+  {
+    constituencyName: "Runcorn and Helsby",
+    currentMemberName: "Sarah Pochin",
+    currentPartyName: "Reform UK",
+    currentPartyShortName: "RUK",
+    currentPartyHex: "#12b6cf",
+    effectiveDate: "2025-05-01",
+    note: "Current MP elected at the 2025 by-election.",
+  },
+  {
+    constituencyName: "Central Suffolk and North Ipswich",
+    currentMemberName: "Patrick Spencer",
+    currentPartyName: "Independent",
+    currentPartyShortName: "IND",
+    currentPartyHex: "#64748b",
+    effectiveDate: "2025-05-13",
+    note: "Current affiliation differs from the 2024 General Election result.",
+  },
+  {
+    constituencyName: "South Basildon and East Thurrock",
+    currentMemberName: "James McMurdock",
+    currentPartyName: "Independent",
+    currentPartyShortName: "IND",
+    currentPartyHex: "#64748b",
+    effectiveDate: "2025-07-05",
+    note: "Current affiliation differs from the 2024 General Election result.",
+  },
+  {
+    constituencyName: "Hackney North and Stoke Newington",
+    currentMemberName: "Diane Abbott",
+    currentPartyName: "Independent",
+    currentPartyShortName: "IND",
+    currentPartyHex: "#64748b",
+    effectiveDate: "2025-07-17",
+    note: "Current affiliation differs from the 2024 General Election result.",
+  },
+  {
+    constituencyName: "Coventry South",
+    currentMemberName: "Zarah Sultana",
+    currentPartyName: "Your Party",
+    currentPartyShortName: "Your Party",
+    currentPartyHex: "#8b5cf6",
+    effectiveDate: "2025-11-18",
+    note: "Current affiliation differs from the 2024 General Election result.",
+  },
+  {
+    constituencyName: "Penrith and Solway",
+    currentMemberName: "Markus Campbell-Savours",
+    currentPartyName: "Independent",
+    currentPartyShortName: "IND",
+    currentPartyHex: "#64748b",
+    effectiveDate: "2025-12-03",
+    note: "Current affiliation differs from the 2024 General Election result.",
+  },
+  {
+    constituencyName: "Gorton and Denton",
+    currentMemberName: "Hannah Spencer",
+    currentPartyName: "Green Party",
+    currentPartyShortName: "Green",
+    currentPartyHex: "#6ab023",
+    effectiveDate: "2026-02-26",
+    note: "Current MP elected at the 2026 by-election.",
+  },
+];
+
+export function findCurrentMpStatus(constituencyName = "") {
+  return (
+    CURRENT_MP_STATUSES.find((entry) => entry.constituencyName === constituencyName) || null
+  );
+}

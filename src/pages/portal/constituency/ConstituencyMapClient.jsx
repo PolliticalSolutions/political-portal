@@ -3,7 +3,7 @@
 // The GeoJSON is bundled directly to avoid an HTTP fetch (eliminates the Amplify redirect issue).
 import { useCallback, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { ComposableMap, Geographies, Geography } from "react-simple-maps";
+import { ComposableMap, Geographies, Geography, ZoomableGroup } from "react-simple-maps";
 import geoData from "/src/data/uk-constituencies.geojson";
 
 function toHexColor(hex) {
@@ -34,9 +34,14 @@ function MapError({ reason }) {
   );
 }
 
-export default function ConstituencyMapClient({ winnersByOnsCode = {}, onConstituencyClick }) {
+export default function ConstituencyMapClient({
+  winnerColoursByOnsCode = {},
+  currentStatusByOnsCode = {},
+  onConstituencyClick,
+}) {
   const navigate = useNavigate();
   const [mapError, setMapError] = useState(null);
+  const [position, setPosition] = useState({ coordinates: [-2, 55.4], zoom: 1 });
   const errorLoggedRef = useRef(false);
 
   const handleClick = (onsCode) => {
@@ -68,16 +73,16 @@ export default function ConstituencyMapClient({ winnersByOnsCode = {}, onConstit
 
       return geographies.map((geo) => {
         const onsCode = geo.properties.PCON24CD;
-        const winner = winnersByOnsCode[onsCode];
-        const fill = toHexColor(winner?.colour_hex) ?? "#94a3b8";
+        const fill = winnerColoursByOnsCode[onsCode] ?? "#94a3b8";
+        const hasCurrentDifference = Boolean(currentStatusByOnsCode[onsCode]);
 
         return (
           <Geography
             key={geo.rsmKey}
             geography={geo}
             fill={fill}
-            stroke="#ffffff"
-            strokeWidth={0.3}
+            stroke={hasCurrentDifference ? "#c89b4a" : "#ffffff"}
+            strokeWidth={hasCurrentDifference ? 0.7 : 0.3}
             title={geo.properties.PCON24NM ?? onsCode}
             style={{
               default: { outline: "none" },
@@ -90,7 +95,7 @@ export default function ConstituencyMapClient({ winnersByOnsCode = {}, onConstit
       });
     },
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [winnersByOnsCode]
+    [winnerColoursByOnsCode, currentStatusByOnsCode]
   );
 
   if (mapError) {
@@ -98,18 +103,47 @@ export default function ConstituencyMapClient({ winnersByOnsCode = {}, onConstit
   }
 
   return (
-    <ComposableMap
-      // Mercator centred on UK. scale 1800 + center [-2, 55.4] fits
-      // England, Wales, Scotland and NI within a 500×750 viewport.
-      projection="geoMercator"
-      projectionConfig={{ center: [-2, 55.4], scale: 1800 }}
-      width={500}
-      height={750}
-      style={{ width: "100%", height: "auto", display: "block" }}
-    >
-      <Geographies geography={geoData}>
-        {handleGeographies}
-      </Geographies>
-    </ComposableMap>
+    <div className="portal-map-canvas">
+      <div className="portal-map-controls" aria-label="Map zoom controls">
+        <button
+          type="button"
+          className="button secondary button--small"
+          onClick={() => setPosition((current) => ({ ...current, zoom: Math.min(current.zoom * 1.25, 8) }))}
+          aria-label="Zoom in"
+        >
+          +
+        </button>
+        <button
+          type="button"
+          className="button secondary button--small"
+          onClick={() => setPosition((current) => ({ ...current, zoom: Math.max(current.zoom / 1.25, 1) }))}
+          aria-label="Zoom out"
+        >
+          -
+        </button>
+      </div>
+      <ComposableMap
+        projection="geoMercator"
+        projectionConfig={{ center: [-2, 55.4], scale: 1800 }}
+        width={500}
+        height={750}
+        style={{ width: "100%", height: "auto", display: "block" }}
+      >
+        <ZoomableGroup
+          center={position.coordinates}
+          zoom={position.zoom}
+          onMoveEnd={(nextPosition) => {
+            setPosition({
+              coordinates: nextPosition.coordinates,
+              zoom: nextPosition.zoom,
+            });
+          }}
+        >
+          <Geographies geography={geoData}>
+            {handleGeographies}
+          </Geographies>
+        </ZoomableGroup>
+      </ComposableMap>
+    </div>
   );
 }
