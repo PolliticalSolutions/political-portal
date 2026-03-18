@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-03-18T06:28:55.103885Z",
+  "generated_at": "2026-03-18T06:32:38.442190Z",
   "models": [
     {
       "model_key": "vulnerability",
@@ -20,7 +20,7 @@
         "Local data inventory currently includes 7 mapped constituencies, 21 authorities, and 7 council result rows.",
         "Local-government coverage is too sparse for national backtesting (0/330 seats; minimum 50% coverage required)."
       ],
-      "generated_at": "2026-03-18T06:28:55.103885Z"
+      "generated_at": "2026-03-18T06:32:38.442190Z"
     },
     {
       "model_key": "reform_threat",
@@ -37,7 +37,7 @@
       "major_warnings": [
         "Reform-era signal structure is not directly comparable before 2024, so historical runs are conceptually partial."
       ],
-      "generated_at": "2026-03-18T06:28:55.103885Z"
+      "generated_at": "2026-03-18T06:32:38.442190Z"
     },
     {
       "model_key": "by_election_risk",
@@ -54,7 +54,7 @@
       "major_warnings": [
         "By-election risk relies on event-driven signals that are not yet historically complete; treat any backtest as partial."
       ],
-      "generated_at": "2026-03-18T06:28:55.103885Z"
+      "generated_at": "2026-03-18T06:32:38.442190Z"
     }
   ]
 }

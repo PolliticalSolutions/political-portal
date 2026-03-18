@@ -1,6 +1,6 @@
 {
-  "generated_at": "2026-03-18T06:21:20.050064Z",
-  "artifact_count": 59,
+  "generated_at": "2026-03-18T06:32:38.518462Z",
+  "artifact_count": 60,
   "entries": [
     {
       "artifact_path": "artifacts/backtests/by_election_risk_2017_backtest.json",
@@ -505,7 +505,7 @@
       "model_key": null,
       "variant": null,
       "cycle": null,
-      "modified_at": 1773814714.0081084,
+      "modified_at": 1773815558.4536152,
       "runtime_safe": true,
       "classification": "scaffold",
       "status": null,
@@ -571,6 +571,19 @@
         "No live historical rows were loaded; metrics are listed but not executed.",
         "Use this artifact to confirm leakage exclusions, signal availability, and data requirements before enabling full runs."
       ],
+      "warnings": []
+    },
+    {
+      "artifact_path": "artifacts/backtests/reform_threat_feature_readiness.json",
+      "artifact_type": "backtest_report",
+      "model_key": "reform_threat",
+      "variant": null,
+      "cycle": null,
+      "modified_at": 1773815558.3877447,
+      "runtime_safe": false,
+      "classification": "scaffold",
+      "status": null,
+      "notes": null,
       "warnings": []
     },
     {
