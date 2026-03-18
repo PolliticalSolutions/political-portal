@@ -1,0 +1,101 @@
+[
+  {
+    "key": "mp_resignation",
+    "label": "MP resignation",
+    "category": "mp",
+    "suggested_severity_range": [3, 5],
+    "default_weight_for_by_election_risk": 0.95,
+    "default_weight_for_vulnerability": 0.45,
+    "notes": "Direct trigger-class parliamentary instability event."
+  },
+  {
+    "key": "mp_defection",
+    "label": "MP defection",
+    "category": "mp",
+    "suggested_severity_range": [3, 5],
+    "default_weight_for_by_election_risk": 0.55,
+    "default_weight_for_vulnerability": 0.8,
+    "notes": "Can materially change local political narrative even without immediate vacancy."
+  },
+  {
+    "key": "mp_suspension",
+    "label": "MP suspension",
+    "category": "mp",
+    "suggested_severity_range": [2, 4],
+    "default_weight_for_by_election_risk": 0.6,
+    "default_weight_for_vulnerability": 0.65,
+    "notes": "Important instability signal but not always a vacancy trigger."
+  },
+  {
+    "key": "criminal_investigation",
+    "label": "Criminal investigation",
+    "category": "legal",
+    "suggested_severity_range": [3, 5],
+    "default_weight_for_by_election_risk": 0.7,
+    "default_weight_for_vulnerability": 0.7,
+    "notes": "Requires confidence and source-quality handling."
+  },
+  {
+    "key": "standards_investigation",
+    "label": "Standards investigation",
+    "category": "legal",
+    "suggested_severity_range": [2, 4],
+    "default_weight_for_by_election_risk": 0.45,
+    "default_weight_for_vulnerability": 0.55,
+    "notes": "Institutional scrutiny event that may or may not escalate."
+  },
+  {
+    "key": "deselection_conflict",
+    "label": "Deselection conflict",
+    "category": "party",
+    "suggested_severity_range": [2, 4],
+    "default_weight_for_by_election_risk": 0.25,
+    "default_weight_for_vulnerability": 0.6,
+    "notes": "Primarily a vulnerability and organisation-discipline signal."
+  },
+  {
+    "key": "council_control_change",
+    "label": "Council control change",
+    "category": "council",
+    "suggested_severity_range": [2, 4],
+    "default_weight_for_by_election_risk": 0.2,
+    "default_weight_for_vulnerability": 0.55,
+    "notes": "Useful local trend signal if locality mapping is strong."
+  },
+  {
+    "key": "council_leadership_collapse",
+    "label": "Council leadership collapse",
+    "category": "council",
+    "suggested_severity_range": [2, 4],
+    "default_weight_for_by_election_risk": 0.2,
+    "default_weight_for_vulnerability": 0.45,
+    "notes": "Meaningful only where constituency-local authority linkage is credible."
+  },
+  {
+    "key": "major_local_scandal",
+    "label": "Major local scandal",
+    "category": "legal",
+    "suggested_severity_range": [2, 5],
+    "default_weight_for_by_election_risk": 0.35,
+    "default_weight_for_vulnerability": 0.7,
+    "notes": "High salience but heterogeneous event type."
+  },
+  {
+    "key": "by_election_trigger",
+    "label": "By-election trigger",
+    "category": "legal",
+    "suggested_severity_range": [5, 5],
+    "default_weight_for_by_election_risk": 1.0,
+    "default_weight_for_vulnerability": 0.4,
+    "notes": "Immediate trigger condition rather than a background risk signal."
+  },
+  {
+    "key": "high_profile_association_split",
+    "label": "High-profile association split",
+    "category": "association",
+    "suggested_severity_range": [2, 4],
+    "default_weight_for_by_election_risk": 0.2,
+    "default_weight_for_vulnerability": 0.5,
+    "notes": "Potential field-organisation degradation signal."
+  }
+]
