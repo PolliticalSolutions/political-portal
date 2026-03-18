@@ -1,0 +1,24 @@
+{
+  "rows": [
+    {
+      "event_id": "sample-event-001",
+      "constituency_identifier": "E14001153",
+      "constituency_name": "Carshalton and Wallington",
+      "event_date": "2025-01-10",
+      "event_type": "mp_resignation",
+      "event_severity": 4,
+      "subject_type": "mp",
+      "subject_name": "Example MP",
+      "summary": "Example resignation event for template only",
+      "source_url": "https://example.test/source",
+      "source_confidence": "medium",
+      "structured_tags": [
+        "resignation",
+        "selection pressure"
+      ],
+      "affects_by_election_risk": true,
+      "affects_vulnerability": true,
+      "notes": "Template row for dry-run validation"
+    }
+  ]
+}

@@ -1,0 +1,2 @@
+event_id,constituency_identifier,constituency_name,event_date,event_type,event_severity,subject_type,subject_name,summary,source_url,source_confidence,structured_tags,affects_by_election_risk,affects_vulnerability,notes
+sample-event-001,E14001153,Carshalton and Wallington,2025-01-10,mp_resignation,4,mp,Example MP,Example resignation event for template only,https://example.test/source,medium,"resignation,selection pressure",true,true,Template row for dry-run validation
