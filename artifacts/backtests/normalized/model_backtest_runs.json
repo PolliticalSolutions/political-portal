@@ -1,0 +1,813 @@
+{
+  "generated_from": "artifacts/backtests",
+  "record_count": 24,
+  "records": [
+    {
+      "model_key": "by_election_risk",
+      "model_version": null,
+      "variant_key": null,
+      "baseline_cycle": 2015,
+      "target_cycle": 2017,
+      "run_timestamp": "2026-03-17T19:41:28.668365+00:00",
+      "run_mode": "dry-run",
+      "metrics": {},
+      "signal_coverage_summary": {
+        "available_signals": [
+          "conservative_majority_pct",
+          "challenger_gap",
+          "anti_incumbent_pressure",
+          "turnout_volatility",
+          "fragmentation_pressure"
+        ],
+        "missing_signals": [
+          "local_government_instability",
+          "mp_instability",
+          "alert_pressure"
+        ],
+        "excluded_signals": []
+      },
+      "warnings": [
+        "By-election risk relies on event-driven signals that are not yet historically complete; treat any backtest as partial."
+      ],
+      "artifact_path": "artifacts/backtests/by_election_risk_2017_backtest.json",
+      "status": "dry_run_ready",
+      "notes": "Baseline cycle: 2015 | Run mode: dry-run | Universe: Seats with usable event history prior to the target cycle | No live historical rows were loaded; metrics are listed but not executed. | Use this artifact to confirm leakage exclusions, signal availability, and data requirements before enabling full runs.",
+      "source_filename": "by_election_risk_2017_backtest.json"
+    },
+    {
+      "model_key": "by_election_risk",
+      "model_version": null,
+      "variant_key": null,
+      "baseline_cycle": 2017,
+      "target_cycle": 2019,
+      "run_timestamp": "2026-03-17T19:41:28.669513+00:00",
+      "run_mode": "dry-run",
+      "metrics": {},
+      "signal_coverage_summary": {
+        "available_signals": [
+          "conservative_majority_pct",
+          "challenger_gap",
+          "anti_incumbent_pressure",
+          "turnout_volatility",
+          "fragmentation_pressure"
+        ],
+        "missing_signals": [
+          "local_government_instability",
+          "mp_instability",
+          "alert_pressure"
+        ],
+        "excluded_signals": []
+      },
+      "warnings": [
+        "By-election risk relies on event-driven signals that are not yet historically complete; treat any backtest as partial."
+      ],
+      "artifact_path": "artifacts/backtests/by_election_risk_2019_backtest.json",
+      "status": "dry_run_ready",
+      "notes": "Baseline cycle: 2017 | Run mode: dry-run | Universe: Seats with usable event history prior to the target cycle | No live historical rows were loaded; metrics are listed but not executed. | Use this artifact to confirm leakage exclusions, signal availability, and data requirements before enabling full runs.",
+      "source_filename": "by_election_risk_2019_backtest.json"
+    },
+    {
+      "model_key": "by_election_risk",
+      "model_version": null,
+      "variant_key": null,
+      "baseline_cycle": 2019,
+      "target_cycle": 2024,
+      "run_timestamp": "2026-03-17T19:41:28.670761+00:00",
+      "run_mode": "dry-run",
+      "metrics": {},
+      "signal_coverage_summary": {
+        "available_signals": [
+          "conservative_majority_pct",
+          "challenger_gap",
+          "anti_incumbent_pressure",
+          "turnout_volatility",
+          "fragmentation_pressure"
+        ],
+        "missing_signals": [
+          "local_government_instability",
+          "mp_instability",
+          "alert_pressure"
+        ],
+        "excluded_signals": []
+      },
+      "warnings": [
+        "By-election risk relies on event-driven signals that are not yet historically complete; treat any backtest as partial."
+      ],
+      "artifact_path": "artifacts/backtests/by_election_risk_2024_backtest.json",
+      "status": "dry_run_ready",
+      "notes": "Baseline cycle: 2019 | Run mode: dry-run | Universe: Seats with usable event history prior to the target cycle | No live historical rows were loaded; metrics are listed but not executed. | Use this artifact to confirm leakage exclusions, signal availability, and data requirements before enabling full runs.",
+      "source_filename": "by_election_risk_2024_backtest.json"
+    },
+    {
+      "model_key": "reform_threat",
+      "model_version": null,
+      "variant_key": null,
+      "baseline_cycle": 2015,
+      "target_cycle": 2017,
+      "run_timestamp": "2026-03-17T19:41:28.664404+00:00",
+      "run_mode": "dry-run",
+      "metrics": {},
+      "signal_coverage_summary": {
+        "available_signals": [
+          "conservative_majority_pct",
+          "demographic_headwinds",
+          "fragmentation_pressure"
+        ],
+        "missing_signals": [
+          "local_reform_presence",
+          "local_government_instability"
+        ],
+        "excluded_signals": [
+          {
+            "signal_key": "reform_vote_share",
+            "reason": "Direct Reform-era historical analogue is not defensible before 2024."
+          },
+          {
+            "signal_key": "con_reform_swing",
+            "reason": "Direct Reform-era historical analogue is not defensible before 2024."
+          }
+        ]
+      },
+      "warnings": [
+        "Reform-era signal structure is not directly comparable before 2024, so historical runs are conceptually partial."
+      ],
+      "artifact_path": "artifacts/backtests/reform_threat_2017_backtest.json",
+      "status": "dry_run_ready",
+      "notes": "Baseline cycle: 2015 | Run mode: dry-run | Universe: Conservative-held seats with a defensible Reform/right-fragmentation analogue | No live historical rows were loaded; metrics are listed but not executed. | Use this artifact to confirm leakage exclusions, signal availability, and data requirements before enabling full runs.",
+      "source_filename": "reform_threat_2017_backtest.json"
+    },
+    {
+      "model_key": "reform_threat",
+      "model_version": null,
+      "variant_key": null,
+      "baseline_cycle": 2017,
+      "target_cycle": 2019,
+      "run_timestamp": "2026-03-17T19:41:28.665618+00:00",
+      "run_mode": "dry-run",
+      "metrics": {},
+      "signal_coverage_summary": {
+        "available_signals": [
+          "conservative_majority_pct",
+          "demographic_headwinds",
+          "fragmentation_pressure"
+        ],
+        "missing_signals": [
+          "local_reform_presence",
+          "local_government_instability"
+        ],
+        "excluded_signals": [
+          {
+            "signal_key": "reform_vote_share",
+            "reason": "Direct Reform-era historical analogue is not defensible before 2024."
+          },
+          {
+            "signal_key": "con_reform_swing",
+            "reason": "Direct Reform-era historical analogue is not defensible before 2024."
+          }
+        ]
+      },
+      "warnings": [
+        "Reform-era signal structure is not directly comparable before 2024, so historical runs are conceptually partial."
+      ],
+      "artifact_path": "artifacts/backtests/reform_threat_2019_backtest.json",
+      "status": "dry_run_ready",
+      "notes": "Baseline cycle: 2017 | Run mode: dry-run | Universe: Conservative-held seats with a defensible Reform/right-fragmentation analogue | No live historical rows were loaded; metrics are listed but not executed. | Use this artifact to confirm leakage exclusions, signal availability, and data requirements before enabling full runs.",
+      "source_filename": "reform_threat_2019_backtest.json"
+    },
+    {
+      "model_key": "reform_threat",
+      "model_version": null,
+      "variant_key": null,
+      "baseline_cycle": 2019,
+      "target_cycle": 2024,
+      "run_timestamp": "2026-03-17T19:41:28.667032+00:00",
+      "run_mode": "dry-run",
+      "metrics": {},
+      "signal_coverage_summary": {
+        "available_signals": [
+          "reform_vote_share",
+          "con_reform_swing",
+          "conservative_majority_pct",
+          "demographic_headwinds",
+          "fragmentation_pressure"
+        ],
+        "missing_signals": [
+          "local_reform_presence",
+          "local_government_instability"
+        ],
+        "excluded_signals": []
+      },
+      "warnings": [],
+      "artifact_path": "artifacts/backtests/reform_threat_2024_backtest.json",
+      "status": "dry_run_ready",
+      "notes": "Baseline cycle: 2019 | Run mode: dry-run | Universe: Conservative-held seats with a defensible Reform/right-fragmentation analogue | No live historical rows were loaded; metrics are listed but not executed. | Use this artifact to confirm leakage exclusions, signal availability, and data requirements before enabling full runs.",
+      "source_filename": "reform_threat_2024_backtest.json"
+    },
+    {
+      "model_key": "vulnerability",
+      "model_version": null,
+      "variant_key": null,
+      "baseline_cycle": 2015,
+      "target_cycle": 2017,
+      "run_timestamp": "2026-03-17T21:00:52.435422+00:00",
+      "run_mode": "live",
+      "metrics": {
+        "top_decile_capture_rate": 0.5454545454545454,
+        "precision_at_10": 0.7,
+        "precision_at_20": 0.6,
+        "precision_at_50": 0.42,
+        "recall_at_10": 0.21212121212121213,
+        "recall_at_20": 0.36363636363636365,
+        "recall_at_50": 0.6363636363636364,
+        "false_positive_count_at_20": 8,
+        "false_positive_rate_at_20": 0.026936026936026935,
+        "false_negative_count_at_20": 21,
+        "ranking_quality_spearman": 0.43820279033340154
+      },
+      "signal_coverage_summary": {
+        "available_signals": [
+          "conservative_majority_pct",
+          "challenger_gap",
+          "conservative_vote_share_change"
+        ],
+        "missing_signals": [],
+        "excluded_signals": []
+      },
+      "warnings": [],
+      "artifact_path": "artifacts/backtests/vulnerability_2017.json",
+      "status": "completed",
+      "notes": "Baseline cycle: 2015 | Run mode: live | Universe: Conservative-held seats in the prior election cycle | Real feature loading is currently implemented only for the vulnerability model. | Target outcome fields are included for evaluation only and are excluded from the scored feature set.",
+      "source_filename": "vulnerability_2017.json"
+    },
+    {
+      "model_key": "vulnerability",
+      "model_version": null,
+      "variant_key": null,
+      "baseline_cycle": 2015,
+      "target_cycle": 2017,
+      "run_timestamp": "2026-03-17T19:41:28.658983+00:00",
+      "run_mode": "dry-run",
+      "metrics": {},
+      "signal_coverage_summary": {
+        "available_signals": [
+          "conservative_majority_pct",
+          "challenger_gap",
+          "conservative_vote_share_change",
+          "demographic_headwinds",
+          "anti_incumbent_pressure",
+          "reform_vote_share",
+          "fragmentation_pressure"
+        ],
+        "missing_signals": [],
+        "excluded_signals": []
+      },
+      "warnings": [],
+      "artifact_path": "artifacts/backtests/vulnerability_2017_backtest.json",
+      "status": "dry_run_ready",
+      "notes": "Baseline cycle: 2015 | Run mode: dry-run | Universe: Conservative-held seats in the prior election cycle | No live historical rows were loaded; metrics are listed but not executed. | Use this artifact to confirm leakage exclusions, signal availability, and data requirements before enabling full runs.",
+      "source_filename": "vulnerability_2017_backtest.json"
+    },
+    {
+      "model_key": "vulnerability",
+      "model_version": "vulnerability:general",
+      "variant_key": "baseline",
+      "baseline_cycle": 2015,
+      "target_cycle": 2017,
+      "run_timestamp": "2026-03-17T22:10:45.219942+00:00",
+      "run_mode": "live",
+      "metrics": {
+        "top_decile_capture_rate": 0.5454545454545454,
+        "precision_at_10": 0.7,
+        "precision_at_20": 0.6,
+        "precision_at_50": 0.42,
+        "recall_at_10": 0.21212121212121213,
+        "recall_at_20": 0.36363636363636365,
+        "recall_at_50": 0.6363636363636364,
+        "false_positive_count_at_20": 8,
+        "false_positive_rate_at_20": 0.026936026936026935,
+        "false_negative_count_at_20": 21,
+        "ranking_quality_spearman": 0.43820279033340154
+      },
+      "signal_coverage_summary": {
+        "available_signals": [
+          "conservative_majority_pct",
+          "challenger_gap",
+          "conservative_vote_share_change"
+        ],
+        "missing_signals": [],
+        "excluded_signals": []
+      },
+      "warnings": [],
+      "artifact_path": "artifacts/backtests/vulnerability_2017_baseline.json",
+      "status": "completed",
+      "notes": "Baseline cycle: 2015 | Run mode: live | Universe: Conservative-held seats in the prior election cycle | Real feature loading is currently implemented only for the vulnerability model. | Target outcome fields are included for evaluation only and are excluded from the scored feature set.",
+      "source_filename": "vulnerability_2017_baseline.json"
+    },
+    {
+      "model_key": "vulnerability",
+      "model_version": "vulnerability:general",
+      "variant_key": "baseline_demographic",
+      "baseline_cycle": 2015,
+      "target_cycle": 2017,
+      "run_timestamp": "2026-03-17T22:10:47.658295+00:00",
+      "run_mode": "live",
+      "metrics": {
+        "top_decile_capture_rate": 0.5151515151515151,
+        "precision_at_10": 0.7,
+        "precision_at_20": 0.55,
+        "precision_at_50": 0.44,
+        "recall_at_10": 0.21212121212121213,
+        "recall_at_20": 0.3333333333333333,
+        "recall_at_50": 0.6666666666666666,
+        "false_positive_count_at_20": 9,
+        "false_positive_rate_at_20": 0.030303030303030304,
+        "false_negative_count_at_20": 22,
+        "ranking_quality_spearman": 0.44581977242230303
+      },
+      "signal_coverage_summary": {
+        "available_signals": [
+          "conservative_majority_pct",
+          "challenger_gap",
+          "conservative_vote_share_change"
+        ],
+        "missing_signals": [],
+        "excluded_signals": []
+      },
+      "warnings": [
+        "Demographic feature coverage for baseline_demographic on 2017: 330/330 seats."
+      ],
+      "artifact_path": "artifacts/backtests/vulnerability_2017_baseline_demographic.json",
+      "status": "completed",
+      "notes": "Baseline cycle: 2015 | Run mode: live | Universe: Conservative-held seats in the prior election cycle | Real feature loading is currently implemented only for the vulnerability model. | Target outcome fields are included for evaluation only and are excluded from the scored feature set.",
+      "source_filename": "vulnerability_2017_baseline_demographic.json"
+    },
+    {
+      "model_key": "vulnerability",
+      "model_version": "vulnerability:general",
+      "variant_key": "baseline_demographic_local",
+      "baseline_cycle": 2015,
+      "target_cycle": 2017,
+      "run_timestamp": "2026-03-17T22:10:53.460386+00:00",
+      "run_mode": "live",
+      "metrics": {},
+      "signal_coverage_summary": {
+        "available_signals": [
+          "conservative_majority_pct",
+          "challenger_gap",
+          "conservative_vote_share_change"
+        ],
+        "missing_signals": [],
+        "excluded_signals": []
+      },
+      "warnings": [
+        "Demographic feature coverage for baseline_demographic_local on 2017: 330/330 seats.",
+        "Local government feature coverage for baseline_demographic_local on 2017: 0/330 seats.",
+        "Local data inventory currently includes 7 mapped constituencies, 21 authorities, and 7 council result rows.",
+        "Local-government coverage is too sparse for national backtesting (0/330 seats; minimum 50% coverage required)."
+      ],
+      "artifact_path": "artifacts/backtests/vulnerability_2017_baseline_demographic_local.json",
+      "status": "not_ready",
+      "notes": "Baseline cycle: 2015 | Run mode: live | Universe: Conservative-held seats in the prior election cycle | Real feature loading is currently implemented only for the vulnerability model. | Variant was not executed because enrichment coverage is too incomplete for credible comparison.",
+      "source_filename": "vulnerability_2017_baseline_demographic_local.json"
+    },
+    {
+      "model_key": "vulnerability",
+      "model_version": "vulnerability:general",
+      "variant_key": "baseline_local",
+      "baseline_cycle": 2015,
+      "target_cycle": 2017,
+      "run_timestamp": "2026-03-17T22:10:50.506714+00:00",
+      "run_mode": "live",
+      "metrics": {},
+      "signal_coverage_summary": {
+        "available_signals": [
+          "conservative_majority_pct",
+          "challenger_gap",
+          "conservative_vote_share_change"
+        ],
+        "missing_signals": [],
+        "excluded_signals": []
+      },
+      "warnings": [
+        "Local government feature coverage for baseline_local on 2017: 0/330 seats.",
+        "Local data inventory currently includes 7 mapped constituencies, 21 authorities, and 7 council result rows.",
+        "Local-government coverage is too sparse for national backtesting (0/330 seats; minimum 50% coverage required)."
+      ],
+      "artifact_path": "artifacts/backtests/vulnerability_2017_baseline_local.json",
+      "status": "not_ready",
+      "notes": "Baseline cycle: 2015 | Run mode: live | Universe: Conservative-held seats in the prior election cycle | Real feature loading is currently implemented only for the vulnerability model. | Variant was not executed because enrichment coverage is too incomplete for credible comparison.",
+      "source_filename": "vulnerability_2017_baseline_local.json"
+    },
+    {
+      "model_key": "vulnerability",
+      "model_version": null,
+      "variant_key": null,
+      "baseline_cycle": 2017,
+      "target_cycle": 2019,
+      "run_timestamp": "2026-03-17T21:00:52.349528+00:00",
+      "run_mode": "live",
+      "metrics": {
+        "top_decile_capture_rate": 0.3,
+        "precision_at_10": 0.3,
+        "precision_at_20": 0.15,
+        "precision_at_50": 0.14,
+        "recall_at_10": 0.3,
+        "recall_at_20": 0.3,
+        "recall_at_50": 0.7,
+        "false_positive_count_at_20": 17,
+        "false_positive_rate_at_20": 0.05537459283387622,
+        "false_negative_count_at_20": 7,
+        "ranking_quality_spearman": 0.23948509619383535
+      },
+      "signal_coverage_summary": {
+        "available_signals": [
+          "conservative_majority_pct",
+          "challenger_gap",
+          "conservative_vote_share_change"
+        ],
+        "missing_signals": [],
+        "excluded_signals": []
+      },
+      "warnings": [],
+      "artifact_path": "artifacts/backtests/vulnerability_2019.json",
+      "status": "completed",
+      "notes": "Baseline cycle: 2017 | Run mode: live | Universe: Conservative-held seats in the prior election cycle | Real feature loading is currently implemented only for the vulnerability model. | Target outcome fields are included for evaluation only and are excluded from the scored feature set.",
+      "source_filename": "vulnerability_2019.json"
+    },
+    {
+      "model_key": "vulnerability",
+      "model_version": null,
+      "variant_key": null,
+      "baseline_cycle": 2017,
+      "target_cycle": 2019,
+      "run_timestamp": "2026-03-17T19:41:28.661335+00:00",
+      "run_mode": "dry-run",
+      "metrics": {},
+      "signal_coverage_summary": {
+        "available_signals": [
+          "conservative_majority_pct",
+          "challenger_gap",
+          "conservative_vote_share_change",
+          "demographic_headwinds",
+          "anti_incumbent_pressure",
+          "reform_vote_share",
+          "fragmentation_pressure"
+        ],
+        "missing_signals": [],
+        "excluded_signals": []
+      },
+      "warnings": [],
+      "artifact_path": "artifacts/backtests/vulnerability_2019_backtest.json",
+      "status": "dry_run_ready",
+      "notes": "Baseline cycle: 2017 | Run mode: dry-run | Universe: Conservative-held seats in the prior election cycle | No live historical rows were loaded; metrics are listed but not executed. | Use this artifact to confirm leakage exclusions, signal availability, and data requirements before enabling full runs.",
+      "source_filename": "vulnerability_2019_backtest.json"
+    },
+    {
+      "model_key": "vulnerability",
+      "model_version": "vulnerability:general",
+      "variant_key": "baseline",
+      "baseline_cycle": 2017,
+      "target_cycle": 2019,
+      "run_timestamp": "2026-03-17T22:10:55.866811+00:00",
+      "run_mode": "live",
+      "metrics": {
+        "top_decile_capture_rate": 0.3,
+        "precision_at_10": 0.3,
+        "precision_at_20": 0.15,
+        "precision_at_50": 0.14,
+        "recall_at_10": 0.3,
+        "recall_at_20": 0.3,
+        "recall_at_50": 0.7,
+        "false_positive_count_at_20": 17,
+        "false_positive_rate_at_20": 0.05537459283387622,
+        "false_negative_count_at_20": 7,
+        "ranking_quality_spearman": 0.23948509619383535
+      },
+      "signal_coverage_summary": {
+        "available_signals": [
+          "conservative_majority_pct",
+          "challenger_gap",
+          "conservative_vote_share_change"
+        ],
+        "missing_signals": [],
+        "excluded_signals": []
+      },
+      "warnings": [],
+      "artifact_path": "artifacts/backtests/vulnerability_2019_baseline.json",
+      "status": "completed",
+      "notes": "Baseline cycle: 2017 | Run mode: live | Universe: Conservative-held seats in the prior election cycle | Real feature loading is currently implemented only for the vulnerability model. | Target outcome fields are included for evaluation only and are excluded from the scored feature set.",
+      "source_filename": "vulnerability_2019_baseline.json"
+    },
+    {
+      "model_key": "vulnerability",
+      "model_version": "vulnerability:general",
+      "variant_key": "baseline_demographic",
+      "baseline_cycle": 2017,
+      "target_cycle": 2019,
+      "run_timestamp": "2026-03-17T22:10:58.477744+00:00",
+      "run_mode": "live",
+      "metrics": {
+        "top_decile_capture_rate": 0.3,
+        "precision_at_10": 0.2,
+        "precision_at_20": 0.15,
+        "precision_at_50": 0.12,
+        "recall_at_10": 0.2,
+        "recall_at_20": 0.3,
+        "recall_at_50": 0.6,
+        "false_positive_count_at_20": 17,
+        "false_positive_rate_at_20": 0.05537459283387622,
+        "false_negative_count_at_20": 7,
+        "ranking_quality_spearman": 0.23095804283147672
+      },
+      "signal_coverage_summary": {
+        "available_signals": [
+          "conservative_majority_pct",
+          "challenger_gap",
+          "conservative_vote_share_change"
+        ],
+        "missing_signals": [],
+        "excluded_signals": []
+      },
+      "warnings": [
+        "Demographic feature coverage for baseline_demographic on 2019: 317/317 seats."
+      ],
+      "artifact_path": "artifacts/backtests/vulnerability_2019_baseline_demographic.json",
+      "status": "completed",
+      "notes": "Baseline cycle: 2017 | Run mode: live | Universe: Conservative-held seats in the prior election cycle | Real feature loading is currently implemented only for the vulnerability model. | Target outcome fields are included for evaluation only and are excluded from the scored feature set.",
+      "source_filename": "vulnerability_2019_baseline_demographic.json"
+    },
+    {
+      "model_key": "vulnerability",
+      "model_version": "vulnerability:general",
+      "variant_key": "baseline_demographic_local",
+      "baseline_cycle": 2017,
+      "target_cycle": 2019,
+      "run_timestamp": "2026-03-17T22:11:03.978639+00:00",
+      "run_mode": "live",
+      "metrics": {},
+      "signal_coverage_summary": {
+        "available_signals": [
+          "conservative_majority_pct",
+          "challenger_gap",
+          "conservative_vote_share_change"
+        ],
+        "missing_signals": [],
+        "excluded_signals": []
+      },
+      "warnings": [
+        "Demographic feature coverage for baseline_demographic_local on 2019: 317/317 seats.",
+        "Local government feature coverage for baseline_demographic_local on 2019: 0/317 seats.",
+        "Local data inventory currently includes 7 mapped constituencies, 21 authorities, and 7 council result rows.",
+        "Local-government coverage is too sparse for national backtesting (0/317 seats; minimum 50% coverage required)."
+      ],
+      "artifact_path": "artifacts/backtests/vulnerability_2019_baseline_demographic_local.json",
+      "status": "not_ready",
+      "notes": "Baseline cycle: 2017 | Run mode: live | Universe: Conservative-held seats in the prior election cycle | Real feature loading is currently implemented only for the vulnerability model. | Variant was not executed because enrichment coverage is too incomplete for credible comparison.",
+      "source_filename": "vulnerability_2019_baseline_demographic_local.json"
+    },
+    {
+      "model_key": "vulnerability",
+      "model_version": "vulnerability:general",
+      "variant_key": "baseline_local",
+      "baseline_cycle": 2017,
+      "target_cycle": 2019,
+      "run_timestamp": "2026-03-17T22:11:01.265945+00:00",
+      "run_mode": "live",
+      "metrics": {},
+      "signal_coverage_summary": {
+        "available_signals": [
+          "conservative_majority_pct",
+          "challenger_gap",
+          "conservative_vote_share_change"
+        ],
+        "missing_signals": [],
+        "excluded_signals": []
+      },
+      "warnings": [
+        "Local government feature coverage for baseline_local on 2019: 0/317 seats.",
+        "Local data inventory currently includes 7 mapped constituencies, 21 authorities, and 7 council result rows.",
+        "Local-government coverage is too sparse for national backtesting (0/317 seats; minimum 50% coverage required)."
+      ],
+      "artifact_path": "artifacts/backtests/vulnerability_2019_baseline_local.json",
+      "status": "not_ready",
+      "notes": "Baseline cycle: 2017 | Run mode: live | Universe: Conservative-held seats in the prior election cycle | Real feature loading is currently implemented only for the vulnerability model. | Variant was not executed because enrichment coverage is too incomplete for credible comparison.",
+      "source_filename": "vulnerability_2019_baseline_local.json"
+    },
+    {
+      "model_key": "vulnerability",
+      "model_version": null,
+      "variant_key": null,
+      "baseline_cycle": 2019,
+      "target_cycle": 2024,
+      "run_timestamp": "2026-03-17T21:00:52.489259+00:00",
+      "run_mode": "live",
+      "metrics": {
+        "top_decile_capture_rate": 0.13095238095238096,
+        "precision_at_10": 0.9,
+        "precision_at_20": 0.85,
+        "precision_at_50": 0.9,
+        "recall_at_10": 0.03571428571428571,
+        "recall_at_20": 0.06746031746031746,
+        "recall_at_50": 0.17857142857142858,
+        "false_positive_count_at_20": 3,
+        "false_positive_rate_at_20": 0.025,
+        "false_negative_count_at_20": 235,
+        "ranking_quality_spearman": 0.48246542533876186
+      },
+      "signal_coverage_summary": {
+        "available_signals": [
+          "conservative_majority_pct",
+          "challenger_gap",
+          "conservative_vote_share_change"
+        ],
+        "missing_signals": [],
+        "excluded_signals": []
+      },
+      "warnings": [
+        "372 baseline Conservative seats lacked previous-cycle constituency matches; vote-share trend was neutral-imputed for those seats.",
+        "Previous-cycle overlap is low relative to the baseline universe. Trend features may be weak for this cycle, especially where boundary changes break constituency continuity.",
+        "2024 backtest uses the 2019 notional baseline on 2024 boundaries to avoid boundary-change leakage."
+      ],
+      "artifact_path": "artifacts/backtests/vulnerability_2024.json",
+      "status": "completed",
+      "notes": "Baseline cycle: 2019 | Run mode: live | Universe: Conservative-held seats in the prior election cycle | Real feature loading is currently implemented only for the vulnerability model. | Target outcome fields are included for evaluation only and are excluded from the scored feature set.",
+      "source_filename": "vulnerability_2024.json"
+    },
+    {
+      "model_key": "vulnerability",
+      "model_version": null,
+      "variant_key": null,
+      "baseline_cycle": 2019,
+      "target_cycle": 2024,
+      "run_timestamp": "2026-03-17T19:41:28.662950+00:00",
+      "run_mode": "dry-run",
+      "metrics": {},
+      "signal_coverage_summary": {
+        "available_signals": [
+          "conservative_majority_pct",
+          "challenger_gap",
+          "conservative_vote_share_change",
+          "demographic_headwinds",
+          "anti_incumbent_pressure",
+          "reform_vote_share",
+          "fragmentation_pressure"
+        ],
+        "missing_signals": [],
+        "excluded_signals": []
+      },
+      "warnings": [],
+      "artifact_path": "artifacts/backtests/vulnerability_2024_backtest.json",
+      "status": "dry_run_ready",
+      "notes": "Baseline cycle: 2019 | Run mode: dry-run | Universe: Conservative-held seats in the prior election cycle | No live historical rows were loaded; metrics are listed but not executed. | Use this artifact to confirm leakage exclusions, signal availability, and data requirements before enabling full runs.",
+      "source_filename": "vulnerability_2024_backtest.json"
+    },
+    {
+      "model_key": "vulnerability",
+      "model_version": "vulnerability:notional",
+      "variant_key": "baseline",
+      "baseline_cycle": 2019,
+      "target_cycle": 2024,
+      "run_timestamp": "2026-03-17T22:11:06.560097+00:00",
+      "run_mode": "live",
+      "metrics": {
+        "top_decile_capture_rate": 0.13095238095238096,
+        "precision_at_10": 0.9,
+        "precision_at_20": 0.85,
+        "precision_at_50": 0.9,
+        "recall_at_10": 0.03571428571428571,
+        "recall_at_20": 0.06746031746031746,
+        "recall_at_50": 0.17857142857142858,
+        "false_positive_count_at_20": 3,
+        "false_positive_rate_at_20": 0.025,
+        "false_negative_count_at_20": 235,
+        "ranking_quality_spearman": 0.48246542533876186
+      },
+      "signal_coverage_summary": {
+        "available_signals": [
+          "conservative_majority_pct",
+          "challenger_gap",
+          "conservative_vote_share_change"
+        ],
+        "missing_signals": [],
+        "excluded_signals": []
+      },
+      "warnings": [
+        "372 baseline Conservative seats lacked previous-cycle constituency matches; vote-share trend was neutral-imputed for those seats.",
+        "Previous-cycle overlap is low relative to the baseline universe. Trend features may be weak for this cycle, especially where boundary changes break constituency continuity.",
+        "2024 backtest uses the 2019 notional baseline on 2024 boundaries to avoid boundary-change leakage."
+      ],
+      "artifact_path": "artifacts/backtests/vulnerability_2024_baseline.json",
+      "status": "completed",
+      "notes": "Baseline cycle: 2019 | Run mode: live | Universe: Conservative-held seats in the prior election cycle | Real feature loading is currently implemented only for the vulnerability model. | Target outcome fields are included for evaluation only and are excluded from the scored feature set.",
+      "source_filename": "vulnerability_2024_baseline.json"
+    },
+    {
+      "model_key": "vulnerability",
+      "model_version": "vulnerability:notional",
+      "variant_key": "baseline_demographic",
+      "baseline_cycle": 2019,
+      "target_cycle": 2024,
+      "run_timestamp": "2026-03-17T22:11:09.397529+00:00",
+      "run_mode": "live",
+      "metrics": {
+        "top_decile_capture_rate": 0.13095238095238096,
+        "precision_at_10": 0.9,
+        "precision_at_20": 0.9,
+        "precision_at_50": 0.9,
+        "recall_at_10": 0.03571428571428571,
+        "recall_at_20": 0.07142857142857142,
+        "recall_at_50": 0.17857142857142858,
+        "false_positive_count_at_20": 2,
+        "false_positive_rate_at_20": 0.016666666666666666,
+        "false_negative_count_at_20": 234,
+        "ranking_quality_spearman": 0.5146198371184854
+      },
+      "signal_coverage_summary": {
+        "available_signals": [
+          "conservative_majority_pct",
+          "challenger_gap",
+          "conservative_vote_share_change"
+        ],
+        "missing_signals": [],
+        "excluded_signals": []
+      },
+      "warnings": [
+        "Demographic enrichment prefers 2021 census data for 2024 and falls back to 2011 where 2021 rows are missing.",
+        "372 baseline Conservative seats lacked previous-cycle constituency matches; vote-share trend was neutral-imputed for those seats.",
+        "Previous-cycle overlap is low relative to the baseline universe. Trend features may be weak for this cycle, especially where boundary changes break constituency continuity.",
+        "2024 backtest uses the 2019 notional baseline on 2024 boundaries to avoid boundary-change leakage.",
+        "Demographic feature coverage for baseline_demographic on 2024: 365/372 seats.",
+        "7 seats are missing cycle-appropriate demographic rows for baseline_demographic."
+      ],
+      "artifact_path": "artifacts/backtests/vulnerability_2024_baseline_demographic.json",
+      "status": "completed",
+      "notes": "Baseline cycle: 2019 | Run mode: live | Universe: Conservative-held seats in the prior election cycle | Real feature loading is currently implemented only for the vulnerability model. | Target outcome fields are included for evaluation only and are excluded from the scored feature set.",
+      "source_filename": "vulnerability_2024_baseline_demographic.json"
+    },
+    {
+      "model_key": "vulnerability",
+      "model_version": "vulnerability:notional",
+      "variant_key": "baseline_demographic_local",
+      "baseline_cycle": 2019,
+      "target_cycle": 2024,
+      "run_timestamp": "2026-03-17T22:11:15.554059+00:00",
+      "run_mode": "live",
+      "metrics": {},
+      "signal_coverage_summary": {
+        "available_signals": [
+          "conservative_majority_pct",
+          "challenger_gap",
+          "conservative_vote_share_change"
+        ],
+        "missing_signals": [],
+        "excluded_signals": []
+      },
+      "warnings": [
+        "Demographic enrichment prefers 2021 census data for 2024 and falls back to 2011 where 2021 rows are missing.",
+        "372 baseline Conservative seats lacked previous-cycle constituency matches; vote-share trend was neutral-imputed for those seats.",
+        "Previous-cycle overlap is low relative to the baseline universe. Trend features may be weak for this cycle, especially where boundary changes break constituency continuity.",
+        "2024 backtest uses the 2019 notional baseline on 2024 boundaries to avoid boundary-change leakage.",
+        "Demographic feature coverage for baseline_demographic_local on 2024: 365/372 seats.",
+        "7 seats are missing cycle-appropriate demographic rows for baseline_demographic_local.",
+        "Local government feature coverage for baseline_demographic_local on 2024: 6/372 seats.",
+        "Local data inventory currently includes 7 mapped constituencies, 21 authorities, and 7 council result rows.",
+        "Local-government coverage is too sparse for national backtesting (6/372 seats; minimum 50% coverage required)."
+      ],
+      "artifact_path": "artifacts/backtests/vulnerability_2024_baseline_demographic_local.json",
+      "status": "not_ready",
+      "notes": "Baseline cycle: 2019 | Run mode: live | Universe: Conservative-held seats in the prior election cycle | Real feature loading is currently implemented only for the vulnerability model. | Variant was not executed because enrichment coverage is too incomplete for credible comparison.",
+      "source_filename": "vulnerability_2024_baseline_demographic_local.json"
+    },
+    {
+      "model_key": "vulnerability",
+      "model_version": "vulnerability:notional",
+      "variant_key": "baseline_local",
+      "baseline_cycle": 2019,
+      "target_cycle": 2024,
+      "run_timestamp": "2026-03-17T22:11:12.394251+00:00",
+      "run_mode": "live",
+      "metrics": {},
+      "signal_coverage_summary": {
+        "available_signals": [
+          "conservative_majority_pct",
+          "challenger_gap",
+          "conservative_vote_share_change"
+        ],
+        "missing_signals": [],
+        "excluded_signals": []
+      },
+      "warnings": [
+        "372 baseline Conservative seats lacked previous-cycle constituency matches; vote-share trend was neutral-imputed for those seats.",
+        "Previous-cycle overlap is low relative to the baseline universe. Trend features may be weak for this cycle, especially where boundary changes break constituency continuity.",
+        "2024 backtest uses the 2019 notional baseline on 2024 boundaries to avoid boundary-change leakage.",
+        "Local government feature coverage for baseline_local on 2024: 6/372 seats.",
+        "Local data inventory currently includes 7 mapped constituencies, 21 authorities, and 7 council result rows.",
+        "Local-government coverage is too sparse for national backtesting (6/372 seats; minimum 50% coverage required)."
+      ],
+      "artifact_path": "artifacts/backtests/vulnerability_2024_baseline_local.json",
+      "status": "not_ready",
+      "notes": "Baseline cycle: 2019 | Run mode: live | Universe: Conservative-held seats in the prior election cycle | Real feature loading is currently implemented only for the vulnerability model. | Variant was not executed because enrichment coverage is too incomplete for credible comparison.",
+      "source_filename": "vulnerability_2024_baseline_local.json"
+    }
+  ]
+}
