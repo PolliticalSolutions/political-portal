@@ -2,9 +2,9 @@
   "model_key": "by_election_risk",
   "target_cycle": 2024,
   "baseline_cycle": 2019,
-  "run_timestamp": "2026-03-17T19:41:28.670761+00:00",
-  "run_mode": "dry-run",
-  "status": "dry_run_ready",
+  "run_timestamp": "2026-03-18T06:31:34.078795+00:00",
+  "run_mode": "live",
+  "status": "data_required",
   "signal_coverage_summary": {
     "available_signals": [
       "conservative_majority_pct",
@@ -50,8 +50,9 @@
   ],
   "notes": [
     "Baseline cycle: 2019",
-    "Run mode: dry-run",
+    "Run mode: live",
     "Universe: Seats with usable event history prior to the target cycle",
+    "Real feature loading is currently implemented only for the vulnerability model.",
     "No live historical rows were loaded; metrics are listed but not executed.",
     "Use this artifact to confirm leakage exclusions, signal availability, and data requirements before enabling full runs."
   ]

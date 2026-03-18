@@ -186,7 +186,9 @@ export async function getByElectionWatchSeats() {
 }
 
 // Returns Conservative 2024 seats meeting objective watchlist criteria.
-// Criteria checked here: majority < 5000.
+// Criteria checked here: majority < 3000 (updated from 5000 — tighter focus on genuinely marginal).
+// The 4 Reform-defected constituencies (East Wiltshire, Newark, Romford, Fareham and Waterlooville)
+// are excluded automatically since they are no longer Conservative-held in the results table.
 // Council territory and incumbency are evaluated in the page component
 // using council_data and candidates.first_elected_year respectively.
 export async function getByElectionWatchlist() {
@@ -216,7 +218,7 @@ export async function getByElectionWatchlist() {
     .eq("election_id", latestId)
     .eq("party_id", CON_PARTY_ID)
     .eq("is_winner", true)
-    .lt("majority", 5000)
+    .lt("majority", 3000)
     .order("majority", { ascending: true });
   if (error) return [];
   return data ?? [];
@@ -294,6 +296,27 @@ export async function removeAlertSubscription(subscriptionId) {
     .update({ is_active: false })
     .eq("id", subscriptionId);
   if (error) throw new Error(error.message);
+}
+
+export async function getTargetSeats() {
+  const { data, error } = await supabase
+    .from("target_seats")
+    .select(`
+      constituency_id,
+      target_rank,
+      target_score,
+      swing_required,
+      current_holder,
+      current_majority,
+      con_2024_share,
+      reform_squeeze_risk,
+      target_classification,
+      constituencies(id, ons_code, name, region)
+    `)
+    .order("target_rank", { ascending: true })
+    .limit(150);
+  if (error) return [];
+  return data ?? [];
 }
 
 export async function getLatestElectionWinners() {

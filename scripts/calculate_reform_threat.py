@@ -3,11 +3,11 @@ Feature 5 — Reform UK Threat Index
 
 Ranks the 50 Conservative seats most at risk from Reform UK.
 
-Score components (v2 — historical signals added):
-  30% — Con→RUK swing vs national (contextual, kept but de-weighted as partially circular)
-  25% — 2016 EU referendum Leave vote share (strongest historical predictor)
-  15% — UKIP 2015 vote share (pre-existing populist-right base)
-  15% — Reform 2024 vote share (direct signal, de-weighted to reduce circularity)
+Score components (v3 — weight rebalancing, majority factor added):
+  30% — 2016 EU referendum Leave vote share (strongest historical predictor)
+  20% — UKIP 2015 vote share (pre-existing populist-right base)
+  20% — Conservative 2024 majority (inverted — smaller majority = higher threat)
+  15% — Reform 2024 vote share (direct signal, reduced to limit circularity)
   15% — Demographic alignment (post-industrial, lower owner-occupancy)
 
 DDL — run in Supabase SQL Editor before this script:
@@ -50,6 +50,15 @@ ANON_KEY = "sb_publishable_A7AT-20ghVjk_BNk8ZnH0A_vKJKIxh-"
 
 CON_ID = "a4f20caf-ba89-4fb0-9ae3-313a7f937719"
 RUK_ID = "a2b82e7c-5f8d-425d-a1b2-36db57c7268e"
+
+# Constituencies where Conservative MPs defected to Reform UK post-2024 election.
+# These are excluded from ranking (already lost — no threat index needed).
+REFORM_DEFECTED_CONSTITUENCIES = {
+    "East Wiltshire": "Danny Kruger",
+    "Newark": "Robert Jenrick",
+    "Romford": "Andrew Rosindell",
+    "Fareham and Waterlooville": "Suella Braverman",
+}
 
 SERVICE_KEY = None
 env_path = os.path.join(os.path.dirname(__file__), "..", ".env")
@@ -127,12 +136,34 @@ def main():
 
     # Conservative winners
     print("\n--- Loading Conservative winners ---")
-    con_winners = fetch_all(
+    con_winners_raw = fetch_all(
         "results", "constituency_id,majority,electorate",
         {"election_id": f"eq.{latest_id}", "is_winner": "eq.true", "party_id": f"eq.{CON_ID}"},
     )
+    print(f"  {len(con_winners_raw)} Conservative seats found in database (elected 2024)")
+
+    # Load constituency names to identify Reform defections
+    all_con_ids_raw = [w["constituency_id"] for w in con_winners_raw]
+    reform_defected_ids = set()
+    defected_names_map = {}
+    if all_con_ids_raw:
+        id_list = "(" + ",".join(all_con_ids_raw) + ")"
+        name_rows = fetch_all("constituencies", "id,name", {"id": f"in.{id_list}"})
+        for row in name_rows:
+            name = row["name"].strip()
+            if name in REFORM_DEFECTED_CONSTITUENCIES:
+                reform_defected_ids.add(row["id"])
+                defected_names_map[row["id"]] = name
+
+    # Exclude defected seats from the main scoring universe
+    con_winners = [w for w in con_winners_raw if w["constituency_id"] not in reform_defected_ids]
     con_ids = [w["constituency_id"] for w in con_winners]
-    print(f"  {len(con_ids)} Conservative seats")
+    print(f"  Excluding {len(reform_defected_ids)} Reform-defected seats:")
+    for cid in reform_defected_ids:
+        name = defected_names_map.get(cid, cid)
+        mp = REFORM_DEFECTED_CONSTITUENCIES.get(name, "?")
+        print(f"    - {name} ({mp}) — already lost to Reform")
+    print(f"  Scoring {len(con_ids)} active Conservative seats")
 
     # Reform vote share per constituency (vote_share stored as 0-1 decimal → convert to %)
     print("\n--- Loading Reform vote shares ---")
@@ -220,6 +251,30 @@ def main():
     # Build winner map
     winner_map = {w["constituency_id"]: w for w in con_winners}
 
+    # Pre-compute majority percentages for percentile ranking (Factor 3 — majority factor)
+    maj_pcts_reform = []
+    for cid in con_ids:
+        winner = winner_map.get(cid, {})
+        majority = winner.get("majority")
+        electorate = winner.get("electorate")
+        if majority is not None and electorate:
+            maj_pcts_reform.append((cid, (majority / electorate) * 100))
+        else:
+            maj_pcts_reform.append((cid, None))
+
+    # Build majority factor: seats with smaller margins are more vulnerable to Reform squeeze
+    # For non-Con-held seats or missing data, neutral default = 5.0
+    valid_reform_majs = sorted(
+        [(cid, mp) for cid, mp in maj_pcts_reform if mp is not None],
+        key=lambda x: x[1]
+    )
+    n_valid_reform = len(valid_reform_majs)
+    majority_reform_factor_map = {}
+    for rank, (cid, _) in enumerate(valid_reform_majs):
+        # rank 0 = smallest majority = most at risk = score near 10
+        percentile_rank = rank / max(n_valid_reform - 1, 1)
+        majority_reform_factor_map[cid] = (1.0 - percentile_rank) * 10.0
+
     # Calculate scores for all Con seats
     scored = []
     for cid in con_ids:
@@ -227,14 +282,7 @@ def main():
         majority = winner.get("majority")
         electorate = winner.get("electorate")
 
-        # Factor 1: Con→RUK swing (30%) — contextual signal, partially circular but useful
-        swing = swings_con_ruk.get(cid)
-        if swing is not None and national_ruk:
-            swing_factor = min(10.0, max(0.0, (swing / national_ruk) * 5.0))
-        else:
-            swing_factor = 3.0
-
-        # Factor 2: Leave vote share 2016 (25%) — strongest historical predictor
+        # Factor 1: Leave vote share 2016 (30%) — strongest historical predictor
         # Range ~30–75%; normalise so 30% → 0, 70% → 10
         leave_pct = leave_map.get(cid)
         if leave_pct is not None:
@@ -242,13 +290,17 @@ def main():
         else:
             leave_factor = 4.0  # national median fallback (~46% Leave)
 
-        # Factor 3: UKIP 2015 vote share (15%) — pre-existing populist-right base
+        # Factor 2: UKIP 2015 vote share (20%) — pre-existing populist-right base
         # Range 0–30%+; normalise so 20% → 10
         con_name = con_id_to_name.get(cid, "")
         ukip_pct = ukip_by_name.get(con_name, 0)
         ukip_factor = min(10.0, ukip_pct * 0.5)
 
-        # Factor 4: Reform 2024 vote share (15%) — de-weighted to reduce circularity
+        # Factor 3: Conservative majority (inverted, 20%) — smaller majority = higher threat
+        # Neutral default 5.0 for seats where Con is not the holder
+        majority_factor = majority_reform_factor_map.get(cid, 5.0)
+
+        # Factor 4: Reform 2024 vote share (15%) — reduced to limit circularity
         # ruk_pct is in percentage points (e.g. 25.0 for 25%); 40% → 10
         ruk_pct = ruk_share.get(cid, 0)
         ruk_factor = min(10.0, ruk_pct * 0.25)
@@ -258,10 +310,13 @@ def main():
         owner_pct = demo_map.get(cid, 65)
         demo_align = max(0.0, min(10.0, 10.0 - owner_pct * 0.125))
 
+        # Also load swing for storage (not in score formula v3)
+        swing = swings_con_ruk.get(cid)
+
         score = round(
-            0.30 * swing_factor +
-            0.25 * leave_factor +
-            0.15 * ukip_factor +
+            0.30 * leave_factor +
+            0.20 * ukip_factor +
+            0.20 * majority_factor +
             0.15 * ruk_factor +
             0.15 * demo_align,
             2,
@@ -309,6 +364,11 @@ def main():
         batch = rows[i:i + 500]
         _req("POST", "reform_threat_index", SERVICE_KEY, body=batch, prefer="return=minimal")
     print(f"  Inserted {len(rows)} rows")
+
+    # Show already-defected seats note
+    print("\n--- Already lost to Reform (excluded from ranking) ---")
+    for name, mp in REFORM_DEFECTED_CONSTITUENCIES.items():
+        print(f"  {name} ({mp}) — now Reform UK")
 
     # Show top 10
     print("\n--- Top 10 Reform-threatened Conservative seats ---")

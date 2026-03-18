@@ -1,3 +1,46 @@
+// Reform UK defections from Conservative — these 4 seats are no longer Conservative-held
+export const mpDefections = [
+  {
+    constituencyName: "East Wiltshire",
+    mpName: "Danny Kruger",
+    electedParty: "Conservative",
+    currentParty: "Reform UK",
+    defectionDate: "2025-03-01",
+    notes: "Joined Reform UK parliamentary group",
+  },
+  {
+    constituencyName: "Newark",
+    mpName: "Robert Jenrick",
+    electedParty: "Conservative",
+    currentParty: "Reform UK",
+    defectionDate: "2025-03-01",
+    notes: "Joined Reform UK parliamentary group",
+  },
+  {
+    constituencyName: "Romford",
+    mpName: "Andrew Rosindell",
+    electedParty: "Conservative",
+    currentParty: "Reform UK",
+    defectionDate: "2025-03-01",
+    notes: "Joined Reform UK parliamentary group",
+  },
+  {
+    constituencyName: "Fareham and Waterlooville",
+    mpName: "Suella Braverman",
+    electedParty: "Conservative",
+    currentParty: "Reform UK",
+    defectionDate: "2025-03-01",
+    notes: "Joined Reform UK parliamentary group",
+  },
+];
+
+export const REFORM_DEFECTED_CONSTITUENCIES = [
+  "East Wiltshire",
+  "Newark",
+  "Romford",
+  "Fareham and Waterlooville",
+];
+
 export const CURRENT_MP_STATUSES = [
   {
     constituencyName: "Canterbury",
@@ -88,6 +131,42 @@ export const CURRENT_MP_STATUSES = [
     currentPartyHex: "#6ab023",
     effectiveDate: "2026-02-26",
     note: "Current MP elected at the 2026 by-election.",
+  },
+  {
+    constituencyName: "East Wiltshire",
+    currentMemberName: "Danny Kruger",
+    currentPartyName: "Reform UK",
+    currentPartyShortName: "RUK",
+    currentPartyHex: "#12b6cf",
+    effectiveDate: "2025-03-01",
+    note: "Conservative MP defected to Reform UK parliamentary group.",
+  },
+  {
+    constituencyName: "Newark",
+    currentMemberName: "Robert Jenrick",
+    currentPartyName: "Reform UK",
+    currentPartyShortName: "RUK",
+    currentPartyHex: "#12b6cf",
+    effectiveDate: "2025-03-01",
+    note: "Conservative MP defected to Reform UK parliamentary group.",
+  },
+  {
+    constituencyName: "Romford",
+    currentMemberName: "Andrew Rosindell",
+    currentPartyName: "Reform UK",
+    currentPartyShortName: "RUK",
+    currentPartyHex: "#12b6cf",
+    effectiveDate: "2025-03-01",
+    note: "Conservative MP defected to Reform UK parliamentary group.",
+  },
+  {
+    constituencyName: "Fareham and Waterlooville",
+    currentMemberName: "Suella Braverman",
+    currentPartyName: "Reform UK",
+    currentPartyShortName: "RUK",
+    currentPartyHex: "#12b6cf",
+    effectiveDate: "2025-03-01",
+    note: "Conservative MP defected to Reform UK parliamentary group.",
   },
 ];
 

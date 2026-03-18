@@ -2,14 +2,23 @@ import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import Card from "../../../components/Card.jsx";
 import { byElectionAlerts } from "../../../data/byElectionAlerts.js";
-import { getByElectionWatchlist, getCouncilData } from "../constituency/constituencyApi.js";
+import {
+  getByElectionWatchlist,
+  getCouncilData,
+  getReformThreatIndex,
+  getAllVulnerabilityScores,
+} from "../constituency/constituencyApi.js";
+
+const WATCHLIST_UPDATED = "2026-03-17";
 
 // Criteria a seat can meet. Each is a boolean flag derived from data.
 const CRITERIA = [
-  { key: "narrowMajority",  label: "Majority < 5,000",          colour: "#dc2626" },
-  { key: "firstTermMp",     label: "First/second-term MP",       colour: "#ea580c" },
-  { key: "reformCouncil",   label: "Reform/NOC council",         colour: "#12B6CF" },
-  { key: "hasAlert",        label: "Active political alert",     colour: "#7c3aed" },
+  { key: "narrowMajority",            label: "Majority < 3,000",              colour: "#dc2626" },
+  { key: "firstTermMp",               label: "First/second-term MP",           colour: "#ea580c" },
+  { key: "reformCouncil",             label: "Reform/NOC council",             colour: "#12B6CF" },
+  { key: "hasAlert",                  label: "Active political alert",         colour: "#7c3aed" },
+  { key: "constituencyInReformTopFifty", label: "Reform top-50 threat seat",  colour: "#f97316" },
+  { key: "vulnerabilityCritical",     label: "Critical vulnerability rating",  colour: "#b91c1c" },
 ];
 
 function CriteriaBadge({ met, label, colour }) {
@@ -36,6 +45,8 @@ function CriteriaCount({ count }) {
 export default function ByElectionWatchPage() {
   const [seats, setSeats] = useState([]);
   const [councilMap, setCouncilMap] = useState({});
+  const [reformThreatSet, setReformThreatSet] = useState(new Set());
+  const [vulnerabilityCriticalSet, setVulnerabilityCriticalSet] = useState(new Set());
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
@@ -43,9 +54,25 @@ export default function ByElectionWatchPage() {
     let cancelled = false;
     async function load() {
       try {
-        const watchlist = await getByElectionWatchlist();
+        const [watchlist, reformThreats, vulnScores] = await Promise.all([
+          getByElectionWatchlist(),
+          getReformThreatIndex().catch(() => []),
+          getAllVulnerabilityScores().catch(() => []),
+        ]);
         if (cancelled) return;
         setSeats(watchlist);
+
+        // Build Reform top-50 set by constituency_id
+        const reformSet = new Set(reformThreats.map((t) => t.constituency_id));
+        setReformThreatSet(reformSet);
+
+        // Build Critical vulnerability set by constituency_id
+        const critSet = new Set(
+          vulnScores
+            .filter((v) => v.vulnerability_level === "Critical")
+            .map((v) => v.constituency_id)
+        );
+        setVulnerabilityCriticalSet(critSet);
 
         // Load council data for each constituency to check Reform/NOC territory
         const cids = watchlist.map((s) => s.constituency_id).filter(Boolean);
@@ -73,7 +100,7 @@ export default function ByElectionWatchPage() {
       const con = seat.constituencies;
       const candidate = seat.candidates;
 
-      // Criterion 1: majority < 5,000 — guaranteed by the API query
+      // Criterion 1: majority < 3,000 — guaranteed by the API query
       const narrowMajority = true;
 
       // Criterion 2: first/second-term MP (first_elected_year >= 2019)
@@ -97,11 +124,19 @@ export default function ByElectionWatchPage() {
       );
       const hasAlert = matchingAlerts.length > 0;
 
+      // Criterion 5: constituency appears in Reform top-50 threat index
+      const constituencyInReformTopFifty = reformThreatSet.has(seat.constituency_id);
+
+      // Criterion 6: constituency has Critical vulnerability rating
+      const vulnerabilityCritical = vulnerabilityCriticalSet.has(seat.constituency_id);
+
       const criteriaMetCount = [
         narrowMajority,
         firstTermMp === true,
         reformCouncil,
         hasAlert,
+        constituencyInReformTopFifty,
+        vulnerabilityCritical,
       ].filter(Boolean).length;
 
       return {
@@ -112,12 +147,14 @@ export default function ByElectionWatchPage() {
         firstTermMp,
         reformCouncil,
         hasAlert,
+        constituencyInReformTopFifty,
+        vulnerabilityCritical,
         matchingAlerts,
         criteriaMetCount,
         majorityPct: seat.electorate ? ((seat.majority / seat.electorate) * 100).toFixed(1) : null,
       };
     }).sort((a, b) => b.criteriaMetCount - a.criteriaMetCount || a.majority - b.majority);
-  }, [seats, councilMap]);
+  }, [seats, councilMap, reformThreatSet, vulnerabilityCriticalSet]);
 
   if (loading) {
     return (
@@ -165,6 +202,9 @@ export default function ByElectionWatchPage() {
               a prediction of by-elections — it is a watchlist of seats where structural conditions
               warrant closer attention.
             </p>
+            <p style={{ fontSize: 11, color: "#9ca3af", margin: "6px 0 0" }}>
+              Watchlist updated: {WATCHLIST_UPDATED} — majority threshold lowered to 3,000; Reform threat and vulnerability criteria added.
+            </p>
           </div>
           <div className="portal-page-header__actions">
             <Link to="/portal/constituency" className="button ghost">All constituencies</Link>
@@ -175,7 +215,7 @@ export default function ByElectionWatchPage() {
           <div className="portal-stat">
             <span className="portal-stat__label">Seats monitored</span>
             <span className="portal-stat__value">{enrichedSeats.length}</span>
-            <span className="portal-stat__meta">Conservative seats with majority under 5,000</span>
+            <span className="portal-stat__meta">Conservative seats with majority under 3,000</span>
           </div>
           <div className="portal-stat">
             <span className="portal-stat__label">Multiple criteria</span>
@@ -221,7 +261,7 @@ export default function ByElectionWatchPage() {
           <div className="portal-placeholder-panel">
             <p className="portal-placeholder-panel__title">No seats meet the majority threshold</p>
             <p className="portal-placeholder-panel__body">
-              No Conservative seats with a majority under 5,000 were found in the 2024 results.
+              No Conservative seats with a majority under 3,000 were found in the 2024 results.
             </p>
           </div>
         </Card>
@@ -287,6 +327,8 @@ export default function ByElectionWatchPage() {
                           <CriteriaBadge met={seat.firstTermMp === true} label="First/2nd term" colour="#ea580c" />
                           <CriteriaBadge met={seat.reformCouncil} label="Reform/NOC council" colour="#12B6CF" />
                           <CriteriaBadge met={seat.hasAlert} label="Active alert" colour="#7c3aed" />
+                          <CriteriaBadge met={seat.constituencyInReformTopFifty} label="Reform top-50" colour="#f97316" />
+                          <CriteriaBadge met={seat.vulnerabilityCritical} label="Critical vuln." colour="#b91c1c" />
                         </div>
                       </td>
                     </tr>

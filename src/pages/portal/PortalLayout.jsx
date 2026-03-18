@@ -395,6 +395,9 @@ export default function PortalLayout() {
               <NavLink className={navClass} to="/portal/constituency/vulnerability">
                 Vulnerability
               </NavLink>
+              <NavLink className={navClass} to="/portal/constituency/target-seats">
+                Target Seats 2029
+              </NavLink>
               <NavLink className={navClass} to="/portal/analytics/by-election-watch">
                 By-Election Watch
               </NavLink>

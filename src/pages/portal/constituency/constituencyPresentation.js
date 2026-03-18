@@ -13,7 +13,7 @@ export const GE2024_SEAT_CHANGES = {
 
 export const CURRENT_COMPOSITION = [
   { party: "Labour", electedSeats: 403, currentSeats: 396 },
-  { party: "Conservative", electedSeats: 121, currentSeats: 116 },
+  { party: "Conservative", electedSeats: 121, currentSeats: 117 },
   { party: "Liberal Democrat", electedSeats: 72, currentSeats: 72 },
   { party: "Reform UK", electedSeats: 5, currentSeats: 9 },
   { party: "Green", electedSeats: 4, currentSeats: 5 },

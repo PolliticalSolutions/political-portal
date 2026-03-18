@@ -1,0 +1,4280 @@
+{
+  "methodology": "Proto-reform score built from 2015-only features (UKIP share, Leave vote, Con majority). Target: Conservative vote share change between 2015 and 2019 general elections. Spearman rank correlation measures whether higher proto-reform scores co-vary with greater Conservative vote share decline (negative correlation = correct direction).",
+  "sample_size": 427,
+  "spearman_correlation": 0.676095,
+  "top_decile_capture": 0.0,
+  "median_con_decline": 7.0,
+  "top_decile_threshold": 7.394,
+  "results": [
+    {
+      "constituency_id": "f6a3ef47-af04-4b59-be39-a668d9a2dccc",
+      "ukip_2015_pct": 18.0,
+      "leave_pct": 57.9,
+      "con_majority_2015_pct": 20.57,
+      "proto_reform_score": 5.3,
+      "con_vote_share_2015": 51.0,
+      "con_vote_share_2019": 57.0,
+      "con_change_2019": 6.0
+    },
+    {
+      "constituency_id": "5705e77a-71dd-4690-b13e-f3623f413dd1",
+      "ukip_2015_pct": 20.0,
+      "leave_pct": 67.8,
+      "con_majority_2015_pct": 19.47,
+      "proto_reform_score": 5.6531,
+      "con_vote_share_2015": 52.0,
+      "con_vote_share_2019": 70.0,
+      "con_change_2019": 18.0
+    },
+    {
+      "constituency_id": "99c1a23c-c8a8-4b39-9875-c52b87adf018",
+      "ukip_2015_pct": 8.0,
+      "leave_pct": 38.59,
+      "con_majority_2015_pct": 18.58,
+      "proto_reform_score": 3.3542,
+      "con_vote_share_2015": 53.0,
+      "con_vote_share_2019": 48.0,
+      "con_change_2019": -5.0
+    },
+    {
+      "constituency_id": "60f214f6-56b9-4221-8ecc-800b150a2c42",
+      "ukip_2015_pct": 16.0,
+      "leave_pct": 65.3,
+      "con_majority_2015_pct": 6.05,
+      "proto_reform_score": 6.6751,
+      "con_vote_share_2015": 44.0,
+      "con_vote_share_2019": 64.0,
+      "con_change_2019": 20.0
+    },
+    {
+      "constituency_id": "003a8789-168a-4dbb-8748-08bed0bac328",
+      "ukip_2015_pct": 14.0,
+      "leave_pct": 49.7,
+      "con_majority_2015_pct": 33.89,
+      "proto_reform_score": 4.4333,
+      "con_vote_share_2015": 61.0,
+      "con_vote_share_2019": 60.0,
+      "con_change_2019": -1.0
+    },
+    {
+      "constituency_id": "036d386c-cee5-4739-9c97-bdd3a501bbcd",
+      "ukip_2015_pct": 21.0,
+      "leave_pct": 70.47,
+      "con_majority_2015_pct": 0,
+      "proto_reform_score": 7.68,
+      "con_vote_share_2015": 22.0,
+      "con_vote_share_2019": 39.0,
+      "con_change_2019": 17.0
+    },
+    {
+      "constituency_id": "fd343b30-3cf4-4786-a484-171cafca8867",
+      "ukip_2015_pct": 19.0,
+      "leave_pct": 59.86,
+      "con_majority_2015_pct": 22.65,
+      "proto_reform_score": 5.5107,
+      "con_vote_share_2015": 52.0,
+      "con_vote_share_2019": 59.0,
+      "con_change_2019": 7.0
+    },
+    {
+      "constituency_id": "56a972da-61fc-44a7-9799-adf951d4b413",
+      "ukip_2015_pct": 22.0,
+      "leave_pct": 61.81,
+      "con_majority_2015_pct": 0,
+      "proto_reform_score": 7.76,
+      "con_vote_share_2015": 22.0,
+      "con_vote_share_2019": 36.0,
+      "con_change_2019": 14.0
+    },
+    {
+      "constituency_id": "5558f44c-52ab-49de-afd3-ddf96a4a4dc2",
+      "ukip_2015_pct": 20.0,
+      "leave_pct": 51.79,
+      "con_majority_2015_pct": 21.36,
+      "proto_reform_score": 5.0527,
+      "con_vote_share_2015": 51.0,
+      "con_vote_share_2019": 52.0,
+      "con_change_2019": 1.0
+    },
+    {
+      "constituency_id": "5d4be935-59b3-4cca-8505-c1ace874cf47",
+      "ukip_2015_pct": 14.0,
+      "leave_pct": 50.35,
+      "con_majority_2015_pct": 21.29,
+      "proto_reform_score": 4.4767,
+      "con_vote_share_2015": 53.0,
+      "con_vote_share_2019": 52.0,
+      "con_change_2019": -1.0
+    },
+    {
+      "constituency_id": "e4a2615e-a470-4ec2-9ecd-c8398cf1cdbe",
+      "ukip_2015_pct": 22.0,
+      "leave_pct": 59.97,
+      "con_majority_2015_pct": 0,
+      "proto_reform_score": 7.758,
+      "con_vote_share_2015": 16.0,
+      "con_vote_share_2019": 27.0,
+      "con_change_2019": 11.0
+    },
+    {
+      "constituency_id": "799e4987-8a0d-4537-bf69-2d72108c6adc",
+      "ukip_2015_pct": 12.0,
+      "leave_pct": 57.28,
+      "con_majority_2015_pct": 0,
+      "proto_reform_score": 6.7787,
+      "con_vote_share_2015": 40.0,
+      "con_vote_share_2019": 53.0,
+      "con_change_2019": 13.0
+    },
+    {
+      "constituency_id": "23785b33-74bc-486e-a6c1-26e976a6953a",
+      "ukip_2015_pct": 20.0,
+      "leave_pct": 67.14,
+      "con_majority_2015_pct": 18.81,
+      "proto_reform_score": 5.7187,
+      "con_vote_share_2015": 53.0,
+      "con_vote_share_2019": 66.0,
+      "con_change_2019": 13.0
+    },
+    {
+      "constituency_id": "5c7089bc-9653-4671-a0fd-7639c0fed5f8",
+      "ukip_2015_pct": 16.0,
+      "leave_pct": 53.6,
+      "con_majority_2015_pct": 13.89,
+      "proto_reform_score": 5.4646,
+      "con_vote_share_2015": 49.0,
+      "con_vote_share_2019": 53.0,
+      "con_change_2019": 4.0
+    },
+    {
+      "constituency_id": "eb2810cf-3c3e-4471-a61b-ba65fd373ad7",
+      "ukip_2015_pct": 16.0,
+      "leave_pct": 68.32,
+      "con_majority_2015_pct": 0,
+      "proto_reform_score": 7.28,
+      "con_vote_share_2015": 31.0,
+      "con_vote_share_2019": 54.0,
+      "con_change_2019": 23.0
+    },
+    {
+      "constituency_id": "f6f53a3a-2c8b-4e29-8628-96e07761ec31",
+      "ukip_2015_pct": 6.0,
+      "leave_pct": 31.72,
+      "con_majority_2015_pct": 6.08,
+      "proto_reform_score": 3.9871,
+      "con_vote_share_2015": 38.0,
+      "con_vote_share_2019": 32.0,
+      "con_change_2019": -6.0
+    },
+    {
+      "constituency_id": "047d5d21-c3af-482a-a529-5a6a2bc2cb0d",
+      "ukip_2015_pct": 3.0,
+      "leave_pct": 22.05,
+      "con_majority_2015_pct": 10.43,
+      "proto_reform_score": 2.667,
+      "con_vote_share_2015": 52.0,
+      "con_vote_share_2019": 35.0,
+      "con_change_2019": -17.0
+    },
+    {
+      "constituency_id": "f52bc1a0-1d98-48c3-89f3-8d0286c17c4f",
+      "ukip_2015_pct": 14.0,
+      "leave_pct": 49.01,
+      "con_majority_2015_pct": 35.21,
+      "proto_reform_score": 4.3873,
+      "con_vote_share_2015": 63.0,
+      "con_vote_share_2019": 55.0,
+      "con_change_2019": -8.0
+    },
+    {
+      "constituency_id": "1397e343-1c64-4fbd-acf8-a4d9a54568b0",
+      "ukip_2015_pct": 10.0,
+      "leave_pct": 51.95,
+      "con_majority_2015_pct": 1.58,
+      "proto_reform_score": 6.1051,
+      "con_vote_share_2015": 43.0,
+      "con_vote_share_2019": 42.0,
+      "con_change_2019": -1.0
+    },
+    {
+      "constituency_id": "690e774f-4554-4bda-abdb-bd5a724f579f",
+      "ukip_2015_pct": 6.0,
+      "leave_pct": 26.05,
+      "con_majority_2015_pct": 0,
+      "proto_reform_score": 4.2167,
+      "con_vote_share_2015": 12.0,
+      "con_vote_share_2019": 17.0,
+      "con_change_2019": 5.0
+    },
+    {
+      "constituency_id": "c544ec46-ce94-45d1-b0fb-2b5ca0731aa9",
+      "ukip_2015_pct": 17.0,
+      "leave_pct": 58.74,
+      "con_majority_2015_pct": 15.1,
+      "proto_reform_score": 5.7658,
+      "con_vote_share_2015": 48.0,
+      "con_vote_share_2019": 61.0,
+      "con_change_2019": 13.0
+    },
+    {
+      "constituency_id": "74aba794-b1a1-48a9-84c3-4141ebab1488",
+      "ukip_2015_pct": 18.0,
+      "leave_pct": 57.72,
+      "con_majority_2015_pct": 25.48,
+      "proto_reform_score": 5.288,
+      "con_vote_share_2015": 55.0,
+      "con_vote_share_2019": 62.0,
+      "con_change_2019": 7.0
+    },
+    {
+      "constituency_id": "9eabe294-94de-4c22-8bf3-a00dd223d67e",
+      "ukip_2015_pct": 21.0,
+      "leave_pct": 65.26,
+      "con_majority_2015_pct": 14.18,
+      "proto_reform_score": 6.2621,
+      "con_vote_share_2015": 47.0,
+      "con_vote_share_2019": 61.0,
+      "con_change_2019": 14.0
+    },
+    {
+      "constituency_id": "73a13feb-ded3-4909-8e58-c6a1b1506e68",
+      "ukip_2015_pct": 10.0,
+      "leave_pct": 51.71,
+      "con_majority_2015_pct": 0,
+      "proto_reform_score": 6.2473,
+      "con_vote_share_2015": 15.0,
+      "con_vote_share_2019": 16.0,
+      "con_change_2019": 1.0
+    },
+    {
+      "constituency_id": "b0dbfdbb-eebc-4ab9-adf6-bfed112a4db7",
+      "ukip_2015_pct": 10.0,
+      "leave_pct": 47.35,
+      "con_majority_2015_pct": 0,
+      "proto_reform_score": 5.9567,
+      "con_vote_share_2015": 38.0,
+      "con_vote_share_2019": 35.0,
+      "con_change_2019": -3.0
+    },
+    {
+      "constituency_id": "c78addf4-9e29-414e-8b5e-8bf33c7b953a",
+      "ukip_2015_pct": 17.0,
+      "leave_pct": 62.97,
+      "con_majority_2015_pct": 0,
+      "proto_reform_score": 7.36,
+      "con_vote_share_2015": 31.0,
+      "con_vote_share_2019": 41.0,
+      "con_change_2019": 10.0
+    },
+    {
+      "constituency_id": "60b9b38d-8be2-4c5d-a95a-19455e5e7cc6",
+      "ukip_2015_pct": 5.0,
+      "leave_pct": 35.62,
+      "con_majority_2015_pct": 0,
+      "proto_reform_score": 4.7747,
+      "con_vote_share_2015": 13.0,
+      "con_vote_share_2019": 10.0,
+      "con_change_2019": -3.0
+    },
+    {
+      "constituency_id": "377efcd2-aef0-4e19-89a2-a90389633378",
+      "ukip_2015_pct": 17.0,
+      "leave_pct": 61.79,
+      "con_majority_2015_pct": 0,
+      "proto_reform_score": 7.36,
+      "con_vote_share_2015": 36.0,
+      "con_vote_share_2019": 46.0,
+      "con_change_2019": 10.0
+    },
+    {
+      "constituency_id": "77d5a6d4-c83c-49a2-8a07-1a9449c03063",
+      "ukip_2015_pct": 12.0,
+      "leave_pct": 51.22,
+      "con_majority_2015_pct": 0,
+      "proto_reform_score": 6.3747,
+      "con_vote_share_2015": 21.0,
+      "con_vote_share_2019": 20.0,
+      "con_change_2019": -1.0
+    },
+    {
+      "constituency_id": "d4452693-2727-4d61-9143-04f2401058e7",
+      "ukip_2015_pct": 13.0,
+      "leave_pct": 46.91,
+      "con_majority_2015_pct": 0,
+      "proto_reform_score": 6.1673,
+      "con_vote_share_2015": 29.0,
+      "con_vote_share_2019": 32.0,
+      "con_change_2019": 3.0
+    },
+    {
+      "constituency_id": "92570097-f7c5-4aa7-92ce-cd020441dc14",
+      "ukip_2015_pct": 16.0,
+      "leave_pct": 60.09,
+      "con_majority_2015_pct": 0,
+      "proto_reform_score": 7.28,
+      "con_vote_share_2015": 14.0,
+      "con_vote_share_2019": 27.0,
+      "con_change_2019": 13.0
+    },
+    {
+      "constituency_id": "6f606e62-955e-44a2-a780-1059ddbaecc2",
+      "ukip_2015_pct": 18.0,
+      "leave_pct": 60.89,
+      "con_majority_2015_pct": 0,
+      "proto_reform_score": 7.44,
+      "con_vote_share_2015": 32.0,
+      "con_vote_share_2019": 53.0,
+      "con_change_2019": 21.0
+    },
+    {
+      "constituency_id": "e419826e-747d-40c2-8be7-53e67dcba919",
+      "ukip_2015_pct": 14.0,
+      "leave_pct": 53.73,
+      "con_majority_2015_pct": 0,
+      "proto_reform_score": 6.702,
+      "con_vote_share_2015": 27.0,
+      "con_vote_share_2019": 23.0,
+      "con_change_2019": -4.0
+    },
+    {
+      "constituency_id": "afba7c4e-2f80-4415-8c19-916424d5cfdb",
+      "ukip_2015_pct": 17.0,
+      "leave_pct": 67.81,
+      "con_majority_2015_pct": 0,
+      "proto_reform_score": 7.36,
+      "con_vote_share_2015": 34.0,
+      "con_vote_share_2019": 49.0,
+      "con_change_2019": 15.0
+    },
+    {
+      "constituency_id": "abf7a991-dfeb-458f-aad4-1f0976463476",
+      "ukip_2015_pct": 22.0,
+      "leave_pct": 64.79,
+      "con_majority_2015_pct": 19.1,
+      "proto_reform_score": 5.8497,
+      "con_vote_share_2015": 51.0,
+      "con_vote_share_2019": 62.0,
+      "con_change_2019": 11.0
+    },
+    {
+      "constituency_id": "5ea67fa3-2e27-43d7-b1f0-d8f38d068d6e",
+      "ukip_2015_pct": 21.0,
+      "leave_pct": 70.39,
+      "con_majority_2015_pct": 0,
+      "proto_reform_score": 7.68,
+      "con_vote_share_2015": 24.0,
+      "con_vote_share_2019": 48.0,
+      "con_change_2019": 24.0
+    },
+    {
+      "constituency_id": "9e7b0ab0-3aa9-4791-8eac-49bc09d8ed27",
+      "ukip_2015_pct": 19.0,
+      "leave_pct": 58.11,
+      "con_majority_2015_pct": 0,
+      "proto_reform_score": 7.394,
+      "con_vote_share_2015": 33.0,
+      "con_vote_share_2019": 45.0,
+      "con_change_2019": 12.0
+    },
+    {
+      "constituency_id": "3ce1ea2a-08f7-45cb-ae7c-3b4537202532",
+      "ukip_2015_pct": 15.0,
+      "leave_pct": 55.55,
+      "con_majority_2015_pct": 1.1,
+      "proto_reform_score": 6.7932,
+      "con_vote_share_2015": 41.0,
+      "con_vote_share_2019": 57.0,
+      "con_change_2019": 16.0
+    },
+    {
+      "constituency_id": "accb1069-28e3-4959-852e-c27d2dfbf926",
+      "ukip_2015_pct": 11.0,
+      "leave_pct": 54.8,
+      "con_majority_2015_pct": 0,
+      "proto_reform_score": 6.5333,
+      "con_vote_share_2015": 8.0,
+      "con_vote_share_2019": 9.0,
+      "con_change_2019": 1.0
+    },
+    {
+      "constituency_id": "a46abaa6-fd7e-47c5-a914-3d7b506f3636",
+      "ukip_2015_pct": 34.0,
+      "leave_pct": 75.65,
+      "con_majority_2015_pct": 6.47,
+      "proto_reform_score": 8.0735,
+      "con_vote_share_2015": 44.0,
+      "con_vote_share_2019": 76.0,
+      "con_change_2019": 32.0
+    },
+    {
+      "constituency_id": "1aa48e3b-c935-4f1f-8d04-3091a49925fc",
+      "ukip_2015_pct": 17.0,
+      "leave_pct": 53.69,
+      "con_majority_2015_pct": 20.22,
+      "proto_reform_score": 4.9393,
+      "con_vote_share_2015": 49.0,
+      "con_vote_share_2019": 51.0,
+      "con_change_2019": 2.0
+    },
+    {
+      "constituency_id": "50cd6550-4fc6-49cf-8902-e21f643beee4",
+      "ukip_2015_pct": 19.0,
+      "leave_pct": 57.73,
+      "con_majority_2015_pct": 17.22,
+      "proto_reform_score": 5.647,
+      "con_vote_share_2015": 48.0,
+      "con_vote_share_2019": 54.0,
+      "con_change_2019": 6.0
+    },
+    {
+      "constituency_id": "be198a63-1071-411f-8e50-51cc50fa4156",
+      "ukip_2015_pct": 16.0,
+      "leave_pct": 53.24,
+      "con_majority_2015_pct": 25.41,
+      "proto_reform_score": 4.8293,
+      "con_vote_share_2015": 56.0,
+      "con_vote_share_2019": 55.0,
+      "con_change_2019": -1.0
+    },
+    {
+      "constituency_id": "7d818dde-40f0-4d82-8a0a-dbc9e9a1faa7",
+      "ukip_2015_pct": 10.0,
+      "leave_pct": 55.16,
+      "con_majority_2015_pct": 0,
+      "proto_reform_score": 6.4773,
+      "con_vote_share_2015": 11.0,
+      "con_vote_share_2019": 22.0,
+      "con_change_2019": 11.0
+    },
+    {
+      "constituency_id": "41255342-343b-4b00-903a-6edafc98da09",
+      "ukip_2015_pct": 24.0,
+      "leave_pct": 63.56,
+      "con_majority_2015_pct": 0,
+      "proto_reform_score": 7.92,
+      "con_vote_share_2015": 26.0,
+      "con_vote_share_2019": 40.0,
+      "con_change_2019": 14.0
+    },
+    {
+      "constituency_id": "41eab987-e146-43c0-9f28-a671e36ff4a0",
+      "ukip_2015_pct": 8.0,
+      "leave_pct": 46.74,
+      "con_majority_2015_pct": 0,
+      "proto_reform_score": 5.756,
+      "con_vote_share_2015": 15.0,
+      "con_vote_share_2019": 15.0,
+      "con_change_2019": 0.0
+    },
+    {
+      "constituency_id": "33bce9bd-10a8-4812-8531-832c479f9484",
+      "ukip_2015_pct": 19.0,
+      "leave_pct": 61.52,
+      "con_majority_2015_pct": 23.94,
+      "proto_reform_score": 5.52,
+      "con_vote_share_2015": 54.0,
+      "con_vote_share_2019": 67.0,
+      "con_change_2019": 13.0
+    },
+    {
+      "constituency_id": "3c77bef2-1be9-4672-8902-0b5a6e5a413f",
+      "ukip_2015_pct": 6.0,
+      "leave_pct": 43.31,
+      "con_majority_2015_pct": 0,
+      "proto_reform_score": 5.3673,
+      "con_vote_share_2015": 43.0,
+      "con_vote_share_2019": 28.0,
+      "con_change_2019": -15.0
+    },
+    {
+      "constituency_id": "47c1ad12-4221-48b4-92c0-c58835997909",
+      "ukip_2015_pct": 17.0,
+      "leave_pct": 61.19,
+      "con_majority_2015_pct": 30.33,
+      "proto_reform_score": 5.36,
+      "con_vote_share_2015": 59.0,
+      "con_vote_share_2019": 69.0,
+      "con_change_2019": 10.0
+    },
+    {
+      "constituency_id": "c42424d6-c34b-4591-8c4d-7e5f319c6ab0",
+      "ukip_2015_pct": 5.0,
+      "leave_pct": 25.93,
+      "con_majority_2015_pct": 0,
+      "proto_reform_score": 4.1287,
+      "con_vote_share_2015": 23.0,
+      "con_vote_share_2019": 18.0,
+      "con_change_2019": -5.0
+    },
+    {
+      "constituency_id": "9cf8219d-ca64-4f9c-a3f7-f5013a7e572e",
+      "ukip_2015_pct": 15.0,
+      "leave_pct": 46.8,
+      "con_majority_2015_pct": 0,
+      "proto_reform_score": 6.32,
+      "con_vote_share_2015": 31.0,
+      "con_vote_share_2019": 23.0,
+      "con_change_2019": -8.0
+    },
+    {
+      "constituency_id": "5edc5cf2-03c3-4dde-9eb3-d2adb11b34f6",
+      "ukip_2015_pct": 9.0,
+      "leave_pct": 38.85,
+      "con_majority_2015_pct": 6.61,
+      "proto_reform_score": 4.6485,
+      "con_vote_share_2015": 44.0,
+      "con_vote_share_2019": 36.0,
+      "con_change_2019": -8.0
+    },
+    {
+      "constituency_id": "c6450d95-c31a-4f11-8847-2cd203eeec7d",
+      "ukip_2015_pct": 16.0,
+      "leave_pct": 47.95,
+      "con_majority_2015_pct": 0,
+      "proto_reform_score": 6.4767,
+      "con_vote_share_2015": 24.0,
+      "con_vote_share_2019": 33.0,
+      "con_change_2019": 9.0
+    },
+    {
+      "constituency_id": "91da7abb-5d3b-49b6-88fe-2ac56e9e8556",
+      "ukip_2015_pct": 16.0,
+      "leave_pct": 55.37,
+      "con_majority_2015_pct": 22.54,
+      "proto_reform_score": 4.9713,
+      "con_vote_share_2015": 54.0,
+      "con_vote_share_2019": 63.0,
+      "con_change_2019": 9.0
+    },
+    {
+      "constituency_id": "32704b10-8719-4db7-80ce-d76e78d23607",
+      "ukip_2015_pct": 20.0,
+      "leave_pct": 65.53,
+      "con_majority_2015_pct": 22.93,
+      "proto_reform_score": 5.6,
+      "con_vote_share_2015": 56.0,
+      "con_vote_share_2019": 64.0,
+      "con_change_2019": 8.0
+    },
+    {
+      "constituency_id": "03dcdcc7-18e6-4d1c-9937-4800cae27864",
+      "ukip_2015_pct": 11.0,
+      "leave_pct": 52.51,
+      "con_majority_2015_pct": 5.97,
+      "proto_reform_score": 5.7833,
+      "con_vote_share_2015": 45.0,
+      "con_vote_share_2019": 45.0,
+      "con_change_2019": 0.0
+    },
+    {
+      "constituency_id": "0f25c27f-1911-436d-b30e-8e3dcb53664e",
+      "ukip_2015_pct": 17.0,
+      "leave_pct": 66.61,
+      "con_majority_2015_pct": 0,
+      "proto_reform_score": 7.36,
+      "con_vote_share_2015": 14.0,
+      "con_vote_share_2019": 40.0,
+      "con_change_2019": 26.0
+    },
+    {
+      "constituency_id": "b3e64703-d0e2-4bff-8750-08e32a7a6b4e",
+      "ukip_2015_pct": 12.0,
+      "leave_pct": 53.67,
+      "con_majority_2015_pct": 0.56,
+      "proto_reform_score": 6.4821,
+      "con_vote_share_2015": 42.0,
+      "con_vote_share_2019": 47.0,
+      "con_change_2019": 5.0
+    },
+    {
+      "constituency_id": "2bc7de16-821c-4187-aa13-5298fea24588",
+      "ukip_2015_pct": 13.0,
+      "leave_pct": 54.51,
+      "con_majority_2015_pct": 0,
+      "proto_reform_score": 6.674,
+      "con_vote_share_2015": 35.0,
+      "con_vote_share_2019": 43.0,
+      "con_change_2019": 8.0
+    },
+    {
+      "constituency_id": "9d6b92c7-bedd-4089-a175-d580c28219ec",
+      "ukip_2015_pct": 11.0,
+      "leave_pct": 53.16,
+      "con_majority_2015_pct": 5.69,
+      "proto_reform_score": 5.8546,
+      "con_vote_share_2015": 44.0,
+      "con_vote_share_2019": 51.0,
+      "con_change_2019": 7.0
+    },
+    {
+      "constituency_id": "68dd7f6e-451a-4ca6-a0dc-52ac561d1528",
+      "ukip_2015_pct": 15.0,
+      "leave_pct": 58.41,
+      "con_majority_2015_pct": 10.46,
+      "proto_reform_score": 6.0478,
+      "con_vote_share_2015": 40.0,
+      "con_vote_share_2019": 53.0,
+      "con_change_2019": 13.0
+    },
+    {
+      "constituency_id": "ab509409-e88f-48d2-960d-baea1f53f017",
+      "ukip_2015_pct": 5.0,
+      "leave_pct": 26.23,
+      "con_majority_2015_pct": 0,
+      "proto_reform_score": 4.1487,
+      "con_vote_share_2015": 16.0,
+      "con_vote_share_2019": 15.0,
+      "con_change_2019": -1.0
+    },
+    {
+      "constituency_id": "5ced4930-f228-4b1c-9277-23ca11b828fc",
+      "ukip_2015_pct": 17.0,
+      "leave_pct": 68.86,
+      "con_majority_2015_pct": 6.61,
+      "proto_reform_score": 6.6995,
+      "con_vote_share_2015": 44.0,
+      "con_vote_share_2019": 68.0,
+      "con_change_2019": 24.0
+    },
+    {
+      "constituency_id": "4b6e875c-bf28-454d-9e18-43c1e1936d07",
+      "ukip_2015_pct": 14.0,
+      "leave_pct": 45.33,
+      "con_majority_2015_pct": 12.05,
+      "proto_reform_score": 4.9374,
+      "con_vote_share_2015": 43.0,
+      "con_vote_share_2019": 45.0,
+      "con_change_2019": 2.0
+    },
+    {
+      "constituency_id": "f6adfbaa-6802-4be5-a25e-782a868a12fd",
+      "ukip_2015_pct": 12.0,
+      "leave_pct": 60.64,
+      "con_majority_2015_pct": 4.21,
+      "proto_reform_score": 6.5386,
+      "con_vote_share_2015": 44.0,
+      "con_vote_share_2019": 57.0,
+      "con_change_2019": 13.0
+    },
+    {
+      "constituency_id": "71081ec1-7872-4b0e-8c61-5e4cf6fcb8aa",
+      "ukip_2015_pct": 15.0,
+      "leave_pct": 56.26,
+      "con_majority_2015_pct": 0,
+      "proto_reform_score": 6.9507,
+      "con_vote_share_2015": 32.0,
+      "con_vote_share_2019": 42.0,
+      "con_change_2019": 10.0
+    },
+    {
+      "constituency_id": "56c344fe-07f0-4d54-b40d-256df2c8b105",
+      "ukip_2015_pct": 31.0,
+      "leave_pct": 72.7,
+      "con_majority_2015_pct": 13.11,
+      "proto_reform_score": 7.1695,
+      "con_vote_share_2015": 51.0,
+      "con_vote_share_2019": 77.0,
+      "con_change_2019": 26.0
+    },
+    {
+      "constituency_id": "756de3df-82e1-4da7-817c-0f04a5a58b7d",
+      "ukip_2015_pct": 13.0,
+      "leave_pct": 50.89,
+      "con_majority_2015_pct": 29.24,
+      "proto_reform_score": 4.4327,
+      "con_vote_share_2015": 52.0,
+      "con_vote_share_2019": 55.0,
+      "con_change_2019": 3.0
+    },
+    {
+      "constituency_id": "f45455d4-4527-44e5-8e2b-0b85da697d9e",
+      "ukip_2015_pct": 14.0,
+      "leave_pct": 54.89,
+      "con_majority_2015_pct": 26.28,
+      "proto_reform_score": 4.7793,
+      "con_vote_share_2015": 56.0,
+      "con_vote_share_2019": 62.0,
+      "con_change_2019": 6.0
+    },
+    {
+      "constituency_id": "1459c3b3-8ca1-43d1-afac-1378fb974ab4",
+      "ukip_2015_pct": 20.0,
+      "leave_pct": 63.91,
+      "con_majority_2015_pct": 17.26,
+      "proto_reform_score": 5.8737,
+      "con_vote_share_2015": 50.0,
+      "con_vote_share_2019": 66.0,
+      "con_change_2019": 16.0
+    },
+    {
+      "constituency_id": "6c5c20bd-3dde-4e0b-87f9-06a6389a721a",
+      "ukip_2015_pct": 8.0,
+      "leave_pct": 42.65,
+      "con_majority_2015_pct": 8.81,
+      "proto_reform_score": 4.6022,
+      "con_vote_share_2015": 43.0,
+      "con_vote_share_2019": 46.0,
+      "con_change_2019": 3.0
+    },
+    {
+      "constituency_id": "e7ae2013-99b2-45c4-af4d-9c8f062fffc3",
+      "ukip_2015_pct": 14.0,
+      "leave_pct": 50.68,
+      "con_majority_2015_pct": 23.22,
+      "proto_reform_score": 4.4987,
+      "con_vote_share_2015": 52.0,
+      "con_vote_share_2019": 55.0,
+      "con_change_2019": 3.0
+    },
+    {
+      "constituency_id": "e091afeb-9ddd-4b86-9023-416ded8a5460",
+      "ukip_2015_pct": 5.0,
+      "leave_pct": 29.1,
+      "con_majority_2015_pct": 25.24,
+      "proto_reform_score": 2.34,
+      "con_vote_share_2015": 63.0,
+      "con_vote_share_2019": 45.0,
+      "con_change_2019": -18.0
+    },
+    {
+      "constituency_id": "b4132cbe-2c7a-4ea3-b2b3-b4f12dec16eb",
+      "ukip_2015_pct": 7.0,
+      "leave_pct": 42.9,
+      "con_majority_2015_pct": 8.43,
+      "proto_reform_score": 4.5769,
+      "con_vote_share_2015": 46.0,
+      "con_vote_share_2019": 48.0,
+      "con_change_2019": 2.0
+    },
+    {
+      "constituency_id": "e99ec265-9a76-4900-b7c3-a3ff774413fa",
+      "ukip_2015_pct": 14.0,
+      "leave_pct": 44.98,
+      "con_majority_2015_pct": 32.97,
+      "proto_reform_score": 4.1187,
+      "con_vote_share_2015": 59.0,
+      "con_vote_share_2019": 56.0,
+      "con_change_2019": -3.0
+    },
+    {
+      "constituency_id": "7e8919d7-fb81-45b1-9993-bdb6cdde3135",
+      "ukip_2015_pct": 17.0,
+      "leave_pct": 59.29,
+      "con_majority_2015_pct": 0,
+      "proto_reform_score": 7.3127,
+      "con_vote_share_2015": 18.0,
+      "con_vote_share_2019": 37.0,
+      "con_change_2019": 19.0
+    },
+    {
+      "constituency_id": "b060b30a-15be-4241-979c-583fd1d462f1",
+      "ukip_2015_pct": 15.0,
+      "leave_pct": 50.73,
+      "con_majority_2015_pct": 29.27,
+      "proto_reform_score": 4.582,
+      "con_vote_share_2015": 58.0,
+      "con_vote_share_2019": 59.0,
+      "con_change_2019": 1.0
+    },
+    {
+      "constituency_id": "a73bf0ff-9e65-4368-8cc9-49fd8651eddb",
+      "ukip_2015_pct": 13.0,
+      "leave_pct": 49.88,
+      "con_majority_2015_pct": 12.58,
+      "proto_reform_score": 5.1077,
+      "con_vote_share_2015": 48.0,
+      "con_vote_share_2019": 48.0,
+      "con_change_2019": 0.0
+    },
+    {
+      "constituency_id": "15e425c7-f741-48de-9efe-97538e5fd1f9",
+      "ukip_2015_pct": 11.0,
+      "leave_pct": 51.59,
+      "con_majority_2015_pct": 13.58,
+      "proto_reform_score": 4.9617,
+      "con_vote_share_2015": 48.0,
+      "con_vote_share_2019": 56.0,
+      "con_change_2019": 8.0
+    },
+    {
+      "constituency_id": "4347da43-556a-4fc1-89cf-f53116299a30",
+      "ukip_2015_pct": 8.0,
+      "leave_pct": 41.07,
+      "con_majority_2015_pct": 9.84,
+      "proto_reform_score": 4.394,
+      "con_vote_share_2015": 49.0,
+      "con_vote_share_2019": 48.0,
+      "con_change_2019": -1.0
+    },
+    {
+      "constituency_id": "2ae8acce-d790-462e-bfc8-1d04e5a571ed",
+      "ukip_2015_pct": 21.0,
+      "leave_pct": 59.96,
+      "con_majority_2015_pct": 26.3,
+      "proto_reform_score": 5.6773,
+      "con_vote_share_2015": 58.0,
+      "con_vote_share_2019": 66.0,
+      "con_change_2019": 8.0
+    },
+    {
+      "constituency_id": "c46b57ea-b9df-40f5-9854-98a5894b2d1d",
+      "ukip_2015_pct": 5.0,
+      "leave_pct": 28.05,
+      "con_majority_2015_pct": 15.86,
+      "proto_reform_score": 2.6844,
+      "con_vote_share_2015": 54.0,
+      "con_vote_share_2019": 40.0,
+      "con_change_2019": -14.0
+    },
+    {
+      "constituency_id": "b57a11e3-5829-4877-9830-11cb119b3f0f",
+      "ukip_2015_pct": 11.0,
+      "leave_pct": 43.34,
+      "con_majority_2015_pct": 0,
+      "proto_reform_score": 5.7693,
+      "con_vote_share_2015": 22.0,
+      "con_vote_share_2019": 32.0,
+      "con_change_2019": 10.0
+    },
+    {
+      "constituency_id": "8870c807-aaa2-4a83-9c99-0e8a09f6da2a",
+      "ukip_2015_pct": 44.0,
+      "leave_pct": 73.04,
+      "con_majority_2015_pct": 0,
+      "proto_reform_score": 9.52,
+      "con_vote_share_2015": 37.0,
+      "con_vote_share_2019": 72.0,
+      "con_change_2019": 35.0
+    },
+    {
+      "constituency_id": "eb4bdd4a-dd0a-405c-aaae-0b83ebda752e",
+      "ukip_2015_pct": 12.0,
+      "leave_pct": 51.51,
+      "con_majority_2015_pct": 7.51,
+      "proto_reform_score": 5.6427,
+      "con_vote_share_2015": 39.0,
+      "con_vote_share_2019": 52.0,
+      "con_change_2019": 13.0
+    },
+    {
+      "constituency_id": "2a473afd-c903-439f-86eb-0b6f1bffd12b",
+      "ukip_2015_pct": 10.0,
+      "leave_pct": 50.06,
+      "con_majority_2015_pct": 6.52,
+      "proto_reform_score": 5.4856,
+      "con_vote_share_2015": 44.0,
+      "con_vote_share_2019": 51.0,
+      "con_change_2019": 7.0
+    },
+    {
+      "constituency_id": "8ce1bdb4-e050-418f-8b97-7bf1d79bb110",
+      "ukip_2015_pct": 14.0,
+      "leave_pct": 52.61,
+      "con_majority_2015_pct": 23.13,
+      "proto_reform_score": 4.6273,
+      "con_vote_share_2015": 53.0,
+      "con_vote_share_2019": 61.0,
+      "con_change_2019": 8.0
+    },
+    {
+      "constituency_id": "1818ba1c-33e9-49d1-8a03-5755f684a7c0",
+      "ukip_2015_pct": 16.0,
+      "leave_pct": 58.37,
+      "con_majority_2015_pct": 0,
+      "proto_reform_score": 7.1713,
+      "con_vote_share_2015": 31.0,
+      "con_vote_share_2019": 43.0,
+      "con_change_2019": 12.0
+    },
+    {
+      "constituency_id": "be85eedf-62e9-4c55-9dca-8beb420e4a31",
+      "ukip_2015_pct": 13.0,
+      "leave_pct": 50.38,
+      "con_majority_2015_pct": 0,
+      "proto_reform_score": 6.3987,
+      "con_vote_share_2015": 35.0,
+      "con_vote_share_2019": 43.0,
+      "con_change_2019": 8.0
+    },
+    {
+      "constituency_id": "e0237d5a-b554-48ea-ab96-f50e6b9ee9dd",
+      "ukip_2015_pct": 14.0,
+      "leave_pct": 58.41,
+      "con_majority_2015_pct": 8.83,
+      "proto_reform_score": 6.1313,
+      "con_vote_share_2015": 47.0,
+      "con_vote_share_2019": 54.0,
+      "con_change_2019": 7.0
+    },
+    {
+      "constituency_id": "4cda1c20-9280-4261-8b4f-b0c41aed1b40",
+      "ukip_2015_pct": 15.0,
+      "leave_pct": 60.29,
+      "con_majority_2015_pct": 4.88,
+      "proto_reform_score": 6.7119,
+      "con_vote_share_2015": 45.0,
+      "con_vote_share_2019": 51.0,
+      "con_change_2019": 6.0
+    },
+    {
+      "constituency_id": "59f77d09-7b74-4ea3-acf8-ae7689ff10a5",
+      "ukip_2015_pct": 11.0,
+      "leave_pct": 45.81,
+      "con_majority_2015_pct": 20.9,
+      "proto_reform_score": 3.934,
+      "con_vote_share_2015": 54.0,
+      "con_vote_share_2019": 54.0,
+      "con_change_2019": 0.0
+    },
+    {
+      "constituency_id": "b9c178d9-44ef-4e6d-a37f-c4bd9cfa45d0",
+      "ukip_2015_pct": 30.0,
+      "leave_pct": 70.35,
+      "con_majority_2015_pct": 0,
+      "proto_reform_score": 8.4,
+      "con_vote_share_2015": 24.0,
+      "con_vote_share_2019": 43.0,
+      "con_change_2019": 19.0
+    },
+    {
+      "constituency_id": "a9a09f02-10d9-441c-be3f-7098c1c56ee3",
+      "ukip_2015_pct": 13.0,
+      "leave_pct": 58.1,
+      "con_majority_2015_pct": 0,
+      "proto_reform_score": 6.9133,
+      "con_vote_share_2015": 35.0,
+      "con_vote_share_2019": 50.0,
+      "con_change_2019": 15.0
+    },
+    {
+      "constituency_id": "cc987b97-3966-4f34-acd7-7600bf60b7fa",
+      "ukip_2015_pct": 20.0,
+      "leave_pct": 63.98,
+      "con_majority_2015_pct": 16.41,
+      "proto_reform_score": 5.9586,
+      "con_vote_share_2015": 49.0,
+      "con_vote_share_2019": 61.0,
+      "con_change_2019": 12.0
+    },
+    {
+      "constituency_id": "556b5a98-b484-446d-90bf-8b68b6fbbdff",
+      "ukip_2015_pct": 16.0,
+      "leave_pct": 58.59,
+      "con_majority_2015_pct": 28.9,
+      "proto_reform_score": 5.186,
+      "con_vote_share_2015": 58.0,
+      "con_vote_share_2019": 64.0,
+      "con_change_2019": 6.0
+    },
+    {
+      "constituency_id": "afc8809c-1e97-4f1a-a160-d5877b9b3141",
+      "ukip_2015_pct": 15.0,
+      "leave_pct": 54.25,
+      "con_majority_2015_pct": 0.06,
+      "proto_reform_score": 6.8108,
+      "con_vote_share_2015": 37.0,
+      "con_vote_share_2019": 45.0,
+      "con_change_2019": 8.0
+    },
+    {
+      "constituency_id": "153b9337-76c6-431e-89b5-6f185b915b7e",
+      "ukip_2015_pct": 16.0,
+      "leave_pct": 61.35,
+      "con_majority_2015_pct": 0,
+      "proto_reform_score": 7.28,
+      "con_vote_share_2015": 27.0,
+      "con_vote_share_2019": 37.0,
+      "con_change_2019": 10.0
+    },
+    {
+      "constituency_id": "4bffd513-f6e6-4740-8212-9c4abf6e2323",
+      "ukip_2015_pct": 12.0,
+      "leave_pct": 51.24,
+      "con_majority_2015_pct": 22.12,
+      "proto_reform_score": 4.376,
+      "con_vote_share_2015": 52.0,
+      "con_vote_share_2019": 59.0,
+      "con_change_2019": 7.0
+    },
+    {
+      "constituency_id": "506cb3e3-609d-45ff-b656-f21c535f0da5",
+      "ukip_2015_pct": 24.0,
+      "leave_pct": 66.7,
+      "con_majority_2015_pct": 0,
+      "proto_reform_score": 7.92,
+      "con_vote_share_2015": 21.0,
+      "con_vote_share_2019": 37.0,
+      "con_change_2019": 16.0
+    },
+    {
+      "constituency_id": "395a6145-260a-4046-a077-02cf695f67b2",
+      "ukip_2015_pct": 23.0,
+      "leave_pct": 71.65,
+      "con_majority_2015_pct": 0,
+      "proto_reform_score": 7.84,
+      "con_vote_share_2015": 18.0,
+      "con_vote_share_2019": 33.0,
+      "con_change_2019": 15.0
+    },
+    {
+      "constituency_id": "09838464-541a-4f88-91c0-9257095cff0f",
+      "ukip_2015_pct": 3.0,
+      "leave_pct": 22.94,
+      "con_majority_2015_pct": 0,
+      "proto_reform_score": 3.7693,
+      "con_vote_share_2015": 23.0,
+      "con_vote_share_2019": 17.0,
+      "con_change_2019": -6.0
+    },
+    {
+      "constituency_id": "d10fd24e-03ce-4679-bc84-bffc3e2b3bb8",
+      "ukip_2015_pct": 4.0,
+      "leave_pct": 29.15,
+      "con_majority_2015_pct": 0,
+      "proto_reform_score": 4.2633,
+      "con_vote_share_2015": 43.0,
+      "con_vote_share_2019": 26.0,
+      "con_change_2019": -17.0
+    },
+    {
+      "constituency_id": "502654ba-e02b-4fd3-ac42-e45a8da38b25",
+      "ukip_2015_pct": 8.0,
+      "leave_pct": 46.26,
+      "con_majority_2015_pct": 0,
+      "proto_reform_score": 5.724,
+      "con_vote_share_2015": 30.0,
+      "con_vote_share_2019": 32.0,
+      "con_change_2019": 2.0
+    },
+    {
+      "constituency_id": "9b5c9d2c-2e4f-4bb6-962c-262292f72951",
+      "ukip_2015_pct": 4.0,
+      "leave_pct": 41.83,
+      "con_majority_2015_pct": 0,
+      "proto_reform_score": 5.1087,
+      "con_vote_share_2015": 22.0,
+      "con_vote_share_2019": 24.0,
+      "con_change_2019": 2.0
+    },
+    {
+      "constituency_id": "a54e6d50-6f36-4920-98d5-ecdc6d4529de",
+      "ukip_2015_pct": 19.0,
+      "leave_pct": 65.96,
+      "con_majority_2015_pct": 0,
+      "proto_reform_score": 7.52,
+      "con_vote_share_2015": 13.0,
+      "con_vote_share_2019": 27.0,
+      "con_change_2019": 14.0
+    },
+    {
+      "constituency_id": "f304b3fb-5713-417c-9f5d-75b588568643",
+      "ukip_2015_pct": 5.0,
+      "leave_pct": 46.27,
+      "con_majority_2015_pct": 0,
+      "proto_reform_score": 5.4847,
+      "con_vote_share_2015": 12.0,
+      "con_vote_share_2019": 15.0,
+      "con_change_2019": 3.0
+    },
+    {
+      "constituency_id": "292624b6-521c-47c6-8a57-e4bb857e8b30",
+      "ukip_2015_pct": 12.0,
+      "leave_pct": 49.27,
+      "con_majority_2015_pct": 35.38,
+      "proto_reform_score": 4.2447,
+      "con_vote_share_2015": 61.0,
+      "con_vote_share_2019": 59.0,
+      "con_change_2019": -2.0
+    },
+    {
+      "constituency_id": "c892d337-22b8-4fc2-b11a-5bd14224e276",
+      "ukip_2015_pct": 17.0,
+      "leave_pct": 54.2,
+      "con_majority_2015_pct": 28.45,
+      "proto_reform_score": 4.9733,
+      "con_vote_share_2015": 57.0,
+      "con_vote_share_2019": 60.0,
+      "con_change_2019": 3.0
+    },
+    {
+      "constituency_id": "3b51622f-732c-4d25-a5bc-c23fdd3b75e0",
+      "ukip_2015_pct": 17.0,
+      "leave_pct": 53.68,
+      "con_majority_2015_pct": 19.99,
+      "proto_reform_score": 4.9395,
+      "con_vote_share_2015": 49.0,
+      "con_vote_share_2019": 51.0,
+      "con_change_2019": 2.0
+    },
+    {
+      "constituency_id": "f5335cf4-a381-4ef4-a3cf-04788145effc",
+      "ukip_2015_pct": 12.0,
+      "leave_pct": 57.54,
+      "con_majority_2015_pct": 0.94,
+      "proto_reform_score": 6.7023,
+      "con_vote_share_2015": 40.0,
+      "con_vote_share_2019": 47.0,
+      "con_change_2019": 7.0
+    },
+    {
+      "constituency_id": "196f6159-fa6a-49cd-bd08-3d753f596c30",
+      "ukip_2015_pct": 16.0,
+      "leave_pct": 54.35,
+      "con_majority_2015_pct": 11.49,
+      "proto_reform_score": 5.7543,
+      "con_vote_share_2015": 42.0,
+      "con_vote_share_2019": 52.0,
+      "con_change_2019": 10.0
+    },
+    {
+      "constituency_id": "f16eb9da-4cc4-4575-95ad-0749e284583a",
+      "ukip_2015_pct": 9.0,
+      "leave_pct": 49.22,
+      "con_majority_2015_pct": 0,
+      "proto_reform_score": 6.0013,
+      "con_vote_share_2015": 41.0,
+      "con_vote_share_2019": 36.0,
+      "con_change_2019": -5.0
+    },
+    {
+      "constituency_id": "43e7ea60-ea5d-4453-a6cc-847e82c45186",
+      "ukip_2015_pct": 18.0,
+      "leave_pct": 61.01,
+      "con_majority_2015_pct": 24.48,
+      "proto_reform_score": 5.44,
+      "con_vote_share_2015": 55.0,
+      "con_vote_share_2019": 64.0,
+      "con_change_2019": 9.0
+    },
+    {
+      "constituency_id": "cd646bf8-1507-497f-9cd6-6173b6589866",
+      "ukip_2015_pct": 12.0,
+      "leave_pct": 47.78,
+      "con_majority_2015_pct": 31.08,
+      "proto_reform_score": 4.1453,
+      "con_vote_share_2015": 58.0,
+      "con_vote_share_2019": 54.0,
+      "con_change_2019": -4.0
+    },
+    {
+      "constituency_id": "7d8afc09-7470-4092-8ce2-04bd9ee1bd53",
+      "ukip_2015_pct": 16.0,
+      "leave_pct": 63.22,
+      "con_majority_2015_pct": 4.98,
+      "proto_reform_score": 6.7818,
+      "con_vote_share_2015": 43.0,
+      "con_vote_share_2019": 56.0,
+      "con_change_2019": 13.0
+    },
+    {
+      "constituency_id": "a992b87a-ed15-4c4e-b3b9-91fb7a0e31eb",
+      "ukip_2015_pct": 17.0,
+      "leave_pct": 54.63,
+      "con_majority_2015_pct": 0,
+      "proto_reform_score": 7.002,
+      "con_vote_share_2015": 27.0,
+      "con_vote_share_2019": 28.0,
+      "con_change_2019": 1.0
+    },
+    {
+      "constituency_id": "456a6b66-0018-4a08-8d15-1283291ae494",
+      "ukip_2015_pct": 10.0,
+      "leave_pct": 41.57,
+      "con_majority_2015_pct": 35.82,
+      "proto_reform_score": 3.5713,
+      "con_vote_share_2015": 63.0,
+      "con_vote_share_2019": 50.0,
+      "con_change_2019": -13.0
+    },
+    {
+      "constituency_id": "18e6df7b-dee2-4ba0-a7c4-116569de1bef",
+      "ukip_2015_pct": 9.0,
+      "leave_pct": 44.83,
+      "con_majority_2015_pct": 0,
+      "proto_reform_score": 5.7087,
+      "con_vote_share_2015": 33.0,
+      "con_vote_share_2019": 32.0,
+      "con_change_2019": -1.0
+    },
+    {
+      "constituency_id": "b91b2b7a-8dc0-4fb1-92ba-123765e9471a",
+      "ukip_2015_pct": 18.0,
+      "leave_pct": 58.67,
+      "con_majority_2015_pct": 23.95,
+      "proto_reform_score": 5.3513,
+      "con_vote_share_2015": 54.0,
+      "con_vote_share_2019": 63.0,
+      "con_change_2019": 9.0
+    },
+    {
+      "constituency_id": "ee4c0325-9277-4c8c-a962-b753b6fa43fb",
+      "ukip_2015_pct": 13.0,
+      "leave_pct": 55.93,
+      "con_majority_2015_pct": 0,
+      "proto_reform_score": 6.7687,
+      "con_vote_share_2015": 29.0,
+      "con_vote_share_2019": 36.0,
+      "con_change_2019": 7.0
+    },
+    {
+      "constituency_id": "eebd7733-de87-4fb6-9929-ba0caacafae8",
+      "ukip_2015_pct": 15.0,
+      "leave_pct": 48.77,
+      "con_majority_2015_pct": 13.8,
+      "proto_reform_score": 5.0717,
+      "con_vote_share_2015": 47.0,
+      "con_vote_share_2019": 51.0,
+      "con_change_2019": 4.0
+    },
+    {
+      "constituency_id": "c2677911-273b-4fca-a13d-fee71f3124ce",
+      "ukip_2015_pct": 3.0,
+      "leave_pct": 31.1,
+      "con_majority_2015_pct": 7.81,
+      "proto_reform_score": 3.5327,
+      "con_vote_share_2015": 51.0,
+      "con_vote_share_2019": 44.0,
+      "con_change_2019": -7.0
+    },
+    {
+      "constituency_id": "ee3904b6-55bc-4f06-b5fc-4f0439abd4e2",
+      "ukip_2015_pct": 23.0,
+      "leave_pct": 61.64,
+      "con_majority_2015_pct": 16.49,
+      "proto_reform_score": 6.1906,
+      "con_vote_share_2015": 48.0,
+      "con_vote_share_2019": 56.0,
+      "con_change_2019": 8.0
+    },
+    {
+      "constituency_id": "9e73b146-519c-4cc7-93a1-276e720eff91",
+      "ukip_2015_pct": 18.0,
+      "leave_pct": 57.89,
+      "con_majority_2015_pct": 15.73,
+      "proto_reform_score": 5.7267,
+      "con_vote_share_2015": 47.0,
+      "con_vote_share_2019": 60.0,
+      "con_change_2019": 13.0
+    },
+    {
+      "constituency_id": "b117ac2b-094a-4974-b9a7-a10fe6cc84d8",
+      "ukip_2015_pct": 13.0,
+      "leave_pct": 56.73,
+      "con_majority_2015_pct": 20.13,
+      "proto_reform_score": 4.822,
+      "con_vote_share_2015": 49.0,
+      "con_vote_share_2019": 62.0,
+      "con_change_2019": 13.0
+    },
+    {
+      "constituency_id": "8d1c677f-1455-4bb1-b940-edf1522bdbd0",
+      "ukip_2015_pct": 16.0,
+      "leave_pct": 61.96,
+      "con_majority_2015_pct": 20.69,
+      "proto_reform_score": 5.28,
+      "con_vote_share_2015": 53.0,
+      "con_vote_share_2019": 66.0,
+      "con_change_2019": 13.0
+    },
+    {
+      "constituency_id": "db367a14-8405-40e7-9c32-1f343441d5dc",
+      "ukip_2015_pct": 14.0,
+      "leave_pct": 56.3,
+      "con_majority_2015_pct": 0,
+      "proto_reform_score": 6.8733,
+      "con_vote_share_2015": 36.0,
+      "con_vote_share_2019": 47.0,
+      "con_change_2019": 11.0
+    },
+    {
+      "constituency_id": "4f326ef9-4225-4acf-b859-1f821e2a0955",
+      "ukip_2015_pct": 20.0,
+      "leave_pct": 63.58,
+      "con_majority_2015_pct": 14.83,
+      "proto_reform_score": 6.1166,
+      "con_vote_share_2015": 48.0,
+      "con_vote_share_2019": 61.0,
+      "con_change_2019": 13.0
+    },
+    {
+      "constituency_id": "5e625f45-e79e-4833-8139-7bc1c7b91f8d",
+      "ukip_2015_pct": 14.0,
+      "leave_pct": 58.9,
+      "con_majority_2015_pct": 8.74,
+      "proto_reform_score": 6.1727,
+      "con_vote_share_2015": 45.0,
+      "con_vote_share_2019": 55.0,
+      "con_change_2019": 10.0
+    },
+    {
+      "constituency_id": "cdece8a5-1f09-4491-b666-94cda4397778",
+      "ukip_2015_pct": 19.0,
+      "leave_pct": 61.82,
+      "con_majority_2015_pct": 23.34,
+      "proto_reform_score": 5.52,
+      "con_vote_share_2015": 55.0,
+      "con_vote_share_2019": 67.0,
+      "con_change_2019": 12.0
+    },
+    {
+      "constituency_id": "5c851d4f-c18c-4b0c-967e-919b520ff14b",
+      "ukip_2015_pct": 19.0,
+      "leave_pct": 65.38,
+      "con_majority_2015_pct": 11.62,
+      "proto_reform_score": 6.3582,
+      "con_vote_share_2015": 47.0,
+      "con_vote_share_2019": 62.0,
+      "con_change_2019": 15.0
+    },
+    {
+      "constituency_id": "34fc7003-a19d-49f2-8707-31cfc3b79200",
+      "ukip_2015_pct": 23.0,
+      "leave_pct": 71.5,
+      "con_majority_2015_pct": 8.82,
+      "proto_reform_score": 6.9582,
+      "con_vote_share_2015": 43.0,
+      "con_vote_share_2019": 66.0,
+      "con_change_2019": 23.0
+    },
+    {
+      "constituency_id": "2cb53167-4aef-48d4-ba24-7a279ed35b9b",
+      "ukip_2015_pct": 8.0,
+      "leave_pct": 35.67,
+      "con_majority_2015_pct": 0,
+      "proto_reform_score": 5.018,
+      "con_vote_share_2015": 27.0,
+      "con_vote_share_2019": 23.0,
+      "con_change_2019": -4.0
+    },
+    {
+      "constituency_id": "d7043113-d5b2-404e-9abe-9913d060a090",
+      "ukip_2015_pct": 9.0,
+      "leave_pct": 41.2,
+      "con_majority_2015_pct": 29.64,
+      "proto_reform_score": 3.4667,
+      "con_vote_share_2015": 57.0,
+      "con_vote_share_2019": 45.0,
+      "con_change_2019": -12.0
+    },
+    {
+      "constituency_id": "be91d116-3f60-48a8-aff4-f2b11444c68b",
+      "ukip_2015_pct": 2.0,
+      "leave_pct": 20.48,
+      "con_majority_2015_pct": 0,
+      "proto_reform_score": 3.5253,
+      "con_vote_share_2015": 15.0,
+      "con_vote_share_2019": 13.0,
+      "con_change_2019": -2.0
+    },
+    {
+      "constituency_id": "38afe0b5-6694-4eaa-a312-1f4c3d19e568",
+      "ukip_2015_pct": 4.0,
+      "leave_pct": 22.78,
+      "con_majority_2015_pct": 0,
+      "proto_reform_score": 3.8387,
+      "con_vote_share_2015": 13.0,
+      "con_vote_share_2019": 10.0,
+      "con_change_2019": -3.0
+    },
+    {
+      "constituency_id": "d629d25c-b3c3-4e75-9dbd-301eb3c49de1",
+      "ukip_2015_pct": 13.0,
+      "leave_pct": 58.82,
+      "con_majority_2015_pct": 0,
+      "proto_reform_score": 6.9613,
+      "con_vote_share_2015": 39.0,
+      "con_vote_share_2019": 42.0,
+      "con_change_2019": 3.0
+    },
+    {
+      "constituency_id": "ca4d43ba-7845-4001-a6a7-1c92e8eaa1d9",
+      "ukip_2015_pct": 16.0,
+      "leave_pct": 67.73,
+      "con_majority_2015_pct": 12.28,
+      "proto_reform_score": 6.052,
+      "con_vote_share_2015": 49.0,
+      "con_vote_share_2019": 65.0,
+      "con_change_2019": 16.0
+    },
+    {
+      "constituency_id": "f9c9aebe-0112-4683-b0c0-97037e6ad1fa",
+      "ukip_2015_pct": 11.0,
+      "leave_pct": 47.18,
+      "con_majority_2015_pct": 21.43,
+      "proto_reform_score": 4.0253,
+      "con_vote_share_2015": 53.0,
+      "con_vote_share_2019": 52.0,
+      "con_change_2019": -1.0
+    },
+    {
+      "constituency_id": "3373de22-55ee-4c09-b2bc-86ae0b3fe772",
+      "ukip_2015_pct": 5.0,
+      "leave_pct": 47.48,
+      "con_majority_2015_pct": 6.7,
+      "proto_reform_score": 4.8952,
+      "con_vote_share_2015": 50.0,
+      "con_vote_share_2019": 55.0,
+      "con_change_2019": 5.0
+    },
+    {
+      "constituency_id": "3d92ad79-07a5-4a25-a3d5-bcddacce3f38",
+      "ukip_2015_pct": 4.0,
+      "leave_pct": 45.06,
+      "con_majority_2015_pct": 0,
+      "proto_reform_score": 5.324,
+      "con_vote_share_2015": 42.0,
+      "con_vote_share_2019": 35.0,
+      "con_change_2019": -7.0
+    },
+    {
+      "constituency_id": "265ac199-2400-4379-972a-cb7cb4125677",
+      "ukip_2015_pct": 28.0,
+      "leave_pct": 69.57,
+      "con_majority_2015_pct": 0,
+      "proto_reform_score": 8.24,
+      "con_vote_share_2015": 21.0,
+      "con_vote_share_2019": 29.0,
+      "con_change_2019": 8.0
+    },
+    {
+      "constituency_id": "d88a8f3d-4468-4f3b-978f-79e741e48376",
+      "ukip_2015_pct": 17.0,
+      "leave_pct": 59.0,
+      "con_majority_2015_pct": 21.9,
+      "proto_reform_score": 5.2933,
+      "con_vote_share_2015": 51.0,
+      "con_vote_share_2019": 59.0,
+      "con_change_2019": 8.0
+    },
+    {
+      "constituency_id": "a0e9c249-fa60-43a2-a9ea-703ebd1bca88",
+      "ukip_2015_pct": 13.0,
+      "leave_pct": 55.94,
+      "con_majority_2015_pct": 6.39,
+      "proto_reform_score": 6.1307,
+      "con_vote_share_2015": 45.0,
+      "con_vote_share_2019": 49.0,
+      "con_change_2019": 4.0
+    },
+    {
+      "constituency_id": "b95784ce-a40f-4431-873b-1ba1c230fef9",
+      "ukip_2015_pct": 21.0,
+      "leave_pct": 62.62,
+      "con_majority_2015_pct": 19.72,
+      "proto_reform_score": 5.7076,
+      "con_vote_share_2015": 52.0,
+      "con_vote_share_2019": 65.0,
+      "con_change_2019": 13.0
+    },
+    {
+      "constituency_id": "93d2f745-b668-4a43-9020-6b70dd9a0d2e",
+      "ukip_2015_pct": 12.0,
+      "leave_pct": 58.25,
+      "con_majority_2015_pct": 0,
+      "proto_reform_score": 6.8433,
+      "con_vote_share_2015": 25.0,
+      "con_vote_share_2019": 35.0,
+      "con_change_2019": 10.0
+    },
+    {
+      "constituency_id": "c8ae0416-700c-4240-a573-3750648bb947",
+      "ukip_2015_pct": 12.0,
+      "leave_pct": 52.21,
+      "con_majority_2015_pct": 10.38,
+      "proto_reform_score": 5.4023,
+      "con_vote_share_2015": 41.0,
+      "con_vote_share_2019": 46.0,
+      "con_change_2019": 5.0
+    },
+    {
+      "constituency_id": "7bb4762b-ab16-43e6-8f3d-5324ee854136",
+      "ukip_2015_pct": 15.0,
+      "leave_pct": 55.49,
+      "con_majority_2015_pct": 19.33,
+      "proto_reform_score": 4.9668,
+      "con_vote_share_2015": 53.0,
+      "con_vote_share_2019": 55.0,
+      "con_change_2019": 2.0
+    },
+    {
+      "constituency_id": "60693539-52d9-458b-b252-9b504e1d28b9",
+      "ukip_2015_pct": 5.0,
+      "leave_pct": 41.57,
+      "con_majority_2015_pct": 4.95,
+      "proto_reform_score": 4.6767,
+      "con_vote_share_2015": 49.0,
+      "con_vote_share_2019": 49.0,
+      "con_change_2019": 0.0
+    },
+    {
+      "constituency_id": "e906a3d2-eb9b-425d-903a-43a9a38d5496",
+      "ukip_2015_pct": 17.0,
+      "leave_pct": 60.42,
+      "con_majority_2015_pct": 23.63,
+      "proto_reform_score": 5.36,
+      "con_vote_share_2015": 53.0,
+      "con_vote_share_2019": 62.0,
+      "con_change_2019": 9.0
+    },
+    {
+      "constituency_id": "b238069c-ffcb-4e87-8dc4-6dd458035d35",
+      "ukip_2015_pct": 13.0,
+      "leave_pct": 49.24,
+      "con_majority_2015_pct": 26.68,
+      "proto_reform_score": 4.3227,
+      "con_vote_share_2015": 56.0,
+      "con_vote_share_2019": 56.0,
+      "con_change_2019": 0.0
+    },
+    {
+      "constituency_id": "b79a54c9-14db-4928-b510-e015138089f8",
+      "ukip_2015_pct": 13.0,
+      "leave_pct": 50.84,
+      "con_majority_2015_pct": 25.03,
+      "proto_reform_score": 4.4293,
+      "con_vote_share_2015": 59.0,
+      "con_vote_share_2019": 65.0,
+      "con_change_2019": 6.0
+    },
+    {
+      "constituency_id": "cd1cbdc9-af74-409b-b113-caff75cd5078",
+      "ukip_2015_pct": 10.0,
+      "leave_pct": 45.34,
+      "con_majority_2015_pct": 20.15,
+      "proto_reform_score": 3.8227,
+      "con_vote_share_2015": 53.0,
+      "con_vote_share_2019": 54.0,
+      "con_change_2019": 1.0
+    },
+    {
+      "constituency_id": "a5f8c455-28a1-4c32-84a6-49352d7a53ad",
+      "ukip_2015_pct": 11.0,
+      "leave_pct": 50.55,
+      "con_majority_2015_pct": 6.67,
+      "proto_reform_score": 5.5827,
+      "con_vote_share_2015": 45.0,
+      "con_vote_share_2019": 46.0,
+      "con_change_2019": 1.0
+    },
+    {
+      "constituency_id": "badc923f-019c-4fec-9939-e2f8d886e3fa",
+      "ukip_2015_pct": 5.0,
+      "leave_pct": 26.66,
+      "con_majority_2015_pct": 0,
+      "proto_reform_score": 4.1773,
+      "con_vote_share_2015": 22.0,
+      "con_vote_share_2019": 15.0,
+      "con_change_2019": -7.0
+    },
+    {
+      "constituency_id": "df193bcf-41fd-4564-bb7b-58420232415b",
+      "ukip_2015_pct": 25.0,
+      "leave_pct": 69.49,
+      "con_majority_2015_pct": 16.48,
+      "proto_reform_score": 6.352,
+      "con_vote_share_2015": 49.0,
+      "con_vote_share_2019": 65.0,
+      "con_change_2019": 16.0
+    },
+    {
+      "constituency_id": "fcd87876-2ba8-4ecd-bd9a-00769aff02b3",
+      "ukip_2015_pct": 14.0,
+      "leave_pct": 49.49,
+      "con_majority_2015_pct": 31.18,
+      "proto_reform_score": 4.4193,
+      "con_vote_share_2015": 57.0,
+      "con_vote_share_2019": 56.0,
+      "con_change_2019": -1.0
+    },
+    {
+      "constituency_id": "0945b8b1-1fbe-4a34-b48b-1c80d40f38f8",
+      "ukip_2015_pct": 22.0,
+      "leave_pct": 62.43,
+      "con_majority_2015_pct": 0,
+      "proto_reform_score": 7.76,
+      "con_vote_share_2015": 18.0,
+      "con_vote_share_2019": 33.0,
+      "con_change_2019": 15.0
+    },
+    {
+      "constituency_id": "1654db07-c1e3-4404-9557-9e3760d37f2b",
+      "ukip_2015_pct": 15.0,
+      "leave_pct": 51.85,
+      "con_majority_2015_pct": 0,
+      "proto_reform_score": 6.6567,
+      "con_vote_share_2015": 27.0,
+      "con_vote_share_2019": 36.0,
+      "con_change_2019": 9.0
+    },
+    {
+      "constituency_id": "a3d03d76-eb3b-437e-9aec-77bd946d6a02",
+      "ukip_2015_pct": 17.0,
+      "leave_pct": 53.49,
+      "con_majority_2015_pct": 23.49,
+      "proto_reform_score": 4.926,
+      "con_vote_share_2015": 53.0,
+      "con_vote_share_2019": 59.0,
+      "con_change_2019": 6.0
+    },
+    {
+      "constituency_id": "22e7f0a7-0b11-4f6b-a7c7-fbb553419f4e",
+      "ukip_2015_pct": 21.0,
+      "leave_pct": 65.82,
+      "con_majority_2015_pct": 0,
+      "proto_reform_score": 7.68,
+      "con_vote_share_2015": 32.0,
+      "con_vote_share_2019": 48.0,
+      "con_change_2019": 16.0
+    },
+    {
+      "constituency_id": "0b3ed97b-ce51-495c-b5b8-c4ee4db737a8",
+      "ukip_2015_pct": 9.0,
+      "leave_pct": 53.31,
+      "con_majority_2015_pct": 0,
+      "proto_reform_score": 6.274,
+      "con_vote_share_2015": 43.0,
+      "con_vote_share_2019": 37.0,
+      "con_change_2019": -6.0
+    },
+    {
+      "constituency_id": "347d242c-4163-454b-af66-4b372b21637e",
+      "ukip_2015_pct": 5.0,
+      "leave_pct": 43.31,
+      "con_majority_2015_pct": 0,
+      "proto_reform_score": 5.2873,
+      "con_vote_share_2015": 26.0,
+      "con_vote_share_2019": 21.0,
+      "con_change_2019": -5.0
+    },
+    {
+      "constituency_id": "b306aa1b-7527-4344-8a3a-b679f8013558",
+      "ukip_2015_pct": 12.0,
+      "leave_pct": 56.52,
+      "con_majority_2015_pct": 5.01,
+      "proto_reform_score": 6.2269,
+      "con_vote_share_2015": 45.0,
+      "con_vote_share_2019": 50.0,
+      "con_change_2019": 5.0
+    },
+    {
+      "constituency_id": "38d88e50-7e67-489a-a9fa-0b57f4d66c48",
+      "ukip_2015_pct": 4.0,
+      "leave_pct": 21.61,
+      "con_majority_2015_pct": 0,
+      "proto_reform_score": 3.7607,
+      "con_vote_share_2015": 17.0,
+      "con_vote_share_2019": 10.0,
+      "con_change_2019": -7.0
+    },
+    {
+      "constituency_id": "26d2141f-ee14-4581-8df2-8858042c0c19",
+      "ukip_2015_pct": 8.0,
+      "leave_pct": 28.28,
+      "con_majority_2015_pct": 0,
+      "proto_reform_score": 4.5253,
+      "con_vote_share_2015": 22.0,
+      "con_vote_share_2019": 16.0,
+      "con_change_2019": -6.0
+    },
+    {
+      "constituency_id": "29c89549-db0b-41f5-9683-c9d0cca7cc5e",
+      "ukip_2015_pct": 11.0,
+      "leave_pct": 46.21,
+      "con_majority_2015_pct": 32.84,
+      "proto_reform_score": 3.9607,
+      "con_vote_share_2015": 58.0,
+      "con_vote_share_2019": 59.0,
+      "con_change_2019": 1.0
+    },
+    {
+      "constituency_id": "b583aa32-1d20-418c-aed0-dabbf4c8375d",
+      "ukip_2015_pct": 16.0,
+      "leave_pct": 60.99,
+      "con_majority_2015_pct": 17.95,
+      "proto_reform_score": 5.4854,
+      "con_vote_share_2015": 52.0,
+      "con_vote_share_2019": 60.0,
+      "con_change_2019": 8.0
+    },
+    {
+      "constituency_id": "35d09c1c-fc5c-4bcd-8b15-c50aad01c15c",
+      "ukip_2015_pct": 7.0,
+      "leave_pct": 40.84,
+      "con_majority_2015_pct": 3.49,
+      "proto_reform_score": 4.9338,
+      "con_vote_share_2015": 39.0,
+      "con_vote_share_2019": 33.0,
+      "con_change_2019": -6.0
+    },
+    {
+      "constituency_id": "dd1c2be6-c1b2-4b84-a698-ba59191185d0",
+      "ukip_2015_pct": 22.0,
+      "leave_pct": 72.83,
+      "con_majority_2015_pct": 0,
+      "proto_reform_score": 7.76,
+      "con_vote_share_2015": 16.0,
+      "con_vote_share_2019": 34.0,
+      "con_change_2019": 18.0
+    },
+    {
+      "constituency_id": "9f676820-ef87-45ab-bcb9-7f77b583eeee",
+      "ukip_2015_pct": 10.0,
+      "leave_pct": 52.34,
+      "con_majority_2015_pct": 0,
+      "proto_reform_score": 6.2893,
+      "con_vote_share_2015": 7.0,
+      "con_vote_share_2019": 9.0,
+      "con_change_2019": 2.0
+    },
+    {
+      "constituency_id": "7b48c27e-a97e-4329-b537-7d53c102fd6d",
+      "ukip_2015_pct": 19.0,
+      "leave_pct": 61.44,
+      "con_majority_2015_pct": 0,
+      "proto_reform_score": 7.52,
+      "con_vote_share_2015": 21.0,
+      "con_vote_share_2019": 41.0,
+      "con_change_2019": 20.0
+    },
+    {
+      "constituency_id": "afcbc95f-faeb-4400-af86-56cb44b45ae1",
+      "ukip_2015_pct": 8.0,
+      "leave_pct": 37.42,
+      "con_majority_2015_pct": 0,
+      "proto_reform_score": 5.1347,
+      "con_vote_share_2015": 33.0,
+      "con_vote_share_2019": 24.0,
+      "con_change_2019": -9.0
+    },
+    {
+      "constituency_id": "4cea5350-6660-4d47-b67c-d412a13e7c3b",
+      "ukip_2015_pct": 7.0,
+      "leave_pct": 35.41,
+      "con_majority_2015_pct": 0,
+      "proto_reform_score": 4.9207,
+      "con_vote_share_2015": 19.0,
+      "con_vote_share_2019": 42.0,
+      "con_change_2019": 23.0
+    },
+    {
+      "constituency_id": "02364b73-a260-4be9-9d70-c79ba2fa5656",
+      "ukip_2015_pct": 9.0,
+      "leave_pct": 54.06,
+      "con_majority_2015_pct": 0,
+      "proto_reform_score": 6.324,
+      "con_vote_share_2015": 23.0,
+      "con_vote_share_2019": 38.0,
+      "con_change_2019": 15.0
+    },
+    {
+      "constituency_id": "a4669308-7142-4f16-8ec7-9f28d39bd594",
+      "ukip_2015_pct": 8.0,
+      "leave_pct": 42.44,
+      "con_majority_2015_pct": 0,
+      "proto_reform_score": 5.4693,
+      "con_vote_share_2015": 21.0,
+      "con_vote_share_2019": 22.0,
+      "con_change_2019": 1.0
+    },
+    {
+      "constituency_id": "d3cbcc49-6301-43e0-bb95-cc06dd26a904",
+      "ukip_2015_pct": 17.0,
+      "leave_pct": 50.84,
+      "con_majority_2015_pct": 0,
+      "proto_reform_score": 6.7493,
+      "con_vote_share_2015": 26.0,
+      "con_vote_share_2019": 37.0,
+      "con_change_2019": 11.0
+    },
+    {
+      "constituency_id": "11837fed-37eb-4704-81c6-1c392967edc9",
+      "ukip_2015_pct": 11.0,
+      "leave_pct": 47.14,
+      "con_majority_2015_pct": 1.56,
+      "proto_reform_score": 5.8668,
+      "con_vote_share_2015": 38.0,
+      "con_vote_share_2019": 49.0,
+      "con_change_2019": 11.0
+    },
+    {
+      "constituency_id": "3202678c-7d98-4a55-b82c-68a2a43ac386",
+      "ukip_2015_pct": 9.0,
+      "leave_pct": 35.37,
+      "con_majority_2015_pct": 0,
+      "proto_reform_score": 5.078,
+      "con_vote_share_2015": 22.0,
+      "con_vote_share_2019": 20.0,
+      "con_change_2019": -2.0
+    },
+    {
+      "constituency_id": "becf399e-70cf-49fa-bbf6-1aaa375fb04e",
+      "ukip_2015_pct": 6.0,
+      "leave_pct": 34.76,
+      "con_majority_2015_pct": 0,
+      "proto_reform_score": 4.7973,
+      "con_vote_share_2015": 22.0,
+      "con_vote_share_2019": 20.0,
+      "con_change_2019": -2.0
+    },
+    {
+      "constituency_id": "8cd7732f-62a4-414e-a698-06ffe8ac839b",
+      "ukip_2015_pct": 16.0,
+      "leave_pct": 57.51,
+      "con_majority_2015_pct": 24.5,
+      "proto_reform_score": 5.114,
+      "con_vote_share_2015": 55.0,
+      "con_vote_share_2019": 64.0,
+      "con_change_2019": 9.0
+    },
+    {
+      "constituency_id": "3e99648c-018d-4273-affe-b25433adb123",
+      "ukip_2015_pct": 12.0,
+      "leave_pct": 57.43,
+      "con_majority_2015_pct": 1.95,
+      "proto_reform_score": 6.594,
+      "con_vote_share_2015": 43.0,
+      "con_vote_share_2019": 48.0,
+      "con_change_2019": 5.0
+    },
+    {
+      "constituency_id": "fcdcf776-e263-48cf-8c16-16ce2a7bf091",
+      "ukip_2015_pct": 6.0,
+      "leave_pct": 27.3,
+      "con_majority_2015_pct": 0,
+      "proto_reform_score": 4.3,
+      "con_vote_share_2015": 10.0,
+      "con_vote_share_2019": 8.0,
+      "con_change_2019": -2.0
+    },
+    {
+      "constituency_id": "10507ee5-173c-48bd-9fed-601b761131cc",
+      "ukip_2015_pct": 9.0,
+      "leave_pct": 52.17,
+      "con_majority_2015_pct": 0,
+      "proto_reform_score": 6.198,
+      "con_vote_share_2015": 5.0,
+      "con_vote_share_2019": 10.0,
+      "con_change_2019": 5.0
+    },
+    {
+      "constituency_id": "3120ae89-a309-4e78-a824-e5466cce0cd4",
+      "ukip_2015_pct": 8.0,
+      "leave_pct": 35.26,
+      "con_majority_2015_pct": 0,
+      "proto_reform_score": 4.9907,
+      "con_vote_share_2015": 10.0,
+      "con_vote_share_2019": 10.0,
+      "con_change_2019": 0.0
+    },
+    {
+      "constituency_id": "0023372f-da9d-4b65-9c99-3f61125aab44",
+      "ukip_2015_pct": 8.0,
+      "leave_pct": 49.82,
+      "con_majority_2015_pct": 0,
+      "proto_reform_score": 5.9613,
+      "con_vote_share_2015": 7.0,
+      "con_vote_share_2019": 9.0,
+      "con_change_2019": 2.0
+    },
+    {
+      "constituency_id": "fefbd770-95a5-4254-9b8b-588118cd4a8b",
+      "ukip_2015_pct": 11.0,
+      "leave_pct": 50.09,
+      "con_majority_2015_pct": 12.21,
+      "proto_reform_score": 4.9985,
+      "con_vote_share_2015": 50.0,
+      "con_vote_share_2019": 51.0,
+      "con_change_2019": 1.0
+    },
+    {
+      "constituency_id": "29cde7be-2456-46a4-8ee1-5965fd16b6ef",
+      "ukip_2015_pct": 21.0,
+      "leave_pct": 68.9,
+      "con_majority_2015_pct": 20.0,
+      "proto_reform_score": 5.68,
+      "con_vote_share_2015": 51.0,
+      "con_vote_share_2019": 72.0,
+      "con_change_2019": 21.0
+    },
+    {
+      "constituency_id": "37431a2e-29db-45f4-b7c9-156e0083a14e",
+      "ukip_2015_pct": 12.0,
+      "leave_pct": 59.15,
+      "con_majority_2015_pct": 0,
+      "proto_reform_score": 6.9033,
+      "con_vote_share_2015": 30.0,
+      "con_vote_share_2019": 34.0,
+      "con_change_2019": 4.0
+    },
+    {
+      "constituency_id": "1a90c209-3ee1-4ad9-97da-729c178d971f",
+      "ukip_2015_pct": 12.0,
+      "leave_pct": 47.18,
+      "con_majority_2015_pct": 20.65,
+      "proto_reform_score": 4.1053,
+      "con_vote_share_2015": 53.0,
+      "con_vote_share_2019": 53.0,
+      "con_change_2019": 0.0
+    },
+    {
+      "constituency_id": "0302d5b6-da70-42e9-af78-4b878f6db502",
+      "ukip_2015_pct": 8.0,
+      "leave_pct": 45.03,
+      "con_majority_2015_pct": 39.17,
+      "proto_reform_score": 3.642,
+      "con_vote_share_2015": 66.0,
+      "con_vote_share_2019": 57.0,
+      "con_change_2019": -9.0
+    },
+    {
+      "constituency_id": "902b0592-0264-4e07-91ab-8f34633ed8d9",
+      "ukip_2015_pct": 22.0,
+      "leave_pct": 64.91,
+      "con_majority_2015_pct": 0,
+      "proto_reform_score": 7.76,
+      "con_vote_share_2015": 20.0,
+      "con_vote_share_2019": 34.0,
+      "con_change_2019": 14.0
+    },
+    {
+      "constituency_id": "bd608e85-f306-4fb4-b805-548ab2eeea0d",
+      "ukip_2015_pct": 15.0,
+      "leave_pct": 60.96,
+      "con_majority_2015_pct": 31.95,
+      "proto_reform_score": 5.2,
+      "con_vote_share_2015": 61.0,
+      "con_vote_share_2019": 72.0,
+      "con_change_2019": 11.0
+    },
+    {
+      "constituency_id": "9bbba1d6-4f60-4a28-81c4-dd9e42a27210",
+      "ukip_2015_pct": 11.0,
+      "leave_pct": 36.36,
+      "con_majority_2015_pct": 0,
+      "proto_reform_score": 5.304,
+      "con_vote_share_2015": 14.0,
+      "con_vote_share_2019": 21.0,
+      "con_change_2019": 7.0
+    },
+    {
+      "constituency_id": "f0af9510-fb36-4b24-9617-34f9f71ffa4f",
+      "ukip_2015_pct": 4.0,
+      "leave_pct": 24.94,
+      "con_majority_2015_pct": 0,
+      "proto_reform_score": 3.9827,
+      "con_vote_share_2015": 10.0,
+      "con_vote_share_2019": 11.0,
+      "con_change_2019": 1.0
+    },
+    {
+      "constituency_id": "1b7decc3-fa09-49bf-811f-ac013896b7c7",
+      "ukip_2015_pct": 25.0,
+      "leave_pct": 70.86,
+      "con_majority_2015_pct": 0,
+      "proto_reform_score": 8.0,
+      "con_vote_share_2015": 28.0,
+      "con_vote_share_2019": 64.0,
+      "con_change_2019": 36.0
+    },
+    {
+      "constituency_id": "5d02d88d-5b84-407f-abfd-2ab733a002fe",
+      "ukip_2015_pct": 15.0,
+      "leave_pct": 52.88,
+      "con_majority_2015_pct": 29.72,
+      "proto_reform_score": 4.7253,
+      "con_vote_share_2015": 56.0,
+      "con_vote_share_2019": 60.0,
+      "con_change_2019": 4.0
+    },
+    {
+      "constituency_id": "22e5d14f-b4a0-4304-8be3-42acc54660f9",
+      "ukip_2015_pct": 14.0,
+      "leave_pct": 52.47,
+      "con_majority_2015_pct": 18.93,
+      "proto_reform_score": 4.7249,
+      "con_vote_share_2015": 52.0,
+      "con_vote_share_2019": 60.0,
+      "con_change_2019": 8.0
+    },
+    {
+      "constituency_id": "511ed76d-d30b-4f40-9200-0070e7f7604a",
+      "ukip_2015_pct": 12.0,
+      "leave_pct": 57.08,
+      "con_majority_2015_pct": 16.38,
+      "proto_reform_score": 5.1277,
+      "con_vote_share_2015": 51.0,
+      "con_vote_share_2019": 60.0,
+      "con_change_2019": 9.0
+    },
+    {
+      "constituency_id": "b9168f11-dadf-4455-bd2e-96a1bffcb330",
+      "ukip_2015_pct": 19.0,
+      "leave_pct": 60.6,
+      "con_majority_2015_pct": 22.39,
+      "proto_reform_score": 5.52,
+      "con_vote_share_2015": 52.0,
+      "con_vote_share_2019": 64.0,
+      "con_change_2019": 12.0
+    },
+    {
+      "constituency_id": "c6108307-6797-4717-a40e-f8b971a8d4ee",
+      "ukip_2015_pct": 12.0,
+      "leave_pct": 46.44,
+      "con_majority_2015_pct": 29.97,
+      "proto_reform_score": 4.056,
+      "con_vote_share_2015": 56.0,
+      "con_vote_share_2019": 51.0,
+      "con_change_2019": -5.0
+    },
+    {
+      "constituency_id": "70f2b950-b4d7-45bf-b106-3fb696d959e2",
+      "ukip_2015_pct": 14.0,
+      "leave_pct": 52.52,
+      "con_majority_2015_pct": 30.76,
+      "proto_reform_score": 4.6213,
+      "con_vote_share_2015": 56.0,
+      "con_vote_share_2019": 61.0,
+      "con_change_2019": 5.0
+    },
+    {
+      "constituency_id": "dd6543a7-133c-4892-8e4c-7ff0b92fee7b",
+      "ukip_2015_pct": 15.0,
+      "leave_pct": 65.27,
+      "con_majority_2015_pct": 0,
+      "proto_reform_score": 7.2,
+      "con_vote_share_2015": 37.0,
+      "con_vote_share_2019": 58.0,
+      "con_change_2019": 21.0
+    },
+    {
+      "constituency_id": "91b7381a-632d-47f6-9ebb-f1f683d96122",
+      "ukip_2015_pct": 12.0,
+      "leave_pct": 49.67,
+      "con_majority_2015_pct": 11.23,
+      "proto_reform_score": 5.1481,
+      "con_vote_share_2015": 47.0,
+      "con_vote_share_2019": 52.0,
+      "con_change_2019": 5.0
+    },
+    {
+      "constituency_id": "f692b1c9-7da1-47ec-87ee-b53800610814",
+      "ukip_2015_pct": 9.0,
+      "leave_pct": 44.69,
+      "con_majority_2015_pct": 0,
+      "proto_reform_score": 5.6993,
+      "con_vote_share_2015": 23.0,
+      "con_vote_share_2019": 27.0,
+      "con_change_2019": 4.0
+    },
+    {
+      "constituency_id": "6aa3a155-aaac-4bbd-99ff-2ac6620c30fa",
+      "ukip_2015_pct": 12.0,
+      "leave_pct": 58.19,
+      "con_majority_2015_pct": 6.85,
+      "proto_reform_score": 6.1541,
+      "con_vote_share_2015": 46.0,
+      "con_vote_share_2019": 54.0,
+      "con_change_2019": 8.0
+    },
+    {
+      "constituency_id": "698b1d57-6e41-4a81-811f-f433071706a7",
+      "ukip_2015_pct": 18.0,
+      "leave_pct": 60.18,
+      "con_majority_2015_pct": 26.36,
+      "proto_reform_score": 5.44,
+      "con_vote_share_2015": 56.0,
+      "con_vote_share_2019": 65.0,
+      "con_change_2019": 9.0
+    },
+    {
+      "constituency_id": "a7272436-3b78-40ea-b5cf-085c1110eb83",
+      "ukip_2015_pct": 16.0,
+      "leave_pct": 55.26,
+      "con_majority_2015_pct": 30.1,
+      "proto_reform_score": 4.964,
+      "con_vote_share_2015": 60.0,
+      "con_vote_share_2019": 64.0,
+      "con_change_2019": 4.0
+    },
+    {
+      "constituency_id": "46f77b37-511d-4a64-b812-265cf49b9a64",
+      "ukip_2015_pct": 12.0,
+      "leave_pct": 55.7,
+      "con_majority_2015_pct": 25.05,
+      "proto_reform_score": 4.6733,
+      "con_vote_share_2015": 57.0,
+      "con_vote_share_2019": 63.0,
+      "con_change_2019": 6.0
+    },
+    {
+      "constituency_id": "08ce9f19-68d2-4fc7-b50f-60e9a15008e8",
+      "ukip_2015_pct": 11.0,
+      "leave_pct": 47.81,
+      "con_majority_2015_pct": 33.16,
+      "proto_reform_score": 4.0673,
+      "con_vote_share_2015": 61.0,
+      "con_vote_share_2019": 55.0,
+      "con_change_2019": -6.0
+    },
+    {
+      "constituency_id": "e05f904e-fb79-4e10-b5cb-da88a20a6ca0",
+      "ukip_2015_pct": 17.0,
+      "leave_pct": 56.83,
+      "con_majority_2015_pct": 0,
+      "proto_reform_score": 7.1487,
+      "con_vote_share_2015": 23.0,
+      "con_vote_share_2019": 32.0,
+      "con_change_2019": 9.0
+    },
+    {
+      "constituency_id": "4f810d6b-513d-45db-b3ff-bdd9a1336b81",
+      "ukip_2015_pct": 17.0,
+      "leave_pct": 61.64,
+      "con_majority_2015_pct": 0,
+      "proto_reform_score": 7.36,
+      "con_vote_share_2015": 37.0,
+      "con_vote_share_2019": 53.0,
+      "con_change_2019": 16.0
+    },
+    {
+      "constituency_id": "6efa6078-0adf-4b1e-8c08-4c18dfdd7138",
+      "ukip_2015_pct": 14.0,
+      "leave_pct": 56.01,
+      "con_majority_2015_pct": 16.07,
+      "proto_reform_score": 5.2475,
+      "con_vote_share_2015": 47.0,
+      "con_vote_share_2019": 56.0,
+      "con_change_2019": 9.0
+    },
+    {
+      "constituency_id": "5e38017b-42a1-4575-9e66-9c1d2b971034",
+      "ukip_2015_pct": 13.0,
+      "leave_pct": 60.19,
+      "con_majority_2015_pct": 9.85,
+      "proto_reform_score": 6.0546,
+      "con_vote_share_2015": 45.0,
+      "con_vote_share_2019": 59.0,
+      "con_change_2019": 14.0
+    },
+    {
+      "constituency_id": "3cee41d8-cbd7-4d27-8d42-25cd7f8ab5e2",
+      "ukip_2015_pct": 15.0,
+      "leave_pct": 57.04,
+      "con_majority_2015_pct": 9.28,
+      "proto_reform_score": 6.0746,
+      "con_vote_share_2015": 43.0,
+      "con_vote_share_2019": 57.0,
+      "con_change_2019": 14.0
+    },
+    {
+      "constituency_id": "015cbc7d-a7af-429e-9706-2077a90ec226",
+      "ukip_2015_pct": 17.0,
+      "leave_pct": 56.61,
+      "con_majority_2015_pct": 28.63,
+      "proto_reform_score": 5.134,
+      "con_vote_share_2015": 57.0,
+      "con_vote_share_2019": 64.0,
+      "con_change_2019": 7.0
+    },
+    {
+      "constituency_id": "e5e7d144-a585-427a-aedc-2cf8a44b7881",
+      "ukip_2015_pct": 16.0,
+      "leave_pct": 60.3,
+      "con_majority_2015_pct": 0,
+      "proto_reform_score": 7.28,
+      "con_vote_share_2015": 21.0,
+      "con_vote_share_2019": 34.0,
+      "con_change_2019": 13.0
+    },
+    {
+      "constituency_id": "da725edb-7bcb-452c-983a-99fab8ef6bd2",
+      "ukip_2015_pct": 22.0,
+      "leave_pct": 69.35,
+      "con_majority_2015_pct": 20.33,
+      "proto_reform_score": 5.76,
+      "con_vote_share_2015": 55.0,
+      "con_vote_share_2019": 74.0,
+      "con_change_2019": 19.0
+    },
+    {
+      "constituency_id": "25e23b1c-4bae-411a-bda0-909981ec4d74",
+      "ukip_2015_pct": 16.0,
+      "leave_pct": 62.05,
+      "con_majority_2015_pct": 0,
+      "proto_reform_score": 7.28,
+      "con_vote_share_2015": 37.0,
+      "con_vote_share_2019": 58.0,
+      "con_change_2019": 21.0
+    },
+    {
+      "constituency_id": "1dfa15f9-ea4a-4e68-b384-cbb33a686703",
+      "ukip_2015_pct": 9.0,
+      "leave_pct": 46.18,
+      "con_majority_2015_pct": 38.89,
+      "proto_reform_score": 3.7987,
+      "con_vote_share_2015": 66.0,
+      "con_vote_share_2019": 62.0,
+      "con_change_2019": -4.0
+    },
+    {
+      "constituency_id": "b0729cc4-866b-41f3-9b30-6cad4e252f4c",
+      "ukip_2015_pct": 13.0,
+      "leave_pct": 51.43,
+      "con_majority_2015_pct": 25.78,
+      "proto_reform_score": 4.4687,
+      "con_vote_share_2015": 55.0,
+      "con_vote_share_2019": 57.0,
+      "con_change_2019": 2.0
+    },
+    {
+      "constituency_id": "1df59726-711e-4867-8c7f-63c738ebe42f",
+      "ukip_2015_pct": 14.0,
+      "leave_pct": 58.02,
+      "con_majority_2015_pct": 29.44,
+      "proto_reform_score": 4.988,
+      "con_vote_share_2015": 56.0,
+      "con_vote_share_2019": 63.0,
+      "con_change_2019": 7.0
+    },
+    {
+      "constituency_id": "c5f1af55-1aeb-4cc0-828d-e9318506cc62",
+      "ukip_2015_pct": 17.0,
+      "leave_pct": 58.4,
+      "con_majority_2015_pct": 0,
+      "proto_reform_score": 7.2533,
+      "con_vote_share_2015": 31.0,
+      "con_vote_share_2019": 58.0,
+      "con_change_2019": 27.0
+    },
+    {
+      "constituency_id": "5c12cab2-9dfd-4ff7-8e28-70d6e4555f3b",
+      "ukip_2015_pct": 18.0,
+      "leave_pct": 59.85,
+      "con_majority_2015_pct": 20.92,
+      "proto_reform_score": 5.43,
+      "con_vote_share_2015": 51.0,
+      "con_vote_share_2019": 62.0,
+      "con_change_2019": 11.0
+    },
+    {
+      "constituency_id": "c18dbbe3-b5cc-47e4-99c8-995ee5c788f2",
+      "ukip_2015_pct": 13.0,
+      "leave_pct": 47.58,
+      "con_majority_2015_pct": 28.82,
+      "proto_reform_score": 4.212,
+      "con_vote_share_2015": 54.0,
+      "con_vote_share_2019": 53.0,
+      "con_change_2019": -1.0
+    },
+    {
+      "constituency_id": "14d9c16e-71ff-4106-ae79-c0908e3eca22",
+      "ukip_2015_pct": 20.0,
+      "leave_pct": 56.93,
+      "con_majority_2015_pct": 21.92,
+      "proto_reform_score": 5.3953,
+      "con_vote_share_2015": 52.0,
+      "con_vote_share_2019": 60.0,
+      "con_change_2019": 8.0
+    },
+    {
+      "constituency_id": "48ccef06-f33e-416c-8cdd-589ee8fc47a4",
+      "ukip_2015_pct": 15.0,
+      "leave_pct": 54.75,
+      "con_majority_2015_pct": 30.22,
+      "proto_reform_score": 4.85,
+      "con_vote_share_2015": 58.0,
+      "con_vote_share_2019": 60.0,
+      "con_change_2019": 2.0
+    },
+    {
+      "constituency_id": "e8cddac3-2361-4a36-97d5-aca0df8a1f41",
+      "ukip_2015_pct": 17.0,
+      "leave_pct": 60.7,
+      "con_majority_2015_pct": 15.75,
+      "proto_reform_score": 5.7846,
+      "con_vote_share_2015": 49.0,
+      "con_vote_share_2019": 62.0,
+      "con_change_2019": 13.0
+    },
+    {
+      "constituency_id": "1b182344-0559-4a4b-bce6-fa7c7b628c32",
+      "ukip_2015_pct": 18.0,
+      "leave_pct": 65.78,
+      "con_majority_2015_pct": 18.75,
+      "proto_reform_score": 5.5653,
+      "con_vote_share_2015": 52.0,
+      "con_vote_share_2019": 66.0,
+      "con_change_2019": 14.0
+    },
+    {
+      "constituency_id": "ceed8aad-2701-4920-91c5-9dfcd4fe29aa",
+      "ukip_2015_pct": 16.0,
+      "leave_pct": 60.27,
+      "con_majority_2015_pct": 5.49,
+      "proto_reform_score": 6.7313,
+      "con_vote_share_2015": 42.0,
+      "con_vote_share_2019": 50.0,
+      "con_change_2019": 8.0
+    },
+    {
+      "constituency_id": "feac6f63-955d-4e42-aa33-23cd0e24e5e1",
+      "ukip_2015_pct": 18.0,
+      "leave_pct": 59.0,
+      "con_majority_2015_pct": 6.19,
+      "proto_reform_score": 6.7544,
+      "con_vote_share_2015": 42.0,
+      "con_vote_share_2019": 58.0,
+      "con_change_2019": 16.0
+    },
+    {
+      "constituency_id": "20f5a7ba-9744-4a62-b993-3749dff67798",
+      "ukip_2015_pct": 14.0,
+      "leave_pct": 56.73,
+      "con_majority_2015_pct": 6.92,
+      "proto_reform_score": 6.2102,
+      "con_vote_share_2015": 44.0,
+      "con_vote_share_2019": 52.0,
+      "con_change_2019": 8.0
+    },
+    {
+      "constituency_id": "8fcd54b8-906e-442e-8d69-6df18f29f233",
+      "ukip_2015_pct": 9.0,
+      "leave_pct": 40.53,
+      "con_majority_2015_pct": 0,
+      "proto_reform_score": 5.422,
+      "con_vote_share_2015": 23.0,
+      "con_vote_share_2019": 29.0,
+      "con_change_2019": 6.0
+    },
+    {
+      "constituency_id": "c174c7b0-8ffb-4a52-a081-3b1b5d6d16df",
+      "ukip_2015_pct": 10.0,
+      "leave_pct": 42.88,
+      "con_majority_2015_pct": 0,
+      "proto_reform_score": 5.6587,
+      "con_vote_share_2015": 21.0,
+      "con_vote_share_2019": 21.0,
+      "con_change_2019": 0.0
+    },
+    {
+      "constituency_id": "a9b28410-1366-411d-a1f1-c1f8d2b8837d",
+      "ukip_2015_pct": 11.0,
+      "leave_pct": 46.47,
+      "con_majority_2015_pct": 0,
+      "proto_reform_score": 5.978,
+      "con_vote_share_2015": 32.0,
+      "con_vote_share_2019": 32.0,
+      "con_change_2019": 0.0
+    },
+    {
+      "constituency_id": "a2e3f1e2-fdde-47ea-bfb2-52a03169ef14",
+      "ukip_2015_pct": 14.0,
+      "leave_pct": 64.51,
+      "con_majority_2015_pct": 7.18,
+      "proto_reform_score": 6.4024,
+      "con_vote_share_2015": 46.0,
+      "con_vote_share_2019": 61.0,
+      "con_change_2019": 15.0
+    },
+    {
+      "constituency_id": "d7cf9955-4b35-49ee-85a5-ad982cb6cd53",
+      "ukip_2015_pct": 18.0,
+      "leave_pct": 62.43,
+      "con_majority_2015_pct": 23.93,
+      "proto_reform_score": 5.44,
+      "con_vote_share_2015": 53.0,
+      "con_vote_share_2019": 64.0,
+      "con_change_2019": 11.0
+    },
+    {
+      "constituency_id": "1ead3478-a9ba-4e4e-980b-2279ff1f82a3",
+      "ukip_2015_pct": 19.0,
+      "leave_pct": 59.92,
+      "con_majority_2015_pct": 0,
+      "proto_reform_score": 7.5147,
+      "con_vote_share_2015": 26.0,
+      "con_vote_share_2019": 40.0,
+      "con_change_2019": 14.0
+    },
+    {
+      "constituency_id": "38a2bcb8-e3d1-4e8f-b7d6-1ba9f4ff0897",
+      "ukip_2015_pct": 17.0,
+      "leave_pct": 57.54,
+      "con_majority_2015_pct": 29.33,
+      "proto_reform_score": 5.196,
+      "con_vote_share_2015": 57.0,
+      "con_vote_share_2019": 62.0,
+      "con_change_2019": 5.0
+    },
+    {
+      "constituency_id": "0b3ab9f7-d7fd-4ea5-b879-5660d84fa065",
+      "ukip_2015_pct": 7.0,
+      "leave_pct": 32.53,
+      "con_majority_2015_pct": 0,
+      "proto_reform_score": 4.7287,
+      "con_vote_share_2015": 20.0,
+      "con_vote_share_2019": 21.0,
+      "con_change_2019": 1.0
+    },
+    {
+      "constituency_id": "59ccdf88-12bd-480e-8e2f-d72d815b80fa",
+      "ukip_2015_pct": 7.0,
+      "leave_pct": 38.03,
+      "con_majority_2015_pct": 12.58,
+      "proto_reform_score": 3.8374,
+      "con_vote_share_2015": 46.0,
+      "con_vote_share_2019": 34.0,
+      "con_change_2019": -12.0
+    },
+    {
+      "constituency_id": "1218de46-532a-401a-9498-44f13082aa56",
+      "ukip_2015_pct": 23.0,
+      "leave_pct": 60.65,
+      "con_majority_2015_pct": 0,
+      "proto_reform_score": 7.84,
+      "con_vote_share_2015": 28.0,
+      "con_vote_share_2019": 48.0,
+      "con_change_2019": 20.0
+    },
+    {
+      "constituency_id": "a8071b9e-cc9e-4c7b-9cdc-020fb87cd864",
+      "ukip_2015_pct": 16.0,
+      "leave_pct": 61.31,
+      "con_majority_2015_pct": 2.65,
+      "proto_reform_score": 7.0146,
+      "con_vote_share_2015": 40.0,
+      "con_vote_share_2019": 46.0,
+      "con_change_2019": 6.0
+    },
+    {
+      "constituency_id": "efcef8ea-4a27-4334-a940-d7be5be9e69e",
+      "ukip_2015_pct": 21.0,
+      "leave_pct": 66.44,
+      "con_majority_2015_pct": 1.5,
+      "proto_reform_score": 7.5297,
+      "con_vote_share_2015": 38.0,
+      "con_vote_share_2019": 60.0,
+      "con_change_2019": 22.0
+    },
+    {
+      "constituency_id": "5a50bd58-59cc-4e44-9754-2d0f1b0db9a5",
+      "ukip_2015_pct": 14.0,
+      "leave_pct": 54.41,
+      "con_majority_2015_pct": 0.71,
+      "proto_reform_score": 6.676,
+      "con_vote_share_2015": 38.0,
+      "con_vote_share_2019": 38.0,
+      "con_change_2019": 0.0
+    },
+    {
+      "constituency_id": "b9c7061d-4b3b-4484-96a0-2a368148f748",
+      "ukip_2015_pct": 17.0,
+      "leave_pct": 57.42,
+      "con_majority_2015_pct": 21.76,
+      "proto_reform_score": 5.188,
+      "con_vote_share_2015": 50.0,
+      "con_vote_share_2019": 59.0,
+      "con_change_2019": 9.0
+    },
+    {
+      "constituency_id": "5dffa9a5-9d01-413b-ae15-6313942ceee7",
+      "ukip_2015_pct": 6.0,
+      "leave_pct": 34.21,
+      "con_majority_2015_pct": 0,
+      "proto_reform_score": 4.7607,
+      "con_vote_share_2015": 25.0,
+      "con_vote_share_2019": 18.0,
+      "con_change_2019": -7.0
+    },
+    {
+      "constituency_id": "a19ed804-960a-475d-a089-33d8d8987fe0",
+      "ukip_2015_pct": 19.0,
+      "leave_pct": 63.69,
+      "con_majority_2015_pct": 14.41,
+      "proto_reform_score": 6.0786,
+      "con_vote_share_2015": 47.0,
+      "con_vote_share_2019": 61.0,
+      "con_change_2019": 14.0
+    },
+    {
+      "constituency_id": "41ae1cdf-bd4b-4643-bc9f-36b6555a3939",
+      "ukip_2015_pct": 13.0,
+      "leave_pct": 51.76,
+      "con_majority_2015_pct": 7.32,
+      "proto_reform_score": 5.7591,
+      "con_vote_share_2015": 35.0,
+      "con_vote_share_2019": 37.0,
+      "con_change_2019": 2.0
+    },
+    {
+      "constituency_id": "f9bd158f-0816-4221-8dd3-a3c5e7534cc8",
+      "ukip_2015_pct": 15.0,
+      "leave_pct": 55.67,
+      "con_majority_2015_pct": 0,
+      "proto_reform_score": 6.9113,
+      "con_vote_share_2015": 20.0,
+      "con_vote_share_2019": 30.0,
+      "con_change_2019": 10.0
+    },
+    {
+      "constituency_id": "eaaf4abe-b08d-49f8-97e5-f6ec2c50958d",
+      "ukip_2015_pct": 5.0,
+      "leave_pct": 27.76,
+      "con_majority_2015_pct": 15.93,
+      "proto_reform_score": 2.6581,
+      "con_vote_share_2015": 54.0,
+      "con_vote_share_2019": 36.0,
+      "con_change_2019": -18.0
+    },
+    {
+      "constituency_id": "2617b81f-4ade-4dd9-98aa-8453dcd415e2",
+      "ukip_2015_pct": 22.0,
+      "leave_pct": 67.65,
+      "con_majority_2015_pct": 22.33,
+      "proto_reform_score": 5.76,
+      "con_vote_share_2015": 55.0,
+      "con_vote_share_2019": 73.0,
+      "con_change_2019": 18.0
+    },
+    {
+      "constituency_id": "5a1acccc-85aa-4401-93d8-0c7704f777b7",
+      "ukip_2015_pct": 18.0,
+      "leave_pct": 67.67,
+      "con_majority_2015_pct": 0,
+      "proto_reform_score": 7.44,
+      "con_vote_share_2015": 16.0,
+      "con_vote_share_2019": 48.0,
+      "con_change_2019": 32.0
+    },
+    {
+      "constituency_id": "5d9c6e98-bf8f-4f99-b90a-7214cb521448",
+      "ukip_2015_pct": 16.0,
+      "leave_pct": 60.99,
+      "con_majority_2015_pct": 10.76,
+      "proto_reform_score": 6.2036,
+      "con_vote_share_2015": 47.0,
+      "con_vote_share_2019": 65.0,
+      "con_change_2019": 18.0
+    },
+    {
+      "constituency_id": "5a731a62-b1cf-45d2-bd65-6ccd7cf3ba60",
+      "ukip_2015_pct": 13.0,
+      "leave_pct": 47.98,
+      "con_majority_2015_pct": 30.42,
+      "proto_reform_score": 4.2387,
+      "con_vote_share_2015": 57.0,
+      "con_vote_share_2019": 56.0,
+      "con_change_2019": -1.0
+    },
+    {
+      "constituency_id": "9f7dec67-e6d6-4550-9e44-17ca480f6c99",
+      "ukip_2015_pct": 16.0,
+      "leave_pct": 58.73,
+      "con_majority_2015_pct": 17.58,
+      "proto_reform_score": 5.437,
+      "con_vote_share_2015": 49.0,
+      "con_vote_share_2019": 60.0,
+      "con_change_2019": 11.0
+    },
+    {
+      "constituency_id": "e4636bd0-b9b1-4b25-9643-c3d7702ab997",
+      "ukip_2015_pct": 4.0,
+      "leave_pct": 28.69,
+      "con_majority_2015_pct": 29.77,
+      "proto_reform_score": 2.2327,
+      "con_vote_share_2015": 58.0,
+      "con_vote_share_2019": 41.0,
+      "con_change_2019": -17.0
+    },
+    {
+      "constituency_id": "66dc3d7e-f9ab-4f8c-b287-dc5e776bc6a5",
+      "ukip_2015_pct": 19.0,
+      "leave_pct": 57.45,
+      "con_majority_2015_pct": 0,
+      "proto_reform_score": 7.35,
+      "con_vote_share_2015": 17.0,
+      "con_vote_share_2019": 32.0,
+      "con_change_2019": 15.0
+    },
+    {
+      "constituency_id": "480262bf-cc1a-4c48-94be-be9d6779c017",
+      "ukip_2015_pct": 30.0,
+      "leave_pct": 63.69,
+      "con_majority_2015_pct": 9.25,
+      "proto_reform_score": 7.4751,
+      "con_vote_share_2015": 44.0,
+      "con_vote_share_2019": 58.0,
+      "con_change_2019": 14.0
+    },
+    {
+      "constituency_id": "16875f53-091e-49f2-b7bd-db454ab06424",
+      "ukip_2015_pct": 23.0,
+      "leave_pct": 69.29,
+      "con_majority_2015_pct": 19.09,
+      "proto_reform_score": 5.9309,
+      "con_vote_share_2015": 51.0,
+      "con_vote_share_2019": 65.0,
+      "con_change_2019": 14.0
+    },
+    {
+      "constituency_id": "9574b753-b401-40be-aaad-5ed4360b18db",
+      "ukip_2015_pct": 11.0,
+      "leave_pct": 46.08,
+      "con_majority_2015_pct": 26.63,
+      "proto_reform_score": 3.952,
+      "con_vote_share_2015": 54.0,
+      "con_vote_share_2019": 58.0,
+      "con_change_2019": 4.0
+    },
+    {
+      "constituency_id": "ef727d77-9b94-4f8d-9967-deb9e3cebbde",
+      "ukip_2015_pct": 14.0,
+      "leave_pct": 58.94,
+      "con_majority_2015_pct": 7.66,
+      "proto_reform_score": 6.283,
+      "con_vote_share_2015": 47.0,
+      "con_vote_share_2019": 56.0,
+      "con_change_2019": 9.0
+    },
+    {
+      "constituency_id": "74007b56-4d63-4cb7-b362-031983b2f24f",
+      "ukip_2015_pct": 28.0,
+      "leave_pct": 66.72,
+      "con_majority_2015_pct": 0,
+      "proto_reform_score": 8.24,
+      "con_vote_share_2015": 23.0,
+      "con_vote_share_2019": 46.0,
+      "con_change_2019": 23.0
+    },
+    {
+      "constituency_id": "eda22c21-1cbb-4f4d-9518-955e43af64f1",
+      "ukip_2015_pct": 30.0,
+      "leave_pct": 68.35,
+      "con_majority_2015_pct": 0,
+      "proto_reform_score": 8.4,
+      "con_vote_share_2015": 12.0,
+      "con_vote_share_2019": 33.0,
+      "con_change_2019": 21.0
+    },
+    {
+      "constituency_id": "963e5d98-01f1-4f73-9f77-de28b6c54c32",
+      "ukip_2015_pct": 14.0,
+      "leave_pct": 58.62,
+      "con_majority_2015_pct": 14.44,
+      "proto_reform_score": 5.5843,
+      "con_vote_share_2015": 49.0,
+      "con_vote_share_2019": 57.0,
+      "con_change_2019": 8.0
+    },
+    {
+      "constituency_id": "4e1f4a60-d43c-413e-bdf5-a9f0892f0ece",
+      "ukip_2015_pct": 11.0,
+      "leave_pct": 49.54,
+      "con_majority_2015_pct": 27.62,
+      "proto_reform_score": 4.1827,
+      "con_vote_share_2015": 60.0,
+      "con_vote_share_2019": 55.0,
+      "con_change_2019": -5.0
+    },
+    {
+      "constituency_id": "d78340b5-9c53-450f-8b3d-174239405ef4",
+      "ukip_2015_pct": 14.0,
+      "leave_pct": 49.85,
+      "con_majority_2015_pct": 30.0,
+      "proto_reform_score": 4.4433,
+      "con_vote_share_2015": 60.0,
+      "con_vote_share_2019": 53.0,
+      "con_change_2019": -7.0
+    },
+    {
+      "constituency_id": "b4d7ab78-f497-4947-b1e1-7796f510a518",
+      "ukip_2015_pct": 11.0,
+      "leave_pct": 41.47,
+      "con_majority_2015_pct": 18.87,
+      "proto_reform_score": 3.7575,
+      "con_vote_share_2015": 51.0,
+      "con_vote_share_2019": 47.0,
+      "con_change_2019": -4.0
+    },
+    {
+      "constituency_id": "2c8ff285-93a4-44b8-a4c4-999b39abbab4",
+      "ukip_2015_pct": 12.0,
+      "leave_pct": 49.91,
+      "con_majority_2015_pct": 29.35,
+      "proto_reform_score": 4.2873,
+      "con_vote_share_2015": 56.0,
+      "con_vote_share_2019": 55.0,
+      "con_change_2019": -1.0
+    },
+    {
+      "constituency_id": "3a808b57-f233-49a5-a79e-2d2f18bc9acf",
+      "ukip_2015_pct": 17.0,
+      "leave_pct": 61.32,
+      "con_majority_2015_pct": 8.43,
+      "proto_reform_score": 6.5166,
+      "con_vote_share_2015": 43.0,
+      "con_vote_share_2019": 55.0,
+      "con_change_2019": 12.0
+    },
+    {
+      "constituency_id": "643ff9f7-2323-41ec-92ba-20f78a41c49f",
+      "ukip_2015_pct": 17.0,
+      "leave_pct": 68.68,
+      "con_majority_2015_pct": 0,
+      "proto_reform_score": 7.36,
+      "con_vote_share_2015": 33.0,
+      "con_vote_share_2019": 56.0,
+      "con_change_2019": 23.0
+    },
+    {
+      "constituency_id": "e8e8dc02-b8a2-4873-a4c2-d53cf04fa111",
+      "ukip_2015_pct": 10.0,
+      "leave_pct": 44.09,
+      "con_majority_2015_pct": 0,
+      "proto_reform_score": 5.7393,
+      "con_vote_share_2015": 30.0,
+      "con_vote_share_2019": 34.0,
+      "con_change_2019": 4.0
+    },
+    {
+      "constituency_id": "7b725993-402d-49a7-a57f-56f80e71ef87",
+      "ukip_2015_pct": 18.0,
+      "leave_pct": 54.04,
+      "con_majority_2015_pct": 27.18,
+      "proto_reform_score": 5.0427,
+      "con_vote_share_2015": 57.0,
+      "con_vote_share_2019": 62.0,
+      "con_change_2019": 5.0
+    },
+    {
+      "constituency_id": "c835295e-42e2-4f9d-bea7-444428365031",
+      "ukip_2015_pct": 7.0,
+      "leave_pct": 31.91,
+      "con_majority_2015_pct": 0,
+      "proto_reform_score": 4.6873,
+      "con_vote_share_2015": 11.0,
+      "con_vote_share_2019": 12.0,
+      "con_change_2019": 1.0
+    },
+    {
+      "constituency_id": "187f6c93-e183-4ba6-9304-247b66963742",
+      "ukip_2015_pct": 22.0,
+      "leave_pct": 66.32,
+      "con_majority_2015_pct": 0,
+      "proto_reform_score": 7.76,
+      "con_vote_share_2015": 17.0,
+      "con_vote_share_2019": 36.0,
+      "con_change_2019": 19.0
+    },
+    {
+      "constituency_id": "efa0dd4d-6bd0-49a3-9709-e68d4c66cca3",
+      "ukip_2015_pct": 22.0,
+      "leave_pct": 59.97,
+      "con_majority_2015_pct": 0,
+      "proto_reform_score": 7.758,
+      "con_vote_share_2015": 11.0,
+      "con_vote_share_2019": 25.0,
+      "con_change_2019": 14.0
+    },
+    {
+      "constituency_id": "36f088ac-33ed-4bf3-8f08-8270e159c3c5",
+      "ukip_2015_pct": 6.0,
+      "leave_pct": 34.01,
+      "con_majority_2015_pct": 0,
+      "proto_reform_score": 4.7473,
+      "con_vote_share_2015": 14.0,
+      "con_vote_share_2019": 26.0,
+      "con_change_2019": 12.0
+    },
+    {
+      "constituency_id": "b357c7dd-96c2-49fd-95dc-30dccca18ac1",
+      "ukip_2015_pct": 17.0,
+      "leave_pct": 57.16,
+      "con_majority_2015_pct": 0,
+      "proto_reform_score": 7.1707,
+      "con_vote_share_2015": 16.0,
+      "con_vote_share_2019": 27.0,
+      "con_change_2019": 11.0
+    },
+    {
+      "constituency_id": "2c366bbe-35bd-4161-a005-dea93f839572",
+      "ukip_2015_pct": 9.0,
+      "leave_pct": 52.21,
+      "con_majority_2015_pct": 13.66,
+      "proto_reform_score": 4.8349,
+      "con_vote_share_2015": 50.0,
+      "con_vote_share_2019": 51.0,
+      "con_change_2019": 1.0
+    },
+    {
+      "constituency_id": "0fcf86f9-34ea-4f2d-a5fc-03f0756245b6",
+      "ukip_2015_pct": 25.0,
+      "leave_pct": 65.36,
+      "con_majority_2015_pct": 16.01,
+      "proto_reform_score": 6.3993,
+      "con_vote_share_2015": 49.0,
+      "con_vote_share_2019": 67.0,
+      "con_change_2019": 18.0
+    },
+    {
+      "constituency_id": "e01acdda-4ef6-4ea2-94e6-0af6d7557fc5",
+      "ukip_2015_pct": 14.0,
+      "leave_pct": 53.19,
+      "con_majority_2015_pct": 27.09,
+      "proto_reform_score": 4.666,
+      "con_vote_share_2015": 55.0,
+      "con_vote_share_2019": 59.0,
+      "con_change_2019": 4.0
+    },
+    {
+      "constituency_id": "deaa4508-f1d6-4a32-878a-5c974c4f40f2",
+      "ukip_2015_pct": 16.0,
+      "leave_pct": 61.58,
+      "con_majority_2015_pct": 27.41,
+      "proto_reform_score": 5.28,
+      "con_vote_share_2015": 56.0,
+      "con_vote_share_2019": 66.0,
+      "con_change_2019": 10.0
+    },
+    {
+      "constituency_id": "35b21a04-3143-45d2-8488-e12817c41af6",
+      "ukip_2015_pct": 13.0,
+      "leave_pct": 54.06,
+      "con_majority_2015_pct": 0,
+      "proto_reform_score": 6.644,
+      "con_vote_share_2015": 33.0,
+      "con_vote_share_2019": 30.0,
+      "con_change_2019": -3.0
+    },
+    {
+      "constituency_id": "448fcc76-289c-4c2e-b305-bd7fcd60e2c3",
+      "ukip_2015_pct": 27.0,
+      "leave_pct": 73.0,
+      "con_majority_2015_pct": 10.81,
+      "proto_reform_score": 7.0791,
+      "con_vote_share_2015": 43.0,
+      "con_vote_share_2019": 65.0,
+      "con_change_2019": 22.0
+    },
+    {
+      "constituency_id": "e5c349bc-0b02-4147-8ce4-2e0ec2825ddc",
+      "ukip_2015_pct": 10.0,
+      "leave_pct": 38.49,
+      "con_majority_2015_pct": 24.48,
+      "proto_reform_score": 3.366,
+      "con_vote_share_2015": 51.0,
+      "con_vote_share_2019": 44.0,
+      "con_change_2019": -7.0
+    },
+    {
+      "constituency_id": "623aa3a7-5796-4387-b835-d3ea558fa3de",
+      "ukip_2015_pct": 18.0,
+      "leave_pct": 60.35,
+      "con_majority_2015_pct": 15.52,
+      "proto_reform_score": 5.8883,
+      "con_vote_share_2015": 49.0,
+      "con_vote_share_2019": 62.0,
+      "con_change_2019": 13.0
+    },
+    {
+      "constituency_id": "60f5a781-5d89-43e6-8350-346c4e4ae775",
+      "ukip_2015_pct": 15.0,
+      "leave_pct": 59.45,
+      "con_majority_2015_pct": 16.77,
+      "proto_reform_score": 5.4866,
+      "con_vote_share_2015": 49.0,
+      "con_vote_share_2019": 59.0,
+      "con_change_2019": 10.0
+    },
+    {
+      "constituency_id": "5640ed54-a631-4930-861b-655aea611552",
+      "ukip_2015_pct": 15.0,
+      "leave_pct": 55.1,
+      "con_majority_2015_pct": 23.91,
+      "proto_reform_score": 4.8733,
+      "con_vote_share_2015": 51.0,
+      "con_vote_share_2019": 59.0,
+      "con_change_2019": 8.0
+    },
+    {
+      "constituency_id": "f820b994-4e33-4480-b08d-bfe9e57714d9",
+      "ukip_2015_pct": 22.0,
+      "leave_pct": 71.07,
+      "con_majority_2015_pct": 24.28,
+      "proto_reform_score": 5.76,
+      "con_vote_share_2015": 60.0,
+      "con_vote_share_2019": 76.0,
+      "con_change_2019": 16.0
+    },
+    {
+      "constituency_id": "89c466b8-5e53-4443-9612-77b2a2fc3441",
+      "ukip_2015_pct": 17.0,
+      "leave_pct": 58.14,
+      "con_majority_2015_pct": 21.89,
+      "proto_reform_score": 5.236,
+      "con_vote_share_2015": 53.0,
+      "con_vote_share_2019": 67.0,
+      "con_change_2019": 14.0
+    },
+    {
+      "constituency_id": "c30bd91d-c1a4-4cf3-b506-c02850fe77a0",
+      "ukip_2015_pct": 14.0,
+      "leave_pct": 50.88,
+      "con_majority_2015_pct": 25.39,
+      "proto_reform_score": 4.512,
+      "con_vote_share_2015": 54.0,
+      "con_vote_share_2019": 56.0,
+      "con_change_2019": 2.0
+    },
+    {
+      "constituency_id": "c43ac752-fc7f-4dbd-b6b1-1c1b70b050c1",
+      "ukip_2015_pct": 13.0,
+      "leave_pct": 53.34,
+      "con_majority_2015_pct": 30.79,
+      "proto_reform_score": 4.596,
+      "con_vote_share_2015": 60.0,
+      "con_vote_share_2019": 63.0,
+      "con_change_2019": 3.0
+    },
+    {
+      "constituency_id": "2fe2e28c-d451-4847-9e0d-a62eb864f900",
+      "ukip_2015_pct": 14.0,
+      "leave_pct": 56.64,
+      "con_majority_2015_pct": 7.77,
+      "proto_reform_score": 6.1188,
+      "con_vote_share_2015": 46.0,
+      "con_vote_share_2019": 54.0,
+      "con_change_2019": 8.0
+    },
+    {
+      "constituency_id": "42cff8d0-0c52-48f5-9f85-711ecc249b72",
+      "ukip_2015_pct": 22.0,
+      "leave_pct": 62.05,
+      "con_majority_2015_pct": 0,
+      "proto_reform_score": 7.76,
+      "con_vote_share_2015": 17.0,
+      "con_vote_share_2019": 26.0,
+      "con_change_2019": 9.0
+    },
+    {
+      "constituency_id": "8c8929e8-117f-4982-8af5-126d36f92635",
+      "ukip_2015_pct": 15.0,
+      "leave_pct": 54.03,
+      "con_majority_2015_pct": 23.76,
+      "proto_reform_score": 4.802,
+      "con_vote_share_2015": 53.0,
+      "con_vote_share_2019": 62.0,
+      "con_change_2019": 9.0
+    },
+    {
+      "constituency_id": "41231f12-2be5-4f49-bf89-cea8e849f830",
+      "ukip_2015_pct": 15.0,
+      "leave_pct": 55.08,
+      "con_majority_2015_pct": 28.31,
+      "proto_reform_score": 4.872,
+      "con_vote_share_2015": 57.0,
+      "con_vote_share_2019": 63.0,
+      "con_change_2019": 6.0
+    },
+    {
+      "constituency_id": "f5b8e894-e4d5-4ca2-8377-8bc613a366eb",
+      "ukip_2015_pct": 12.0,
+      "leave_pct": 46.2,
+      "con_majority_2015_pct": 29.2,
+      "proto_reform_score": 4.04,
+      "con_vote_share_2015": 57.0,
+      "con_vote_share_2019": 52.0,
+      "con_change_2019": -5.0
+    },
+    {
+      "constituency_id": "babe1bd8-208c-4e6a-b295-8f541dc3c21e",
+      "ukip_2015_pct": 23.0,
+      "leave_pct": 66.67,
+      "con_majority_2015_pct": 18.01,
+      "proto_reform_score": 6.0392,
+      "con_vote_share_2015": 51.0,
+      "con_vote_share_2019": 69.0,
+      "con_change_2019": 18.0
+    },
+    {
+      "constituency_id": "de5f1e97-5426-4a1d-94d4-6386817c7d6c",
+      "ukip_2015_pct": 17.0,
+      "leave_pct": 56.88,
+      "con_majority_2015_pct": 24.88,
+      "proto_reform_score": 5.152,
+      "con_vote_share_2015": 53.0,
+      "con_vote_share_2019": 58.0,
+      "con_change_2019": 5.0
+    },
+    {
+      "constituency_id": "505ae6b4-57e4-447a-bcd8-12a33de6827c",
+      "ukip_2015_pct": 13.0,
+      "leave_pct": 60.29,
+      "con_majority_2015_pct": 3.2,
+      "proto_reform_score": 6.7196,
+      "con_vote_share_2015": 42.0,
+      "con_vote_share_2019": 51.0,
+      "con_change_2019": 9.0
+    },
+    {
+      "constituency_id": "91c7dd11-c8c6-44ea-921b-bf83992bf448",
+      "ukip_2015_pct": 13.0,
+      "leave_pct": 49.41,
+      "con_majority_2015_pct": 0,
+      "proto_reform_score": 6.334,
+      "con_vote_share_2015": 33.0,
+      "con_vote_share_2019": 36.0,
+      "con_change_2019": 3.0
+    },
+    {
+      "constituency_id": "d8eb2743-1369-4adb-a502-570be2c70819",
+      "ukip_2015_pct": 17.0,
+      "leave_pct": 46.29,
+      "con_majority_2015_pct": 0,
+      "proto_reform_score": 6.446,
+      "con_vote_share_2015": 28.0,
+      "con_vote_share_2019": 50.0,
+      "con_change_2019": 22.0
+    },
+    {
+      "constituency_id": "3dec7416-83c7-460f-8db2-2ebe705cd789",
+      "ukip_2015_pct": 21.0,
+      "leave_pct": 60.3,
+      "con_majority_2015_pct": 19.77,
+      "proto_reform_score": 5.7032,
+      "con_vote_share_2015": 50.0,
+      "con_vote_share_2019": 59.0,
+      "con_change_2019": 9.0
+    },
+    {
+      "constituency_id": "f1d8fddd-fd3d-4508-84b1-2ca41dcb4aa7",
+      "ukip_2015_pct": 8.0,
+      "leave_pct": 37.83,
+      "con_majority_2015_pct": 16.79,
+      "proto_reform_score": 3.4829,
+      "con_vote_share_2015": 47.0,
+      "con_vote_share_2019": 39.0,
+      "con_change_2019": -8.0
+    },
+    {
+      "constituency_id": "870884d0-94c9-435a-8d71-d133c0345ede",
+      "ukip_2015_pct": 17.0,
+      "leave_pct": 64.06,
+      "con_majority_2015_pct": 10.67,
+      "proto_reform_score": 6.2931,
+      "con_vote_share_2015": 40.0,
+      "con_vote_share_2019": 56.0,
+      "con_change_2019": 16.0
+    },
+    {
+      "constituency_id": "f5afafb2-01f0-499c-82e5-de3495e883f0",
+      "ukip_2015_pct": 15.0,
+      "leave_pct": 58.39,
+      "con_majority_2015_pct": 0,
+      "proto_reform_score": 7.0927,
+      "con_vote_share_2015": 20.0,
+      "con_vote_share_2019": 27.0,
+      "con_change_2019": 7.0
+    },
+    {
+      "constituency_id": "31361bbb-2ae8-418a-bd8c-0cca92d80b1e",
+      "ukip_2015_pct": 14.0,
+      "leave_pct": 56.05,
+      "con_majority_2015_pct": 0,
+      "proto_reform_score": 6.8567,
+      "con_vote_share_2015": 16.0,
+      "con_vote_share_2019": 21.0,
+      "con_change_2019": 5.0
+    },
+    {
+      "constituency_id": "5c624cc7-9c82-4159-a5db-5d0ed2813d4c",
+      "ukip_2015_pct": 12.0,
+      "leave_pct": 54.77,
+      "con_majority_2015_pct": 3.77,
+      "proto_reform_score": 6.2348,
+      "con_vote_share_2015": 38.0,
+      "con_vote_share_2019": 49.0,
+      "con_change_2019": 11.0
+    },
+    {
+      "constituency_id": "9e0dae1d-1a0c-4763-90e4-d6243a90fd6a",
+      "ukip_2015_pct": 13.0,
+      "leave_pct": 57.46,
+      "con_majority_2015_pct": 13.36,
+      "proto_reform_score": 5.535,
+      "con_vote_share_2015": 48.0,
+      "con_vote_share_2019": 58.0,
+      "con_change_2019": 10.0
+    },
+    {
+      "constituency_id": "ff899fe0-74de-4ddb-8d4f-27d10f53c961",
+      "ukip_2015_pct": 15.0,
+      "leave_pct": 64.69,
+      "con_majority_2015_pct": 16.12,
+      "proto_reform_score": 5.5877,
+      "con_vote_share_2015": 51.0,
+      "con_vote_share_2019": 64.0,
+      "con_change_2019": 13.0
+    },
+    {
+      "constituency_id": "d3020598-aa72-4620-a6a3-2546eab54056",
+      "ukip_2015_pct": 19.0,
+      "leave_pct": 59.29,
+      "con_majority_2015_pct": 0,
+      "proto_reform_score": 7.4727,
+      "con_vote_share_2015": 29.0,
+      "con_vote_share_2019": 38.0,
+      "con_change_2019": 9.0
+    },
+    {
+      "constituency_id": "a74bb013-06e1-4dc9-8cdd-3fe5caded6c7",
+      "ukip_2015_pct": 14.0,
+      "leave_pct": 57.04,
+      "con_majority_2015_pct": 7.02,
+      "proto_reform_score": 6.2208,
+      "con_vote_share_2015": 45.0,
+      "con_vote_share_2019": 53.0,
+      "con_change_2019": 8.0
+    },
+    {
+      "constituency_id": "508d1954-e4b0-43fa-9de0-b79bc946362b",
+      "ukip_2015_pct": 13.0,
+      "leave_pct": 46.79,
+      "con_majority_2015_pct": 0,
+      "proto_reform_score": 6.1593,
+      "con_vote_share_2015": 24.0,
+      "con_vote_share_2019": 28.0,
+      "con_change_2019": 4.0
+    },
+    {
+      "constituency_id": "4d54ee2d-3cb0-4cec-b35f-5dc2e90a8d82",
+      "ukip_2015_pct": 19.0,
+      "leave_pct": 66.32,
+      "con_majority_2015_pct": 0,
+      "proto_reform_score": 7.52,
+      "con_vote_share_2015": 28.0,
+      "con_vote_share_2019": 37.0,
+      "con_change_2019": 9.0
+    },
+    {
+      "constituency_id": "ca7395bb-654c-477a-be71-28f0585854aa",
+      "ukip_2015_pct": 23.0,
+      "leave_pct": 64.85,
+      "con_majority_2015_pct": 0,
+      "proto_reform_score": 7.84,
+      "con_vote_share_2015": 23.0,
+      "con_vote_share_2019": 47.0,
+      "con_change_2019": 24.0
+    },
+    {
+      "constituency_id": "0c578df1-198b-4cb0-93d6-a3ff17591d45",
+      "ukip_2015_pct": 25.0,
+      "leave_pct": 72.12,
+      "con_majority_2015_pct": 0,
+      "proto_reform_score": 8.0,
+      "con_vote_share_2015": 27.0,
+      "con_vote_share_2019": 54.0,
+      "con_change_2019": 27.0
+    },
+    {
+      "constituency_id": "04639777-e733-47c5-b2c8-1b4cf76a1c23",
+      "ukip_2015_pct": 21.0,
+      "leave_pct": 71.11,
+      "con_majority_2015_pct": 0,
+      "proto_reform_score": 7.68,
+      "con_vote_share_2015": 33.0,
+      "con_vote_share_2019": 63.0,
+      "con_change_2019": 30.0
+    },
+    {
+      "constituency_id": "3dee996d-9ebd-4774-b6c7-3d9ac5e74a26",
+      "ukip_2015_pct": 17.0,
+      "leave_pct": 63.66,
+      "con_majority_2015_pct": 9.69,
+      "proto_reform_score": 6.3909,
+      "con_vote_share_2015": 46.0,
+      "con_vote_share_2019": 62.0,
+      "con_change_2019": 16.0
+    },
+    {
+      "constituency_id": "22917762-5bd1-4700-a2fe-060faa2774f5",
+      "ukip_2015_pct": 13.0,
+      "leave_pct": 51.0,
+      "con_majority_2015_pct": 32.08,
+      "proto_reform_score": 4.44,
+      "con_vote_share_2015": 58.0,
+      "con_vote_share_2019": 60.0,
+      "con_change_2019": 2.0
+    },
+    {
+      "constituency_id": "7ceaecaa-539f-451b-aac5-29a48ae67137",
+      "ukip_2015_pct": 11.0,
+      "leave_pct": 48.91,
+      "con_majority_2015_pct": 0,
+      "proto_reform_score": 6.1407,
+      "con_vote_share_2015": 28.0,
+      "con_vote_share_2019": 28.0,
+      "con_change_2019": 0.0
+    },
+    {
+      "constituency_id": "8660dfda-95cb-4d63-a5d9-56cce93843ae",
+      "ukip_2015_pct": 8.0,
+      "leave_pct": 45.86,
+      "con_majority_2015_pct": 6.04,
+      "proto_reform_score": 5.0932,
+      "con_vote_share_2015": 46.0,
+      "con_vote_share_2019": 46.0,
+      "con_change_2019": 0.0
+    },
+    {
+      "constituency_id": "ff77adb7-c556-4daf-b098-ea952e3dc052",
+      "ukip_2015_pct": 16.0,
+      "leave_pct": 55.21,
+      "con_majority_2015_pct": 24.21,
+      "proto_reform_score": 4.9607,
+      "con_vote_share_2015": 52.0,
+      "con_vote_share_2019": 56.0,
+      "con_change_2019": 4.0
+    },
+    {
+      "constituency_id": "6d36c586-a00d-4e78-92bc-59489f600477",
+      "ukip_2015_pct": 19.0,
+      "leave_pct": 59.94,
+      "con_majority_2015_pct": 0,
+      "proto_reform_score": 7.516,
+      "con_vote_share_2015": 23.0,
+      "con_vote_share_2019": 35.0,
+      "con_change_2019": 12.0
+    },
+    {
+      "constituency_id": "8a1227cc-b33c-426e-b790-6bf3e84cbaed",
+      "ukip_2015_pct": 14.0,
+      "leave_pct": 51.85,
+      "con_majority_2015_pct": 31.19,
+      "proto_reform_score": 4.5767,
+      "con_vote_share_2015": 60.0,
+      "con_vote_share_2019": 58.0,
+      "con_change_2019": -2.0
+    },
+    {
+      "constituency_id": "fb4a69f4-c220-416b-9a7d-e7645c747d75",
+      "ukip_2015_pct": 11.0,
+      "leave_pct": 51.28,
+      "con_majority_2015_pct": 5.66,
+      "proto_reform_score": 5.7323,
+      "con_vote_share_2015": 42.0,
+      "con_vote_share_2019": 50.0,
+      "con_change_2019": 8.0
+    },
+    {
+      "constituency_id": "beb717ea-5c34-41ca-b5e5-cf50dd353d80",
+      "ukip_2015_pct": 15.0,
+      "leave_pct": 51.67,
+      "con_majority_2015_pct": 21.9,
+      "proto_reform_score": 4.6447,
+      "con_vote_share_2015": 55.0,
+      "con_vote_share_2019": 60.0,
+      "con_change_2019": 5.0
+    },
+    {
+      "constituency_id": "579ea40e-77c7-400c-8fd9-865634a020dc",
+      "ukip_2015_pct": 18.0,
+      "leave_pct": 65.99,
+      "con_majority_2015_pct": 15.72,
+      "proto_reform_score": 5.8684,
+      "con_vote_share_2015": 50.0,
+      "con_vote_share_2019": 67.0,
+      "con_change_2019": 17.0
+    },
+    {
+      "constituency_id": "0eb2c720-26d2-4f21-87d2-3f567e535894",
+      "ukip_2015_pct": 11.0,
+      "leave_pct": 45.63,
+      "con_majority_2015_pct": 28.06,
+      "proto_reform_score": 3.922,
+      "con_vote_share_2015": 59.0,
+      "con_vote_share_2019": 57.0,
+      "con_change_2019": -2.0
+    },
+    {
+      "constituency_id": "29d24187-adc2-42c8-b7ca-c78c0213ec8f",
+      "ukip_2015_pct": 18.0,
+      "leave_pct": 66.19,
+      "con_majority_2015_pct": 1.1,
+      "proto_reform_score": 7.3297,
+      "con_vote_share_2015": 40.0,
+      "con_vote_share_2019": 59.0,
+      "con_change_2019": 19.0
+    },
+    {
+      "constituency_id": "dee3ef92-71d1-43c3-84ee-fc082a7b59a7",
+      "ukip_2015_pct": 13.0,
+      "leave_pct": 53.65,
+      "con_majority_2015_pct": 27.84,
+      "proto_reform_score": 4.6167,
+      "con_vote_share_2015": 55.0,
+      "con_vote_share_2019": 58.0,
+      "con_change_2019": 3.0
+    },
+    {
+      "constituency_id": "47eed788-3fcd-4498-ab79-afac2b734d64",
+      "ukip_2015_pct": 17.0,
+      "leave_pct": 59.32,
+      "con_majority_2015_pct": 16.29,
+      "proto_reform_score": 5.6855,
+      "con_vote_share_2015": 50.0,
+      "con_vote_share_2019": 65.0,
+      "con_change_2019": 15.0
+    },
+    {
+      "constituency_id": "75d68150-6406-40b3-8e17-6a703816436b",
+      "ukip_2015_pct": 15.0,
+      "leave_pct": 56.43,
+      "con_majority_2015_pct": 25.12,
+      "proto_reform_score": 4.962,
+      "con_vote_share_2015": 53.0,
+      "con_vote_share_2019": 63.0,
+      "con_change_2019": 10.0
+    },
+    {
+      "constituency_id": "8cdc0efe-c47e-459b-bdb4-02f2c8c26dc3",
+      "ukip_2015_pct": 11.0,
+      "leave_pct": 52.19,
+      "con_majority_2015_pct": 2.26,
+      "proto_reform_score": 6.133,
+      "con_vote_share_2015": 41.0,
+      "con_vote_share_2019": 58.0,
+      "con_change_2019": 17.0
+    },
+    {
+      "constituency_id": "1d87260b-5c79-4b0a-a7ce-5815f168808e",
+      "ukip_2015_pct": 22.0,
+      "leave_pct": 63.25,
+      "con_majority_2015_pct": 19.66,
+      "proto_reform_score": 5.7935,
+      "con_vote_share_2015": 52.0,
+      "con_vote_share_2019": 64.0,
+      "con_change_2019": 12.0
+    },
+    {
+      "constituency_id": "89df1b36-a1a1-43e7-b318-f5ce274c33fe",
+      "ukip_2015_pct": 3.0,
+      "leave_pct": 25.59,
+      "con_majority_2015_pct": 0,
+      "proto_reform_score": 3.946,
+      "con_vote_share_2015": 42.0,
+      "con_vote_share_2019": 28.0,
+      "con_change_2019": -14.0
+    },
+    {
+      "constituency_id": "71c915cc-3de3-4182-a830-f2b44bc851e0",
+      "ukip_2015_pct": 14.0,
+      "leave_pct": 62.45,
+      "con_majority_2015_pct": 4.3,
+      "proto_reform_score": 6.6896,
+      "con_vote_share_2015": 41.0,
+      "con_vote_share_2019": 59.0,
+      "con_change_2019": 18.0
+    },
+    {
+      "constituency_id": "fb75ad7c-3b88-4e49-8d1c-889e9e380d98",
+      "ukip_2015_pct": 4.0,
+      "leave_pct": 23.78,
+      "con_majority_2015_pct": 0,
+      "proto_reform_score": 3.9053,
+      "con_vote_share_2015": 12.0,
+      "con_vote_share_2019": 11.0,
+      "con_change_2019": -1.0
+    },
+    {
+      "constituency_id": "48e698f5-cdbd-4bf6-b8fb-3d8c861f4a19",
+      "ukip_2015_pct": 12.0,
+      "leave_pct": 45.85,
+      "con_majority_2015_pct": 19.02,
+      "proto_reform_score": 4.1145,
+      "con_vote_share_2015": 44.0,
+      "con_vote_share_2019": 47.0,
+      "con_change_2019": 3.0
+    },
+    {
+      "constituency_id": "a086b631-8ec4-4a93-8e1a-e6186a956f91",
+      "ukip_2015_pct": 13.0,
+      "leave_pct": 44.65,
+      "con_majority_2015_pct": 31.15,
+      "proto_reform_score": 4.0167,
+      "con_vote_share_2015": 59.0,
+      "con_vote_share_2019": 55.0,
+      "con_change_2019": -4.0
+    },
+    {
+      "constituency_id": "d84f48ca-88ac-4dfb-833f-44f091074486",
+      "ukip_2015_pct": 5.0,
+      "leave_pct": 33.32,
+      "con_majority_2015_pct": 2.51,
+      "proto_reform_score": 4.37,
+      "con_vote_share_2015": 41.0,
+      "con_vote_share_2019": 34.0,
+      "con_change_2019": -7.0
+    },
+    {
+      "constituency_id": "36b2cd9b-b5ab-4a69-891c-b13db9c7ce6d",
+      "ukip_2015_pct": 12.0,
+      "leave_pct": 47.64,
+      "con_majority_2015_pct": 0,
+      "proto_reform_score": 6.136,
+      "con_vote_share_2015": 33.0,
+      "con_vote_share_2019": 40.0,
+      "con_change_2019": 7.0
+    },
+    {
+      "constituency_id": "52ca1292-3d83-4632-83ce-1f4b4f71ec2d",
+      "ukip_2015_pct": 14.0,
+      "leave_pct": 57.19,
+      "con_majority_2015_pct": 15.14,
+      "proto_reform_score": 5.4185,
+      "con_vote_share_2015": 50.0,
+      "con_vote_share_2019": 53.0,
+      "con_change_2019": 3.0
+    },
+    {
+      "constituency_id": "d22655f2-4837-4787-be48-ecd524e22803",
+      "ukip_2015_pct": 12.0,
+      "leave_pct": 49.92,
+      "con_majority_2015_pct": 0,
+      "proto_reform_score": 6.288,
+      "con_vote_share_2015": 23.0,
+      "con_vote_share_2019": 26.0,
+      "con_change_2019": 3.0
+    },
+    {
+      "constituency_id": "ba115389-70a6-473e-99df-e884a42e6c86",
+      "ukip_2015_pct": 6.0,
+      "leave_pct": 33.49,
+      "con_majority_2015_pct": 0,
+      "proto_reform_score": 4.7127,
+      "con_vote_share_2015": 13.0,
+      "con_vote_share_2019": 12.0,
+      "con_change_2019": -1.0
+    },
+    {
+      "constituency_id": "b922d68a-37c3-427c-8870-105fae829a62",
+      "ukip_2015_pct": 17.0,
+      "leave_pct": 58.07,
+      "con_majority_2015_pct": 0,
+      "proto_reform_score": 7.2313,
+      "con_vote_share_2015": 28.0,
+      "con_vote_share_2019": 41.0,
+      "con_change_2019": 13.0
+    },
+    {
+      "constituency_id": "3e6d25c9-21da-45cf-a60b-a16407709094",
+      "ukip_2015_pct": 8.0,
+      "leave_pct": 51.11,
+      "con_majority_2015_pct": 3.24,
+      "proto_reform_score": 5.7229,
+      "con_vote_share_2015": 44.0,
+      "con_vote_share_2019": 44.0,
+      "con_change_2019": 0.0
+    },
+    {
+      "constituency_id": "17bc3698-a61e-4755-89ec-501b1a6345a0",
+      "ukip_2015_pct": 8.0,
+      "leave_pct": 41.64,
+      "con_majority_2015_pct": 9.23,
+      "proto_reform_score": 4.4931,
+      "con_vote_share_2015": 48.0,
+      "con_vote_share_2019": 41.0,
+      "con_change_2019": -7.0
+    },
+    {
+      "constituency_id": "ffc9a339-3e04-4d7b-9a33-8dbf8fc21ebb",
+      "ukip_2015_pct": 32.0,
+      "leave_pct": 70.26,
+      "con_majority_2015_pct": 0.69,
+      "proto_reform_score": 8.4909,
+      "con_vote_share_2015": 34.0,
+      "con_vote_share_2019": 60.0,
+      "con_change_2019": 26.0
+    },
+    {
+      "constituency_id": "b599f0a4-1f15-4914-b198-53d4a7c616c5",
+      "ukip_2015_pct": 10.0,
+      "leave_pct": 51.15,
+      "con_majority_2015_pct": 11.72,
+      "proto_reform_score": 5.0376,
+      "con_vote_share_2015": 43.0,
+      "con_vote_share_2019": 42.0,
+      "con_change_2019": -1.0
+    },
+    {
+      "constituency_id": "16adfdd6-3731-44d0-9602-0fda113db0a5",
+      "ukip_2015_pct": 12.0,
+      "leave_pct": 51.04,
+      "con_majority_2015_pct": 20.68,
+      "proto_reform_score": 4.3627,
+      "con_vote_share_2015": 50.0,
+      "con_vote_share_2019": 54.0,
+      "con_change_2019": 4.0
+    },
+    {
+      "constituency_id": "2ca18a48-68ed-4727-8aac-fae616647782",
+      "ukip_2015_pct": 12.0,
+      "leave_pct": 54.95,
+      "con_majority_2015_pct": 0,
+      "proto_reform_score": 6.6233,
+      "con_vote_share_2015": 32.0,
+      "con_vote_share_2019": 36.0,
+      "con_change_2019": 4.0
+    },
+    {
+      "constituency_id": "ee900594-178f-4c58-b170-5a52e4c4b73a",
+      "ukip_2015_pct": 13.0,
+      "leave_pct": 52.82,
+      "con_majority_2015_pct": 16.59,
+      "proto_reform_score": 4.9022,
+      "con_vote_share_2015": 50.0,
+      "con_vote_share_2019": 52.0,
+      "con_change_2019": 2.0
+    },
+    {
+      "constituency_id": "104ceb10-cbf1-4d7d-b38f-fb681fe92244",
+      "ukip_2015_pct": 19.0,
+      "leave_pct": 67.71,
+      "con_majority_2015_pct": 0,
+      "proto_reform_score": 7.52,
+      "con_vote_share_2015": 30.0,
+      "con_vote_share_2019": 56.0,
+      "con_change_2019": 26.0
+    },
+    {
+      "constituency_id": "1648cf84-0567-4665-91f7-095b63032355",
+      "ukip_2015_pct": 6.0,
+      "leave_pct": 47.06,
+      "con_majority_2015_pct": 0,
+      "proto_reform_score": 5.6173,
+      "con_vote_share_2015": 33.0,
+      "con_vote_share_2019": 50.0,
+      "con_change_2019": 17.0
+    },
+    {
+      "constituency_id": "f3fcc9e8-c2bc-4dcf-ab45-5c3f2a0ea417",
+      "ukip_2015_pct": 18.0,
+      "leave_pct": 57.2,
+      "con_majority_2015_pct": 19.44,
+      "proto_reform_score": 5.3097,
+      "con_vote_share_2015": 48.0,
+      "con_vote_share_2019": 57.0,
+      "con_change_2019": 9.0
+    },
+    {
+      "constituency_id": "3e7914a2-dd5c-44c2-bbce-c168bb8b8ca1",
+      "ukip_2015_pct": 19.0,
+      "leave_pct": 62.96,
+      "con_majority_2015_pct": 0,
+      "proto_reform_score": 7.52,
+      "con_vote_share_2015": 21.0,
+      "con_vote_share_2019": 32.0,
+      "con_change_2019": 11.0
+    },
+    {
+      "constituency_id": "e8b217ca-43a7-400b-b39c-90535101583e",
+      "ukip_2015_pct": 5.0,
+      "leave_pct": 29.37,
+      "con_majority_2015_pct": 19.16,
+      "proto_reform_score": 2.4418,
+      "con_vote_share_2015": 52.0,
+      "con_vote_share_2019": 40.0,
+      "con_change_2019": -12.0
+    },
+    {
+      "constituency_id": "6b8b3a29-2c39-4b39-ae94-310b4f765b88",
+      "ukip_2015_pct": 7.0,
+      "leave_pct": 39.64,
+      "con_majority_2015_pct": 22.82,
+      "proto_reform_score": 3.2027,
+      "con_vote_share_2015": 55.0,
+      "con_vote_share_2019": 54.0,
+      "con_change_2019": -1.0
+    },
+    {
+      "constituency_id": "4e93e2db-ca5c-41bb-a158-3f262fbcfdf5",
+      "ukip_2015_pct": 10.0,
+      "leave_pct": 46.66,
+      "con_majority_2015_pct": 35.06,
+      "proto_reform_score": 3.9107,
+      "con_vote_share_2015": 63.0,
+      "con_vote_share_2019": 56.0,
+      "con_change_2019": -7.0
+    },
+    {
+      "constituency_id": "0e8a2810-9d48-4058-b80f-930d4bbf2313",
+      "ukip_2015_pct": 7.0,
+      "leave_pct": 44.69,
+      "con_majority_2015_pct": 0,
+      "proto_reform_score": 5.5393,
+      "con_vote_share_2015": 44.0,
+      "con_vote_share_2019": 44.0,
+      "con_change_2019": 0.0
+    },
+    {
+      "constituency_id": "fff8097e-740f-418b-8aa5-41bc70d22b44",
+      "ukip_2015_pct": 16.0,
+      "leave_pct": 60.47,
+      "con_majority_2015_pct": 29.15,
+      "proto_reform_score": 5.28,
+      "con_vote_share_2015": 58.0,
+      "con_vote_share_2019": 67.0,
+      "con_change_2019": 9.0
+    },
+    {
+      "constituency_id": "47d7c518-8a0b-424c-9847-e10698d32c2c",
+      "ukip_2015_pct": 9.0,
+      "leave_pct": 46.34,
+      "con_majority_2015_pct": 31.54,
+      "proto_reform_score": 3.8093,
+      "con_vote_share_2015": 60.0,
+      "con_vote_share_2019": 58.0,
+      "con_change_2019": -2.0
+    },
+    {
+      "constituency_id": "73d7b5b3-fd37-4ce8-8089-4b89cbea4228",
+      "ukip_2015_pct": 11.0,
+      "leave_pct": 44.25,
+      "con_majority_2015_pct": 28.02,
+      "proto_reform_score": 3.83,
+      "con_vote_share_2015": 56.0,
+      "con_vote_share_2019": 48.0,
+      "con_change_2019": -8.0
+    },
+    {
+      "constituency_id": "c417838d-7a82-42ab-976f-6b3acf920e47",
+      "ukip_2015_pct": 10.0,
+      "leave_pct": 42.69,
+      "con_majority_2015_pct": 31.07,
+      "proto_reform_score": 3.646,
+      "con_vote_share_2015": 58.0,
+      "con_vote_share_2019": 55.0,
+      "con_change_2019": -3.0
+    },
+    {
+      "constituency_id": "9bca5ae8-a634-4896-9346-90f033eb22b9",
+      "ukip_2015_pct": 20.0,
+      "leave_pct": 68.14,
+      "con_majority_2015_pct": 0,
+      "proto_reform_score": 7.6,
+      "con_vote_share_2015": 22.0,
+      "con_vote_share_2019": 41.0,
+      "con_change_2019": 19.0
+    },
+    {
+      "constituency_id": "88163810-85a2-4e8c-a81d-b8c0d05be2fb",
+      "ukip_2015_pct": 13.0,
+      "leave_pct": 53.68,
+      "con_majority_2015_pct": 7.79,
+      "proto_reform_score": 5.8395,
+      "con_vote_share_2015": 45.0,
+      "con_vote_share_2019": 51.0,
+      "con_change_2019": 6.0
+    },
+    {
+      "constituency_id": "77423bde-4758-4af8-8c27-cc5441ef544a",
+      "ukip_2015_pct": 18.0,
+      "leave_pct": 56.02,
+      "con_majority_2015_pct": 22.29,
+      "proto_reform_score": 5.1747,
+      "con_vote_share_2015": 51.0,
+      "con_vote_share_2019": 56.0,
+      "con_change_2019": 5.0
+    },
+    {
+      "constituency_id": "6702b941-00fb-4498-90ce-7037cfe3c864",
+      "ukip_2015_pct": 10.0,
+      "leave_pct": 48.46,
+      "con_majority_2015_pct": 19.45,
+      "proto_reform_score": 4.0854,
+      "con_vote_share_2015": 51.0,
+      "con_vote_share_2019": 43.0,
+      "con_change_2019": -8.0
+    },
+    {
+      "constituency_id": "662862f0-e698-4021-8f45-7bab7a09c564",
+      "ukip_2015_pct": 16.0,
+      "leave_pct": 63.15,
+      "con_majority_2015_pct": 16.63,
+      "proto_reform_score": 5.6172,
+      "con_vote_share_2015": 45.0,
+      "con_vote_share_2019": 65.0,
+      "con_change_2019": 20.0
+    },
+    {
+      "constituency_id": "ec8ab6d3-1a6c-41fd-a465-c51117095645",
+      "ukip_2015_pct": 15.0,
+      "leave_pct": 49.65,
+      "con_majority_2015_pct": 0,
+      "proto_reform_score": 6.51,
+      "con_vote_share_2015": 26.0,
+      "con_vote_share_2019": 30.0,
+      "con_change_2019": 4.0
+    },
+    {
+      "constituency_id": "c511c1bb-a355-43d7-b290-814a5e645505",
+      "ukip_2015_pct": 13.0,
+      "leave_pct": 59.87,
+      "con_majority_2015_pct": 6.44,
+      "proto_reform_score": 6.3869,
+      "con_vote_share_2015": 42.0,
+      "con_vote_share_2019": 58.0,
+      "con_change_2019": 16.0
+    },
+    {
+      "constituency_id": "5937f337-060a-424c-9937-84187858bea4",
+      "ukip_2015_pct": 10.0,
+      "leave_pct": 38.82,
+      "con_majority_2015_pct": 0,
+      "proto_reform_score": 5.388,
+      "con_vote_share_2015": 28.0,
+      "con_vote_share_2019": 28.0,
+      "con_change_2019": 0.0
+    },
+    {
+      "constituency_id": "487a4078-d3c5-4e25-8ffa-1478ab8dbffe",
+      "ukip_2015_pct": 10.0,
+      "leave_pct": 44.67,
+      "con_majority_2015_pct": 16.71,
+      "proto_reform_score": 4.1068,
+      "con_vote_share_2015": 49.0,
+      "con_vote_share_2019": 50.0,
+      "con_change_2019": 1.0
+    },
+    {
+      "constituency_id": "880b23e1-5cd4-430e-bf5a-e9b4511156e1",
+      "ukip_2015_pct": 2.0,
+      "leave_pct": 46.0,
+      "con_majority_2015_pct": 0,
+      "proto_reform_score": 5.2267,
+      "con_vote_share_2015": 0.0,
+      "con_vote_share_2019": 0.0,
+      "con_change_2019": 0.0
+    },
+    {
+      "constituency_id": "688f7a48-fbf4-4450-b037-85bb87ddeffc",
+      "ukip_2015_pct": 11.0,
+      "leave_pct": 46.0,
+      "con_majority_2015_pct": 0,
+      "proto_reform_score": 5.9467,
+      "con_vote_share_2015": 2.0,
+      "con_vote_share_2019": 3.0,
+      "con_change_2019": 1.0
+    },
+    {
+      "constituency_id": "b2663ccf-0f93-41aa-b00f-29652f7440c9",
+      "ukip_2015_pct": 6.0,
+      "leave_pct": 46.0,
+      "con_majority_2015_pct": 0,
+      "proto_reform_score": 5.5467,
+      "con_vote_share_2015": 2.0,
+      "con_vote_share_2019": 2.0,
+      "con_change_2019": 0.0
+    },
+    {
+      "constituency_id": "a170036b-6fca-4658-b528-56ac4ccb9334",
+      "ukip_2015_pct": 3.0,
+      "leave_pct": 46.0,
+      "con_majority_2015_pct": 0,
+      "proto_reform_score": 5.3067,
+      "con_vote_share_2015": 1.0,
+      "con_vote_share_2019": 0.0,
+      "con_change_2019": -1.0
+    },
+    {
+      "constituency_id": "7e62ff99-bd10-4027-a68c-a391b0801371",
+      "ukip_2015_pct": 4.0,
+      "leave_pct": 46.0,
+      "con_majority_2015_pct": 0,
+      "proto_reform_score": 5.3867,
+      "con_vote_share_2015": 4.0,
+      "con_vote_share_2019": 5.0,
+      "con_change_2019": 1.0
+    },
+    {
+      "constituency_id": "3fe06a1c-f593-452c-af39-df703dc4aed5",
+      "ukip_2015_pct": 0,
+      "leave_pct": 46.0,
+      "con_majority_2015_pct": 0,
+      "proto_reform_score": 5.0667,
+      "con_vote_share_2015": 1.0,
+      "con_vote_share_2019": 0.0,
+      "con_change_2019": -1.0
+    },
+    {
+      "constituency_id": "cabc1b8c-0f80-42a9-a70c-ce06a1d0ad9e",
+      "ukip_2015_pct": 7.0,
+      "leave_pct": 46.0,
+      "con_majority_2015_pct": 0,
+      "proto_reform_score": 5.6267,
+      "con_vote_share_2015": 6.0,
+      "con_vote_share_2019": 3.0,
+      "con_change_2019": -3.0
+    },
+    {
+      "constituency_id": "f405dae5-25b6-4ac4-9e00-b7deb8abbf0f",
+      "ukip_2015_pct": 0,
+      "leave_pct": 43.09,
+      "con_majority_2015_pct": 0,
+      "proto_reform_score": 4.8727,
+      "con_vote_share_2015": 12.0,
+      "con_vote_share_2019": 25.0,
+      "con_change_2019": 13.0
+    },
+    {
+      "constituency_id": "1fa33307-b27a-4da7-bdae-a8b0f95b49e0",
+      "ukip_2015_pct": 2.0,
+      "leave_pct": 32.14,
+      "con_majority_2015_pct": 0,
+      "proto_reform_score": 4.3027,
+      "con_vote_share_2015": 23.0,
+      "con_vote_share_2019": 34.0,
+      "con_change_2019": 11.0
+    },
+    {
+      "constituency_id": "2ba2a552-cb0d-4973-b9bd-76a7d2189038",
+      "ukip_2015_pct": 2.0,
+      "leave_pct": 39.84,
+      "con_majority_2015_pct": 0,
+      "proto_reform_score": 4.816,
+      "con_vote_share_2015": 8.0,
+      "con_vote_share_2019": 17.0,
+      "con_change_2019": 9.0
+    },
+    {
+      "constituency_id": "5a5f5bf0-f21a-493b-949a-3541fe63b3b5",
+      "ukip_2015_pct": 2.0,
+      "leave_pct": 44.11,
+      "con_majority_2015_pct": 0,
+      "proto_reform_score": 5.1007,
+      "con_vote_share_2015": 20.0,
+      "con_vote_share_2019": 39.0,
+      "con_change_2019": 19.0
+    },
+    {
+      "constituency_id": "a6eb2fb3-9bad-4edf-8644-9fb4e59855d2",
+      "ukip_2015_pct": 2.0,
+      "leave_pct": 43.26,
+      "con_majority_2015_pct": 0,
+      "proto_reform_score": 5.044,
+      "con_vote_share_2015": 36.0,
+      "con_vote_share_2019": 48.0,
+      "con_change_2019": 12.0
+    },
+    {
+      "constituency_id": "f0dc0119-f0db-4111-90d9-f48ad46f571a",
+      "ukip_2015_pct": 3.0,
+      "leave_pct": 51.34,
+      "con_majority_2015_pct": 0,
+      "proto_reform_score": 5.6627,
+      "con_vote_share_2015": 7.0,
+      "con_vote_share_2019": 17.0,
+      "con_change_2019": 10.0
+    },
+    {
+      "constituency_id": "3905a0b8-5abc-4669-a36f-49241c9031ed",
+      "ukip_2015_pct": 0,
+      "leave_pct": 41.62,
+      "con_majority_2015_pct": 0,
+      "proto_reform_score": 4.7747,
+      "con_vote_share_2015": 17.0,
+      "con_vote_share_2019": 35.0,
+      "con_change_2019": 18.0
+    },
+    {
+      "constituency_id": "71cdc7f1-e478-49fb-aad7-4964e79a4b00",
+      "ukip_2015_pct": 2.0,
+      "leave_pct": 45.11,
+      "con_majority_2015_pct": 0,
+      "proto_reform_score": 5.1673,
+      "con_vote_share_2015": 30.0,
+      "con_vote_share_2019": 44.0,
+      "con_change_2019": 14.0
+    },
+    {
+      "constituency_id": "ee997e72-63b1-4228-ad84-e8bc1e2c24b3",
+      "ukip_2015_pct": 3.0,
+      "leave_pct": 44.65,
+      "con_majority_2015_pct": 1.17,
+      "proto_reform_score": 5.1001,
+      "con_vote_share_2015": 40.0,
+      "con_vote_share_2019": 46.0,
+      "con_change_2019": 6.0
+    },
+    {
+      "constituency_id": "f9b2f213-fa8c-4bed-838f-ae1b3bd0cc7b",
+      "ukip_2015_pct": 2.0,
+      "leave_pct": 25.68,
+      "con_majority_2015_pct": 0,
+      "proto_reform_score": 3.872,
+      "con_vote_share_2015": 22.0,
+      "con_vote_share_2019": 35.0,
+      "con_change_2019": 13.0
+    },
+    {
+      "constituency_id": "46bda02e-9686-4ad5-ae2d-34671d6d86ed",
+      "ukip_2015_pct": 1.0,
+      "leave_pct": 21.8,
+      "con_majority_2015_pct": 0,
+      "proto_reform_score": 3.5333,
+      "con_vote_share_2015": 16.0,
+      "con_vote_share_2019": 18.0,
+      "con_change_2019": 2.0
+    },
+    {
+      "constituency_id": "85a54254-6608-42ee-a717-17a6239b1e06",
+      "ukip_2015_pct": 1.0,
+      "leave_pct": 22.15,
+      "con_majority_2015_pct": 0,
+      "proto_reform_score": 3.5567,
+      "con_vote_share_2015": 18.0,
+      "con_vote_share_2019": 17.0,
+      "con_change_2019": -1.0
+    },
+    {
+      "constituency_id": "276a2a79-2753-4ee3-a5e0-31563f1443f8",
+      "ukip_2015_pct": 2.0,
+      "leave_pct": 27.86,
+      "con_majority_2015_pct": 0,
+      "proto_reform_score": 4.0173,
+      "con_vote_share_2015": 20.0,
+      "con_vote_share_2019": 25.0,
+      "con_change_2019": 5.0
+    },
+    {
+      "constituency_id": "f36ee582-f04a-4df3-a702-8b726e5fec12",
+      "ukip_2015_pct": 2.0,
+      "leave_pct": 28.77,
+      "con_majority_2015_pct": 0,
+      "proto_reform_score": 4.078,
+      "con_vote_share_2015": 12.0,
+      "con_vote_share_2019": 18.0,
+      "con_change_2019": 6.0
+    },
+    {
+      "constituency_id": "0dde5401-c8a8-4eef-8aec-3e3e516118ff",
+      "ukip_2015_pct": 0,
+      "leave_pct": 43.9,
+      "con_majority_2015_pct": 0,
+      "proto_reform_score": 4.9267,
+      "con_vote_share_2015": 8.0,
+      "con_vote_share_2019": 22.0,
+      "con_change_2019": 14.0
+    },
+    {
+      "constituency_id": "e3e52f28-cd90-43cc-849c-1bca115acf20",
+      "ukip_2015_pct": 3.0,
+      "leave_pct": 42.11,
+      "con_majority_2015_pct": 0,
+      "proto_reform_score": 5.0473,
+      "con_vote_share_2015": 12.0,
+      "con_vote_share_2019": 26.0,
+      "con_change_2019": 14.0
+    },
+    {
+      "constituency_id": "bc743150-f6c1-4ed6-878e-a0336dde4c91",
+      "ukip_2015_pct": 3.0,
+      "leave_pct": 43.84,
+      "con_majority_2015_pct": 0,
+      "proto_reform_score": 5.1627,
+      "con_vote_share_2015": 6.0,
+      "con_vote_share_2019": 12.0,
+      "con_change_2019": 6.0
+    },
+    {
+      "constituency_id": "7c9835c4-b8f3-49d4-841a-9307f079e195",
+      "ukip_2015_pct": 1.0,
+      "leave_pct": 21.62,
+      "con_majority_2015_pct": 0,
+      "proto_reform_score": 3.5213,
+      "con_vote_share_2015": 8.0,
+      "con_vote_share_2019": 9.0,
+      "con_change_2019": 1.0
+    },
+    {
+      "constituency_id": "f5f8e4fc-6956-4209-b6c1-d7e486f0265d",
+      "ukip_2015_pct": 0,
+      "leave_pct": 40.66,
+      "con_majority_2015_pct": 0,
+      "proto_reform_score": 4.7107,
+      "con_vote_share_2015": 5.0,
+      "con_vote_share_2019": 11.0,
+      "con_change_2019": 6.0
+    },
+    {
+      "constituency_id": "7957aac1-eea6-4814-ab7d-180aea6fe07f",
+      "ukip_2015_pct": 0,
+      "leave_pct": 28.19,
+      "con_majority_2015_pct": 0,
+      "proto_reform_score": 3.8793,
+      "con_vote_share_2015": 10.0,
+      "con_vote_share_2019": 13.0,
+      "con_change_2019": 3.0
+    },
+    {
+      "constituency_id": "79618037-2d21-4818-aeee-22edbf080e68",
+      "ukip_2015_pct": 2.0,
+      "leave_pct": 40.86,
+      "con_majority_2015_pct": 0,
+      "proto_reform_score": 4.884,
+      "con_vote_share_2015": 5.0,
+      "con_vote_share_2019": 13.0,
+      "con_change_2019": 8.0
+    },
+    {
+      "constituency_id": "4a13401d-eb7c-4197-8af4-188f5bcd17ab",
+      "ukip_2015_pct": 0,
+      "leave_pct": 39.45,
+      "con_majority_2015_pct": 0,
+      "proto_reform_score": 4.63,
+      "con_vote_share_2015": 13.0,
+      "con_vote_share_2019": 24.0,
+      "con_change_2019": 11.0
+    },
+    {
+      "constituency_id": "adc80e4a-4b14-4526-802b-f74d7169069c",
+      "ukip_2015_pct": 3.0,
+      "leave_pct": 43.26,
+      "con_majority_2015_pct": 0,
+      "proto_reform_score": 5.124,
+      "con_vote_share_2015": 10.0,
+      "con_vote_share_2019": 22.0,
+      "con_change_2019": 12.0
+    },
+    {
+      "constituency_id": "893c621a-2239-45c8-945e-c5b116a7748a",
+      "ukip_2015_pct": 2.0,
+      "leave_pct": 37.94,
+      "con_majority_2015_pct": 0,
+      "proto_reform_score": 4.6893,
+      "con_vote_share_2015": 12.0,
+      "con_vote_share_2019": 22.0,
+      "con_change_2019": 10.0
+    },
+    {
+      "constituency_id": "f87dc9ff-7933-47f6-aeb7-dfc108ee3c07",
+      "ukip_2015_pct": 2.0,
+      "leave_pct": 42.4,
+      "con_majority_2015_pct": 0,
+      "proto_reform_score": 4.9867,
+      "con_vote_share_2015": 15.0,
+      "con_vote_share_2019": 31.0,
+      "con_change_2019": 16.0
+    },
+    {
+      "constituency_id": "8fa56a4d-8922-4a6d-88dd-4b7966bfb223",
+      "ukip_2015_pct": 0,
+      "leave_pct": 36.31,
+      "con_majority_2015_pct": 0,
+      "proto_reform_score": 4.4207,
+      "con_vote_share_2015": 16.0,
+      "con_vote_share_2019": 14.0,
+      "con_change_2019": -2.0
+    },
+    {
+      "constituency_id": "c58f5ece-9424-48ec-adf7-386a3cb1b70b",
+      "ukip_2015_pct": 5.0,
+      "leave_pct": 40.28,
+      "con_majority_2015_pct": 0,
+      "proto_reform_score": 5.0853,
+      "con_vote_share_2015": 9.0,
+      "con_vote_share_2019": 10.0,
+      "con_change_2019": 1.0
+    },
+    {
+      "constituency_id": "8cc4bc80-9c24-40fd-8bd1-657853236f6f",
+      "ukip_2015_pct": 0,
+      "leave_pct": 35.55,
+      "con_majority_2015_pct": 0,
+      "proto_reform_score": 4.37,
+      "con_vote_share_2015": 12.0,
+      "con_vote_share_2019": 20.0,
+      "con_change_2019": 8.0
+    },
+    {
+      "constituency_id": "b903dc1c-9112-4562-9081-e3d341dc72af",
+      "ukip_2015_pct": 0,
+      "leave_pct": 34.8,
+      "con_majority_2015_pct": 0,
+      "proto_reform_score": 4.32,
+      "con_vote_share_2015": 8.0,
+      "con_vote_share_2019": 18.0,
+      "con_change_2019": 10.0
+    },
+    {
+      "constituency_id": "26fb1231-8ce7-4f1c-af6d-b69dfc3ab270",
+      "ukip_2015_pct": 2.0,
+      "leave_pct": 38.52,
+      "con_majority_2015_pct": 0,
+      "proto_reform_score": 4.728,
+      "con_vote_share_2015": 29.0,
+      "con_vote_share_2019": 43.0,
+      "con_change_2019": 14.0
+    },
+    {
+      "constituency_id": "4eb4a1fd-b174-4189-b764-d8e351d123e0",
+      "ukip_2015_pct": 0,
+      "leave_pct": 38.01,
+      "con_majority_2015_pct": 0,
+      "proto_reform_score": 4.534,
+      "con_vote_share_2015": 7.0,
+      "con_vote_share_2019": 14.0,
+      "con_change_2019": 7.0
+    },
+    {
+      "constituency_id": "43d02328-ce89-4010-addb-6770b2ef3507",
+      "ukip_2015_pct": 18.0,
+      "leave_pct": 58.05,
+      "con_majority_2015_pct": 0,
+      "proto_reform_score": 7.31,
+      "con_vote_share_2015": 32.0,
+      "con_vote_share_2019": 42.0,
+      "con_change_2019": 10.0
+    },
+    {
+      "constituency_id": "5e9d94cb-4b2c-4eb3-8651-b64c5067d234",
+      "ukip_2015_pct": 16.0,
+      "leave_pct": 57.57,
+      "con_majority_2015_pct": 0,
+      "proto_reform_score": 7.118,
+      "con_vote_share_2015": 32.0,
+      "con_vote_share_2019": 47.0,
+      "con_change_2019": 15.0
+    },
+    {
+      "constituency_id": "8e0da579-81d9-49b2-b301-19b20d21c9af",
+      "ukip_2015_pct": 16.0,
+      "leave_pct": 56.67,
+      "con_majority_2015_pct": 0,
+      "proto_reform_score": 7.058,
+      "con_vote_share_2015": 14.0,
+      "con_vote_share_2019": 31.0,
+      "con_change_2019": 17.0
+    },
+    {
+      "constituency_id": "5bc08fe0-8b0e-4702-bafa-59e1900e0d59",
+      "ukip_2015_pct": 11.0,
+      "leave_pct": 49.31,
+      "con_majority_2015_pct": 0.04,
+      "proto_reform_score": 6.163,
+      "con_vote_share_2015": 37.0,
+      "con_vote_share_2019": 40.0,
+      "con_change_2019": 3.0
+    },
+    {
+      "constituency_id": "85e94ceb-e406-44d6-870b-27e15deb3624",
+      "ukip_2015_pct": 13.0,
+      "leave_pct": 43.4,
+      "con_majority_2015_pct": 0,
+      "proto_reform_score": 5.9333,
+      "con_vote_share_2015": 23.0,
+      "con_vote_share_2019": 29.0,
+      "con_change_2019": 6.0
+    },
+    {
+      "constituency_id": "77e6f794-c9b5-41b7-b46c-1c690b7d067a",
+      "ukip_2015_pct": 8.0,
+      "leave_pct": 39.15,
+      "con_majority_2015_pct": 3.18,
+      "proto_reform_score": 4.932,
+      "con_vote_share_2015": 42.0,
+      "con_vote_share_2019": 36.0,
+      "con_change_2019": -6.0
+    },
+    {
+      "constituency_id": "b6c5068e-42cd-45c5-9f78-9b7ffc570692",
+      "ukip_2015_pct": 19.0,
+      "leave_pct": 60.78,
+      "con_majority_2015_pct": 0,
+      "proto_reform_score": 7.52,
+      "con_vote_share_2015": 23.0,
+      "con_vote_share_2019": 33.0,
+      "con_change_2019": 10.0
+    },
+    {
+      "constituency_id": "6ccd6917-e31d-4dbb-969e-8c4fb3095651",
+      "ukip_2015_pct": 18.0,
+      "leave_pct": 59.33,
+      "con_majority_2015_pct": 0,
+      "proto_reform_score": 7.3953,
+      "con_vote_share_2015": 27.0,
+      "con_vote_share_2019": 36.0,
+      "con_change_2019": 9.0
+    },
+    {
+      "constituency_id": "5e12d81d-dea1-4a67-bdf6-a70ffe02ab73",
+      "ukip_2015_pct": 11.0,
+      "leave_pct": 47.43,
+      "con_majority_2015_pct": 0,
+      "proto_reform_score": 6.042,
+      "con_vote_share_2015": 23.0,
+      "con_vote_share_2019": 26.0,
+      "con_change_2019": 3.0
+    },
+    {
+      "constituency_id": "1c17ed0f-6c81-45d3-9d28-d826f86f651e",
+      "ukip_2015_pct": 15.0,
+      "leave_pct": 50.28,
+      "con_majority_2015_pct": 0,
+      "proto_reform_score": 6.552,
+      "con_vote_share_2015": 32.0,
+      "con_vote_share_2019": 44.0,
+      "con_change_2019": 12.0
+    },
+    {
+      "constituency_id": "9ad55687-6ce7-4e7b-adbc-f34be29d198e",
+      "ukip_2015_pct": 13.0,
+      "leave_pct": 46.51,
+      "con_majority_2015_pct": 0,
+      "proto_reform_score": 6.1407,
+      "con_vote_share_2015": 17.0,
+      "con_vote_share_2019": 27.0,
+      "con_change_2019": 10.0
+    },
+    {
+      "constituency_id": "71bd9c72-34b9-4e11-bc9f-211ff03e6885",
+      "ukip_2015_pct": 19.0,
+      "leave_pct": 55.14,
+      "con_majority_2015_pct": 0,
+      "proto_reform_score": 7.196,
+      "con_vote_share_2015": 17.0,
+      "con_vote_share_2019": 29.0,
+      "con_change_2019": 12.0
+    },
+    {
+      "constituency_id": "e3fd8aec-1ef4-4b32-9dfa-f3235a5dd561",
+      "ukip_2015_pct": 11.0,
+      "leave_pct": 52.55,
+      "con_majority_2015_pct": 9.45,
+      "proto_reform_score": 5.4382,
+      "con_vote_share_2015": 46.0,
+      "con_vote_share_2019": 49.0,
+      "con_change_2019": 3.0
+    },
+    {
+      "constituency_id": "b04b0e9c-e203-4edc-b8e5-6bfd0b62a2ea",
+      "ukip_2015_pct": 11.0,
+      "leave_pct": 43.82,
+      "con_majority_2015_pct": 0,
+      "proto_reform_score": 5.8013,
+      "con_vote_share_2015": 25.0,
+      "con_vote_share_2019": 30.0,
+      "con_change_2019": 5.0
+    },
+    {
+      "constituency_id": "be36226a-0036-4616-a21d-a75fd721e25c",
+      "ukip_2015_pct": 14.0,
+      "leave_pct": 42.82,
+      "con_majority_2015_pct": 0,
+      "proto_reform_score": 5.9747,
+      "con_vote_share_2015": 27.0,
+      "con_vote_share_2019": 30.0,
+      "con_change_2019": 3.0
+    }
+  ]
+}

@@ -2,9 +2,9 @@
   "model_key": "reform_threat",
   "target_cycle": 2017,
   "baseline_cycle": 2015,
-  "run_timestamp": "2026-03-17T19:41:28.664404+00:00",
-  "run_mode": "dry-run",
-  "status": "dry_run_ready",
+  "run_timestamp": "2026-03-18T06:31:34.073904+00:00",
+  "run_mode": "live",
+  "status": "data_required",
   "signal_coverage_summary": {
     "available_signals": [
       "conservative_majority_pct",
@@ -65,8 +65,9 @@
   ],
   "notes": [
     "Baseline cycle: 2015",
-    "Run mode: dry-run",
+    "Run mode: live",
     "Universe: Conservative-held seats with a defensible Reform/right-fragmentation analogue",
+    "Real feature loading is currently implemented only for the vulnerability model.",
     "No live historical rows were loaded; metrics are listed but not executed.",
     "Use this artifact to confirm leakage exclusions, signal availability, and data requirements before enabling full runs."
   ]
