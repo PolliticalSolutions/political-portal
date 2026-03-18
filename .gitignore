@@ -33,3 +33,11 @@ yarn-error.log*
 .claude/
 .aws-sam/
 
+# python cache / local tooling noise
+__pycache__/
+*.py[cod]
+.pytest_cache/
+
+# local artifact scratch space
+artifacts/**/tmp/
+
