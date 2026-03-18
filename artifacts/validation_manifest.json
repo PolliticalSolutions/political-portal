@@ -1,0 +1,1019 @@
+{
+  "generated_at": "2026-03-18T06:21:20.050064Z",
+  "artifact_count": 59,
+  "entries": [
+    {
+      "artifact_path": "artifacts/backtests/by_election_risk_2017_backtest.json",
+      "artifact_type": "backtest_report",
+      "model_key": "by_election_risk",
+      "variant": null,
+      "cycle": 2017,
+      "modified_at": 1773786399.5620556,
+      "runtime_safe": false,
+      "classification": "dry-run",
+      "status": "dry_run_ready",
+      "notes": [
+        "Baseline cycle: 2015",
+        "Run mode: dry-run",
+        "Universe: Seats with usable event history prior to the target cycle",
+        "No live historical rows were loaded; metrics are listed but not executed.",
+        "Use this artifact to confirm leakage exclusions, signal availability, and data requirements before enabling full runs."
+      ],
+      "warnings": [
+        "By-election risk relies on event-driven signals that are not yet historically complete; treat any backtest as partial."
+      ]
+    },
+    {
+      "artifact_path": "artifacts/backtests/by_election_risk_2019_backtest.json",
+      "artifact_type": "backtest_report",
+      "model_key": "by_election_risk",
+      "variant": null,
+      "cycle": 2019,
+      "modified_at": 1773786399.5620556,
+      "runtime_safe": false,
+      "classification": "dry-run",
+      "status": "dry_run_ready",
+      "notes": [
+        "Baseline cycle: 2017",
+        "Run mode: dry-run",
+        "Universe: Seats with usable event history prior to the target cycle",
+        "No live historical rows were loaded; metrics are listed but not executed.",
+        "Use this artifact to confirm leakage exclusions, signal availability, and data requirements before enabling full runs."
+      ],
+      "warnings": [
+        "By-election risk relies on event-driven signals that are not yet historically complete; treat any backtest as partial."
+      ]
+    },
+    {
+      "artifact_path": "artifacts/backtests/by_election_risk_2024_backtest.json",
+      "artifact_type": "backtest_report",
+      "model_key": "by_election_risk",
+      "variant": null,
+      "cycle": 2024,
+      "modified_at": 1773786399.5630572,
+      "runtime_safe": false,
+      "classification": "dry-run",
+      "status": "dry_run_ready",
+      "notes": [
+        "Baseline cycle: 2019",
+        "Run mode: dry-run",
+        "Universe: Seats with usable event history prior to the target cycle",
+        "No live historical rows were loaded; metrics are listed but not executed.",
+        "Use this artifact to confirm leakage exclusions, signal availability, and data requirements before enabling full runs."
+      ],
+      "warnings": [
+        "By-election risk relies on event-driven signals that are not yet historically complete; treat any backtest as partial."
+      ]
+    },
+    {
+      "artifact_path": "artifacts/backtests/features/vulnerability_2017_baseline.csv",
+      "artifact_type": "feature_dataset",
+      "model_key": "vulnerability",
+      "variant": "baseline",
+      "cycle": 2017,
+      "modified_at": 1773786399.5640674,
+      "runtime_safe": false,
+      "classification": "scaffold",
+      "status": null,
+      "notes": null,
+      "warnings": []
+    },
+    {
+      "artifact_path": "artifacts/backtests/features/vulnerability_2017_baseline.json",
+      "artifact_type": "feature_dataset",
+      "model_key": "vulnerability",
+      "variant": "baseline",
+      "cycle": 2017,
+      "modified_at": 1773786399.5640674,
+      "runtime_safe": false,
+      "classification": "scaffold",
+      "status": null,
+      "notes": null,
+      "warnings": []
+    },
+    {
+      "artifact_path": "artifacts/backtests/features/vulnerability_2017_baseline_demographic.csv",
+      "artifact_type": "feature_dataset",
+      "model_key": "vulnerability",
+      "variant": "baseline_demographic",
+      "cycle": 2017,
+      "modified_at": 1773786399.5650568,
+      "runtime_safe": false,
+      "classification": "scaffold",
+      "status": null,
+      "notes": null,
+      "warnings": []
+    },
+    {
+      "artifact_path": "artifacts/backtests/features/vulnerability_2017_baseline_demographic.json",
+      "artifact_type": "feature_dataset",
+      "model_key": "vulnerability",
+      "variant": "baseline_demographic",
+      "cycle": 2017,
+      "modified_at": 1773786399.5660555,
+      "runtime_safe": false,
+      "classification": "scaffold",
+      "status": null,
+      "notes": null,
+      "warnings": [
+        "Demographic feature coverage for baseline_demographic on 2017: 330/330 seats."
+      ]
+    },
+    {
+      "artifact_path": "artifacts/backtests/features/vulnerability_2017_baseline_demographic_local.csv",
+      "artifact_type": "feature_dataset",
+      "model_key": "vulnerability",
+      "variant": "baseline_demographic_local",
+      "cycle": 2017,
+      "modified_at": 1773786399.5660555,
+      "runtime_safe": false,
+      "classification": "scaffold",
+      "status": null,
+      "notes": null,
+      "warnings": []
+    },
+    {
+      "artifact_path": "artifacts/backtests/features/vulnerability_2017_baseline_demographic_local.json",
+      "artifact_type": "feature_dataset",
+      "model_key": "vulnerability",
+      "variant": "baseline_demographic_local",
+      "cycle": 2017,
+      "modified_at": 1773786399.5670543,
+      "runtime_safe": false,
+      "classification": "scaffold",
+      "status": null,
+      "notes": null,
+      "warnings": [
+        "Demographic feature coverage for baseline_demographic_local on 2017: 330/330 seats.",
+        "Local government feature coverage for baseline_demographic_local on 2017: 0/330 seats.",
+        "Local data inventory currently includes 7 mapped constituencies, 21 authorities, and 7 council result rows."
+      ]
+    },
+    {
+      "artifact_path": "artifacts/backtests/features/vulnerability_2017_baseline_local.csv",
+      "artifact_type": "feature_dataset",
+      "model_key": "vulnerability",
+      "variant": "baseline_local",
+      "cycle": 2017,
+      "modified_at": 1773786399.5680673,
+      "runtime_safe": false,
+      "classification": "scaffold",
+      "status": null,
+      "notes": null,
+      "warnings": []
+    },
+    {
+      "artifact_path": "artifacts/backtests/features/vulnerability_2017_baseline_local.json",
+      "artifact_type": "feature_dataset",
+      "model_key": "vulnerability",
+      "variant": "baseline_local",
+      "cycle": 2017,
+      "modified_at": 1773786399.5680673,
+      "runtime_safe": false,
+      "classification": "scaffold",
+      "status": null,
+      "notes": null,
+      "warnings": [
+        "Local government feature coverage for baseline_local on 2017: 0/330 seats.",
+        "Local data inventory currently includes 7 mapped constituencies, 21 authorities, and 7 council result rows."
+      ]
+    },
+    {
+      "artifact_path": "artifacts/backtests/features/vulnerability_2017_features.csv",
+      "artifact_type": "feature_dataset",
+      "model_key": "vulnerability",
+      "variant": null,
+      "cycle": 2017,
+      "modified_at": 1773786399.569061,
+      "runtime_safe": false,
+      "classification": "scaffold",
+      "status": null,
+      "notes": null,
+      "warnings": []
+    },
+    {
+      "artifact_path": "artifacts/backtests/features/vulnerability_2017_features.json",
+      "artifact_type": "feature_dataset",
+      "model_key": "vulnerability",
+      "variant": null,
+      "cycle": 2017,
+      "modified_at": 1773786399.569061,
+      "runtime_safe": false,
+      "classification": "scaffold",
+      "status": null,
+      "notes": null,
+      "warnings": []
+    },
+    {
+      "artifact_path": "artifacts/backtests/features/vulnerability_2019_baseline.csv",
+      "artifact_type": "feature_dataset",
+      "model_key": "vulnerability",
+      "variant": "baseline",
+      "cycle": 2019,
+      "modified_at": 1773786399.5700738,
+      "runtime_safe": false,
+      "classification": "scaffold",
+      "status": null,
+      "notes": null,
+      "warnings": []
+    },
+    {
+      "artifact_path": "artifacts/backtests/features/vulnerability_2019_baseline.json",
+      "artifact_type": "feature_dataset",
+      "model_key": "vulnerability",
+      "variant": "baseline",
+      "cycle": 2019,
+      "modified_at": 1773786399.5700738,
+      "runtime_safe": false,
+      "classification": "scaffold",
+      "status": null,
+      "notes": null,
+      "warnings": []
+    },
+    {
+      "artifact_path": "artifacts/backtests/features/vulnerability_2019_baseline_demographic.csv",
+      "artifact_type": "feature_dataset",
+      "model_key": "vulnerability",
+      "variant": "baseline_demographic",
+      "cycle": 2019,
+      "modified_at": 1773786399.5710657,
+      "runtime_safe": false,
+      "classification": "scaffold",
+      "status": null,
+      "notes": null,
+      "warnings": []
+    },
+    {
+      "artifact_path": "artifacts/backtests/features/vulnerability_2019_baseline_demographic.json",
+      "artifact_type": "feature_dataset",
+      "model_key": "vulnerability",
+      "variant": "baseline_demographic",
+      "cycle": 2019,
+      "modified_at": 1773786399.5710657,
+      "runtime_safe": false,
+      "classification": "scaffold",
+      "status": null,
+      "notes": null,
+      "warnings": [
+        "Demographic feature coverage for baseline_demographic on 2019: 317/317 seats."
+      ]
+    },
+    {
+      "artifact_path": "artifacts/backtests/features/vulnerability_2019_baseline_demographic_local.csv",
+      "artifact_type": "feature_dataset",
+      "model_key": "vulnerability",
+      "variant": "baseline_demographic_local",
+      "cycle": 2019,
+      "modified_at": 1773786399.5720654,
+      "runtime_safe": false,
+      "classification": "scaffold",
+      "status": null,
+      "notes": null,
+      "warnings": []
+    },
+    {
+      "artifact_path": "artifacts/backtests/features/vulnerability_2019_baseline_demographic_local.json",
+      "artifact_type": "feature_dataset",
+      "model_key": "vulnerability",
+      "variant": "baseline_demographic_local",
+      "cycle": 2019,
+      "modified_at": 1773786399.5730672,
+      "runtime_safe": false,
+      "classification": "scaffold",
+      "status": null,
+      "notes": null,
+      "warnings": [
+        "Demographic feature coverage for baseline_demographic_local on 2019: 317/317 seats.",
+        "Local government feature coverage for baseline_demographic_local on 2019: 0/317 seats.",
+        "Local data inventory currently includes 7 mapped constituencies, 21 authorities, and 7 council result rows."
+      ]
+    },
+    {
+      "artifact_path": "artifacts/backtests/features/vulnerability_2019_baseline_local.csv",
+      "artifact_type": "feature_dataset",
+      "model_key": "vulnerability",
+      "variant": "baseline_local",
+      "cycle": 2019,
+      "modified_at": 1773786399.5730672,
+      "runtime_safe": false,
+      "classification": "scaffold",
+      "status": null,
+      "notes": null,
+      "warnings": []
+    },
+    {
+      "artifact_path": "artifacts/backtests/features/vulnerability_2019_baseline_local.json",
+      "artifact_type": "feature_dataset",
+      "model_key": "vulnerability",
+      "variant": "baseline_local",
+      "cycle": 2019,
+      "modified_at": 1773786399.5740676,
+      "runtime_safe": false,
+      "classification": "scaffold",
+      "status": null,
+      "notes": null,
+      "warnings": [
+        "Local government feature coverage for baseline_local on 2019: 0/317 seats.",
+        "Local data inventory currently includes 7 mapped constituencies, 21 authorities, and 7 council result rows."
+      ]
+    },
+    {
+      "artifact_path": "artifacts/backtests/features/vulnerability_2019_features.csv",
+      "artifact_type": "feature_dataset",
+      "model_key": "vulnerability",
+      "variant": null,
+      "cycle": 2019,
+      "modified_at": 1773786399.5740676,
+      "runtime_safe": false,
+      "classification": "scaffold",
+      "status": null,
+      "notes": null,
+      "warnings": []
+    },
+    {
+      "artifact_path": "artifacts/backtests/features/vulnerability_2019_features.json",
+      "artifact_type": "feature_dataset",
+      "model_key": "vulnerability",
+      "variant": null,
+      "cycle": 2019,
+      "modified_at": 1773786399.5750682,
+      "runtime_safe": false,
+      "classification": "scaffold",
+      "status": null,
+      "notes": null,
+      "warnings": []
+    },
+    {
+      "artifact_path": "artifacts/backtests/features/vulnerability_2024_baseline.csv",
+      "artifact_type": "feature_dataset",
+      "model_key": "vulnerability",
+      "variant": "baseline",
+      "cycle": 2024,
+      "modified_at": 1773786399.5750682,
+      "runtime_safe": false,
+      "classification": "scaffold",
+      "status": null,
+      "notes": null,
+      "warnings": []
+    },
+    {
+      "artifact_path": "artifacts/backtests/features/vulnerability_2024_baseline.json",
+      "artifact_type": "feature_dataset",
+      "model_key": "vulnerability",
+      "variant": "baseline",
+      "cycle": 2024,
+      "modified_at": 1773786399.576068,
+      "runtime_safe": false,
+      "classification": "scaffold",
+      "status": null,
+      "notes": null,
+      "warnings": [
+        "372 baseline Conservative seats lacked previous-cycle constituency matches; vote-share trend was neutral-imputed for those seats.",
+        "Previous-cycle overlap is low relative to the baseline universe. Trend features may be weak for this cycle, especially where boundary changes break constituency continuity.",
+        "2024 backtest uses the 2019 notional baseline on 2024 boundaries to avoid boundary-change leakage."
+      ]
+    },
+    {
+      "artifact_path": "artifacts/backtests/features/vulnerability_2024_baseline_demographic.csv",
+      "artifact_type": "feature_dataset",
+      "model_key": "vulnerability",
+      "variant": "baseline_demographic",
+      "cycle": 2024,
+      "modified_at": 1773786399.5770676,
+      "runtime_safe": false,
+      "classification": "scaffold",
+      "status": null,
+      "notes": null,
+      "warnings": []
+    },
+    {
+      "artifact_path": "artifacts/backtests/features/vulnerability_2024_baseline_demographic.json",
+      "artifact_type": "feature_dataset",
+      "model_key": "vulnerability",
+      "variant": "baseline_demographic",
+      "cycle": 2024,
+      "modified_at": 1773786399.5770676,
+      "runtime_safe": false,
+      "classification": "scaffold",
+      "status": null,
+      "notes": null,
+      "warnings": [
+        "Demographic enrichment prefers 2021 census data for 2024 and falls back to 2011 where 2021 rows are missing.",
+        "372 baseline Conservative seats lacked previous-cycle constituency matches; vote-share trend was neutral-imputed for those seats.",
+        "Previous-cycle overlap is low relative to the baseline universe. Trend features may be weak for this cycle, especially where boundary changes break constituency continuity.",
+        "2024 backtest uses the 2019 notional baseline on 2024 boundaries to avoid boundary-change leakage.",
+        "Demographic feature coverage for baseline_demographic on 2024: 365/372 seats."
+      ]
+    },
+    {
+      "artifact_path": "artifacts/backtests/features/vulnerability_2024_baseline_demographic_local.csv",
+      "artifact_type": "feature_dataset",
+      "model_key": "vulnerability",
+      "variant": "baseline_demographic_local",
+      "cycle": 2024,
+      "modified_at": 1773786399.5780692,
+      "runtime_safe": false,
+      "classification": "scaffold",
+      "status": null,
+      "notes": null,
+      "warnings": []
+    },
+    {
+      "artifact_path": "artifacts/backtests/features/vulnerability_2024_baseline_demographic_local.json",
+      "artifact_type": "feature_dataset",
+      "model_key": "vulnerability",
+      "variant": "baseline_demographic_local",
+      "cycle": 2024,
+      "modified_at": 1773786399.5780692,
+      "runtime_safe": false,
+      "classification": "scaffold",
+      "status": null,
+      "notes": null,
+      "warnings": [
+        "Demographic enrichment prefers 2021 census data for 2024 and falls back to 2011 where 2021 rows are missing.",
+        "372 baseline Conservative seats lacked previous-cycle constituency matches; vote-share trend was neutral-imputed for those seats.",
+        "Previous-cycle overlap is low relative to the baseline universe. Trend features may be weak for this cycle, especially where boundary changes break constituency continuity.",
+        "2024 backtest uses the 2019 notional baseline on 2024 boundaries to avoid boundary-change leakage.",
+        "Demographic feature coverage for baseline_demographic_local on 2024: 365/372 seats."
+      ]
+    },
+    {
+      "artifact_path": "artifacts/backtests/features/vulnerability_2024_baseline_local.csv",
+      "artifact_type": "feature_dataset",
+      "model_key": "vulnerability",
+      "variant": "baseline_local",
+      "cycle": 2024,
+      "modified_at": 1773786399.5790677,
+      "runtime_safe": false,
+      "classification": "scaffold",
+      "status": null,
+      "notes": null,
+      "warnings": []
+    },
+    {
+      "artifact_path": "artifacts/backtests/features/vulnerability_2024_baseline_local.json",
+      "artifact_type": "feature_dataset",
+      "model_key": "vulnerability",
+      "variant": "baseline_local",
+      "cycle": 2024,
+      "modified_at": 1773786399.5800726,
+      "runtime_safe": false,
+      "classification": "scaffold",
+      "status": null,
+      "notes": null,
+      "warnings": [
+        "372 baseline Conservative seats lacked previous-cycle constituency matches; vote-share trend was neutral-imputed for those seats.",
+        "Previous-cycle overlap is low relative to the baseline universe. Trend features may be weak for this cycle, especially where boundary changes break constituency continuity.",
+        "2024 backtest uses the 2019 notional baseline on 2024 boundaries to avoid boundary-change leakage.",
+        "Local government feature coverage for baseline_local on 2024: 6/372 seats.",
+        "Local data inventory currently includes 7 mapped constituencies, 21 authorities, and 7 council result rows."
+      ]
+    },
+    {
+      "artifact_path": "artifacts/backtests/features/vulnerability_2024_features.csv",
+      "artifact_type": "feature_dataset",
+      "model_key": "vulnerability",
+      "variant": null,
+      "cycle": 2024,
+      "modified_at": 1773786399.5810688,
+      "runtime_safe": false,
+      "classification": "scaffold",
+      "status": null,
+      "notes": null,
+      "warnings": []
+    },
+    {
+      "artifact_path": "artifacts/backtests/features/vulnerability_2024_features.json",
+      "artifact_type": "feature_dataset",
+      "model_key": "vulnerability",
+      "variant": null,
+      "cycle": 2024,
+      "modified_at": 1773786399.5810688,
+      "runtime_safe": false,
+      "classification": "scaffold",
+      "status": null,
+      "notes": null,
+      "warnings": [
+        "372 baseline Conservative seats lacked previous-cycle constituency matches; vote-share trend was neutral-imputed for those seats.",
+        "Previous-cycle overlap is low relative to the baseline universe. Trend features may be weak for this cycle, especially where boundary changes break constituency continuity.",
+        "2024 backtest uses the 2019 notional baseline on 2024 boundaries to avoid boundary-change leakage."
+      ]
+    },
+    {
+      "artifact_path": "artifacts/backtests/normalized/model_backtest_runs.json",
+      "artifact_type": "normalized_export",
+      "model_key": null,
+      "variant": null,
+      "cycle": null,
+      "modified_at": 1773814714.0081084,
+      "runtime_safe": true,
+      "classification": "scaffold",
+      "status": null,
+      "notes": null,
+      "warnings": []
+    },
+    {
+      "artifact_path": "artifacts/backtests/reform_threat_2017_backtest.json",
+      "artifact_type": "backtest_report",
+      "model_key": "reform_threat",
+      "variant": null,
+      "cycle": 2017,
+      "modified_at": 1773786399.5820687,
+      "runtime_safe": false,
+      "classification": "dry-run",
+      "status": "dry_run_ready",
+      "notes": [
+        "Baseline cycle: 2015",
+        "Run mode: dry-run",
+        "Universe: Conservative-held seats with a defensible Reform/right-fragmentation analogue",
+        "No live historical rows were loaded; metrics are listed but not executed.",
+        "Use this artifact to confirm leakage exclusions, signal availability, and data requirements before enabling full runs."
+      ],
+      "warnings": [
+        "Reform-era signal structure is not directly comparable before 2024, so historical runs are conceptually partial."
+      ]
+    },
+    {
+      "artifact_path": "artifacts/backtests/reform_threat_2019_backtest.json",
+      "artifact_type": "backtest_report",
+      "model_key": "reform_threat",
+      "variant": null,
+      "cycle": 2019,
+      "modified_at": 1773786399.5830686,
+      "runtime_safe": false,
+      "classification": "dry-run",
+      "status": "dry_run_ready",
+      "notes": [
+        "Baseline cycle: 2017",
+        "Run mode: dry-run",
+        "Universe: Conservative-held seats with a defensible Reform/right-fragmentation analogue",
+        "No live historical rows were loaded; metrics are listed but not executed.",
+        "Use this artifact to confirm leakage exclusions, signal availability, and data requirements before enabling full runs."
+      ],
+      "warnings": [
+        "Reform-era signal structure is not directly comparable before 2024, so historical runs are conceptually partial."
+      ]
+    },
+    {
+      "artifact_path": "artifacts/backtests/reform_threat_2024_backtest.json",
+      "artifact_type": "backtest_report",
+      "model_key": "reform_threat",
+      "variant": null,
+      "cycle": 2024,
+      "modified_at": 1773786399.5830686,
+      "runtime_safe": false,
+      "classification": "dry-run",
+      "status": "dry_run_ready",
+      "notes": [
+        "Baseline cycle: 2019",
+        "Run mode: dry-run",
+        "Universe: Conservative-held seats with a defensible Reform/right-fragmentation analogue",
+        "No live historical rows were loaded; metrics are listed but not executed.",
+        "Use this artifact to confirm leakage exclusions, signal availability, and data requirements before enabling full runs."
+      ],
+      "warnings": []
+    },
+    {
+      "artifact_path": "artifacts/backtests/summary.csv",
+      "artifact_type": "summary_table",
+      "model_key": null,
+      "variant": null,
+      "cycle": null,
+      "modified_at": 1773786399.5830686,
+      "runtime_safe": false,
+      "classification": "scaffold",
+      "status": null,
+      "notes": null,
+      "warnings": []
+    },
+    {
+      "artifact_path": "artifacts/backtests/vulnerability_2017.json",
+      "artifact_type": "backtest_report",
+      "model_key": "vulnerability",
+      "variant": null,
+      "cycle": 2017,
+      "modified_at": 1773786399.5845735,
+      "runtime_safe": false,
+      "classification": "empirical",
+      "status": "completed",
+      "notes": [
+        "Baseline cycle: 2015",
+        "Run mode: live",
+        "Universe: Conservative-held seats in the prior election cycle",
+        "Real feature loading is currently implemented only for the vulnerability model.",
+        "Target outcome fields are included for evaluation only and are excluded from the scored feature set."
+      ],
+      "warnings": []
+    },
+    {
+      "artifact_path": "artifacts/backtests/vulnerability_2017_backtest.json",
+      "artifact_type": "backtest_report",
+      "model_key": "vulnerability",
+      "variant": null,
+      "cycle": 2017,
+      "modified_at": 1773786399.5855794,
+      "runtime_safe": false,
+      "classification": "dry-run",
+      "status": "dry_run_ready",
+      "notes": [
+        "Baseline cycle: 2015",
+        "Run mode: dry-run",
+        "Universe: Conservative-held seats in the prior election cycle",
+        "No live historical rows were loaded; metrics are listed but not executed.",
+        "Use this artifact to confirm leakage exclusions, signal availability, and data requirements before enabling full runs."
+      ],
+      "warnings": []
+    },
+    {
+      "artifact_path": "artifacts/backtests/vulnerability_2017_baseline.json",
+      "artifact_type": "backtest_report",
+      "model_key": "vulnerability",
+      "variant": "baseline",
+      "cycle": 2017,
+      "modified_at": 1773786399.5855794,
+      "runtime_safe": false,
+      "classification": "empirical",
+      "status": "completed",
+      "notes": [
+        "Baseline cycle: 2015",
+        "Run mode: live",
+        "Universe: Conservative-held seats in the prior election cycle",
+        "Real feature loading is currently implemented only for the vulnerability model.",
+        "Target outcome fields are included for evaluation only and are excluded from the scored feature set."
+      ],
+      "warnings": []
+    },
+    {
+      "artifact_path": "artifacts/backtests/vulnerability_2017_baseline_demographic.json",
+      "artifact_type": "backtest_report",
+      "model_key": "vulnerability",
+      "variant": "baseline_demographic",
+      "cycle": 2017,
+      "modified_at": 1773786399.5865798,
+      "runtime_safe": false,
+      "classification": "empirical",
+      "status": "completed",
+      "notes": [
+        "Baseline cycle: 2015",
+        "Run mode: live",
+        "Universe: Conservative-held seats in the prior election cycle",
+        "Real feature loading is currently implemented only for the vulnerability model.",
+        "Target outcome fields are included for evaluation only and are excluded from the scored feature set."
+      ],
+      "warnings": [
+        "Demographic feature coverage for baseline_demographic on 2017: 330/330 seats."
+      ]
+    },
+    {
+      "artifact_path": "artifacts/backtests/vulnerability_2017_baseline_demographic_local.json",
+      "artifact_type": "backtest_report",
+      "model_key": "vulnerability",
+      "variant": "baseline_demographic_local",
+      "cycle": 2017,
+      "modified_at": 1773786399.5875797,
+      "runtime_safe": false,
+      "classification": "scaffold",
+      "status": "not_ready",
+      "notes": [
+        "Baseline cycle: 2015",
+        "Run mode: live",
+        "Universe: Conservative-held seats in the prior election cycle",
+        "Real feature loading is currently implemented only for the vulnerability model.",
+        "Variant was not executed because enrichment coverage is too incomplete for credible comparison."
+      ],
+      "warnings": [
+        "Demographic feature coverage for baseline_demographic_local on 2017: 330/330 seats.",
+        "Local government feature coverage for baseline_demographic_local on 2017: 0/330 seats.",
+        "Local data inventory currently includes 7 mapped constituencies, 21 authorities, and 7 council result rows.",
+        "Local-government coverage is too sparse for national backtesting (0/330 seats; minimum 50% coverage required)."
+      ]
+    },
+    {
+      "artifact_path": "artifacts/backtests/vulnerability_2017_baseline_local.json",
+      "artifact_type": "backtest_report",
+      "model_key": "vulnerability",
+      "variant": "baseline_local",
+      "cycle": 2017,
+      "modified_at": 1773786399.5875797,
+      "runtime_safe": false,
+      "classification": "scaffold",
+      "status": "not_ready",
+      "notes": [
+        "Baseline cycle: 2015",
+        "Run mode: live",
+        "Universe: Conservative-held seats in the prior election cycle",
+        "Real feature loading is currently implemented only for the vulnerability model.",
+        "Variant was not executed because enrichment coverage is too incomplete for credible comparison."
+      ],
+      "warnings": [
+        "Local government feature coverage for baseline_local on 2017: 0/330 seats.",
+        "Local data inventory currently includes 7 mapped constituencies, 21 authorities, and 7 council result rows.",
+        "Local-government coverage is too sparse for national backtesting (0/330 seats; minimum 50% coverage required)."
+      ]
+    },
+    {
+      "artifact_path": "artifacts/backtests/vulnerability_2019.json",
+      "artifact_type": "backtest_report",
+      "model_key": "vulnerability",
+      "variant": null,
+      "cycle": 2019,
+      "modified_at": 1773786399.58858,
+      "runtime_safe": false,
+      "classification": "empirical",
+      "status": "completed",
+      "notes": [
+        "Baseline cycle: 2017",
+        "Run mode: live",
+        "Universe: Conservative-held seats in the prior election cycle",
+        "Real feature loading is currently implemented only for the vulnerability model.",
+        "Target outcome fields are included for evaluation only and are excluded from the scored feature set."
+      ],
+      "warnings": []
+    },
+    {
+      "artifact_path": "artifacts/backtests/vulnerability_2019_backtest.json",
+      "artifact_type": "backtest_report",
+      "model_key": "vulnerability",
+      "variant": null,
+      "cycle": 2019,
+      "modified_at": 1773786399.5895798,
+      "runtime_safe": false,
+      "classification": "dry-run",
+      "status": "dry_run_ready",
+      "notes": [
+        "Baseline cycle: 2017",
+        "Run mode: dry-run",
+        "Universe: Conservative-held seats in the prior election cycle",
+        "No live historical rows were loaded; metrics are listed but not executed.",
+        "Use this artifact to confirm leakage exclusions, signal availability, and data requirements before enabling full runs."
+      ],
+      "warnings": []
+    },
+    {
+      "artifact_path": "artifacts/backtests/vulnerability_2019_baseline.json",
+      "artifact_type": "backtest_report",
+      "model_key": "vulnerability",
+      "variant": "baseline",
+      "cycle": 2019,
+      "modified_at": 1773786399.5905783,
+      "runtime_safe": false,
+      "classification": "empirical",
+      "status": "completed",
+      "notes": [
+        "Baseline cycle: 2017",
+        "Run mode: live",
+        "Universe: Conservative-held seats in the prior election cycle",
+        "Real feature loading is currently implemented only for the vulnerability model.",
+        "Target outcome fields are included for evaluation only and are excluded from the scored feature set."
+      ],
+      "warnings": []
+    },
+    {
+      "artifact_path": "artifacts/backtests/vulnerability_2019_baseline_demographic.json",
+      "artifact_type": "backtest_report",
+      "model_key": "vulnerability",
+      "variant": "baseline_demographic",
+      "cycle": 2019,
+      "modified_at": 1773786399.5915797,
+      "runtime_safe": false,
+      "classification": "empirical",
+      "status": "completed",
+      "notes": [
+        "Baseline cycle: 2017",
+        "Run mode: live",
+        "Universe: Conservative-held seats in the prior election cycle",
+        "Real feature loading is currently implemented only for the vulnerability model.",
+        "Target outcome fields are included for evaluation only and are excluded from the scored feature set."
+      ],
+      "warnings": [
+        "Demographic feature coverage for baseline_demographic on 2019: 317/317 seats."
+      ]
+    },
+    {
+      "artifact_path": "artifacts/backtests/vulnerability_2019_baseline_demographic_local.json",
+      "artifact_type": "backtest_report",
+      "model_key": "vulnerability",
+      "variant": "baseline_demographic_local",
+      "cycle": 2019,
+      "modified_at": 1773786399.5915797,
+      "runtime_safe": false,
+      "classification": "scaffold",
+      "status": "not_ready",
+      "notes": [
+        "Baseline cycle: 2017",
+        "Run mode: live",
+        "Universe: Conservative-held seats in the prior election cycle",
+        "Real feature loading is currently implemented only for the vulnerability model.",
+        "Variant was not executed because enrichment coverage is too incomplete for credible comparison."
+      ],
+      "warnings": [
+        "Demographic feature coverage for baseline_demographic_local on 2019: 317/317 seats.",
+        "Local government feature coverage for baseline_demographic_local on 2019: 0/317 seats.",
+        "Local data inventory currently includes 7 mapped constituencies, 21 authorities, and 7 council result rows.",
+        "Local-government coverage is too sparse for national backtesting (0/317 seats; minimum 50% coverage required)."
+      ]
+    },
+    {
+      "artifact_path": "artifacts/backtests/vulnerability_2019_baseline_local.json",
+      "artifact_type": "backtest_report",
+      "model_key": "vulnerability",
+      "variant": "baseline_local",
+      "cycle": 2019,
+      "modified_at": 1773786399.5915797,
+      "runtime_safe": false,
+      "classification": "scaffold",
+      "status": "not_ready",
+      "notes": [
+        "Baseline cycle: 2017",
+        "Run mode: live",
+        "Universe: Conservative-held seats in the prior election cycle",
+        "Real feature loading is currently implemented only for the vulnerability model.",
+        "Variant was not executed because enrichment coverage is too incomplete for credible comparison."
+      ],
+      "warnings": [
+        "Local government feature coverage for baseline_local on 2019: 0/317 seats.",
+        "Local data inventory currently includes 7 mapped constituencies, 21 authorities, and 7 council result rows.",
+        "Local-government coverage is too sparse for national backtesting (0/317 seats; minimum 50% coverage required)."
+      ]
+    },
+    {
+      "artifact_path": "artifacts/backtests/vulnerability_2024.json",
+      "artifact_type": "backtest_report",
+      "model_key": "vulnerability",
+      "variant": null,
+      "cycle": 2024,
+      "modified_at": 1773786399.5925798,
+      "runtime_safe": false,
+      "classification": "empirical",
+      "status": "completed",
+      "notes": [
+        "Baseline cycle: 2019",
+        "Run mode: live",
+        "Universe: Conservative-held seats in the prior election cycle",
+        "Real feature loading is currently implemented only for the vulnerability model.",
+        "Target outcome fields are included for evaluation only and are excluded from the scored feature set."
+      ],
+      "warnings": [
+        "372 baseline Conservative seats lacked previous-cycle constituency matches; vote-share trend was neutral-imputed for those seats.",
+        "Previous-cycle overlap is low relative to the baseline universe. Trend features may be weak for this cycle, especially where boundary changes break constituency continuity.",
+        "2024 backtest uses the 2019 notional baseline on 2024 boundaries to avoid boundary-change leakage."
+      ]
+    },
+    {
+      "artifact_path": "artifacts/backtests/vulnerability_2024_backtest.json",
+      "artifact_type": "backtest_report",
+      "model_key": "vulnerability",
+      "variant": null,
+      "cycle": 2024,
+      "modified_at": 1773786399.5935795,
+      "runtime_safe": false,
+      "classification": "dry-run",
+      "status": "dry_run_ready",
+      "notes": [
+        "Baseline cycle: 2019",
+        "Run mode: dry-run",
+        "Universe: Conservative-held seats in the prior election cycle",
+        "No live historical rows were loaded; metrics are listed but not executed.",
+        "Use this artifact to confirm leakage exclusions, signal availability, and data requirements before enabling full runs."
+      ],
+      "warnings": []
+    },
+    {
+      "artifact_path": "artifacts/backtests/vulnerability_2024_baseline.json",
+      "artifact_type": "backtest_report",
+      "model_key": "vulnerability",
+      "variant": "baseline",
+      "cycle": 2024,
+      "modified_at": 1773786399.5951967,
+      "runtime_safe": false,
+      "classification": "empirical",
+      "status": "completed",
+      "notes": [
+        "Baseline cycle: 2019",
+        "Run mode: live",
+        "Universe: Conservative-held seats in the prior election cycle",
+        "Real feature loading is currently implemented only for the vulnerability model.",
+        "Target outcome fields are included for evaluation only and are excluded from the scored feature set."
+      ],
+      "warnings": [
+        "372 baseline Conservative seats lacked previous-cycle constituency matches; vote-share trend was neutral-imputed for those seats.",
+        "Previous-cycle overlap is low relative to the baseline universe. Trend features may be weak for this cycle, especially where boundary changes break constituency continuity.",
+        "2024 backtest uses the 2019 notional baseline on 2024 boundaries to avoid boundary-change leakage."
+      ]
+    },
+    {
+      "artifact_path": "artifacts/backtests/vulnerability_2024_baseline_demographic.json",
+      "artifact_type": "backtest_report",
+      "model_key": "vulnerability",
+      "variant": "baseline_demographic",
+      "cycle": 2024,
+      "modified_at": 1773786399.5962315,
+      "runtime_safe": false,
+      "classification": "empirical",
+      "status": "completed",
+      "notes": [
+        "Baseline cycle: 2019",
+        "Run mode: live",
+        "Universe: Conservative-held seats in the prior election cycle",
+        "Real feature loading is currently implemented only for the vulnerability model.",
+        "Target outcome fields are included for evaluation only and are excluded from the scored feature set."
+      ],
+      "warnings": [
+        "Demographic enrichment prefers 2021 census data for 2024 and falls back to 2011 where 2021 rows are missing.",
+        "372 baseline Conservative seats lacked previous-cycle constituency matches; vote-share trend was neutral-imputed for those seats.",
+        "Previous-cycle overlap is low relative to the baseline universe. Trend features may be weak for this cycle, especially where boundary changes break constituency continuity.",
+        "2024 backtest uses the 2019 notional baseline on 2024 boundaries to avoid boundary-change leakage.",
+        "Demographic feature coverage for baseline_demographic on 2024: 365/372 seats."
+      ]
+    },
+    {
+      "artifact_path": "artifacts/backtests/vulnerability_2024_baseline_demographic_local.json",
+      "artifact_type": "backtest_report",
+      "model_key": "vulnerability",
+      "variant": "baseline_demographic_local",
+      "cycle": 2024,
+      "modified_at": 1773786399.596763,
+      "runtime_safe": false,
+      "classification": "scaffold",
+      "status": "not_ready",
+      "notes": [
+        "Baseline cycle: 2019",
+        "Run mode: live",
+        "Universe: Conservative-held seats in the prior election cycle",
+        "Real feature loading is currently implemented only for the vulnerability model.",
+        "Variant was not executed because enrichment coverage is too incomplete for credible comparison."
+      ],
+      "warnings": [
+        "Demographic enrichment prefers 2021 census data for 2024 and falls back to 2011 where 2021 rows are missing.",
+        "372 baseline Conservative seats lacked previous-cycle constituency matches; vote-share trend was neutral-imputed for those seats.",
+        "Previous-cycle overlap is low relative to the baseline universe. Trend features may be weak for this cycle, especially where boundary changes break constituency continuity.",
+        "2024 backtest uses the 2019 notional baseline on 2024 boundaries to avoid boundary-change leakage.",
+        "Demographic feature coverage for baseline_demographic_local on 2024: 365/372 seats."
+      ]
+    },
+    {
+      "artifact_path": "artifacts/backtests/vulnerability_2024_baseline_local.json",
+      "artifact_type": "backtest_report",
+      "model_key": "vulnerability",
+      "variant": "baseline_local",
+      "cycle": 2024,
+      "modified_at": 1773786399.5978696,
+      "runtime_safe": false,
+      "classification": "scaffold",
+      "status": "not_ready",
+      "notes": [
+        "Baseline cycle: 2019",
+        "Run mode: live",
+        "Universe: Conservative-held seats in the prior election cycle",
+        "Real feature loading is currently implemented only for the vulnerability model.",
+        "Variant was not executed because enrichment coverage is too incomplete for credible comparison."
+      ],
+      "warnings": [
+        "372 baseline Conservative seats lacked previous-cycle constituency matches; vote-share trend was neutral-imputed for those seats.",
+        "Previous-cycle overlap is low relative to the baseline universe. Trend features may be weak for this cycle, especially where boundary changes break constituency continuity.",
+        "2024 backtest uses the 2019 notional baseline on 2024 boundaries to avoid boundary-change leakage.",
+        "Local government feature coverage for baseline_local on 2024: 6/372 seats.",
+        "Local data inventory currently includes 7 mapped constituencies, 21 authorities, and 7 council result rows."
+      ]
+    },
+    {
+      "artifact_path": "artifacts/backtests/vulnerability_summary.csv",
+      "artifact_type": "summary_table",
+      "model_key": "vulnerability",
+      "variant": null,
+      "cycle": null,
+      "modified_at": 1773786399.5984385,
+      "runtime_safe": true,
+      "classification": "scaffold",
+      "status": null,
+      "notes": null,
+      "warnings": []
+    },
+    {
+      "artifact_path": "artifacts/backtests/vulnerability_variant_comparison.json",
+      "artifact_type": "backtest_report",
+      "model_key": "vulnerability",
+      "variant": null,
+      "cycle": null,
+      "modified_at": 1773786399.5990174,
+      "runtime_safe": true,
+      "classification": "recommendation",
+      "status": null,
+      "notes": null,
+      "warnings": []
+    },
+    {
+      "artifact_path": "artifacts/backtests/vulnerability_variant_summary.csv",
+      "artifact_type": "summary_table",
+      "model_key": "vulnerability",
+      "variant": null,
+      "cycle": null,
+      "modified_at": 1773786399.5995421,
+      "runtime_safe": true,
+      "classification": "scaffold",
+      "status": null,
+      "notes": null,
+      "warnings": []
+    }
+  ]
+}
