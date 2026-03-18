@@ -1,0 +1,56 @@
+{
+  "model_key": "reform_threat",
+  "generated_at": "2026-03-18T06:30:18.853341Z",
+  "summary": {
+    "historically_usable_analogue_safe": 4,
+    "current_only_directional": 2,
+    "incomplete_not_ready": 1,
+    "high_leakage_risk": 1
+  },
+  "features": [
+    {
+      "feature_key": "conservative_majority_fragility",
+      "classification": "historically_usable_analogue_safe",
+      "why": "Core electoral fragility signal with strong historical continuity and low leakage risk."
+    },
+    {
+      "feature_key": "challenger_structure",
+      "classification": "historically_usable_analogue_safe",
+      "why": "Challenger competition can be measured from baseline-cycle electoral results."
+    },
+    {
+      "feature_key": "right_fragmentation_proxy",
+      "classification": "historically_usable_analogue_safe",
+      "why": "Can be proxied with analogue-safe right-fragmentation measures rather than literal modern Reform data."
+    },
+    {
+      "feature_key": "historical_ukip_style_proxy",
+      "classification": "historically_usable_analogue_safe",
+      "why": "Useful as a bridge feature if handled explicitly as an analogue rather than a direct substitute."
+    },
+    {
+      "feature_key": "local_organisational_strength_proxy",
+      "classification": "incomplete_not_ready",
+      "why": "Current local-government linkage and organisation coverage remain too partial for national empirical use."
+    },
+    {
+      "feature_key": "current_reform_vote_share",
+      "classification": "current_only_directional",
+      "why": "Politically relevant now, but not directly comparable across pre-Reform historical cycles."
+    },
+    {
+      "feature_key": "demographic_receptivity_proxy",
+      "classification": "current_only_directional",
+      "why": "Potentially useful, but historical comparability and cycle breadth remain limited."
+    },
+    {
+      "feature_key": "post_target_reclassification_signals",
+      "classification": "high_leakage_risk",
+      "why": "Any signal built from target-period outcomes or later reclassifications would contaminate backtests."
+    }
+  ],
+  "governance_notes": [
+    "This artifact is a readiness scaffold, not a live model output.",
+    "Reform Threat should remain a directional/current-conditions model until analogue-safe empirical feature sets are broader."
+  ]
+}
