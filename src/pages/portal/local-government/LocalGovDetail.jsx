@@ -73,6 +73,13 @@ function ControlBadge({ controlType }) {
 
 function RiskBadge({ level }) {
   if (!level) return null;
+  if (level === "critical") {
+    return (
+      <span className="status-pill error" style={{ background: "#7f1d1d", color: "#fff" }}>
+        Critical
+      </span>
+    );
+  }
   return (
     <span className={`status-pill ${level === "high" ? "error" : "warning"}`}>
       {level === "high" ? "High alert" : "Alert"}
@@ -415,9 +422,9 @@ function IntelligenceTab({ authorityId }) {
     <div className="portal-data-section">
       {alerts.map((alert) => (
         <div key={alert.id} style={{
-          background: alert.risk_level === "high" ? "#fef2f2" : "#fffbeb",
-          border: `1px solid ${alert.risk_level === "high" ? "#fecaca" : "#fde68a"}`,
-          borderLeft: `4px solid ${alert.risk_level === "high" ? "#dc2626" : "#d97706"}`,
+          background: alert.risk_level === "critical" ? "#fff1f2" : alert.risk_level === "high" ? "#fef2f2" : "#fffbeb",
+          border: `1px solid ${alert.risk_level === "critical" ? "#fda4af" : alert.risk_level === "high" ? "#fecaca" : "#fde68a"}`,
+          borderLeft: `4px solid ${alert.risk_level === "critical" ? "#9f1239" : alert.risk_level === "high" ? "#dc2626" : "#d97706"}`,
           borderRadius: 6, padding: "14px 16px", marginBottom: 12,
         }}>
           <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8, flexWrap: "wrap" }}>

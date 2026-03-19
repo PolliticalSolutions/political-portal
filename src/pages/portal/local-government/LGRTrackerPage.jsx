@@ -3,6 +3,90 @@ import { Link } from "react-router-dom";
 import Card from "../../../components/Card.jsx";
 import { getAllLgrAuthorities } from "./localGovApi.js";
 
+// ── Key milestone dates ───────────────────────────────────────────────────
+const MILESTONES = [
+  {
+    id: "wave2",
+    label: "Wave 2 consultation closes",
+    date: new Date("2026-03-26T23:59:00Z"),
+    urgency: "critical",
+    note: "MHCLG consultation deadline for 14 county areas",
+  },
+  {
+    id: "surrey",
+    label: "Surrey shadow elections",
+    date: new Date("2026-05-07T00:00:00Z"),
+    urgency: "high",
+    note: "First elections for East Surrey & West Surrey Councils",
+  },
+  {
+    id: "dpp",
+    label: "DPP decisions expected",
+    date: new Date("2026-06-30T00:00:00Z"),
+    urgency: "medium",
+    note: "Norfolk/Suffolk, Essex, Hampshire, Sussex — spring/mid 2026",
+    approximate: true,
+  },
+];
+
+function daysUntil(date) {
+  const diff = date - new Date();
+  return Math.max(0, Math.ceil(diff / (1000 * 60 * 60 * 24)));
+}
+
+function CountdownCard({ milestone }) {
+  const days = daysUntil(milestone.date);
+  const urgent = days <= 14;
+  const colours = {
+    critical: { bg: "#fef2f2", border: "#fecaca", accent: "#dc2626", text: "#7f1d1d" },
+    high:     { bg: "#fff7ed", border: "#fed7aa", accent: "#ea580c", text: "#7c2d12" },
+    medium:   { bg: "#fffbeb", border: "#fde68a", accent: "#d97706", text: "#78350f" },
+  };
+  const c = colours[milestone.urgency] ?? colours.medium;
+  return (
+    <div style={{
+      background: c.bg, border: `1px solid ${c.border}`,
+      borderLeft: `4px solid ${c.accent}`,
+      borderRadius: 6, padding: "14px 16px",
+      display: "flex", flexDirection: "column", gap: 4,
+    }}>
+      <div style={{ display: "flex", alignItems: "baseline", gap: 8 }}>
+        <span style={{ fontSize: 28, fontWeight: 800, color: urgent ? "#dc2626" : c.accent, lineHeight: 1 }}>
+          {milestone.approximate ? "~" : ""}{days}
+        </span>
+        <span style={{ fontSize: 13, fontWeight: 700, color: c.text }}>days</span>
+      </div>
+      <p style={{ margin: 0, fontWeight: 700, fontSize: 13, color: "#1e293b" }}>{milestone.label}</p>
+      <p style={{ margin: 0, fontSize: 11, color: "#6b7280" }}>{milestone.note}</p>
+      <p style={{ margin: 0, fontSize: 11, color: c.accent, fontWeight: 600 }}>
+        {milestone.date.toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" })}
+        {milestone.approximate && " (approx.)"}
+      </p>
+    </div>
+  );
+}
+
+// ── Surrey reorganisation structure ──────────────────────────────────────
+const SURREY_STRUCTURE = {
+  abolished: {
+    "East Surrey Council": [
+      "Elmbridge Borough Council",
+      "Epsom and Ewell Borough Council",
+      "Mole Valley District Council",
+      "Reigate and Banstead Borough Council",
+      "Tandridge District Council",
+    ],
+    "West Surrey Council": [
+      "Guildford Borough Council",
+      "Runnymede Borough Council",
+      "Spelthorne Borough Council",
+      "Surrey Heath Borough Council",
+      "Waverley Borough Council",
+      "Woking Borough Council",
+    ],
+  },
+};
+
 const STATUS_ORDER = ["Order made", "Shadow authority", "Consultation closed", "Consultation open", "Completed"];
 
 const STATUS_COLOURS = {
@@ -180,12 +264,54 @@ export default function LGRTrackerPage() {
         </div>
       </Card>
 
-      <Card>
-        <div className="portal-data-note" style={{ marginBottom: 16, marginTop: 0 }}>
-          <strong>Key dates:</strong> Surrey shadow authority elections 7 May 2026, vesting 1 April 2027.
-          DPP area decisions expected spring/summer 2026. Wave 2 consultation closes 26 March 2026;
-          decisions expected summer 2026. All other areas target vesting 1 April 2028.
+      {/* ── Countdown milestones ── */}
+      <Card title="Key milestones">
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: 12, marginBottom: 8 }}>
+          {MILESTONES.map((m) => <CountdownCard key={m.id} milestone={m} />)}
         </div>
+        <p className="portal-data-note" style={{ marginTop: 12, marginBottom: 0 }}>
+          Countdowns computed from today. Wave 2 consultation closes 26 March 2026 — after that,
+          government makes decisions on unitary structure for 14 county areas.
+          Surrey shadow elections 7 May 2026 are the first elections for brand new unitary councils.
+        </p>
+      </Card>
+
+      {/* ── Surrey intelligence panel ── */}
+      <Card title="Surrey — confirmed reorganisation">
+        <div style={{ background: "#fef2f2", border: "1px solid #fecaca", borderLeft: "4px solid #dc2626", borderRadius: 6, padding: "12px 16px", marginBottom: 16 }}>
+          <p style={{ margin: 0, fontWeight: 700, fontSize: 13, color: "#7f1d1d" }}>
+            Surrey (Structural Changes) Order 2026 — made 10 March 2026
+          </p>
+          <p style={{ margin: "4px 0 0", fontSize: 12, color: "#374151" }}>
+            Surrey County Council and all 11 district/borough councils abolished 1 April 2027.
+            Shadow authority elections 7 May 2026. 12 councils → 2 new unitary authorities.
+          </p>
+        </div>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", gap: 16 }}>
+          {Object.entries(SURREY_STRUCTURE.abolished).map(([unitary, districts]) => (
+            <div key={unitary} style={{ border: "1px solid #e2e8f0", borderRadius: 6, overflow: "hidden" }}>
+              <div style={{ background: "#1e293b", color: "#f8fafc", padding: "10px 14px" }}>
+                <p style={{ margin: 0, fontWeight: 700, fontSize: 14 }}>{unitary}</p>
+                <p style={{ margin: "2px 0 0", fontSize: 11, color: "#94a3b8" }}>New unitary authority — vests 1 April 2027</p>
+              </div>
+              <div style={{ padding: "10px 14px" }}>
+                <p style={{ margin: "0 0 8px", fontSize: 11, fontWeight: 700, color: "#6b7280", textTransform: "uppercase", letterSpacing: "0.05em" }}>
+                  Abolished councils absorbed
+                </p>
+                <ul style={{ margin: 0, padding: "0 0 0 16px", listStyle: "disc" }}>
+                  {districts.map((d) => (
+                    <li key={d} style={{ fontSize: 13, color: "#374151", marginBottom: 3, lineHeight: 1.4 }}>{d}</li>
+                  ))}
+                </ul>
+              </div>
+            </div>
+          ))}
+        </div>
+        <p className="portal-data-note" style={{ marginTop: 12, marginBottom: 0 }}>
+          Surrey County Council is also abolished. Combined: 12 councils abolished → 2 new unitaries.
+          Woking Borough Council was already in special measures following a £1.7bn financial collapse.
+          Shadow authority elections on 7 May 2026 elect the first councillors for both new councils.
+        </p>
       </Card>
 
       <Card title={`LGR records (${filtered.length})`}>
