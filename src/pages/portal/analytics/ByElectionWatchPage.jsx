@@ -19,6 +19,7 @@ const CRITERIA = [
   { key: "hasAlert",                  label: "Active political alert",         colour: "#7c3aed" },
   { key: "constituencyInReformTopFifty", label: "Reform top-50 threat seat",  colour: "#f97316" },
   { key: "vulnerabilityCritical",     label: "Critical vulnerability rating",  colour: "#b91c1c" },
+  { key: "lowCouncillorAttendance",   label: "Low councillor attendance (<50%)", colour: "#78350f" },
 ];
 
 function CriteriaBadge({ met, label, colour }) {
@@ -130,6 +131,11 @@ export default function ByElectionWatchPage() {
       // Criterion 6: constituency has Critical vulnerability rating
       const vulnerabilityCritical = vulnerabilityCriticalSet.has(seat.constituency_id);
 
+      // Criterion 7: low councillor attendance (<50%) in an overlapping local authority
+      // Requires councillor_attendance table to be populated.
+      // Evaluated as null (unknown) until data is available.
+      const lowCouncillorAttendance = null; // placeholder — data not yet loaded
+
       const criteriaMetCount = [
         narrowMajority,
         firstTermMp === true,
@@ -137,6 +143,7 @@ export default function ByElectionWatchPage() {
         hasAlert,
         constituencyInReformTopFifty,
         vulnerabilityCritical,
+        lowCouncillorAttendance === true,
       ].filter(Boolean).length;
 
       return {
@@ -149,6 +156,7 @@ export default function ByElectionWatchPage() {
         hasAlert,
         constituencyInReformTopFifty,
         vulnerabilityCritical,
+        lowCouncillorAttendance,
         matchingAlerts,
         criteriaMetCount,
         majorityPct: seat.electorate ? ((seat.majority / seat.electorate) * 100).toFixed(1) : null,
@@ -254,6 +262,13 @@ export default function ByElectionWatchPage() {
             Until then, this criterion shows as unknown for all seats.
           </div>
         )}
+        <div className="portal-data-note" style={{ marginTop: 8 }}>
+          <strong>Councillor attendance data not yet loaded.</strong> The "Low councillor attendance (&lt;50%)" criterion
+          requires the <code>councillor_attendance</code> table to be populated.
+          Run <code>docs/councillor_attendance_ddl.sql</code> in Supabase, then import data using
+          the CSV template at <code>scripts/templates/councillor_attendance_template.csv</code>.
+          See <code>docs/councillor_attendance_spec.md</code> for full data sourcing guidance.
+        </div>
       </Card>
 
       {enrichedSeats.length === 0 ? (
@@ -329,6 +344,7 @@ export default function ByElectionWatchPage() {
                           <CriteriaBadge met={seat.hasAlert} label="Active alert" colour="#7c3aed" />
                           <CriteriaBadge met={seat.constituencyInReformTopFifty} label="Reform top-50" colour="#f97316" />
                           <CriteriaBadge met={seat.vulnerabilityCritical} label="Critical vuln." colour="#b91c1c" />
+                          <CriteriaBadge met={seat.lowCouncillorAttendance === true} label="Low attendance" colour="#78350f" />
                         </div>
                       </td>
                     </tr>

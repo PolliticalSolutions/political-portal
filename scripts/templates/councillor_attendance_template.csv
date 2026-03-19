@@ -1,0 +1,5 @@
+local_authority_name,councillor_name,ward,party,meeting_type,meetings_eligible,meetings_attended,period_start,period_end,source_url,import_notes
+Warwickshire County Council,Councillor Example A,Arden,Conservative,,12,11,2024-04-01,2025-03-31,https://democracy.warwickshire.gov.uk/mgAttendance.aspx,
+Warwickshire County Council,Councillor Example B,Kenilworth North,Labour,,12,4,2024-04-01,2025-03-31,https://democracy.warwickshire.gov.uk/mgAttendance.aspx,Low attendance flagged
+Warwickshire County Council,Councillor Example C,Nuneaton East,Conservative,full_council,6,6,2024-04-01,2025-03-31,https://democracy.warwickshire.gov.uk/mgAttendance.aspx,
+Warwickshire County Council,Councillor Example C,Nuneaton East,Conservative,committee,8,7,2024-04-01,2025-03-31,https://democracy.warwickshire.gov.uk/mgAttendance.aspx,
