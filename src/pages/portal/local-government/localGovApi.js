@@ -115,6 +115,16 @@ export async function getAllLgrAuthorities() {
   return data ?? [];
 }
 
+export async function getAuthoritiesByNames(names) {
+  if (!names || names.length === 0) return [];
+  const { data, error } = await supabase
+    .from("local_authorities")
+    .select("id, gss_code, name, controlling_party, control_type, composition")
+    .in("name", names);
+  if (error) throw new Error(error.message);
+  return data ?? [];
+}
+
 export async function getLinkedAuthorities(constituencyId) {
   const { data, error } = await supabase
     .from("constituency_council_lookup")
