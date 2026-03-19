@@ -73,7 +73,8 @@ def _upsert(table, rows):
         print(f"  [dry-run] Would upsert {len(rows)} row(s) into {table}")
         return
     body = json.dumps(rows).encode()
-    url = f"{SUPABASE_URL}/rest/v1/{table}"
+    conflict_cols = "local_authority_id,councillor_name,meeting_type,period_start,period_end"
+    url = f"{SUPABASE_URL}/rest/v1/{table}?on_conflict={conflict_cols}"
     req = urllib.request.Request(url, data=body, headers=_headers(), method="POST")
     try:
         with urllib.request.urlopen(req) as resp:
