@@ -13,7 +13,9 @@ function ModelCard({ model }) {
       <div className="validation-model-card__header">
         <div>
           <h3 className="validation-model-card__title">{model.modelName}</h3>
-          <p className="validation-model-card__status">{model.modelStatus.replace(/_/g, " ")}</p>
+          {model.modelCategory !== "planning_tool" && (
+            <p className="validation-model-card__status">{model.modelStatus.replace(/_/g, " ")}</p>
+          )}
         </div>
         <span className={`status-pill ${model.modelCategory === "validated" ? "success" : model.modelCategory === "planning_tool" ? "info" : "warning"}`}>
           {model.categoryLabel}
@@ -100,7 +102,7 @@ export default function ModelPerformancePage() {
         <div className="validation-category-grid">
           {summary.categories.map((category) => (
             <div key={category.key} className="validation-category-card">
-              <h3>{category.title}</h3>
+              <p className="validation-category-card__title">{category.title}</p>
               <p>{category.description}</p>
             </div>
           ))}
@@ -132,7 +134,6 @@ export default function ModelPerformancePage() {
                 <th>Model</th>
                 <th>Category</th>
                 <th>Backtest</th>
-                <th>Evidence completeness</th>
                 <th>Last updated</th>
               </tr>
             </thead>
@@ -142,7 +143,6 @@ export default function ModelPerformancePage() {
                   <td>{model.modelName}</td>
                   <td>{model.categoryLabel}</td>
                   <td>{model.backtestAvailable ? "Available" : "Not available"}</td>
-                  <td>{model.evidenceCompletenessLabel}</td>
                   <td>{model.artifactProvenance.last_updated ?? "Not available"}</td>
                 </tr>
               ))}
