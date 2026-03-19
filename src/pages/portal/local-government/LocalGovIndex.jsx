@@ -4,6 +4,7 @@ import Button from "../../../components/Button.jsx";
 import Card from "../../../components/Card.jsx";
 import { resolvePartyColour, toHexColor } from "../../../utils/partyColours.js";
 import { getAllActiveAlerts, getLocalAuthorities } from "./localGovApi.js";
+import { getCompositionQuality, isWarwickshireVerified } from "./localGovQuality.js";
 
 function partyHex(name) {
   return resolvePartyColour(name);
@@ -28,6 +29,17 @@ function ControlBadge({ controlType }) {
 
 function AlertBadge() {
   return <span className="status-pill error" style={{ fontSize: 11 }}>Alert</span>;
+}
+
+function CompositionQualityBadge({ authority }) {
+  const quality = getCompositionQuality(authority);
+  if (quality.status === "verified") {
+    return <span className="status-pill success" style={{ fontSize: 11 }}>{quality.label}</span>;
+  }
+  if (quality.status === "unverified") {
+    return <span className="status-pill warning" style={{ fontSize: 11 }}>{quality.label}</span>;
+  }
+  return <span className="status-pill secondary" style={{ fontSize: 11 }}>{quality.label}</span>;
 }
 
 function ActiveAlertsPanel({ alerts }) {
@@ -178,6 +190,13 @@ export default function LocalGovIndex() {
             </p>
           </div>
         </div>
+        <div className="portal-insight-callout portal-insight-callout--warning" style={{ marginTop: 20 }}>
+          <p className="portal-insight-callout__title">Composition data verification in progress</p>
+          <p className="portal-insight-callout__body">
+            Local government composition data is being verified. Warwickshire County Council data has been
+            manually verified. All other councils are pending verification.
+          </p>
+        </div>
         <div className="portal-summary-grid" style={{ marginTop: 24 }}>
           <div className="portal-stat">
             <span className="portal-stat__label">Authorities tracked</span>
@@ -274,6 +293,7 @@ export default function LocalGovIndex() {
                   <th>Authority</th>
                   <th>Type</th>
                   <th>Largest party</th>
+                  <th>Composition</th>
                   <th>Control</th>
                   <th>Last election</th>
                   <th>Next election</th>
@@ -302,6 +322,18 @@ export default function LocalGovIndex() {
                         ) : (
                           <span style={{ fontSize: 12, color: "#64748b" }}>—</span>
                         )}
+                      </td>
+                      <td>
+                        <div style={{ display: "grid", gap: 4 }}>
+                          <CompositionQualityBadge authority={auth} />
+                          {!isWarwickshireVerified(auth) && (
+                            <span style={{ fontSize: 11, color: "#64748b", lineHeight: 1.4 }}>
+                              {getCompositionQuality(auth).status === "missing"
+                                ? "Composition data not yet available"
+                                : "Automated import pending manual review"}
+                            </span>
+                          )}
+                        </div>
                       </td>
                       <td><ControlBadge controlType={auth.control_type} /></td>
                       <td style={{ fontSize: 12 }}>{formatDate(auth.last_election_date)}</td>

@@ -19,6 +19,16 @@ function normalizeUserStatus(user) {
   return (user?.status || "").toString().trim().toUpperCase();
 }
 
+const ANALYTICS_EXPANDED_KEY = "ps_portal_analytics_expanded_v1";
+
+function readAnalyticsExpanded() {
+  try {
+    return localStorage.getItem(ANALYTICS_EXPANDED_KEY) === "true";
+  } catch {
+    return false;
+  }
+}
+
 function PendingApprovalView({ user, onApplied }) {
   const [form, setForm] = useState({
     requestedOrgId: user?.requestedOrgId || "",
@@ -255,6 +265,15 @@ export default function PortalLayout() {
   const [serviceUnavailable, setServiceUnavailable] = useState(false);
   const [reloadKey, setReloadKey] = useState(0);
   const [isAdmin, setIsAdmin] = useState(false);
+  const [analyticsExpanded, setAnalyticsExpanded] = useState(readAnalyticsExpanded);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem(ANALYTICS_EXPANDED_KEY, analyticsExpanded ? "true" : "false");
+    } catch {
+      // Ignore storage failures.
+    }
+  }, [analyticsExpanded]);
 
   useEffect(() => {
     let cancelled = false;
@@ -398,30 +417,42 @@ export default function PortalLayout() {
               <NavLink className={navClass} to="/portal/constituency/libdem-threat">
                 Lib Dem Threat
               </NavLink>
-              <NavLink className={navClass} to="/portal/constituency/green-threat">
-                Green Threat
-              </NavLink>
               <NavLink className={navClass} to="/portal/constituency/vulnerability">
                 Vulnerability
               </NavLink>
               <NavLink className={navClass} to="/portal/constituency/target-seats">
                 Target Seats 2029
               </NavLink>
-              <NavLink className={navClass} to="/portal/analytics/by-election-watch">
-                By-Election Watch
-              </NavLink>
-              <NavLink className={navClass} to="/portal/analytics/scenario">
-                Scenario modeller
-              </NavLink>
-              <NavLink className={navClass} to="/portal/analytics/correlations">
-                Correlations
-              </NavLink>
-              <NavLink className={navClass} to="/portal/analytics/model-performance">
-                Model Performance
-              </NavLink>
-              <NavLink className={navClass} to="/portal/data-sources">
-                Data Sources
-              </NavLink>
+              <button
+                type="button"
+                className="portal-nav-toggle"
+                aria-expanded={analyticsExpanded}
+                onClick={() => setAnalyticsExpanded((value) => !value)}
+              >
+                {analyticsExpanded ? "Fewer analytics" : "More analytics"}
+              </button>
+              {analyticsExpanded && (
+                <>
+                  <NavLink className={navClass} to="/portal/constituency/green-threat">
+                    Green Threat
+                  </NavLink>
+                  <NavLink className={navClass} to="/portal/analytics/by-election-watch">
+                    By-Election Watch
+                  </NavLink>
+                  <NavLink className={navClass} to="/portal/analytics/scenario">
+                    Scenario modeller
+                  </NavLink>
+                  <NavLink className={navClass} to="/portal/analytics/correlations">
+                    Correlations
+                  </NavLink>
+                  <NavLink className={navClass} to="/portal/analytics/model-performance">
+                    Model Performance
+                  </NavLink>
+                  <NavLink className={navClass} to="/portal/data-sources">
+                    Data Sources
+                  </NavLink>
+                </>
+              )}
             </div>
             <div className="portal-nav-group">
               <span className="portal-nav-group__label">Account</span>

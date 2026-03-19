@@ -29,7 +29,9 @@ vi.mock("../../../lib/supabaseClient.js", () => {
 import { supabase } from "../../../lib/supabaseClient.js";
 import {
   getConstituency,
+  getConstituencyReformThreat,
   getConstituencyResults,
+  getLgrImpactsForAuthorityNames,
   getLatestElectionScenarioBaseline,
   getLatestElectionWinners,
   searchConstituencies,
@@ -249,5 +251,45 @@ describe("getLatestElectionScenarioBaseline", () => {
         },
       ],
     });
+  });
+});
+
+describe("threat and LGR helpers", () => {
+  beforeEach(() => {
+    supabase.from.mockReset();
+  });
+
+  it("returns a constituency-level Reform threat record", async () => {
+    const query = {
+      select: () => query,
+      eq: () => query,
+      maybeSingle: () =>
+        Promise.resolve({
+          data: { threat_score: 7.2, threat_rank: 3 },
+          error: null,
+        }),
+    };
+    supabase.from.mockReturnValue(query);
+
+    const result = await getConstituencyReformThreat("seat-1");
+    expect(result).toEqual({ threat_score: 7.2, threat_rank: 3 });
+  });
+
+  it("matches LGR rows against linked authority names", async () => {
+    const query = {
+      select: () =>
+        Promise.resolve({
+          data: [
+            { authority_name: "Kent County Council", area_name: "Kent", lgr_status: "Consultation open" },
+            { authority_name: "Unrelated Council", area_name: "Elsewhere", lgr_status: "Completed" },
+          ],
+          error: null,
+        }),
+    };
+    supabase.from.mockReturnValue(query);
+
+    const result = await getLgrImpactsForAuthorityNames(["Kent County Council"]);
+    expect(result).toHaveLength(1);
+    expect(result[0].authority_name).toBe("Kent County Council");
   });
 });

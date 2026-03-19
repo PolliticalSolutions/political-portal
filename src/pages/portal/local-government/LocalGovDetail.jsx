@@ -13,6 +13,7 @@ import {
   getLocalAuthority,
   getLgrStatus,
 } from "./localGovApi.js";
+import { getCompositionQuality, isWarwickshireVerified } from "./localGovQuality.js";
 
 // ── Shared helpers ────────────────────────────────────────────────────────────
 
@@ -89,13 +90,34 @@ function RiskBadge({ level }) {
 
 // ── Composition tab ────────────────────────────────────────────────────────
 
+function CompositionDataWarning({ authority }) {
+  const quality = getCompositionQuality(authority);
+  if (quality.status === "verified") return null;
+
+  return (
+    <div className="portal-insight-callout portal-insight-callout--warning" style={{ marginBottom: 16 }}>
+      <p className="portal-insight-callout__title">
+        {quality.status === "missing" ? "Composition data not yet available" : "Composition data pending verification"}
+      </p>
+      <p className="portal-insight-callout__body">{quality.note}</p>
+    </div>
+  );
+}
+
 function CompositionTab({ authority }) {
   const { composition, total_seats, controlling_party, control_type } = authority;
+  const quality = getCompositionQuality(authority);
+
   if (!composition || Object.keys(composition).length === 0) {
     return (
-      <div className="portal-placeholder-panel">
-        <p className="portal-placeholder-panel__title">No composition data</p>
-        <p className="portal-placeholder-panel__body">Current council composition has not been loaded.</p>
+      <div>
+        <CompositionDataWarning authority={authority} />
+        <div className="portal-placeholder-panel">
+          <p className="portal-placeholder-panel__title">Composition data not yet available</p>
+          <p className="portal-placeholder-panel__body">
+            Current council composition has not been loaded. Structural authority data remains available below.
+          </p>
+        </div>
       </div>
     );
   }
@@ -106,6 +128,7 @@ function CompositionTab({ authority }) {
 
   return (
     <div className="portal-data-section">
+      <CompositionDataWarning authority={authority} />
       <div className="portal-summary-grid" style={{ marginBottom: 16 }}>
         <div className="portal-stat">
           <span className="portal-stat__label">Total seats</span>
@@ -121,6 +144,9 @@ function CompositionTab({ authority }) {
           <span className="portal-stat__label">Administration</span>
           <span className="portal-stat__value" style={{ fontSize: 16 }}>
             <ControlBadge controlType={control_type} />
+          </span>
+          <span className="portal-stat__meta">
+            {quality.status === "verified" ? "Manually verified" : "Pending manual review"}
           </span>
         </div>
       </div>
@@ -652,6 +678,11 @@ export default function LocalGovDetail() {
               )}
               <ControlBadge controlType={authority.control_type} />
               {highAlerts.length > 0 && <RiskBadge level="high" />}
+              {isWarwickshireVerified(authority) ? (
+                <span className="status-pill success" style={{ fontSize: 12 }}>Warwickshire verified</span>
+              ) : (
+                <span className="status-pill warning" style={{ fontSize: 12 }}>Composition pending review</span>
+              )}
             </div>
           </div>
           <div className="portal-page-header__actions">

@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import Card from "../../../components/Card.jsx";
+import ThreatMethodologyDisclosure from "../../../components/ThreatMethodologyDisclosure.jsx";
 import { getGreenThreatIndex } from "./constituencyApi.js";
 
 function TrendCell({ value }) {
@@ -63,6 +64,22 @@ export default function GreenThreatPage() {
     const labSeats = seats.filter((r) => (r.incumbent_party ?? "").includes("Lab")).length;
     const conSeats = seats.filter((r) => (r.incumbent_party ?? "").includes("Con")).length;
     return { total: seats.length, avgShare, avgTrend, labSeats, conSeats };
+  }, [seats]);
+
+  const topSeatExplanation = useMemo(() => {
+    const topSeat = seats[0];
+    const constituency = topSeat?.constituencies;
+    if (!topSeat || !constituency) return null;
+    return {
+      name: constituency.name,
+      body: `${constituency.name} ranks highly because the Green vote reached ${Number(
+        topSeat.green_2024_share ?? 0
+      ).toFixed(1)}% in 2024, the Green trend since 2019 is ${Number(
+        topSeat.green_share_trend ?? 0
+      ).toFixed(1)} points, and the incumbent majority is only ${Number(
+        topSeat.incumbent_majority ?? 0
+      ).toFixed(1)}%.`,
+    };
   }, [seats]);
 
   if (loading) return (
@@ -147,6 +164,18 @@ export default function GreenThreatPage() {
           </div>
         )}
       </Card>
+
+      <ThreatMethodologyDisclosure
+        summary="This index surfaces seats where Green growth looks electorally meaningful enough to disrupt the current incumbent."
+        signals={[
+          { label: "Green 2024 share", body: "Higher existing Green support moves the seat up the ranking." },
+          { label: "Green trend", body: "Seats with a sharper Green rise since 2019 are treated as more exposed." },
+          { label: "Incumbent fragility", body: "Smaller incumbent majorities and structurally receptive seats score more highly." },
+        ]}
+        disclaimer="These scores are analytical tools to support planning, not predictions of electoral outcomes."
+        topSeatName={topSeatExplanation?.name}
+        topSeatExplanation={topSeatExplanation?.body}
+      />
 
       <Card title="Top 30 Green threat seats">
         <div className="table-wrap">
