@@ -1,60 +1,149 @@
 {
-  "generated_at": "2026-03-18T06:32:38.442190Z",
+  "contract_version": 2,
+  "generated_at": "2026-03-19T11:53:38.812940Z",
   "models": [
     {
       "model_key": "vulnerability",
-      "model_version": "vulnerability:notional",
-      "maturity_status": "empirical_backtest_available",
+      "model_name": "Conservative Seat Vulnerability",
+      "model_category": "validated",
+      "model_status": "empirical_ranking_available",
+      "summary_interpretation": "Strongest evidence-backed model in the suite. Use it as a ranking model for exposed Conservative-held seats, not as a binary defeat prophecy.",
+      "confidence_treatment": "Confidence is strongest on the core electoral spine. Optional enrichments should not outrank the baseline unless repeated cycle evidence improves.",
+      "caveats": [
+        "2024 still carries known boundary-change and trend-continuity caveats.",
+        "The baseline spine remains the control even where a candidate enrichment performs slightly better on one metric.",
+        "Local-government coverage is too sparse for national backtesting (0/330 seats; minimum 50% coverage required).",
+        "Local-government coverage is too sparse for national backtesting (0/317 seats; minimum 50% coverage required)."
+      ],
+      "key_validation_metrics": {
+        "top_decile_capture_rate": {
+          "latest": 0.13095238095238096,
+          "average": 0.3255
+        },
+        "precision_at_20": {
+          "latest": 0.85,
+          "average": 0.5333
+        },
+        "ranking_quality_spearman": {
+          "latest": 0.48246542533876186,
+          "average": 0.3867
+        }
+      },
+      "evidence_completeness": "empirical_strongest_available",
+      "backtest_available": true,
       "latest_available_cycles": [
         2017,
         2019,
         2024
       ],
-      "backtest_available": true,
       "strongest_variant": "baseline_demographic",
+      "recommended_variant": "baseline",
       "seat_level_metadata_available": true,
+      "artifact_provenance": {
+        "generated_at": "2026-03-19T11:53:38.812940Z",
+        "last_updated": "2026-03-17T22:26:39.599542Z",
+        "source_artifacts": [
+          "artifacts/backtests/vulnerability_summary.csv",
+          "artifacts/backtests/vulnerability_variant_comparison.json",
+          "artifacts/backtests/vulnerability_variant_summary.csv"
+        ]
+      },
       "major_warnings": [
-        "Demographic feature coverage for baseline_demographic on 2017: 330/330 seats.",
-        "Demographic feature coverage for baseline_demographic_local on 2017: 330/330 seats.",
-        "Local government feature coverage for baseline_demographic_local on 2017: 0/330 seats.",
-        "Local data inventory currently includes 7 mapped constituencies, 21 authorities, and 7 council result rows.",
-        "Local-government coverage is too sparse for national backtesting (0/330 seats; minimum 50% coverage required)."
-      ],
-      "generated_at": "2026-03-18T06:32:38.442190Z"
+        "Local-government coverage is too sparse for national backtesting (0/330 seats; minimum 50% coverage required).",
+        "Local-government coverage is too sparse for national backtesting (0/317 seats; minimum 50% coverage required).",
+        "Previous-cycle overlap is low relative to the baseline universe. Trend features may be weak for this cycle, especially where boundary changes break constituency continuity.",
+        "2024 backtest uses the 2019 notional baseline on 2024 boundaries to avoid boundary-change leakage.",
+        "Local-government coverage is too sparse for national backtesting (6/372 seats; minimum 50% coverage required)."
+      ]
     },
     {
       "model_key": "reform_threat",
-      "model_version": null,
-      "maturity_status": "framework_ready",
+      "model_name": "Reform UK Threat Index",
+      "model_category": "directional",
+      "model_status": "directional_evidence_partial",
+      "summary_interpretation": "Directional prioritisation model for Reform-related right-fragmentation risk. Useful for current conditions, not yet a strong historical validation target.",
+      "confidence_treatment": "Treat as directional assessment only. Current-condition relevance is higher than historical comparability.",
+      "caveats": [
+        "Direct Reform-era analogues are structurally weaker before 2024.",
+        "Current Reform vote share is politically important but not cleanly backtestable across older cycles.",
+        "Reform-era signal structure is not directly comparable before 2024, so historical runs are conceptually partial."
+      ],
+      "key_validation_metrics": {},
+      "evidence_completeness": "partial_directional_only",
+      "backtest_available": false,
       "latest_available_cycles": [
         2017,
         2019,
         2024
       ],
-      "backtest_available": false,
       "strongest_variant": null,
+      "recommended_variant": null,
       "seat_level_metadata_available": false,
+      "artifact_provenance": {
+        "generated_at": "2026-03-19T11:53:38.812940Z",
+        "last_updated": "2026-03-18T06:32:38.387745Z",
+        "source_artifacts": []
+      },
       "major_warnings": [
         "Reform-era signal structure is not directly comparable before 2024, so historical runs are conceptually partial."
-      ],
-      "generated_at": "2026-03-18T06:32:38.442190Z"
+      ]
     },
     {
       "model_key": "by_election_risk",
-      "model_version": null,
-      "maturity_status": "framework_ready",
+      "model_name": "By-Election Risk Watch",
+      "model_category": "watchlist_event",
+      "model_status": "event_history_incomplete",
+      "summary_interpretation": "Watchlist-style model for destabilising seat conditions. Operationally useful, but currently constrained by incomplete event-history coverage.",
+      "confidence_treatment": "Treat as an event-driven watchlist rather than a vacancy prediction model.",
+      "caveats": [
+        "Historical event coverage is still incomplete.",
+        "This should not be read as a prediction of resignation timing or certainty of a by-election.",
+        "By-election risk relies on event-driven signals that are not yet historically complete; treat any backtest as partial."
+      ],
+      "key_validation_metrics": {},
+      "evidence_completeness": "limited_event_evidence",
+      "backtest_available": false,
       "latest_available_cycles": [
         2017,
         2019,
         2024
       ],
-      "backtest_available": false,
       "strongest_variant": null,
+      "recommended_variant": null,
       "seat_level_metadata_available": false,
+      "artifact_provenance": {
+        "generated_at": "2026-03-19T11:53:38.812940Z",
+        "last_updated": "2026-03-17T22:26:39.563057Z",
+        "source_artifacts": []
+      },
       "major_warnings": [
         "By-election risk relies on event-driven signals that are not yet historically complete; treat any backtest as partial."
+      ]
+    },
+    {
+      "model_key": "scenario_simulator",
+      "model_name": "Constituency Scenario Simulator",
+      "model_category": "planning_tool",
+      "model_status": "planning_tool_only",
+      "summary_interpretation": "Structured planning aid for exploring simplified what-if scenarios. It is not a validated predictive model.",
+      "confidence_treatment": "Use for disciplined scenario planning only. It should never be presented as a forecast or probability estimate.",
+      "caveats": [
+        "Does not incorporate tactical voting, incumbency, candidate quality, or local campaign execution effects.",
+        "Outputs reflect governed assumptions, not historical validation."
       ],
-      "generated_at": "2026-03-18T06:32:38.442190Z"
+      "key_validation_metrics": {},
+      "evidence_completeness": "governed_planning_only",
+      "backtest_available": false,
+      "latest_available_cycles": [],
+      "strongest_variant": null,
+      "recommended_variant": null,
+      "seat_level_metadata_available": false,
+      "artifact_provenance": {
+        "generated_at": "2026-03-19T11:53:38.812940Z",
+        "last_updated": null,
+        "source_artifacts": []
+      },
+      "major_warnings": []
     }
   ]
 }

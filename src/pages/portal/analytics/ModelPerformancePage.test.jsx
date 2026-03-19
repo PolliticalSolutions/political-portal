@@ -1,31 +1,97 @@
 import { render, screen } from "@testing-library/react";
 import { HelmetProvider } from "react-helmet-async";
 import { MemoryRouter } from "react-router-dom";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 
-vi.mock("../../../lib/modelBacktestApi.js", () => ({
-  getModelBacktestAvailability: vi.fn(),
+vi.mock("../../../lib/runtimeValidationSummaries.js", () => ({
+  buildValidationDeliverySummary: () => ({
+    contractVersion: 2,
+    generatedAt: "2026-03-19T00:00:00Z",
+    models: [
+      {
+        modelKey: "vulnerability",
+        modelName: "Conservative Seat Vulnerability",
+        modelCategory: "validated",
+        categoryLabel: "Validated",
+        modelStatus: "empirical_ranking_available",
+        summaryInterpretation: "Strongest evidence-backed ranking model.",
+        confidenceTreatment: "Use as ranking model.",
+        caveats: ["Boundary caveat"],
+        keyValidationMetrics: {
+          precision_at_20: { latest: 0.85, average: 0.53 },
+        },
+        evidenceCompletenessLabel: "Strongest empirical evidence available",
+        backtestAvailable: true,
+        latestAvailableCycles: [2017, 2019, 2024],
+        strongestVariant: "baseline_demographic",
+        recommendedVariant: "baseline",
+        artifactProvenance: { last_updated: "2026-03-18T00:00:00Z" },
+      },
+      {
+        modelKey: "reform_threat",
+        modelName: "Reform UK Threat Index",
+        modelCategory: "directional",
+        categoryLabel: "Directional",
+        modelStatus: "directional_evidence_partial",
+        summaryInterpretation: "Directional prioritisation model.",
+        confidenceTreatment: "Directional assessment only.",
+        caveats: ["Historical comparability is partial."],
+        keyValidationMetrics: {},
+        evidenceCompletenessLabel: "Partial directional evidence",
+        backtestAvailable: false,
+        latestAvailableCycles: [2017, 2019, 2024],
+        strongestVariant: null,
+        recommendedVariant: null,
+        artifactProvenance: { last_updated: "2026-03-18T00:00:00Z" },
+      },
+      {
+        modelKey: "by_election_risk",
+        modelName: "By-Election Risk Watch",
+        modelCategory: "watchlist_event",
+        categoryLabel: "Watchlist / event",
+        modelStatus: "event_history_incomplete",
+        summaryInterpretation: "Event-driven watchlist model.",
+        confidenceTreatment: "Watchlist only.",
+        caveats: ["Event history is incomplete."],
+        keyValidationMetrics: {},
+        evidenceCompletenessLabel: "Limited event-history evidence",
+        backtestAvailable: false,
+        latestAvailableCycles: [2017, 2019, 2024],
+        strongestVariant: null,
+        recommendedVariant: null,
+        artifactProvenance: { last_updated: "2026-03-18T00:00:00Z" },
+      },
+      {
+        modelKey: "scenario_simulator",
+        modelName: "Constituency Scenario Simulator",
+        modelCategory: "planning_tool",
+        categoryLabel: "Planning tool",
+        modelStatus: "planning_tool_only",
+        summaryInterpretation: "Planning aid only.",
+        confidenceTreatment: "Non-predictive.",
+        caveats: ["Not a forecast."],
+        keyValidationMetrics: {},
+        evidenceCompletenessLabel: "Governed planning-only evidence",
+        backtestAvailable: false,
+        latestAvailableCycles: [],
+        strongestVariant: null,
+        recommendedVariant: null,
+        artifactProvenance: { last_updated: null },
+      },
+    ],
+    categories: [
+      { key: "validated", title: "Validated models", description: "Validated description", models: [{ modelKey: "vulnerability", modelName: "Conservative Seat Vulnerability", modelCategory: "validated", categoryLabel: "Validated", modelStatus: "empirical_ranking_available", summaryInterpretation: "Strongest evidence-backed ranking model.", confidenceTreatment: "Use as ranking model.", caveats: ["Boundary caveat"], keyValidationMetrics: { precision_at_20: { latest: 0.85, average: 0.53 } }, evidenceCompletenessLabel: "Strongest empirical evidence available", backtestAvailable: true, latestAvailableCycles: [2017, 2019, 2024], strongestVariant: "baseline_demographic", recommendedVariant: "baseline", artifactProvenance: { last_updated: "2026-03-18T00:00:00Z" } }] },
+      { key: "directional", title: "Directional models", description: "Directional description", models: [{ modelKey: "reform_threat", modelName: "Reform UK Threat Index", modelCategory: "directional", categoryLabel: "Directional", modelStatus: "directional_evidence_partial", summaryInterpretation: "Directional prioritisation model.", confidenceTreatment: "Directional assessment only.", caveats: ["Historical comparability is partial."], keyValidationMetrics: {}, evidenceCompletenessLabel: "Partial directional evidence", backtestAvailable: false, latestAvailableCycles: [2017, 2019, 2024], strongestVariant: null, recommendedVariant: null, artifactProvenance: { last_updated: "2026-03-18T00:00:00Z" } }] },
+      { key: "watchlist_event", title: "Watchlist / event models", description: "Watchlist description", models: [{ modelKey: "by_election_risk", modelName: "By-Election Risk Watch", modelCategory: "watchlist_event", categoryLabel: "Watchlist / event", modelStatus: "event_history_incomplete", summaryInterpretation: "Event-driven watchlist model.", confidenceTreatment: "Watchlist only.", caveats: ["Event history is incomplete."], keyValidationMetrics: {}, evidenceCompletenessLabel: "Limited event-history evidence", backtestAvailable: false, latestAvailableCycles: [2017, 2019, 2024], strongestVariant: null, recommendedVariant: null, artifactProvenance: { last_updated: "2026-03-18T00:00:00Z" } }] },
+      { key: "planning_tool", title: "Planning tools", description: "Planning description", models: [{ modelKey: "scenario_simulator", modelName: "Constituency Scenario Simulator", modelCategory: "planning_tool", categoryLabel: "Planning tool", modelStatus: "planning_tool_only", summaryInterpretation: "Planning aid only.", confidenceTreatment: "Non-predictive.", caveats: ["Not a forecast."], keyValidationMetrics: {}, evidenceCompletenessLabel: "Governed planning-only evidence", backtestAvailable: false, latestAvailableCycles: [], strongestVariant: null, recommendedVariant: null, artifactProvenance: { last_updated: null } }] },
+    ],
+  }),
 }));
 
 import ModelPerformancePage from "./ModelPerformancePage.jsx";
-import { getModelBacktestAvailability } from "../../../lib/modelBacktestApi.js";
 
 describe("ModelPerformancePage", () => {
-  beforeEach(() => {
-    vi.clearAllMocks();
-  });
-
-  it("renders the validation structure when runtime artifacts are unavailable", async () => {
-    getModelBacktestAvailability.mockResolvedValue({
-      ok: true,
-      hasRuntimeMetrics: false,
-      models: {},
-      limitations: [
-        "No runtime backtest metric rows are available in Supabase.",
-        "Local dry-run artifacts are not exposed directly to the browser runtime in the current app architecture.",
-      ],
-    });
-
+  it("renders explicit model hierarchy sections from exported validation summaries", () => {
     render(
       <HelmetProvider>
         <MemoryRouter>
@@ -34,57 +100,30 @@ describe("ModelPerformancePage", () => {
       </HelmetProvider>
     );
 
-    expect(await screen.findByRole("heading", { name: /model performance/i })).toBeInTheDocument();
-    expect(screen.getByRole("heading", { name: /signal quality/i })).toBeInTheDocument();
-    expect(screen.getByRole("heading", { name: /backtest status/i })).toBeInTheDocument();
-    expect(screen.getByRole("heading", { name: /detailed model cards/i })).toBeInTheDocument();
-    expect(screen.getByRole("heading", { name: /key priorities/i })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: /model performance & validation/i })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: /validated models/i })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: /directional models/i })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: /watchlist \/ event models/i })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: /planning tools/i })).toBeInTheDocument();
 
-    expect(screen.getAllByText("Conservative Seat Vulnerability").length).toBeGreaterThan(0);
-    expect(screen.getAllByText("Reform UK Threat Index").length).toBeGreaterThan(0);
-    expect(screen.getAllByText("By-Election Risk Model").length).toBeGreaterThan(0);
-    expect(screen.getAllByText("Constituency Scenario Simulator").length).toBeGreaterThan(0);
+    expect(screen.getByText(/strongest evidence-backed ranking model/i)).toBeInTheDocument();
+    expect(screen.getByText(/directional prioritisation model/i)).toBeInTheDocument();
+    expect(screen.getByText(/event-driven watchlist model/i)).toBeInTheDocument();
+    expect(screen.getByText(/planning aid only/i)).toBeInTheDocument();
+  });
 
-    // Backtest pending state shown in table
-    expect(screen.getAllByText(/pending/i).length).toBeGreaterThan(0);
+  it("renders explicit non-predictive treatment for the scenario simulator", () => {
+    render(
+      <HelmetProvider>
+        <MemoryRouter>
+          <ModelPerformancePage />
+        </MemoryRouter>
+      </HelmetProvider>
+    );
 
-    // Limitation notes rendered
-    expect(screen.getByText(/No runtime backtest metric rows are available/i)).toBeInTheDocument();
-
-    // Maturity badges present
     expect(screen.getByText(/planning tool only/i)).toBeInTheDocument();
-    expect(screen.getByText(/watchlist-grade validation/i)).toBeInTheDocument();
-  });
-
-  it("renders runtime metric availability when backtest metadata exists", async () => {
-    getModelBacktestAvailability.mockResolvedValue({
-      ok: true,
-      hasRuntimeMetrics: true,
-      limitations: [
-        "Runtime status is derived from Supabase metric rows, not direct frontend access to local backtest artifact files.",
-      ],
-      models: {
-        vulnerability: {
-          hasRuntimeMetrics: true,
-          latestEvaluatedAt: "2026-03-16T00:00:00.000Z",
-          metricCount: 2,
-          metricNames: ["precision_at_20", "top_decile_capture"],
-          notes: ["Dry-run artifact mirrored to runtime row"],
-        },
-      },
-    });
-
-    render(
-      <HelmetProvider>
-        <MemoryRouter>
-          <ModelPerformancePage />
-        </MemoryRouter>
-      </HelmetProvider>
-    );
-
-    // Backtest available badge shown for vulnerability model
-    expect(await screen.findByText("Backtest available")).toBeInTheDocument();
-    expect(screen.getByText(/runtime status is derived from supabase metric rows/i)).toBeInTheDocument();
-    expect(screen.getAllByText(/high confidence/i).length).toBeGreaterThan(0);
+    expect(screen.getByText(/not to imply forecast confidence/i)).toBeInTheDocument();
+    expect(screen.getByText(/partial directional evidence/i)).toBeInTheDocument();
+    expect(screen.getByText(/limited event-history evidence/i)).toBeInTheDocument();
   });
 });
