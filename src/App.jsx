@@ -31,6 +31,7 @@ import Integrations from "./pages/portal/Integrations.jsx";
 import Quotes from "./pages/portal/Quotes.jsx";
 import QuoteDetail from "./pages/portal/QuoteDetail.jsx";
 import ManualReviewPage from "./pages/portal/admin/ManualReviewPage.jsx";
+import DataSourcesPage from "./pages/portal/DataSourcesPage.jsx";
 const ConstituencyIndex = lazy(() => import("./pages/portal/constituency/ConstituencyIndex.jsx"));
 const ConstituencyDetail = lazy(() => import("./pages/portal/constituency/ConstituencyDetail.jsx"));
 const VulnerabilityDashboard = lazy(() => import("./pages/portal/constituency/VulnerabilityDashboard.jsx"));
@@ -38,10 +39,13 @@ const ReformThreatIndex = lazy(() => import("./pages/portal/constituency/ReformT
 const AlertsPage = lazy(() => import("./pages/portal/alerts/AlertsPage.jsx"));
 const LocalGovIndex = lazy(() => import("./pages/portal/local-government/LocalGovIndex.jsx"));
 const LocalGovDetail = lazy(() => import("./pages/portal/local-government/LocalGovDetail.jsx"));
+const LGRTrackerPage = lazy(() => import("./pages/portal/local-government/LGRTrackerPage.jsx"));
 const ByElectionWatchPage = lazy(() => import("./pages/portal/analytics/ByElectionWatchPage.jsx"));
 const CorrelationsPage = lazy(() => import("./pages/portal/analytics/CorrelationsPage.jsx"));
 const ModelPerformancePage = lazy(() => import("./pages/portal/analytics/ModelPerformancePage.jsx"));
 const TargetSeatsPage = lazy(() => import("./pages/portal/constituency/TargetSeatsPage.jsx"));
+const LibDemThreatPage = lazy(() => import("./pages/portal/constituency/LibDemThreatPage.jsx"));
+const GreenThreatPage = lazy(() => import("./pages/portal/constituency/GreenThreatPage.jsx"));
 import Session from "./pages/Session.jsx";
 import SignUp from "./pages/SignUp.jsx";
 import CookiesPage from "./pages/legal/CookiesPage.jsx";
@@ -303,6 +307,7 @@ export default function App() {
                 <Route path="ops/quotes" element={<Quotes />} />
                 <Route path="ops/quotes/:ref" element={<QuoteDetail />} />
                 <Route path="admin/manual-review" element={<ManualReviewPage />} />
+                <Route path="data-sources" element={<DataSourcesPage />} />
                 <Route
                   path="constituency"
                   element={
@@ -340,6 +345,22 @@ export default function App() {
                   element={
                     <Suspense fallback={<div className="page stack"><p className="muted">Loading…</p></div>}>
                       <TargetSeatsPage />
+                    </Suspense>
+                  }
+                />
+                <Route
+                  path="constituency/libdem-threat"
+                  element={
+                    <Suspense fallback={<div className="page stack"><p className="muted">Loading…</p></div>}>
+                      <LibDemThreatPage />
+                    </Suspense>
+                  }
+                />
+                <Route
+                  path="constituency/green-threat"
+                  element={
+                    <Suspense fallback={<div className="page stack"><p className="muted">Loading…</p></div>}>
+                      <GreenThreatPage />
                     </Suspense>
                   }
                 />
@@ -388,6 +409,14 @@ export default function App() {
                   element={
                     <Suspense fallback={<div className="page stack"><p className="muted">Loading…</p></div>}>
                       <LocalGovDetail />
+                    </Suspense>
+                  }
+                />
+                <Route
+                  path="local-government/lgr"
+                  element={
+                    <Suspense fallback={<div className="page stack"><p className="muted">Loading…</p></div>}>
+                      <LGRTrackerPage />
                     </Suspense>
                   }
                 />

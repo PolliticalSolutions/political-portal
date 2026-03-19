@@ -386,11 +386,20 @@ export default function PortalLayout() {
               <NavLink className={navClass} to="/portal/local-government">
                 Local Government
               </NavLink>
+              <NavLink className={navClass} to="/portal/local-government/lgr">
+                LGR Tracker
+              </NavLink>
             </div>
             <div className="portal-nav-group">
               <span className="portal-nav-group__label">Analytics</span>
               <NavLink className={navClass} to="/portal/constituency/reform-threat">
                 Reform Threat
+              </NavLink>
+              <NavLink className={navClass} to="/portal/constituency/libdem-threat">
+                Lib Dem Threat
+              </NavLink>
+              <NavLink className={navClass} to="/portal/constituency/green-threat">
+                Green Threat
               </NavLink>
               <NavLink className={navClass} to="/portal/constituency/vulnerability">
                 Vulnerability
@@ -406,6 +415,9 @@ export default function PortalLayout() {
               </NavLink>
               <NavLink className={navClass} to="/portal/analytics/model-performance">
                 Model Performance
+              </NavLink>
+              <NavLink className={navClass} to="/portal/data-sources">
+                Data Sources
               </NavLink>
             </div>
             <div className="portal-nav-group">

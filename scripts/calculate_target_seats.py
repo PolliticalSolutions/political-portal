@@ -15,10 +15,15 @@ Algorithm:
   4. Rank descending by target_score; top 150 only
   5. Top 50: "Top Target", 51-100: "Key Target", 101-150: "Longer Shot"
 
+Default scope: England and Wales only. Scottish and NI Conservative dynamics
+are fundamentally different and dilute the England-focused analysis.
+Use --include-all to score all 529 non-Conservative UK seats.
+
 DDL: Run docs/target_seats_ddl.sql in Supabase SQL Editor first.
 
 Usage:
-  python scripts/calculate_target_seats.py
+  python scripts/calculate_target_seats.py              # England & Wales only
+  python scripts/calculate_target_seats.py --include-all  # All UK seats
 """
 
 import json
@@ -28,6 +33,13 @@ import uuid
 import urllib.error
 import urllib.parse
 import urllib.request
+
+INCLUDE_ALL = "--include-all" in sys.argv
+ENGLAND_WALES_REGIONS = {
+    "East Midlands", "East of England", "London", "North East", "North West",
+    "South East", "South West", "West Midlands", "Yorkshire and The Humber",
+    "Wales",
+}
 
 SUPABASE_URL = "https://pkpeevhmrjizvxkgvwhr.supabase.co"
 ANON_KEY = "sb_publishable_A7AT-20ghVjk_BNk8ZnH0A_vKJKIxh-"
@@ -147,8 +159,24 @@ def main():
     print(f"  {len(con_held_ids)} Conservative seats (excluded from target list)")
 
     # Non-Conservative winners are the target universe
-    non_con_winners = [w for w in all_winners if w["party_id"] != CON_ID]
-    print(f"  {len(non_con_winners)} non-Conservative seats = target universe")
+    non_con_winners_all = [w for w in all_winners if w["party_id"] != CON_ID]
+
+    # Load constituency regions so we can filter to England & Wales
+    all_con_ids = [w["constituency_id"] for w in non_con_winners_all]
+    region_rows = fetch_all("constituencies", "id,region")
+    region_map = {r["id"]: (r.get("region") or "") for r in region_rows}
+
+    if INCLUDE_ALL:
+        non_con_winners = non_con_winners_all
+        print(f"  {len(non_con_winners)} non-Conservative seats = target universe (all UK)")
+    else:
+        non_con_winners = [
+            w for w in non_con_winners_all
+            if region_map.get(w["constituency_id"], "") in ENGLAND_WALES_REGIONS
+        ]
+        excluded = len(non_con_winners_all) - len(non_con_winners)
+        print(f"  {len(non_con_winners)} non-Conservative seats = target universe (England & Wales)")
+        print(f"  {excluded} Scottish/NI seats excluded (use --include-all to include)")
 
     # Get Conservative 2024 vote shares in all constituencies
     print("\n--- Loading Conservative 2024 vote shares ---")

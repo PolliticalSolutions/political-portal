@@ -20,6 +20,8 @@ import {
   getSwingTimeline,
   getByElectionRisk,
   getVulnerabilityScore,
+  getConstituencyLibDemThreat,
+  getConstituencyGreenThreat,
 } from "./constituencyApi.js";
 import { getCurrentStatus } from "./constituencyPresentation.js";
 
@@ -1608,7 +1610,7 @@ function getByElRiskColour(level) {
   return "#6b7280";
 }
 
-function IntelligenceSummaryBar({ constituency, marginalityScore, vulnerabilityScore, byElectionRisk }) {
+function IntelligenceSummaryBar({ constituency, marginalityScore, vulnerabilityScore, byElectionRisk, ldThreat, greenThreat }) {
   const items = [];
 
   if (marginalityScore?.classification) {
@@ -1630,6 +1632,24 @@ function IntelligenceSummaryBar({ constituency, marginalityScore, vulnerabilityS
       label: "By-Election Risk",
       value: byElectionRisk.risk_level,
       colour: getByElRiskColour(byElectionRisk.risk_level),
+    });
+  }
+  if (ldThreat?.threat_score != null) {
+    const score = Number(ldThreat.threat_score);
+    const colour = score >= 6 ? "#b45309" : score >= 4 ? "#d97706" : "#6b7280";
+    items.push({
+      label: "LD Threat",
+      value: `${score.toFixed(1)}/10 (#${ldThreat.threat_rank})`,
+      colour,
+    });
+  }
+  if (greenThreat?.threat_score != null) {
+    const score = Number(greenThreat.threat_score);
+    const colour = score >= 6 ? "#15803d" : score >= 4 ? "#16a34a" : "#6b7280";
+    items.push({
+      label: "Green Threat",
+      value: `${score.toFixed(1)}/10 (#${greenThreat.threat_rank})`,
+      colour,
     });
   }
   if (constituency?.leave_vote_share != null) {
@@ -1680,6 +1700,8 @@ export default function ConstituencyDetail() {
   const [swingTimeline, setSwingTimeline] = useState([]);
   const [byElectionRisk, setByElectionRisk] = useState(null);
   const [vulnerabilityScore, setVulnerabilityScore] = useState(null);
+  const [ldThreat, setLdThreat] = useState(null);
+  const [greenThreat, setGreenThreat] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [metadata, setMetadata] = useState(null);
@@ -1702,6 +1724,7 @@ export default function ConstituencyDetail() {
           nextLocalAuthorities,
           nextMarginality, nextElectorateTrend, nextSwingTimeline,
           nextByElectionRisk, nextVulnerability,
+          nextLdThreat, nextGreenThreat,
         ] = await Promise.all([
           getConstituencyResults(nextConstituency.id),
           getConstituencyDemographics(nextConstituency.id),
@@ -1713,6 +1736,8 @@ export default function ConstituencyDetail() {
           getSwingTimeline(nextConstituency.id),
           getByElectionRisk(nextConstituency.id),
           getVulnerabilityScore(nextConstituency.id),
+          getConstituencyLibDemThreat(nextConstituency.id),
+          getConstituencyGreenThreat(nextConstituency.id),
         ]);
 
         if (cancelled) return;
@@ -1727,6 +1752,8 @@ export default function ConstituencyDetail() {
         setSwingTimeline(nextSwingTimeline);
         setByElectionRisk(nextByElectionRisk);
         setVulnerabilityScore(nextVulnerability);
+        setLdThreat(nextLdThreat);
+        setGreenThreat(nextGreenThreat);
         const nextMetadata = await getIntelligenceMetadata({
           tableName: "constituencies",
           entityType: "constituency",
@@ -1844,6 +1871,8 @@ export default function ConstituencyDetail() {
           marginalityScore={marginalityScore}
           vulnerabilityScore={vulnerabilityScore}
           byElectionRisk={byElectionRisk}
+          ldThreat={ldThreat}
+          greenThreat={greenThreat}
         />
         <TabBar active={activeTab} onChange={setActiveTab} />
         {activeTab === "history" && (

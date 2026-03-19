@@ -9,7 +9,15 @@ const CLASSIFICATION_COLOURS = {
   "Longer Shot": "#6b7280",
 };
 
-const FILTERS = ["All", "Top Target", "Key Target", "Longer Shot"];
+const CLASSIFICATION_FILTERS = ["All", "Top Target", "Key Target", "Longer Shot"];
+
+const SCOTLAND_NI_REGIONS = new Set(["Scotland", "Northern Ireland"]);
+
+function getNation(seat) {
+  const region = seat.constituencies?.region ?? "";
+  if (SCOTLAND_NI_REGIONS.has(region)) return "Scotland/NI";
+  return "England/Wales";
+}
 
 function ClassificationBadge({ classification }) {
   const colour = CLASSIFICATION_COLOURS[classification] ?? "#6b7280";
@@ -43,6 +51,7 @@ export default function TargetSeatsPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [activeFilter, setActiveFilter] = useState("All");
+  const [includeScotNI, setIncludeScotNI] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -60,17 +69,23 @@ export default function TargetSeatsPage() {
     return () => { cancelled = true; };
   }, []);
 
+  const visibleSeats = useMemo(() => {
+    if (includeScotNI) return seats;
+    return seats.filter((s) => !SCOTLAND_NI_REGIONS.has(s.constituencies?.region ?? ""));
+  }, [seats, includeScotNI]);
+
   const filtered = useMemo(() => {
-    if (activeFilter === "All") return seats;
-    return seats.filter((s) => s.target_classification === activeFilter);
-  }, [seats, activeFilter]);
+    if (activeFilter === "All") return visibleSeats;
+    return visibleSeats.filter((s) => s.target_classification === activeFilter);
+  }, [visibleSeats, activeFilter]);
 
   const stats = useMemo(() => {
-    if (!seats.length) return null;
-    const topTargets = seats.filter((s) => s.target_classification === "Top Target").length;
-    const avgSwing = seats.slice(0, 50).reduce((sum, s) => sum + Number(s.swing_required), 0) / Math.min(seats.length, 50);
-    return { total: seats.length, topTargets, avgSwing };
-  }, [seats]);
+    if (!visibleSeats.length) return null;
+    const topTargets = visibleSeats.filter((s) => s.target_classification === "Top Target").length;
+    const top50 = visibleSeats.slice(0, 50);
+    const avgSwing = top50.reduce((sum, s) => sum + Number(s.swing_required), 0) / Math.max(top50.length, 1);
+    return { total: visibleSeats.length, topTargets, avgSwing };
+  }, [visibleSeats]);
 
   if (loading) {
     return (
@@ -168,8 +183,8 @@ export default function TargetSeatsPage() {
       </Card>
 
       <Card title={`Target seats (${filtered.length})`}>
-        <div style={{ display: "flex", gap: 8, marginBottom: 16, flexWrap: "wrap" }}>
-          {FILTERS.map((f) => (
+        <div style={{ display: "flex", gap: 8, marginBottom: 16, flexWrap: "wrap", alignItems: "center" }}>
+          {CLASSIFICATION_FILTERS.map((f) => (
             <button
               key={f}
               type="button"
@@ -180,12 +195,29 @@ export default function TargetSeatsPage() {
               {f}
               {f !== "All" && (
                 <span style={{ marginLeft: 6, fontSize: 11, opacity: 0.75 }}>
-                  ({seats.filter((s) => s.target_classification === f).length})
+                  ({visibleSeats.filter((s) => s.target_classification === f).length})
                 </span>
               )}
             </button>
           ))}
+          <div style={{ marginLeft: "auto" }}>
+            <button
+              type="button"
+              className={`button${includeScotNI ? "" : " ghost"}`}
+              style={{ fontSize: 12, padding: "4px 10px" }}
+              onClick={() => setIncludeScotNI((v) => !v)}
+              title="Scottish and NI Conservative dynamics differ fundamentally from England & Wales"
+            >
+              {includeScotNI ? "Showing all UK" : "England & Wales only"}
+            </button>
+          </div>
         </div>
+        {!includeScotNI && (
+          <p className="portal-data-note" style={{ marginBottom: 12 }}>
+            Scotland and Northern Ireland hidden by default — Conservative electoral dynamics
+            there are fundamentally different. Toggle above to include.
+          </p>
+        )}
 
         <div className="table-wrap">
           <table className="table table--compact">

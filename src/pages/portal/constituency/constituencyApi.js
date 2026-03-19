@@ -243,6 +243,56 @@ export async function getAllVulnerabilityScores() {
   return data ?? [];
 }
 
+export async function getConstituencyLibDemThreat(constituencyId) {
+  if (!constituencyId) return null;
+  const { data, error } = await supabase
+    .from("libdem_threat_index")
+    .select("threat_score, threat_rank, ld_2024_share, ld_share_trend")
+    .eq("constituency_id", constituencyId)
+    .maybeSingle();
+  if (error) return null;
+  return data ?? null;
+}
+
+export async function getConstituencyGreenThreat(constituencyId) {
+  if (!constituencyId) return null;
+  const { data, error } = await supabase
+    .from("green_threat_index")
+    .select("threat_score, threat_rank, green_2024_share, green_share_trend")
+    .eq("constituency_id", constituencyId)
+    .maybeSingle();
+  if (error) return null;
+  return data ?? null;
+}
+
+export async function getLibDemThreatIndex() {
+  const { data, error } = await supabase
+    .from("libdem_threat_index")
+    .select(`
+      constituency_id, threat_score, threat_rank,
+      ld_2024_share, ld_share_trend, con_ld_majority, graduate_pct, owner_occupancy_pct,
+      constituencies(id, ons_code, name, region)
+    `)
+    .order("threat_rank", { ascending: true })
+    .limit(50);
+  if (error) return [];
+  return data ?? [];
+}
+
+export async function getGreenThreatIndex() {
+  const { data, error } = await supabase
+    .from("green_threat_index")
+    .select(`
+      constituency_id, threat_score, threat_rank,
+      green_2024_share, green_share_trend, incumbent_majority, graduate_pct, urban_density_score, incumbent_party,
+      constituencies(id, ons_code, name, region)
+    `)
+    .order("threat_rank", { ascending: true })
+    .limit(30);
+  if (error) return [];
+  return data ?? [];
+}
+
 export async function getReformThreatIndex() {
   const { data, error } = await supabase
     .from("reform_threat_index")

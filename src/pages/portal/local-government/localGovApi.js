@@ -94,6 +94,27 @@ export async function getLinkedConstituencies(authorityId) {
   return data ?? [];
 }
 
+export async function getLgrStatus(authorityName) {
+  if (!authorityName) return null;
+  const { data, error } = await supabase
+    .from("lgr_authorities")
+    .select("id, authority_name, area_name, lgr_status, lgr_wave, proposed_unitary_name, abolition_date, replacement_authority, mayoral_combined_authority, mayoral_ca_name, political_context, source_url")
+    .ilike("authority_name", authorityName)
+    .maybeSingle();
+  if (error) return null; // table may not exist yet
+  return data ?? null;
+}
+
+export async function getAllLgrAuthorities() {
+  const { data, error } = await supabase
+    .from("lgr_authorities")
+    .select("id, authority_name, area_name, lgr_status, lgr_wave, proposed_unitary_name, abolition_date, replacement_authority, mayoral_combined_authority, mayoral_ca_name, political_context, source_url")
+    .order("lgr_wave")
+    .order("authority_name");
+  if (error) throw new Error(error.message);
+  return data ?? [];
+}
+
 export async function getLinkedAuthorities(constituencyId) {
   const { data, error } = await supabase
     .from("constituency_council_lookup")
