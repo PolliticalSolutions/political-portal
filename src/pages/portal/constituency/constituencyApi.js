@@ -402,3 +402,37 @@ export async function getLatestElectionWinners() {
     winners: winners ?? [],
   };
 }
+
+export async function getLatestElectionScenarioBaseline() {
+  const { data: elections, error: elErr } = await supabase
+    .from("elections")
+    .select("id, election_date, name, election_type")
+    .eq("election_type", "general")
+    .order("election_date", { ascending: false })
+    .limit(1);
+  if (elErr) throw new Error(elErr.message);
+  if (!elections?.length) return { electionName: null, electionDate: null, rows: [] };
+
+  const latestId = elections[0].id;
+
+  const { data: rows, error: rowsErr } = await supabase
+    .from("results")
+    .select(`
+      constituency_id,
+      votes,
+      vote_share,
+      is_winner,
+      majority,
+      parties(id, name, short_name, colour_hex),
+      constituencies(id, ons_code, name)
+    `)
+    .eq("election_id", latestId);
+
+  if (rowsErr) throw new Error(rowsErr.message);
+
+  return {
+    electionName: elections[0].name,
+    electionDate: elections[0].election_date,
+    rows: rows ?? [],
+  };
+}

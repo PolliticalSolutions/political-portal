@@ -46,6 +46,7 @@ const ModelPerformancePage = lazy(() => import("./pages/portal/analytics/ModelPe
 const TargetSeatsPage = lazy(() => import("./pages/portal/constituency/TargetSeatsPage.jsx"));
 const LibDemThreatPage = lazy(() => import("./pages/portal/constituency/LibDemThreatPage.jsx"));
 const GreenThreatPage = lazy(() => import("./pages/portal/constituency/GreenThreatPage.jsx"));
+const ScenarioPage = lazy(() => import("./pages/portal/analytics/ScenarioPage.jsx"));
 import Session from "./pages/Session.jsx";
 import SignUp from "./pages/SignUp.jsx";
 import CookiesPage from "./pages/legal/CookiesPage.jsx";
@@ -393,6 +394,14 @@ export default function App() {
                   element={
                     <Suspense fallback={<div className="page stack"><p className="muted">Loading…</p></div>}>
                       <ModelPerformancePage />
+                    </Suspense>
+                  }
+                />
+                <Route
+                  path="analytics/scenario"
+                  element={
+                    <Suspense fallback={<div className="page stack"><p className="muted">Loading…</p></div>}>
+                      <ScenarioPage />
                     </Suspense>
                   }
                 />

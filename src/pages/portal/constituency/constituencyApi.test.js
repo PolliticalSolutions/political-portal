@@ -30,6 +30,7 @@ import { supabase } from "../../../lib/supabaseClient.js";
 import {
   getConstituency,
   getConstituencyResults,
+  getLatestElectionScenarioBaseline,
   getLatestElectionWinners,
   searchConstituencies,
 } from "./constituencyApi.js";
@@ -184,6 +185,66 @@ describe("getLatestElectionWinners", () => {
         {
           constituency_id: "seat-1",
           parties: { name: "Labour", short_name: "Lab", colour_hex: "#e31d1a" },
+          constituencies: { id: "seat-1", ons_code: "E14000001", name: "Test Seat" },
+        },
+      ],
+    });
+  });
+});
+
+describe("getLatestElectionScenarioBaseline", () => {
+  beforeEach(() => {
+    supabase.from.mockReset();
+  });
+
+  it("returns empty rows when no elections exist", async () => {
+    supabase.from.mockReturnValue(mockFrom({ data: [], error: null }));
+    const result = await getLatestElectionScenarioBaseline();
+    expect(result).toEqual({ electionName: null, electionDate: null, rows: [] });
+  });
+
+  it("returns latest election rows for scenario modelling", async () => {
+    const electionQuery = {
+      select: () => electionQuery,
+      eq: () => electionQuery,
+      order: () => electionQuery,
+      limit: () => Promise.resolve({
+        data: [{ id: "election-2024", election_date: "2024-07-04", name: "2024 General Election" }],
+        error: null,
+      }),
+    };
+    const rowsQuery = {
+      select: () => rowsQuery,
+      eq: () => rowsQuery,
+      then: (onFulfilled) => Promise.resolve({
+        data: [
+          {
+            constituency_id: "seat-1",
+            vote_share: 42,
+            is_winner: true,
+            parties: { short_name: "Con" },
+            constituencies: { id: "seat-1", ons_code: "E14000001", name: "Test Seat" },
+          },
+        ],
+        error: null,
+      }).then(onFulfilled),
+    };
+
+    supabase.from
+      .mockReturnValueOnce(electionQuery)
+      .mockReturnValueOnce(rowsQuery);
+
+    const result = await getLatestElectionScenarioBaseline();
+
+    expect(result).toEqual({
+      electionName: "2024 General Election",
+      electionDate: "2024-07-04",
+      rows: [
+        {
+          constituency_id: "seat-1",
+          vote_share: 42,
+          is_winner: true,
+          parties: { short_name: "Con" },
           constituencies: { id: "seat-1", ons_code: "E14000001", name: "Test Seat" },
         },
       ],
