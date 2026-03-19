@@ -31,6 +31,8 @@ import Integrations from "./pages/portal/Integrations.jsx";
 import Quotes from "./pages/portal/Quotes.jsx";
 import QuoteDetail from "./pages/portal/QuoteDetail.jsx";
 import ManualReviewPage from "./pages/portal/admin/ManualReviewPage.jsx";
+import PermissionsPage from "./pages/portal/admin/PermissionsPage.jsx";
+import AssociationsPage from "./pages/portal/admin/AssociationsPage.jsx";
 import DataSourcesPage from "./pages/portal/DataSourcesPage.jsx";
 const ConstituencyIndex = lazy(() => import("./pages/portal/constituency/ConstituencyIndex.jsx"));
 const ConstituencyDetail = lazy(() => import("./pages/portal/constituency/ConstituencyDetail.jsx"));
@@ -308,6 +310,8 @@ export default function App() {
                 <Route path="ops/quotes" element={<Quotes />} />
                 <Route path="ops/quotes/:ref" element={<QuoteDetail />} />
                 <Route path="admin/manual-review" element={<ManualReviewPage />} />
+                <Route path="admin/permissions" element={<PermissionsPage />} />
+                <Route path="admin/associations" element={<AssociationsPage />} />
                 <Route path="data-sources" element={<DataSourcesPage />} />
                 <Route
                   path="constituency"

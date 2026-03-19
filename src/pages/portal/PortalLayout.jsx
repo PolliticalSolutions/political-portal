@@ -3,6 +3,8 @@ import { NavLink, Outlet } from "react-router-dom";
 import Card from "../../components/Card.jsx";
 import Button from "../../components/Button.jsx";
 import { applyForApproval, getAdminMe, getMe, listOrganisations } from "../../lib/uploadApi.js";
+import { getSession } from "../../auth/session.js";
+import { PermissionsProvider } from "../../context/PermissionsContext.jsx";
 
 function hasAuthTokens() {
   try {
@@ -479,10 +481,22 @@ export default function PortalLayout() {
                   Manual review
                 </NavLink>
               )}
+              {isAdmin && (
+                <NavLink className={navClass} to="/portal/admin/permissions">
+                  Permissions
+                </NavLink>
+              )}
+              {isAdmin && (
+                <NavLink className={navClass} to="/portal/admin/associations">
+                  Associations
+                </NavLink>
+              )}
             </div>
           </nav>
         </div>
-        <Outlet />
+        <PermissionsProvider cognitoSub={getSession()?.user?.sub || null}>
+          <Outlet />
+        </PermissionsProvider>
       </div>
     </div>
   );

@@ -3,6 +3,7 @@ import Button from "../../components/Button.jsx";
 import Card from "../../components/Card.jsx";
 import { supabase } from "../../lib/supabaseClient.js";
 import { createJob, getDownloadUrls, getJob, listJobs } from "../../lib/uploadApi.js";
+import { usePermissions } from "../../context/PermissionsContext.jsx";
 
 const MAX_FILE_SIZE = 200 * 1024 * 1024; // 200 MB
 const ALLOWED_EXTENSIONS = new Set([".pdf", ".csv"]);
@@ -36,7 +37,7 @@ function formatElection(e) {
   return year ? `${year} ${type}` : type;
 }
 
-function ConstituencySearch({ value, onChange }) {
+function ConstituencySearch({ value, onChange, permittedIds = null }) {
   const [query, setQuery] = useState(value?.name || "");
   const [results, setResults] = useState([]);
   const [searching, setSearching] = useState(false);
@@ -55,12 +56,16 @@ function ConstituencySearch({ value, onChange }) {
     debounceRef.current = setTimeout(async () => {
       setSearching(true);
       try {
-        const { data } = await supabase
+        let qb = supabase
           .from("constituencies")
           .select("id, ons_code, name")
           .ilike("name", `%${q}%`)
           .order("name")
           .limit(10);
+        if (permittedIds && permittedIds.length > 0) {
+          qb = qb.in("id", permittedIds);
+        }
+        const { data } = await qb;
         setResults(data || []);
         setOpen(true);
       } catch {
@@ -70,7 +75,7 @@ function ConstituencySearch({ value, onChange }) {
       }
     }, 300);
     return () => clearTimeout(debounceRef.current);
-  }, [query, value?.name]);
+  }, [query, value?.name, permittedIds]);
 
   useEffect(() => {
     const handler = (e) => {
@@ -217,6 +222,11 @@ function StatusBadge({ status }) {
 }
 
 export default function Uploads() {
+  const { allowedConstituencies, loading: permsLoading } = usePermissions();
+  const permittedIds = allowedConstituencies ? allowedConstituencies.map((c) => c.id) : null;
+  const hasPermissions = allowedConstituencies !== null && allowedConstituencies.length > 0;
+  const permissionsConfigured = allowedConstituencies !== null;
+
   const [staged, setStaged] = useState([]);
   const [metadata, setMetadata] = useState({ clientName: "", notes: "" });
   const [constituency, setConstituency] = useState({ name: "", code: "" });
@@ -462,6 +472,31 @@ export default function Uploads() {
         </div>
       </Card>
 
+      {permsLoading && (
+        <Card>
+          <p className="muted" style={{ margin: 0 }}>Checking account permissions…</p>
+        </Card>
+      )}
+
+      {!permsLoading && permissionsConfigured && !hasPermissions && (
+        <Card>
+          <div role="alert" style={{ padding: "8px 0" }}>
+            <p style={{ fontWeight: 600, marginBottom: 8 }}>
+              No constituencies configured
+            </p>
+            <p className="muted" style={{ margin: 0 }}>
+              Your account has not yet been configured for any associations.
+              Please contact{" "}
+              <a href="mailto:paul@politicalsolutions.uk">
+                paul@politicalsolutions.uk
+              </a>{" "}
+              to have your access set up.
+            </p>
+          </div>
+        </Card>
+      )}
+
+      {(permsLoading || (permissionsConfigured && !hasPermissions)) ? null : (
       <Card title="Upload files">
         <div
           className={`portal-dropzone${dragOver ? " is-active" : ""}`}
@@ -610,6 +645,7 @@ export default function Uploads() {
               <ConstituencySearch
                 value={constituency}
                 onChange={handleConstituencyChange}
+                permittedIds={permittedIds}
               />
               {constituency.code && (
                 <p style={{ margin: "4px 0 0", fontSize: 12, color: "#64748b" }}>
@@ -703,6 +739,7 @@ export default function Uploads() {
           </div>
         )}
       </Card>
+      )}
 
       <Card
         title="Processing jobs"
