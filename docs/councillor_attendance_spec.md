@@ -125,11 +125,28 @@ A constituency is flagged **"Low councillor attendance"** when:
 
 ---
 
-## Warwickshire — 2025 data attempt
+## Warwickshire — 2025–26 data (obtained 2026-03-19)
 
-Attempted fetch of attendance data from `democracy.warwickshire.gov.uk` on 2026-03-19.
+Successfully fetched from `https://democracy.warwickshire.gov.uk/mgUserAttendanceSummary.aspx`.
 
-See import notes in the commit for results. If the Modern.gov portal was accessible, data will be in `scripts/warwickshire_attendance_2025.csv`. If blocked, the CSV template provides a structure for manual completion via FOI request to Warwickshire County Council (contact: democracy@warwickshire.gov.uk).
+**Period:** 25 September 2025 – 20 March 2026
+**Councillors:** 57 (full council)
+**Source:** Warwickshire County Council Modern.gov portal (public, no login required)
+**File:** `scripts/warwickshire_attendance_2025.csv`
+
+**Limitations of this dataset:**
+- Ward (division) and party affiliation not included in the summary table; councillor profile pages would need to be fetched individually to add these
+- Period covers mid-year (Sep 2025 onward) rather than a full municipal year (Apr–Mar)
+- Meeting type is "combined" (all meetings aggregated)
+
+**Low attendance flags (< 50%):**
+- **Dean Richards** — 3 of 11 meetings attended (27.3%) — the only councillor below 50% in this period
+
+**Next steps to enrich:**
+- Fetch individual councillor profile pages to add ward/party data
+- Re-import at full year end (June 2026) for the complete Apr 2025 – Mar 2026 period
+- Once `councillor_attendance` table is created in Supabase, run:
+  `python scripts/import_councillor_attendance.py --file scripts/warwickshire_attendance_2025.csv`
 
 ---
 
