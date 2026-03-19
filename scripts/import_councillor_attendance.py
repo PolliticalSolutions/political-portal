@@ -21,8 +21,18 @@ import urllib.request
 import urllib.error
 from datetime import datetime
 
-SUPABASE_URL = os.environ.get("SUPABASE_URL") or os.environ.get("VITE_SUPABASE_URL", "")
-SUPABASE_SERVICE_KEY = os.environ.get("SUPABASE_SERVICE_KEY", "")
+SUPABASE_URL = "https://pkpeevhmrjizvxkgvwhr.supabase.co"
+SUPABASE_SERVICE_KEY = ""
+_env_path = os.path.join(os.path.dirname(__file__), "..", ".env")
+try:
+    with open(_env_path) as _f:
+        for _line in _f:
+            if _line.strip().startswith("SUPABASE_SERVICE_KEY="):
+                SUPABASE_SERVICE_KEY = _line.strip().split("=", 1)[1].strip().strip('"')
+except FileNotFoundError:
+    pass
+if not SUPABASE_SERVICE_KEY:
+    SUPABASE_SERVICE_KEY = os.environ.get("SUPABASE_SERVICE_KEY", "")
 
 DRY_RUN = "--dry-run" in sys.argv
 
