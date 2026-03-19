@@ -57,7 +57,10 @@ describe("ScenarioPage", () => {
       </HelmetProvider>
     );
 
-    expect(await screen.findByRole("heading", { name: /national scenario modeller/i })).toBeInTheDocument();
+    // Wait for the loaded heading specifically — the loading state renders
+    // "Loading national scenario modeller…" which also matches a looser regex,
+    // but that element is removed on data load, making .toBeInTheDocument() flaky.
+    expect(await screen.findByRole("heading", { name: /^national scenario modeller$/i })).toBeInTheDocument();
     expect(screen.getByText(/2024 general election/i)).toBeInTheDocument();
     expect(screen.getByText(/projected seat totals/i)).toBeInTheDocument();
     expect(screen.getByText("Conservative")).toBeInTheDocument();
@@ -74,7 +77,7 @@ describe("ScenarioPage", () => {
       </HelmetProvider>
     );
 
-    await screen.findByRole("heading", { name: /national scenario modeller/i });
+    await screen.findByRole("heading", { name: /^national scenario modeller$/i });
 
     const conInput = screen.getByLabelText(/conservative swing/i);
     fireEvent.change(conInput, { target: { value: "-10" } });
