@@ -102,30 +102,7 @@ def main():
         print("Run docs/threat_indexes_ddl.sql in Supabase SQL Editor first.")
         sys.exit(1)
 
-    # Find Green party ID
-    parties = fetch_all("parties", "id,name,short_name")
-    party_name_map = {p["id"]: p.get("short_name") or p.get("name") or "?" for p in parties}
-    green_id = None
-    for p in parties:
-        sn = (p.get("short_name") or "").lower()
-        nm = (p.get("name") or "").lower()
-        if sn in GREEN_SHORT_NAMES or nm in GREEN_SHORT_NAMES or "green party" in nm:
-            green_id = p["id"]
-            print(f"  Green party ID: {green_id} ({p.get('name')})")
-            break
-    if not green_id:
-        print("ERROR: Green Party not found in parties table.")
-        sys.exit(1)
-
-    # Find Lab party ID (for incumbent party labelling)
-    lab_id = next(
-        (p["id"] for p in parties
-         if (p.get("short_name") or "").lower() in ("lab", "labour")
-         or (p.get("name") or "").lower() == "labour"),
-        None,
-    )
-
-    # Elections
+    # Elections — fetched first so we can probe results for party ID confirmation
     elections = fetch_all(
         "elections", "id,election_date,election_type",
         {"election_type": "eq.general", "order": "election_date.desc", "limit": "1"},
@@ -134,6 +111,65 @@ def main():
         print("ERROR: No general elections found.")
         sys.exit(1)
     ge2024_id = elections[0]["id"]
+
+    # Find Green party ID — probe GE2024 results to pick the ID actually used
+    parties = fetch_all("parties", "id,name,short_name")
+    party_name_map = {p["id"]: p.get("short_name") or p.get("name") or "?" for p in parties}
+    green_candidates = []
+    for p in parties:
+        sn = (p.get("short_name") or "").lower()
+        nm = (p.get("name") or "").lower()
+        if sn in GREEN_SHORT_NAMES or nm in GREEN_SHORT_NAMES or "green party" in nm:
+            green_candidates.append(p)
+
+    green_id = None
+    for candidate in sorted(green_candidates, key=lambda p: len(p.get("name") or ""), reverse=False):
+        probe = fetch_all(
+            "results", "id",
+            {"election_id": f"eq.{ge2024_id}", "party_id": f"eq.{candidate['id']}", "limit": "1"},
+        )
+        if probe:
+            # Prefer England/Wales Green over regional variants
+            nm = (candidate.get("name") or "").lower()
+            if "scottish" in nm or "wales" in nm or "northern ireland" in nm:
+                continue
+            green_id = candidate["id"]
+            print(f"  Green party ID: {green_id} ({candidate.get('name')}) [confirmed in results]")
+            break
+
+    # Fallback: any Green with results
+    if not green_id:
+        for candidate in green_candidates:
+            probe = fetch_all(
+                "results", "id",
+                {"election_id": f"eq.{ge2024_id}", "party_id": f"eq.{candidate['id']}", "limit": "1"},
+            )
+            if probe:
+                green_id = candidate["id"]
+                print(f"  Green party ID: {green_id} ({candidate.get('name')}) [fallback]")
+                break
+
+    if not green_id:
+        print("ERROR: Green Party not found in GE2024 results.")
+        sys.exit(1)
+
+    # Find Lab party ID (for incumbent party labelling) — probe results to confirm
+    lab_candidates = [
+        p for p in parties
+        if (p.get("short_name") or "").lower() in ("lab", "labour")
+        or (p.get("name") or "").lower() == "labour"
+    ]
+    lab_id = None
+    for candidate in lab_candidates:
+        probe = fetch_all(
+            "results", "id",
+            {"election_id": f"eq.{ge2024_id}", "party_id": f"eq.{candidate['id']}", "is_winner": "eq.true", "limit": "1"},
+        )
+        if probe:
+            lab_id = candidate["id"]
+            break
+    if not lab_id and lab_candidates:
+        lab_id = lab_candidates[0]["id"]
 
     notional_elections = fetch_all(
         "elections", "id,election_date,election_type",
@@ -176,10 +212,10 @@ def main():
 
     # Demographics
     demo_map = {}
-    demo_rows = fetch_all("demographics", "constituency_id,pct_graduate,population_density", {"census_year": "eq.2021"})
+    demo_rows = fetch_all("demographics", "constituency_id,pct_degree_qualified,population_density", {"census_year": "eq.2021"})
     for d in demo_rows:
         demo_map[d["constituency_id"]] = {
-            "grad": float(d.get("pct_graduate") or 28),
+            "grad": float(d.get("pct_degree_qualified") or 28),
             "density": float(d.get("population_density") or 500),
         }
 

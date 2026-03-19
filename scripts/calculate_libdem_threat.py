@@ -107,21 +107,7 @@ def main():
         print("Run docs/threat_indexes_ddl.sql in Supabase SQL Editor first.")
         sys.exit(1)
 
-    # Find LD party ID
-    parties = fetch_all("parties", "id,name,short_name")
-    ld_id = None
-    for p in parties:
-        sn = (p.get("short_name") or "").lower()
-        nm = (p.get("name") or "").lower()
-        if sn in LD_SHORT_NAMES or nm in LD_SHORT_NAMES or "liberal democrat" in nm:
-            ld_id = p["id"]
-            print(f"  LD party ID: {ld_id} ({p.get('name')})")
-            break
-    if not ld_id:
-        print("ERROR: Liberal Democrat party not found in parties table.")
-        sys.exit(1)
-
-    # Latest GE (2024)
+    # Latest GE (2024) — fetched first so we can probe results for party ID confirmation
     elections = fetch_all(
         "elections", "id,election_date,election_type",
         {"election_type": "eq.general", "order": "election_date.desc", "limit": "1"},
@@ -130,6 +116,31 @@ def main():
         print("ERROR: No general elections found.")
         sys.exit(1)
     ge2024_id = elections[0]["id"]
+
+    # Find LD party ID — probe GE2024 results to pick the ID actually used
+    parties = fetch_all("parties", "id,name,short_name")
+    ld_candidates = []
+    for p in parties:
+        sn = (p.get("short_name") or "").lower()
+        nm = (p.get("name") or "").lower()
+        if sn in LD_SHORT_NAMES or nm in LD_SHORT_NAMES or "liberal democrat" in nm:
+            ld_candidates.append(p)
+
+    ld_id = None
+    for candidate in ld_candidates:
+        probe = fetch_all(
+            "results", "id",
+            {"election_id": f"eq.{ge2024_id}", "party_id": f"eq.{candidate['id']}", "limit": "1"},
+        )
+        if probe:
+            ld_id = candidate["id"]
+            print(f"  LD party ID: {ld_id} ({candidate.get('name')}) [confirmed in results]")
+            break
+
+    if not ld_id:
+        print("ERROR: Liberal Democrat party not found in GE2024 results.")
+        print(f"  Candidates checked: {[p['name'] for p in ld_candidates]}")
+        sys.exit(1)
 
     # Notional 2019 (for trend)
     notional_elections = fetch_all(
@@ -180,10 +191,10 @@ def main():
 
     # Demographics
     demo_map = {}
-    demo_rows = fetch_all("demographics", "constituency_id,pct_graduate,pct_owner_occupied", {"census_year": "eq.2021"})
+    demo_rows = fetch_all("demographics", "constituency_id,pct_degree_qualified,pct_owner_occupied", {"census_year": "eq.2021"})
     for d in demo_rows:
         demo_map[d["constituency_id"]] = {
-            "grad": float(d.get("pct_graduate") or 28),
+            "grad": float(d.get("pct_degree_qualified") or 28),
             "owner": float(d.get("pct_owner_occupied") or 63),
         }
 
