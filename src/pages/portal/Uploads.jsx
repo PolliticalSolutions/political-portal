@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import Button from "../../components/Button.jsx";
 import Card from "../../components/Card.jsx";
-import { createJob, getDownloadUrls, getJob, listElections, listJobs } from "../../lib/uploadApi.js";
+import { supabase } from "../../lib/supabaseClient.js";
+import { createJob, getDownloadUrls, getJob, listJobs } from "../../lib/uploadApi.js";
 
 const MAX_FILE_SIZE = 200 * 1024 * 1024; // 200 MB
 const ALLOWED_EXTENSIONS = new Set([".pdf", ".csv"]);
@@ -21,6 +22,169 @@ function validateFile(file) {
     return `"${file.name}": exceeds the 200 MB size limit.`;
   }
   return null;
+}
+
+function formatElection(e) {
+  const year = (e.election_date || "").slice(0, 4);
+  const typeMap = {
+    general: "General Election",
+    notional: "Notional (2019 boundaries)",
+    local: "Local Elections",
+    by_election: "By-election",
+  };
+  const type = typeMap[e.election_type] || e.election_type || "Election";
+  return year ? `${year} ${type}` : type;
+}
+
+function ConstituencySearch({ value, onChange }) {
+  const [query, setQuery] = useState(value?.name || "");
+  const [results, setResults] = useState([]);
+  const [searching, setSearching] = useState(false);
+  const [open, setOpen] = useState(false);
+  const debounceRef = useRef(null);
+  const containerRef = useRef(null);
+
+  useEffect(() => {
+    const q = query.trim();
+    if (!q || (value?.name && q === value.name)) {
+      setResults([]);
+      setOpen(false);
+      return undefined;
+    }
+    clearTimeout(debounceRef.current);
+    debounceRef.current = setTimeout(async () => {
+      setSearching(true);
+      try {
+        const { data } = await supabase
+          .from("constituencies")
+          .select("id, ons_code, name")
+          .ilike("name", `%${q}%`)
+          .order("name")
+          .limit(10);
+        setResults(data || []);
+        setOpen(true);
+      } catch {
+        setResults([]);
+      } finally {
+        setSearching(false);
+      }
+    }, 300);
+    return () => clearTimeout(debounceRef.current);
+  }, [query, value?.name]);
+
+  useEffect(() => {
+    const handler = (e) => {
+      if (containerRef.current && !containerRef.current.contains(e.target)) {
+        setOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, []);
+
+  const select = (c) => {
+    setQuery(c.name);
+    setResults([]);
+    setOpen(false);
+    onChange(c.name, c.ons_code);
+  };
+
+  const clear = () => {
+    setQuery("");
+    setResults([]);
+    setOpen(false);
+    onChange("", "");
+  };
+
+  return (
+    <div ref={containerRef} style={{ position: "relative" }}>
+      <div style={{ display: "flex", gap: 6 }}>
+        <input
+          className="input"
+          type="text"
+          value={query}
+          onChange={(e) => {
+            setQuery(e.target.value);
+            if (!e.target.value) onChange("", "");
+          }}
+          placeholder="Type a constituency name…"
+          autoComplete="off"
+          aria-label="Search constituency"
+          aria-autocomplete="list"
+          aria-expanded={open}
+        />
+        {query && (
+          <button
+            type="button"
+            onClick={clear}
+            aria-label="Clear constituency"
+            style={{
+              background: "none",
+              border: "1px solid #e2e8f0",
+              borderRadius: 6,
+              padding: "0 10px",
+              cursor: "pointer",
+              color: "#64748b",
+              fontSize: 14,
+            }}
+          >
+            ✕
+          </button>
+        )}
+      </div>
+      {searching && (
+        <p style={{ fontSize: 12, color: "#64748b", margin: "4px 0 0" }}>
+          Searching…
+        </p>
+      )}
+      {open && results.length > 0 && (
+        <ul
+          role="listbox"
+          style={{
+            position: "absolute",
+            top: "calc(100% + 2px)",
+            left: 0,
+            right: 0,
+            background: "white",
+            border: "1px solid #e2e8f0",
+            borderRadius: 6,
+            margin: 0,
+            padding: 0,
+            listStyle: "none",
+            zIndex: 50,
+            maxHeight: 240,
+            overflowY: "auto",
+            boxShadow: "0 4px 12px rgba(0,0,0,0.12)",
+          }}
+        >
+          {results.map((c) => (
+            <li
+              key={c.id}
+              role="option"
+              aria-selected={false}
+              onClick={() => select(c)}
+              onKeyDown={(e) => e.key === "Enter" && select(c)}
+              tabIndex={0}
+              style={{
+                padding: "8px 12px",
+                cursor: "pointer",
+                fontSize: 14,
+                borderBottom: "1px solid #f1f5f9",
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.background = "#f8fafc";
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.background = "transparent";
+              }}
+            >
+              {c.name}
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
+  );
 }
 
 function StatusBadge({ status }) {
@@ -55,6 +219,7 @@ function StatusBadge({ status }) {
 export default function Uploads() {
   const [staged, setStaged] = useState([]);
   const [metadata, setMetadata] = useState({ clientName: "", notes: "" });
+  const [constituency, setConstituency] = useState({ name: "", code: "" });
   const [submissionScope, setSubmissionScope] = useState({
     pconCode: "",
     wards: "",
@@ -62,8 +227,8 @@ export default function Uploads() {
     manualReviewReason: "",
   });
   const [elections, setElections] = useState([]);
-  const [loadingElections, setLoadingElections] = useState(false);
   const [electionsError, setElectionsError] = useState(null);
+  const [showAdvanced, setShowAdvanced] = useState(false);
   const [jobs, setJobs] = useState([]);
   const [uploading, setUploading] = useState(false);
   const [uploadErrors, setUploadErrors] = useState([]);
@@ -72,12 +237,37 @@ export default function Uploads() {
   const fileInputRef = useRef(null);
   const pollingRef = useRef(null);
 
+  // Load jobs on mount
   useEffect(() => {
     listJobs(25)
       .then((data) => setJobs(data.items || []))
       .catch((err) => setLoadError(err.message));
   }, []);
 
+  // Load elections from Supabase on mount
+  useEffect(() => {
+    supabase
+      .from("elections")
+      .select("id, election_date, election_type")
+      .order("election_date", { ascending: false })
+      .then(({ data, error }) => {
+        if (error) throw error;
+        const items = data || [];
+        setElections(items);
+        // Default to 2024 General Election
+        const ge2024 = items.find(
+          (e) =>
+            (e.election_date || "").startsWith("2024") &&
+            e.election_type === "general"
+        );
+        if (ge2024) {
+          setSubmissionScope((s) => ({ ...s, electionId: ge2024.id }));
+        }
+      })
+      .catch(() => setElectionsError("Failed to load elections."));
+  }, []);
+
+  // Poll active jobs
   useEffect(() => {
     if (pollingRef.current) {
       clearInterval(pollingRef.current);
@@ -112,39 +302,10 @@ export default function Uploads() {
     };
   }, [jobs]);
 
-  useEffect(() => {
-    const pconCode = submissionScope.pconCode.trim().toUpperCase();
-    if (!pconCode) {
-      setElections([]);
-      setElectionsError(null);
-      setLoadingElections(false);
-      setSubmissionScope((scope) => ({ ...scope, electionId: "" }));
-      return undefined;
-    }
-
-    let cancelled = false;
-    setLoadingElections(true);
-    setElectionsError(null);
-    setSubmissionScope((scope) => ({ ...scope, electionId: "" }));
-    listElections(pconCode, ["OPEN", "UPCOMING"])
-      .then((data) => {
-        if (cancelled) return;
-        const items = Array.isArray(data?.items) ? data.items : [];
-        setElections(items);
-      })
-      .catch((error) => {
-        if (cancelled) return;
-        setElections([]);
-        setElectionsError(error.message || "Failed to load elections.");
-      })
-      .finally(() => {
-        if (!cancelled) setLoadingElections(false);
-      });
-
-    return () => {
-      cancelled = true;
-    };
-  }, [submissionScope.pconCode]);
+  const handleConstituencyChange = (name, code) => {
+    setConstituency({ name, code });
+    setSubmissionScope((s) => ({ ...s, pconCode: code }));
+  };
 
   const addFiles = useCallback((fileList) => {
     const incoming = Array.from(fileList).map((file) => ({
@@ -174,7 +335,7 @@ export default function Uploads() {
     if (valid.length === 0) return;
     const pconCode = submissionScope.pconCode.trim().toUpperCase();
     if (!pconCode) {
-      setUploadErrors(["Constituency code (PCON24CD) is required."]);
+      setUploadErrors(["Constituency is required."]);
       return;
     }
     const electionId = submissionScope.electionId.trim();
@@ -294,18 +455,14 @@ export default function Uploads() {
             <span className="portal-page-header__eyebrow">Marked Register Processing</span>
             <h1 className="portal-page-header__title">Uploads</h1>
             <p className="portal-page-header__subtitle">
-              Upload marked register files, define the election context, and monitor processing in one place.
+              Upload your Marked Register PDF, select the relevant election and
+              constituency, and we will process it and email you the results.
             </p>
           </div>
         </div>
       </Card>
 
       <Card title="Upload files">
-        <p className="muted" style={{ marginBottom: 16 }}>
-          Upload PDF or CSV files (max 200 MB each). Each file becomes a separate
-          processing job.
-        </p>
-
         <div
           className={`portal-dropzone${dragOver ? " is-active" : ""}`}
           onDragOver={(e) => {
@@ -382,100 +539,9 @@ export default function Uploads() {
 
         {validStaged.length > 0 && (
           <div className="stack" style={{ marginTop: 20, gap: 12 }}>
-            <label className="field" htmlFor="pconCode">
-              <span>
-                Constituency code (PCON24CD)
-              </span>
-              <input
-                className="input"
-                id="pconCode"
-                type="text"
-                value={submissionScope.pconCode}
-                onChange={(e) =>
-                  setSubmissionScope((scope) => ({ ...scope, pconCode: e.target.value }))
-                }
-                placeholder="e.g. E14000637"
-              />
-            </label>
-            <label className="field" htmlFor="wardCodes">
-              <span>
-                Ward codes (optional, comma-separated WD24CD)
-              </span>
-              <input
-                className="input"
-                id="wardCodes"
-                type="text"
-                value={submissionScope.wards}
-                onChange={(e) =>
-                  setSubmissionScope((scope) => ({ ...scope, wards: e.target.value }))
-                }
-                placeholder="e.g. W1001,W1002"
-              />
-            </label>
-            <div className="field">
-              <label htmlFor="electionId">
-                Election
-              </label>
-              <select
-                className="input"
-                id="electionId"
-                value={submissionScope.electionId}
-                onChange={(e) =>
-                  setSubmissionScope((scope) => ({
-                    ...scope,
-                    electionId: e.target.value,
-                    manualReviewReason: e.target.value === "OTHER" ? scope.manualReviewReason : "",
-                  }))
-                }
-                disabled={!submissionScope.pconCode.trim() || loadingElections}
-              >
-                <option value="">Select an election</option>
-                {elections.map((election) => (
-                  <option key={election.electionId} value={election.electionId}>
-                    {election.name} ({election.date})
-                  </option>
-                ))}
-                {elections.length === 0 && !loadingElections && submissionScope.pconCode.trim() && (
-                  <option value="OTHER">Other / Not listed</option>
-                )}
-              </select>
-              {loadingElections && (
-                <p style={{ margin: "6px 0 0", fontSize: 12, color: "#64748b" }}>
-                  Loading elections...
-                </p>
-              )}
-              {!loadingElections && elections.length === 0 && submissionScope.pconCode.trim() && !electionsError && (
-                <p style={{ margin: "6px 0 0", fontSize: 12, color: "#b45309" }}>
-                  No elections configured for this constituency.
-                </p>
-              )}
-              {electionsError && (
-                <p style={{ margin: "6px 0 0", fontSize: 12, color: "#b91c1c" }}>
-                  {electionsError}
-                </p>
-              )}
-            </div>
-            {submissionScope.electionId === "OTHER" && (
-              <label className="field" htmlFor="manualReviewReason">
-                <span>
-                  Manual review reason
-                </span>
-                <textarea
-                  className="input"
-                  id="manualReviewReason"
-                  rows={3}
-                  value={submissionScope.manualReviewReason}
-                  onChange={(e) =>
-                    setSubmissionScope((scope) => ({ ...scope, manualReviewReason: e.target.value }))
-                  }
-                  placeholder="Explain why this election is not listed (minimum 10 characters)."
-                />
-              </label>
-            )}
+            {/* Client name */}
             <label className="field" htmlFor="clientName">
-              <span>
-                Client name (optional)
-              </span>
+              <span>Client name (optional)</span>
               <input
                 className="input"
                 id="clientName"
@@ -487,10 +553,74 @@ export default function Uploads() {
                 placeholder="e.g. North Association"
               />
             </label>
+
+            {/* Election */}
+            <div className="field">
+              <label htmlFor="electionId">Election</label>
+              <select
+                className="input"
+                id="electionId"
+                value={submissionScope.electionId}
+                onChange={(e) =>
+                  setSubmissionScope((scope) => ({
+                    ...scope,
+                    electionId: e.target.value,
+                    manualReviewReason:
+                      e.target.value === "OTHER" ? scope.manualReviewReason : "",
+                  }))
+                }
+              >
+                <option value="">Select an election</option>
+                {elections.map((e) => (
+                  <option key={e.id} value={e.id}>
+                    {formatElection(e)}
+                  </option>
+                ))}
+                <option value="OTHER">Other / Not listed</option>
+              </select>
+              {electionsError && (
+                <p style={{ margin: "6px 0 0", fontSize: 12, color: "#b91c1c" }}>
+                  {electionsError}
+                </p>
+              )}
+            </div>
+
+            {submissionScope.electionId === "OTHER" && (
+              <label className="field" htmlFor="manualReviewReason">
+                <span>Manual review reason</span>
+                <textarea
+                  className="input"
+                  id="manualReviewReason"
+                  rows={3}
+                  value={submissionScope.manualReviewReason}
+                  onChange={(e) =>
+                    setSubmissionScope((scope) => ({
+                      ...scope,
+                      manualReviewReason: e.target.value,
+                    }))
+                  }
+                  placeholder="Explain why this election is not listed (minimum 10 characters)."
+                />
+              </label>
+            )}
+
+            {/* Constituency */}
+            <div className="field">
+              <label htmlFor="constituency-search">Constituency</label>
+              <ConstituencySearch
+                value={constituency}
+                onChange={handleConstituencyChange}
+              />
+              {constituency.code && (
+                <p style={{ margin: "4px 0 0", fontSize: 12, color: "#64748b" }}>
+                  Code: {constituency.code}
+                </p>
+              )}
+            </div>
+
+            {/* Notes */}
             <label className="field" htmlFor="notes">
-              <span>
-                Notes (optional)
-              </span>
+              <span>Notes (optional)</span>
               <textarea
                 className="input"
                 id="notes"
@@ -502,6 +632,50 @@ export default function Uploads() {
                 placeholder="Any additional notes about this batch"
               />
             </label>
+
+            {/* Advanced options */}
+            <div>
+              <button
+                type="button"
+                onClick={() => setShowAdvanced((v) => !v)}
+                style={{
+                  background: "none",
+                  border: "none",
+                  padding: 0,
+                  cursor: "pointer",
+                  color: "#2563eb",
+                  fontSize: 13,
+                  fontWeight: 600,
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 4,
+                }}
+              >
+                <span>{showAdvanced ? "▾" : "▸"}</span>
+                Advanced options
+              </button>
+              {showAdvanced && (
+                <div style={{ marginTop: 10 }}>
+                  <label className="field" htmlFor="wardCodes">
+                    <span>Ward codes (optional, comma-separated WD24CD)</span>
+                    <input
+                      className="input"
+                      id="wardCodes"
+                      type="text"
+                      value={submissionScope.wards}
+                      onChange={(e) =>
+                        setSubmissionScope((scope) => ({
+                          ...scope,
+                          wards: e.target.value,
+                        }))
+                      }
+                      placeholder="e.g. W1001,W1002"
+                    />
+                  </label>
+                </div>
+              )}
+            </div>
+
             <Button
               onClick={handleUpload}
               loading={uploading}
@@ -562,12 +736,8 @@ export default function Uploads() {
               <tbody>
                 {jobs.map((job) => (
                   <tr key={job.jobId}>
-                    <td title={job.jobId}>
-                      {job.filename}
-                    </td>
-                    <td>
-                      {job.fileType?.toUpperCase()}
-                    </td>
+                    <td title={job.jobId}>{job.filename}</td>
+                    <td>{job.fileType?.toUpperCase()}</td>
                     <td>
                       <StatusBadge status={job.status} />
                     </td>

@@ -1,16 +1,55 @@
 import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import Uploads from "./Uploads.jsx";
 
 vi.mock("../../lib/uploadApi.js", () => ({
   createJob: vi.fn(),
   listJobs: vi.fn(),
   getJob: vi.fn(),
   getDownloadUrls: vi.fn(),
-  listElections: vi.fn(),
+}));
+
+vi.mock("../../lib/supabaseClient.js", () => ({
+  supabase: { from: vi.fn() },
 }));
 
 import * as uploadApi from "../../lib/uploadApi.js";
+import { supabase } from "../../lib/supabaseClient.js";
+import Uploads from "./Uploads.jsx";
+
+// Expose the constant so the test can reference it without import
+const POLL_INTERVAL_MS = 5000;
+
+const DEFAULT_ELECTIONS = [
+  { id: "ge2024-uuid", election_date: "2024-07-04", election_type: "general" },
+  { id: "local2026-uuid", election_date: "2026-05-07", election_type: "local" },
+];
+
+function makeElectionsMock(data = DEFAULT_ELECTIONS) {
+  return {
+    select: vi.fn().mockReturnValue({
+      order: vi.fn().mockResolvedValue({ data, error: null }),
+    }),
+  };
+}
+
+function makeConstituenciesMock(data = []) {
+  return {
+    select: vi.fn().mockReturnValue({
+      ilike: vi.fn().mockReturnValue({
+        order: vi.fn().mockReturnValue({
+          limit: vi.fn().mockResolvedValue({ data, error: null }),
+        }),
+      }),
+    }),
+  };
+}
+
+function setupSupabaseMock({ elections = DEFAULT_ELECTIONS } = {}) {
+  supabase.from.mockImplementation((table) => {
+    if (table === "elections") return makeElectionsMock(elections);
+    return makeConstituenciesMock([]);
+  });
+}
 
 function makeFile(name, type = "application/pdf", size = 1024) {
   const content = "x".repeat(size);
@@ -25,36 +64,57 @@ function setInputFiles(input, files) {
   fireEvent.change(input);
 }
 
-function setRequiredPconCode() {
-  fireEvent.change(screen.getByLabelText(/Constituency code \(PCON24CD\)/i), {
-    target: { value: "E14000637" },
-  });
-}
+/**
+ * Stages a file and selects a constituency via the search dropdown.
+ * Requires fake timers to be active before calling.
+ */
+async function stageFileAndSelectConstituency(name, onsCode) {
+  // Stage a file so the form appears
+  const fileInput = document.querySelector('input[type="file"]');
+  setInputFiles(fileInput, [makeFile("report.pdf", "application/pdf")]);
 
-async function setRequiredElection() {
-  await waitFor(() => expect(uploadApi.listElections).toHaveBeenCalled());
-  fireEvent.change(screen.getByLabelText(/^Election$/i), {
-    target: { value: "election-1" },
+  // Flush state update so form renders
+  await act(async () => {
+    await Promise.resolve();
   });
+
+  // Set up constituency mock for the search
+  supabase.from.mockImplementationOnce(() =>
+    makeConstituenciesMock([{ id: "c1", ons_code: onsCode, name }])
+  );
+
+  // Type in the constituency search box
+  const searchInput = screen.getByLabelText(/Search constituency/i);
+  fireEvent.change(searchInput, { target: { value: name } });
+
+  // Advance past the 300ms debounce
+  act(() => {
+    vi.advanceTimersByTime(400);
+  });
+
+  // Flush promises from the supabase search call
+  await act(async () => {
+    await Promise.resolve();
+    await Promise.resolve();
+  });
+
+  // Click the result
+  const option = screen.getByRole("option", { name });
+  fireEvent.click(option);
 }
 
 beforeEach(() => {
   vi.clearAllMocks();
   uploadApi.listJobs.mockResolvedValue({ items: [] });
-  uploadApi.listElections.mockResolvedValue({
-    items: [
-      {
-        electionId: "election-1",
-        name: "Local Election",
-        date: "2026-05-07",
-      },
-    ],
-  });
+  setupSupabaseMock();
 });
 
 afterEach(() => {
   delete global.fetch;
+  vi.useRealTimers();
 });
+
+// ── File validation ────────────────────────────────────────────────────────
 
 describe("Uploads – file validation", () => {
   it("shows an error for unsupported file types", async () => {
@@ -62,8 +122,12 @@ describe("Uploads – file validation", () => {
     await waitFor(() => expect(uploadApi.listJobs).toHaveBeenCalled());
 
     const input = document.querySelector('input[type="file"]');
-    const badFile = makeFile("report.docx", "application/vnd.openxmlformats-officedocument.wordprocessingml.document");
-    setInputFiles(input, [badFile]);
+    setInputFiles(input, [
+      makeFile(
+        "report.docx",
+        "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+      ),
+    ]);
 
     await waitFor(() => {
       expect(screen.getByText(/only PDF and CSV files are accepted/)).toBeInTheDocument();
@@ -75,8 +139,7 @@ describe("Uploads – file validation", () => {
     await waitFor(() => expect(uploadApi.listJobs).toHaveBeenCalled());
 
     const input = document.querySelector('input[type="file"]');
-    const pdfFile = makeFile("document.pdf", "application/pdf");
-    setInputFiles(input, [pdfFile]);
+    setInputFiles(input, [makeFile("document.pdf", "application/pdf")]);
 
     await waitFor(() => {
       expect(screen.getByText(/document\.pdf/)).toBeInTheDocument();
@@ -89,8 +152,7 @@ describe("Uploads – file validation", () => {
     await waitFor(() => expect(uploadApi.listJobs).toHaveBeenCalled());
 
     const input = document.querySelector('input[type="file"]');
-    const csvFile = makeFile("data.csv", "text/csv");
-    setInputFiles(input, [csvFile]);
+    setInputFiles(input, [makeFile("data.csv", "text/csv")]);
 
     await waitFor(() => {
       expect(screen.getByText(/data\.csv/)).toBeInTheDocument();
@@ -103,8 +165,7 @@ describe("Uploads – file validation", () => {
     await waitFor(() => expect(uploadApi.listJobs).toHaveBeenCalled());
 
     const input = document.querySelector('input[type="file"]');
-    const bigFile = makeFile("huge.csv", "text/csv", 200 * 1024 * 1024 + 1);
-    setInputFiles(input, [bigFile]);
+    setInputFiles(input, [makeFile("huge.csv", "text/csv", 200 * 1024 * 1024 + 1)]);
 
     await waitFor(() => {
       expect(screen.getByText(/200 MB size limit/)).toBeInTheDocument();
@@ -112,8 +173,12 @@ describe("Uploads – file validation", () => {
   });
 });
 
+// ── Upload flow ────────────────────────────────────────────────────────────
+
 describe("Uploads – upload flow", () => {
-  it("calls createJob with filename, fileType, and metadata", async () => {
+  it("calls createJob with filename, fileType, pconCode, electionId and metadata", async () => {
+    vi.useFakeTimers();
+
     uploadApi.createJob.mockResolvedValue({
       jobId: "test-job-1",
       upload: {
@@ -125,12 +190,14 @@ describe("Uploads – upload flow", () => {
     global.fetch = vi.fn().mockResolvedValue({ ok: true });
 
     render(<Uploads />);
-    await waitFor(() => expect(uploadApi.listJobs).toHaveBeenCalled());
 
-    const input = document.querySelector('input[type="file"]');
-    setInputFiles(input, [makeFile("report.pdf", "application/pdf")]);
+    // Flush initial data fetches (listJobs + elections)
+    await act(async () => {
+      await Promise.resolve();
+      await Promise.resolve();
+    });
 
-    await waitFor(() => screen.getByLabelText(/Client name/));
+    await stageFileAndSelectConstituency("Exeter", "E14000637");
 
     fireEvent.change(screen.getByLabelText(/Client name/), {
       target: { value: "Greenfield Association" },
@@ -138,24 +205,27 @@ describe("Uploads – upload flow", () => {
     fireEvent.change(screen.getByLabelText(/Notes/), {
       target: { value: "Urgent batch" },
     });
-    setRequiredPconCode();
-    await setRequiredElection();
 
     fireEvent.click(screen.getByText(/Upload 1 file/));
 
-    await waitFor(() => {
-      expect(uploadApi.createJob).toHaveBeenCalledWith({
-        filename: "report.pdf",
-        pconCode: "E14000637",
-        electionId: "election-1",
-        fileType: "pdf",
-        size: 1024,
-        metadata: { clientName: "Greenfield Association", notes: "Urgent batch" },
-      });
+    await act(async () => {
+      await Promise.resolve();
+      await Promise.resolve();
+    });
+
+    expect(uploadApi.createJob).toHaveBeenCalledWith({
+      filename: "report.pdf",
+      pconCode: "E14000637",
+      electionId: "ge2024-uuid",
+      fileType: "pdf",
+      size: 1024,
+      metadata: { clientName: "Greenfield Association", notes: "Urgent batch" },
     });
   });
 
   it("POSTs FormData to the presigned S3 URL returned by createJob", async () => {
+    vi.useFakeTimers();
+
     uploadApi.createJob.mockResolvedValue({
       jobId: "test-job-2",
       upload: {
@@ -173,22 +243,37 @@ describe("Uploads – upload flow", () => {
     global.fetch = fetchMock;
 
     render(<Uploads />);
-    await waitFor(() => expect(uploadApi.listJobs).toHaveBeenCalled());
 
-    const input = document.querySelector('input[type="file"]');
-    setInputFiles(input, [makeFile("data.csv", "text/csv")]);
+    await act(async () => {
+      await Promise.resolve();
+      await Promise.resolve();
+    });
 
-    await waitFor(() => screen.getByText(/Upload 1 file/));
-    setRequiredPconCode();
-    await setRequiredElection();
+    // Override to stage a CSV file
+    const fileInput = document.querySelector('input[type="file"]');
+    setInputFiles(fileInput, [makeFile("data.csv", "text/csv")]);
+    await act(async () => { await Promise.resolve(); });
+
+    supabase.from.mockImplementationOnce(() =>
+      makeConstituenciesMock([{ id: "c1", ons_code: "E14000637", name: "Exeter" }])
+    );
+    const searchInput = screen.getByLabelText(/Search constituency/i);
+    fireEvent.change(searchInput, { target: { value: "Exeter" } });
+    act(() => { vi.advanceTimersByTime(400); });
+    await act(async () => { await Promise.resolve(); await Promise.resolve(); });
+    fireEvent.click(screen.getByRole("option", { name: "Exeter" }));
+
     fireEvent.click(screen.getByText(/Upload 1 file/));
 
-    await waitFor(() => {
-      expect(fetchMock).toHaveBeenCalledWith(
-        "https://bucket.s3.amazonaws.com",
-        expect.objectContaining({ method: "POST" })
-      );
+    await act(async () => {
+      await Promise.resolve();
+      await Promise.resolve();
     });
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      "https://bucket.s3.amazonaws.com",
+      expect.objectContaining({ method: "POST" })
+    );
 
     const [, options] = fetchMock.mock.calls[0];
     expect(options.body).toBeInstanceOf(FormData);
@@ -197,6 +282,8 @@ describe("Uploads – upload flow", () => {
   });
 
   it("shows the new job in the table after a successful upload", async () => {
+    vi.useFakeTimers();
+
     uploadApi.createJob.mockResolvedValue({
       jobId: "test-job-3",
       upload: {
@@ -208,22 +295,19 @@ describe("Uploads – upload flow", () => {
     global.fetch = vi.fn().mockResolvedValue({ ok: true });
 
     render(<Uploads />);
-    await waitFor(() => expect(uploadApi.listJobs).toHaveBeenCalled());
+    await act(async () => { await Promise.resolve(); await Promise.resolve(); });
 
-    const input = document.querySelector('input[type="file"]');
-    setInputFiles(input, [makeFile("report.pdf", "application/pdf")]);
-
-    await waitFor(() => screen.getByText(/Upload 1 file/));
-    setRequiredPconCode();
-    await setRequiredElection();
+    await stageFileAndSelectConstituency("Exeter", "E14000637");
     fireEvent.click(screen.getByText(/Upload 1 file/));
 
-    await waitFor(() => {
-      expect(screen.getByText("report.pdf")).toBeInTheDocument();
-    });
+    await act(async () => { await Promise.resolve(); await Promise.resolve(); });
+
+    expect(screen.getByText("report.pdf")).toBeInTheDocument();
   });
 
   it("displays upload error when S3 POST fails", async () => {
+    vi.useFakeTimers();
+
     uploadApi.createJob.mockResolvedValue({
       jobId: "test-job-fail",
       upload: {
@@ -235,21 +319,34 @@ describe("Uploads – upload flow", () => {
     global.fetch = vi.fn().mockResolvedValue({ ok: false, status: 403 });
 
     render(<Uploads />);
+    await act(async () => { await Promise.resolve(); await Promise.resolve(); });
+
+    await stageFileAndSelectConstituency("Exeter", "E14000637");
+    fireEvent.click(screen.getByText(/Upload 1 file/));
+
+    await act(async () => { await Promise.resolve(); await Promise.resolve(); });
+
+    expect(screen.getByText(/S3 upload failed/)).toBeInTheDocument();
+  });
+
+  it("shows error when constituency not selected before uploading", async () => {
+    render(<Uploads />);
     await waitFor(() => expect(uploadApi.listJobs).toHaveBeenCalled());
 
     const input = document.querySelector('input[type="file"]');
     setInputFiles(input, [makeFile("report.pdf", "application/pdf")]);
 
     await waitFor(() => screen.getByText(/Upload 1 file/));
-    setRequiredPconCode();
-    await setRequiredElection();
     fireEvent.click(screen.getByText(/Upload 1 file/));
 
     await waitFor(() => {
-      expect(screen.getByText(/S3 upload failed/)).toBeInTheDocument();
+      expect(screen.getByText(/Constituency is required/)).toBeInTheDocument();
     });
+    expect(uploadApi.createJob).not.toHaveBeenCalled();
   });
 });
+
+// ── Polling ────────────────────────────────────────────────────────────────
 
 describe("Uploads – polling", () => {
   it("calls getJob at each poll interval for non-terminal jobs", async () => {
@@ -268,16 +365,13 @@ describe("Uploads – polling", () => {
 
     const { unmount } = render(<Uploads />);
 
-    // Flush the initial listJobs promise and state update
     await act(async () => {
       await Promise.resolve();
       await Promise.resolve();
     });
 
-    // Clear any calls from initial render side-effects
     uploadApi.getJob.mockClear();
 
-    // Advance by just over one poll interval
     await act(async () => {
       vi.advanceTimersByTime(POLL_INTERVAL_MS + 100);
       await Promise.resolve();
@@ -285,9 +379,7 @@ describe("Uploads – polling", () => {
     });
 
     expect(uploadApi.getJob).toHaveBeenCalledWith("poll-job-1");
-
     unmount();
-    vi.useRealTimers();
   });
 
   it("does not poll when all jobs are in terminal states", async () => {
@@ -318,42 +410,45 @@ describe("Uploads – polling", () => {
     });
 
     expect(uploadApi.getJob).not.toHaveBeenCalled();
-
     unmount();
-    vi.useRealTimers();
   });
 });
 
-describe("Uploads – elections", () => {
-  it("requires election selection before submitting", async () => {
-    uploadApi.createJob.mockResolvedValue({
-      jobId: "test-job-no-election",
-      upload: {
-        url: "https://s3.example.com/presigned",
-        fields: { key: "uploads/sub1/test-job-no-election/report.pdf" },
-      },
-      s3Key: "uploads/sub1/test-job-no-election/report.pdf",
-    });
-    global.fetch = vi.fn().mockResolvedValue({ ok: true });
+// ── Elections ──────────────────────────────────────────────────────────────
 
+describe("Uploads – elections", () => {
+  it("loads elections from Supabase and defaults to 2024 General Election", async () => {
     render(<Uploads />);
     await waitFor(() => expect(uploadApi.listJobs).toHaveBeenCalled());
 
     const input = document.querySelector('input[type="file"]');
     setInputFiles(input, [makeFile("report.pdf", "application/pdf")]);
-    await waitFor(() => screen.getByText(/Upload 1 file/));
-
-    setRequiredPconCode();
-    fireEvent.click(screen.getByText(/Upload 1 file/));
 
     await waitFor(() => {
-      expect(screen.getByText(/Election selection is required/)).toBeInTheDocument();
+      const select = screen.getByLabelText(/^Election$/i);
+      expect(select.value).toBe("ge2024-uuid");
     });
+  });
+
+  it("requires election selection when no elections loaded", async () => {
+    // No elections returned → no auto-select → electionId remains ""
+    setupSupabaseMock({ elections: [] });
+    vi.useFakeTimers();
+
+    render(<Uploads />);
+    await act(async () => { await Promise.resolve(); await Promise.resolve(); });
+
+    await stageFileAndSelectConstituency("Exeter", "E14000637");
+    fireEvent.click(screen.getByText(/Upload 1 file/));
+    await act(async () => { await Promise.resolve(); });
+
+    expect(screen.getByText(/Election selection is required/)).toBeInTheDocument();
     expect(uploadApi.createJob).not.toHaveBeenCalled();
   });
 
-  it("shows no-elections state and allows Other / Not listed", async () => {
-    uploadApi.listElections.mockResolvedValueOnce({ items: [] });
+  it("shows Other / Not listed option and requires manual review reason", async () => {
+    vi.useFakeTimers();
+
     uploadApi.createJob.mockResolvedValue({
       jobId: "test-job-other",
       upload: {
@@ -365,38 +460,32 @@ describe("Uploads – elections", () => {
     global.fetch = vi.fn().mockResolvedValue({ ok: true });
 
     render(<Uploads />);
-    await waitFor(() => expect(uploadApi.listJobs).toHaveBeenCalled());
+    await act(async () => { await Promise.resolve(); await Promise.resolve(); });
 
-    const input = document.querySelector('input[type="file"]');
-    setInputFiles(input, [makeFile("report.pdf", "application/pdf")]);
-    await waitFor(() => screen.getByText(/Upload 1 file/));
+    await stageFileAndSelectConstituency("Exeter", "E14000637");
 
-    setRequiredPconCode();
-    await waitFor(() => {
-      expect(screen.getByText(/No elections configured for this constituency/)).toBeInTheDocument();
-    });
     fireEvent.change(screen.getByLabelText(/^Election$/i), {
       target: { value: "OTHER" },
     });
+
     expect(screen.getByLabelText(/Manual review reason/i)).toBeInTheDocument();
     expect(screen.getByText(/Upload 1 file/)).toBeDisabled();
+
     fireEvent.change(screen.getByLabelText(/Manual review reason/i), {
       target: { value: "Election is not yet configured for this ward set." },
     });
+
     expect(screen.getByText(/Upload 1 file/)).not.toBeDisabled();
     fireEvent.click(screen.getByText(/Upload 1 file/));
 
-    await waitFor(() => {
-      expect(uploadApi.createJob).toHaveBeenCalledWith(
-        expect.objectContaining({
-          pconCode: "E14000637",
-          electionId: "OTHER",
-          manualReviewReason: "Election is not yet configured for this ward set.",
-        })
-      );
-    });
+    await act(async () => { await Promise.resolve(); await Promise.resolve(); });
+
+    expect(uploadApi.createJob).toHaveBeenCalledWith(
+      expect.objectContaining({
+        pconCode: "E14000637",
+        electionId: "OTHER",
+        manualReviewReason: "Election is not yet configured for this ward set.",
+      })
+    );
   });
 });
-
-// Expose the constant so the test can reference it without import
-const POLL_INTERVAL_MS = 5000;
