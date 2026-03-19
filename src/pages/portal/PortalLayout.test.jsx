@@ -19,6 +19,7 @@ vi.mock("../../lib/uploadApi.js", async () => {
 describe("PortalLayout", () => {
   beforeEach(() => {
     sessionStorage.clear();
+    localStorage.clear();
     uploadApi.getMe.mockResolvedValue({ user: { status: "APPROVED" } });
     uploadApi.getAdminMe.mockResolvedValue({ isAdmin: false });
     uploadApi.listOrganisations.mockResolvedValue({ items: [] });
@@ -41,6 +42,36 @@ describe("PortalLayout", () => {
       "href",
       "/portal/local-government"
     );
+    expect(screen.getByRole("link", { name: "Reform Threat" })).toHaveAttribute(
+      "href",
+      "/portal/constituency/reform-threat"
+    );
+    expect(screen.getByRole("link", { name: "Target Seats 2029" })).toHaveAttribute(
+      "href",
+      "/portal/constituency/target-seats"
+    );
+    expect(screen.queryByRole("link", { name: "By-Election Watch" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("link", { name: "Correlations" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("link", { name: "Model Performance" })).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "More analytics" })).toBeInTheDocument();
+    expect(screen.queryByRole("link", { name: "Subscriptions" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("link", { name: "Pricing rules" })).not.toBeInTheDocument();
+  });
+
+  it("expands analytics links and remembers the toggle state", async () => {
+    sessionStorage.setItem("cognito_tokens", JSON.stringify({ access_token: "token" }));
+
+    render(
+      <HelmetProvider>
+        <MemoryRouter>
+          <PortalLayout />
+        </MemoryRouter>
+      </HelmetProvider>
+    );
+
+    expect(await screen.findByRole("navigation", { name: "Portal" })).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "More analytics" }));
+
     expect(screen.getByRole("link", { name: "By-Election Watch" })).toHaveAttribute(
       "href",
       "/portal/analytics/by-election-watch"
@@ -53,8 +84,7 @@ describe("PortalLayout", () => {
       "href",
       "/portal/analytics/model-performance"
     );
-    expect(screen.queryByRole("link", { name: "Subscriptions" })).not.toBeInTheDocument();
-    expect(screen.queryByRole("link", { name: "Pricing rules" })).not.toBeInTheDocument();
+    expect(localStorage.getItem("ps_portal_analytics_expanded_v1")).toBe("true");
   });
 
   it("shows loading skeleton cards while account status is loading", async () => {

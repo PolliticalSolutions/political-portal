@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import Card from "../../../components/Card.jsx";
+import ThreatMethodologyDisclosure from "../../../components/ThreatMethodologyDisclosure.jsx";
 import { getLibDemThreatIndex } from "./constituencyApi.js";
 
 function TrendCell({ value }) {
@@ -47,6 +48,22 @@ export default function LibDemThreatPage() {
     const avgTrend = seats.reduce((s, r) => s + Number(r.ld_share_trend ?? 0), 0) / seats.length;
     const highlyAt = seats.filter((r) => Number(r.threat_score) >= 5).length;
     return { total: seats.length, avgShare, avgTrend, highlyAt };
+  }, [seats]);
+
+  const topSeatExplanation = useMemo(() => {
+    const topSeat = seats[0];
+    const constituency = topSeat?.constituencies;
+    if (!topSeat || !constituency) return null;
+    return {
+      name: constituency.name,
+      body: `${constituency.name} ranks highest because the Liberal Democrats took ${Number(
+        topSeat.ld_2024_share ?? 0
+      ).toFixed(1)}% in 2024, their trend since 2019 is ${Number(topSeat.ld_share_trend ?? 0).toFixed(
+        1
+      )} points, and the Conservative lead over the Liberal Democrats is only ${Number(
+        topSeat.con_ld_majority ?? 0
+      ).toFixed(1)}%.`,
+    };
   }, [seats]);
 
   if (loading) return (
@@ -126,6 +143,18 @@ export default function LibDemThreatPage() {
           </div>
         )}
       </Card>
+
+      <ThreatMethodologyDisclosure
+        summary="This ranking is designed to show where Liberal Democrat challenge looks most operationally serious in Conservative-held seats."
+        signals={[
+          { label: "Liberal Democrat 2024 share", body: "A larger existing Liberal Democrat vote base raises the threat score." },
+          { label: "Momentum trend", body: "Seats where the Liberal Democrats moved forward between 2019 and 2024 are ranked higher." },
+          { label: "Conservative margin", body: "A smaller Conservative advantage over the Liberal Democrats makes the seat harder to defend." },
+        ]}
+        disclaimer="These scores are analytical tools to support planning, not predictions of electoral outcomes."
+        topSeatName={topSeatExplanation?.name}
+        topSeatExplanation={topSeatExplanation?.body}
+      />
 
       <Card title="Top 50 Lib Dem threat seats">
         <div className="table-wrap">

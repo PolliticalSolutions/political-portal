@@ -20,8 +20,10 @@ import {
   getSwingTimeline,
   getByElectionRisk,
   getVulnerabilityScore,
+  getConstituencyReformThreat,
   getConstituencyLibDemThreat,
   getConstituencyGreenThreat,
+  getLgrImpactsForAuthorityNames,
 } from "./constituencyApi.js";
 import { getCurrentStatus } from "./constituencyPresentation.js";
 
@@ -1610,14 +1612,35 @@ function getByElRiskColour(level) {
   return "#6b7280";
 }
 
-function IntelligenceSummaryBar({ constituency, marginalityScore, vulnerabilityScore, byElectionRisk, ldThreat, greenThreat }) {
+function IntelligenceSummaryBar({
+  constituency,
+  marginalityScore,
+  vulnerabilityScore,
+  byElectionRisk,
+  reformThreat,
+  ldThreat,
+  greenThreat,
+  lgrImpacts,
+}) {
   const items = [];
+
+  if (lgrImpacts?.length) {
+    const primaryImpact = lgrImpacts[0];
+    items.push({
+      label: "LGR affected",
+      value: `${primaryImpact.authority_name} abolished ${formatDate(primaryImpact.abolition_date)}`,
+      colour: "#b45309",
+      style: "urgent",
+    });
+  }
 
   if (marginalityScore?.classification) {
     items.push({
       label: "Marginality",
       value: marginalityScore.classification,
       colour: getMargColour(marginalityScore.classification),
+      detail:
+        "Marginality combines majority size, swing pressure, volatility, and structural seat risk. Use it as a guide to how exposed the seat is, not as a standalone forecast.",
     });
   }
   if (vulnerabilityScore?.vulnerability_level) {
@@ -1632,6 +1655,15 @@ function IntelligenceSummaryBar({ constituency, marginalityScore, vulnerabilityS
       label: "By-Election Risk",
       value: byElectionRisk.risk_level,
       colour: getByElRiskColour(byElectionRisk.risk_level),
+    });
+  }
+  if (reformThreat?.threat_score != null) {
+    const score = Number(reformThreat.threat_score);
+    const colour = score >= 7 ? "#dc2626" : score >= 5 ? "#f97316" : "#6b7280";
+    items.push({
+      label: "Reform Threat",
+      value: `${score.toFixed(1)}/10 (#${reformThreat.threat_rank})`,
+      colour,
     });
   }
   if (ldThreat?.threat_score != null) {
@@ -1666,21 +1698,43 @@ function IntelligenceSummaryBar({ constituency, marginalityScore, vulnerabilityS
   return (
     <div style={{ display: "flex", flexWrap: "wrap", gap: 8, margin: "0 0 16px" }}>
       {items.map((item) => (
-        <div
-          key={item.label}
-          style={{
-            display: "flex",
-            alignItems: "center",
-            gap: 6,
-            background: "#f9fafb",
-            border: "1px solid #e5e7eb",
-            borderRadius: 6,
-            padding: "4px 10px",
-          }}
-        >
-          <span style={{ fontSize: 11, color: "#6b7280" }}>{item.label}</span>
-          <span style={{ fontSize: 12, fontWeight: 700, color: item.colour }}>{item.value}</span>
-        </div>
+        item.detail ? (
+          <details
+            key={item.label}
+            style={{
+              background: "#f9fafb",
+              border: "1px solid #e5e7eb",
+              borderRadius: 6,
+              padding: "4px 10px",
+            }}
+          >
+            <summary style={{ display: "flex", alignItems: "center", gap: 6, cursor: "pointer", listStyle: "none" }}>
+              <span style={{ fontSize: 11, color: "#6b7280" }}>{item.label}</span>
+              <span style={{ fontSize: 12, fontWeight: 700, color: item.colour }}>{item.value}</span>
+            </summary>
+            <p style={{ margin: "8px 0 2px", fontSize: 12, lineHeight: 1.5, color: "#475569", maxWidth: 320 }}>
+              {item.detail}
+            </p>
+          </details>
+        ) : (
+          <div
+            key={item.label}
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: 6,
+              background: item.style === "urgent" ? "#fff7ed" : "#f9fafb",
+              border: item.style === "urgent" ? "1px solid #fdba74" : "1px solid #e5e7eb",
+              borderRadius: 6,
+              padding: item.style === "urgent" ? "6px 10px" : "4px 10px",
+            }}
+          >
+            <span style={{ fontSize: 11, color: item.style === "urgent" ? "#9a3412" : "#6b7280", fontWeight: item.style === "urgent" ? 700 : 400, textTransform: item.style === "urgent" ? "uppercase" : "none" }}>
+              {item.label}
+            </span>
+            <span style={{ fontSize: 12, fontWeight: 700, color: item.colour }}>{item.value}</span>
+          </div>
+        )
       ))}
     </div>
   );
@@ -1700,8 +1754,10 @@ export default function ConstituencyDetail() {
   const [swingTimeline, setSwingTimeline] = useState([]);
   const [byElectionRisk, setByElectionRisk] = useState(null);
   const [vulnerabilityScore, setVulnerabilityScore] = useState(null);
+  const [reformThreat, setReformThreat] = useState(null);
   const [ldThreat, setLdThreat] = useState(null);
   const [greenThreat, setGreenThreat] = useState(null);
+  const [lgrImpacts, setLgrImpacts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [metadata, setMetadata] = useState(null);
@@ -1724,7 +1780,7 @@ export default function ConstituencyDetail() {
           nextLocalAuthorities,
           nextMarginality, nextElectorateTrend, nextSwingTimeline,
           nextByElectionRisk, nextVulnerability,
-          nextLdThreat, nextGreenThreat,
+          nextReformThreat, nextLdThreat, nextGreenThreat,
         ] = await Promise.all([
           getConstituencyResults(nextConstituency.id),
           getConstituencyDemographics(nextConstituency.id),
@@ -1736,6 +1792,7 @@ export default function ConstituencyDetail() {
           getSwingTimeline(nextConstituency.id),
           getByElectionRisk(nextConstituency.id),
           getVulnerabilityScore(nextConstituency.id),
+          getConstituencyReformThreat(nextConstituency.id),
           getConstituencyLibDemThreat(nextConstituency.id),
           getConstituencyGreenThreat(nextConstituency.id),
         ]);
@@ -1752,8 +1809,13 @@ export default function ConstituencyDetail() {
         setSwingTimeline(nextSwingTimeline);
         setByElectionRisk(nextByElectionRisk);
         setVulnerabilityScore(nextVulnerability);
+        setReformThreat(nextReformThreat);
         setLdThreat(nextLdThreat);
         setGreenThreat(nextGreenThreat);
+        const nextLgrImpacts = await getLgrImpactsForAuthorityNames(
+          (nextLocalAuthorities ?? []).map((authority) => authority?.name).filter(Boolean)
+        );
+        if (!cancelled) setLgrImpacts(nextLgrImpacts);
         const nextMetadata = await getIntelligenceMetadata({
           tableName: "constituencies",
           entityType: "constituency",
@@ -1871,8 +1933,10 @@ export default function ConstituencyDetail() {
           marginalityScore={marginalityScore}
           vulnerabilityScore={vulnerabilityScore}
           byElectionRisk={byElectionRisk}
+          reformThreat={reformThreat}
           ldThreat={ldThreat}
           greenThreat={greenThreat}
+          lgrImpacts={lgrImpacts}
         />
         <TabBar active={activeTab} onChange={setActiveTab} />
         {activeTab === "history" && (

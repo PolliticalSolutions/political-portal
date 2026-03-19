@@ -254,6 +254,17 @@ export async function getConstituencyLibDemThreat(constituencyId) {
   return data ?? null;
 }
 
+export async function getConstituencyReformThreat(constituencyId) {
+  if (!constituencyId) return null;
+  const { data, error } = await supabase
+    .from("reform_threat_index")
+    .select("threat_score, threat_rank, ruk_2024_share, con_ruk_swing, con_majority")
+    .eq("constituency_id", constituencyId)
+    .maybeSingle();
+  if (error) return null;
+  return data ?? null;
+}
+
 export async function getConstituencyGreenThreat(constituencyId) {
   if (!constituencyId) return null;
   const { data, error } = await supabase
@@ -263,6 +274,44 @@ export async function getConstituencyGreenThreat(constituencyId) {
     .maybeSingle();
   if (error) return null;
   return data ?? null;
+}
+
+function normaliseAuthorityName(name) {
+  return String(name ?? "")
+    .toLowerCase()
+    .replace(/\bcity of\b/g, "city")
+    .replace(/\bcouncil\b/g, "")
+    .replace(/\bcounty\b/g, "")
+    .replace(/\bdistrict\b/g, "")
+    .replace(/\bborough\b/g, "")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+export async function getLgrImpactsForAuthorityNames(names) {
+  const authorityNames = [...new Set((names ?? []).filter(Boolean))];
+  if (authorityNames.length === 0) return [];
+
+  const { data, error } = await supabase
+    .from("lgr_authorities")
+    .select("id, authority_name, area_name, lgr_status, lgr_wave, abolition_date, replacement_authority");
+  if (error) return [];
+
+  const normalisedAuthorityNames = authorityNames.map((name) => ({
+    raw: name,
+    normalised: normaliseAuthorityName(name),
+  }));
+
+  return (data ?? []).filter((row) => {
+    const authorityName = normaliseAuthorityName(row.authority_name);
+    const areaName = normaliseAuthorityName(row.area_name);
+    return normalisedAuthorityNames.some(({ normalised }) =>
+      normalised === authorityName ||
+      normalised === areaName ||
+      authorityName.includes(normalised) ||
+      normalised.includes(authorityName)
+    );
+  });
 }
 
 export async function getLibDemThreatIndex() {

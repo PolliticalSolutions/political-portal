@@ -4,6 +4,7 @@ import Card from "../../../components/Card.jsx";
 import DataProvenancePanel from "../../../components/DataProvenancePanel.jsx";
 import ModelConfidenceBadge from "../../../components/ModelConfidenceBadge.jsx";
 import ScoringMethodologyPanel from "../../../components/ScoringMethodologyPanel.jsx";
+import ThreatMethodologyDisclosure from "../../../components/ThreatMethodologyDisclosure.jsx";
 import { getScoringModel } from "../../../config/scoringModels.js";
 import { getIntelligenceMetadata } from "../../../lib/intelligenceMetadataApi.js";
 import { getModelConfidence } from "../../../lib/modelConfidence.js";
@@ -119,6 +120,22 @@ export default function ReformThreatIndex() {
     [model]
   );
 
+  const topSeatExplanation = useMemo(() => {
+    const topSeat = threats[0];
+    const constituency = topSeat ? constituencyMap[topSeat.constituency_id] : null;
+    if (!topSeat || !constituency) return null;
+    return {
+      name: constituency.name,
+      body: `${constituency.name} sits at the top of the Reform watchlist because Reform already polled ${Number(
+        topSeat.ruk_2024_share ?? 0
+      ).toFixed(1)}%, the Con→Reform swing was ${Number(topSeat.con_ruk_swing ?? 0).toFixed(
+        1
+      )} points, and the Conservative majority is only ${Number(topSeat.con_majority ?? 0).toFixed(
+        1
+      )}% of the electorate.`,
+    };
+  }, [constituencyMap, threats]);
+
   if (loading) {
     return (
       <div className="page stack">
@@ -218,6 +235,18 @@ export default function ReformThreatIndex() {
       <DataProvenancePanel
         metadata={metadata}
         fallbackCopy="Source links, confidence scoring, and model review dates will appear here when Reform Threat provenance records are populated."
+      />
+
+      <ThreatMethodologyDisclosure
+        summary="This index highlights where Reform UK looks most strategically disruptive to Conservative-held seats under current conditions."
+        signals={[
+          { label: "Reform vote share", body: "Seats where Reform already has a visible electoral base rank higher." },
+          { label: "Conservative majority pressure", body: "Smaller Conservative margins leave less room for right-of-centre vote splitting." },
+          { label: "Local and demographic alignment", body: "Where local Reform traction and demographic fit are stronger, the seat moves up the ranking." },
+        ]}
+        disclaimer="These scores are analytical tools to support planning, not predictions of electoral outcomes."
+        topSeatName={topSeatExplanation?.name}
+        topSeatExplanation={topSeatExplanation?.body}
       />
 
       <ScoringMethodologyPanel model={model} />

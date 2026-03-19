@@ -117,7 +117,8 @@ export default function Home() {
               <div className="product-card__body">
                 <p>
                   Search constituency winners, election history, and demographic context in one secure portal
-                  workflow.
+                  workflow. Local Government Intelligence now includes an LGR tracker so associations can follow
+                  reorganisation, shadow authority changes, and council-level operational risk.
                 </p>
                 <p className="product-card__meta">
                   <strong>Who it is for:</strong> Campaign planners, researchers, association leads, and
