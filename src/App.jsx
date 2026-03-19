@@ -41,6 +41,7 @@ const LocalGovDetail = lazy(() => import("./pages/portal/local-government/LocalG
 const ByElectionWatchPage = lazy(() => import("./pages/portal/analytics/ByElectionWatchPage.jsx"));
 const CorrelationsPage = lazy(() => import("./pages/portal/analytics/CorrelationsPage.jsx"));
 const ModelPerformancePage = lazy(() => import("./pages/portal/analytics/ModelPerformancePage.jsx"));
+const ScenarioPage = lazy(() => import("./pages/portal/analytics/ScenarioPage.jsx"));
 import Session from "./pages/Session.jsx";
 import SignUp from "./pages/SignUp.jsx";
 import CookiesPage from "./pages/legal/CookiesPage.jsx";
@@ -363,6 +364,14 @@ export default function App() {
                   element={
                     <Suspense fallback={<div className="page stack"><p className="muted">Loading…</p></div>}>
                       <ModelPerformancePage />
+                    </Suspense>
+                  }
+                />
+                <Route
+                  path="analytics/scenario"
+                  element={
+                    <Suspense fallback={<div className="page stack"><p className="muted">Loading…</p></div>}>
+                      <ScenarioPage />
                     </Suspense>
                   }
                 />

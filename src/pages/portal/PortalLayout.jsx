@@ -398,6 +398,9 @@ export default function PortalLayout() {
               <NavLink className={navClass} to="/portal/analytics/by-election-watch">
                 By-Election Watch
               </NavLink>
+              <NavLink className={navClass} to="/portal/analytics/scenario">
+                Scenario modeller
+              </NavLink>
               <NavLink className={navClass} to="/portal/analytics/correlations">
                 Correlations
               </NavLink>
