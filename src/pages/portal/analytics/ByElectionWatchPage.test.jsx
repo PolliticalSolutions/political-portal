@@ -6,14 +6,23 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 vi.mock("../constituency/constituencyApi.js", () => ({
   getByElectionWatchlist: vi.fn(),
   getCouncilData: vi.fn(),
+  getReformThreatIndex: vi.fn(),
+  getAllVulnerabilityScores: vi.fn(),
 }));
 
 import ByElectionWatchPage from "./ByElectionWatchPage.jsx";
-import { getByElectionWatchlist, getCouncilData } from "../constituency/constituencyApi.js";
+import {
+  getByElectionWatchlist,
+  getCouncilData,
+  getReformThreatIndex,
+  getAllVulnerabilityScores,
+} from "../constituency/constituencyApi.js";
 
 describe("ByElectionWatchPage", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    getReformThreatIndex.mockResolvedValue([]);
+    getAllVulnerabilityScores.mockResolvedValue([]);
   });
 
   it("renders the by-election watchlist criteria table", async () => {
@@ -50,8 +59,8 @@ describe("ByElectionWatchPage", () => {
     // MP name rendered
     expect(screen.getByText("Alex Harper")).toBeInTheDocument();
 
-    // Criteria section
-    expect(screen.getByText(/Majority < 5,000/i)).toBeInTheDocument();
+    // Criteria section — threshold updated to 3,000
+    expect(screen.getByText(/Majority < 3,000/i)).toBeInTheDocument();
     expect(screen.getByText(/First\/second-term MP/i)).toBeInTheDocument();
 
     // Disclaimer

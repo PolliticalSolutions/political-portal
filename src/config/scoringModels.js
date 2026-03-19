@@ -2,9 +2,10 @@ export const SCORING_MODELS = {
   vulnerability: {
     key: "vulnerability",
     title: "Conservative Seat Vulnerability",
-    version: "v1.0",
+    version: "v2.0",
     description:
-      "Ranks the exposure of Conservative-held seats by combining majority pressure, opposition threat, and structural constituency risk factors.",
+      "Ranks the exposure of Conservative-held seats by combining majority pressure, opposition threat, and structural constituency risk factors. Recalibrated March 2026: majority factor now uses percentile ranking for guaranteed score spread; Labour threat uses swing deviation from national rather than ratio. 4 Reform-defected seats excluded (East Wiltshire, Newark, Romford, Fareham and Waterlooville). Enrichment testing (March 2026) assessed demographic and local government variants against baseline — baseline retained as best-performing configuration across 2017 and 2019 test cycles.",
+    validationNotes: "Enrichment testing (2026-03-17): baseline_demographic and baseline_local variants both tested against 2017 and 2019 cycles. Enrichments did not consistently improve top-decile capture or precision@20 over baseline across comparable cycles. Baseline variant retained. Demographic data coverage: 95%+. Local council signal coverage: 60% (insufficient for reliable enrichment uplift).",
     scoreRange: "0 to 10",
     components: [
       {
@@ -67,9 +68,9 @@ export const SCORING_MODELS = {
   reformThreat: {
     key: "reformThreat",
     title: "Reform UK Threat Index",
-    version: "v1.0",
+    version: "v3.0",
     description:
-      "Ranks Conservative seats by the strength of the Reform UK threat, combining vote share, swing, majority exposure, and local conditions.",
+      "Ranks Conservative seats by the strength of the Reform UK threat. Weight rebalancing March 2026: Leave vote raised to 30% (was 25%), UKIP 2015 raised to 20% (was 15%), majority factor added at 20% (inverted — smaller margins more vulnerable), Reform 2024 share reduced to 15%. Con→RUK swing removed from formula to reduce circularity. 4 defected seats excluded from ranking.",
     scoreRange: "0 to 10",
     components: [
       {

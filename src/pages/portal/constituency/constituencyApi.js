@@ -186,7 +186,9 @@ export async function getByElectionWatchSeats() {
 }
 
 // Returns Conservative 2024 seats meeting objective watchlist criteria.
-// Criteria checked here: majority < 5000.
+// Criteria checked here: majority < 3000 (updated from 5000 — tighter focus on genuinely marginal).
+// The 4 Reform-defected constituencies (East Wiltshire, Newark, Romford, Fareham and Waterlooville)
+// are excluded automatically since they are no longer Conservative-held in the results table.
 // Council territory and incumbency are evaluated in the page component
 // using council_data and candidates.first_elected_year respectively.
 export async function getByElectionWatchlist() {
@@ -216,7 +218,7 @@ export async function getByElectionWatchlist() {
     .eq("election_id", latestId)
     .eq("party_id", CON_PARTY_ID)
     .eq("is_winner", true)
-    .lt("majority", 5000)
+    .lt("majority", 3000)
     .order("majority", { ascending: true });
   if (error) return [];
   return data ?? [];
@@ -237,6 +239,56 @@ export async function getAllVulnerabilityScores() {
     .from("vulnerability_scores")
     .select("constituency_id, vulnerability_score, vulnerability_level, primary_threat, labour_threat, reform_threat, libdem_threat")
     .order("vulnerability_score", { ascending: false });
+  if (error) return [];
+  return data ?? [];
+}
+
+export async function getConstituencyLibDemThreat(constituencyId) {
+  if (!constituencyId) return null;
+  const { data, error } = await supabase
+    .from("libdem_threat_index")
+    .select("threat_score, threat_rank, ld_2024_share, ld_share_trend")
+    .eq("constituency_id", constituencyId)
+    .maybeSingle();
+  if (error) return null;
+  return data ?? null;
+}
+
+export async function getConstituencyGreenThreat(constituencyId) {
+  if (!constituencyId) return null;
+  const { data, error } = await supabase
+    .from("green_threat_index")
+    .select("threat_score, threat_rank, green_2024_share, green_share_trend")
+    .eq("constituency_id", constituencyId)
+    .maybeSingle();
+  if (error) return null;
+  return data ?? null;
+}
+
+export async function getLibDemThreatIndex() {
+  const { data, error } = await supabase
+    .from("libdem_threat_index")
+    .select(`
+      constituency_id, threat_score, threat_rank,
+      ld_2024_share, ld_share_trend, con_ld_majority, graduate_pct, owner_occupancy_pct,
+      constituencies(id, ons_code, name, region)
+    `)
+    .order("threat_rank", { ascending: true })
+    .limit(50);
+  if (error) return [];
+  return data ?? [];
+}
+
+export async function getGreenThreatIndex() {
+  const { data, error } = await supabase
+    .from("green_threat_index")
+    .select(`
+      constituency_id, threat_score, threat_rank,
+      green_2024_share, green_share_trend, incumbent_majority, graduate_pct, urban_density_score, incumbent_party,
+      constituencies(id, ons_code, name, region)
+    `)
+    .order("threat_rank", { ascending: true })
+    .limit(30);
   if (error) return [];
   return data ?? [];
 }
@@ -296,6 +348,27 @@ export async function removeAlertSubscription(subscriptionId) {
   if (error) throw new Error(error.message);
 }
 
+export async function getTargetSeats() {
+  const { data, error } = await supabase
+    .from("target_seats")
+    .select(`
+      constituency_id,
+      target_rank,
+      target_score,
+      swing_required,
+      current_holder,
+      current_majority,
+      con_2024_share,
+      reform_squeeze_risk,
+      target_classification,
+      constituencies(id, ons_code, name, region)
+    `)
+    .order("target_rank", { ascending: true })
+    .limit(150);
+  if (error) return [];
+  return data ?? [];
+}
+
 export async function getLatestElectionWinners() {
   const { data: elections, error: elErr } = await supabase
     .from("elections")
@@ -327,5 +400,39 @@ export async function getLatestElectionWinners() {
     electionName: elections[0].name,
     electionDate: elections[0].election_date,
     winners: winners ?? [],
+  };
+}
+
+export async function getLatestElectionScenarioBaseline() {
+  const { data: elections, error: elErr } = await supabase
+    .from("elections")
+    .select("id, election_date, name, election_type")
+    .eq("election_type", "general")
+    .order("election_date", { ascending: false })
+    .limit(1);
+  if (elErr) throw new Error(elErr.message);
+  if (!elections?.length) return { electionName: null, electionDate: null, rows: [] };
+
+  const latestId = elections[0].id;
+
+  const { data: rows, error: rowsErr } = await supabase
+    .from("results")
+    .select(`
+      constituency_id,
+      votes,
+      vote_share,
+      is_winner,
+      majority,
+      parties(id, name, short_name, colour_hex),
+      constituencies(id, ons_code, name)
+    `)
+    .eq("election_id", latestId);
+
+  if (rowsErr) throw new Error(rowsErr.message);
+
+  return {
+    electionName: elections[0].name,
+    electionDate: elections[0].election_date,
+    rows: rows ?? [],
   };
 }

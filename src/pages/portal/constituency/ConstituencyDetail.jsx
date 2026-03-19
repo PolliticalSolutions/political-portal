@@ -20,6 +20,8 @@ import {
   getSwingTimeline,
   getByElectionRisk,
   getVulnerabilityScore,
+  getConstituencyLibDemThreat,
+  getConstituencyGreenThreat,
 } from "./constituencyApi.js";
 import { getCurrentStatus } from "./constituencyPresentation.js";
 
@@ -1582,6 +1584,108 @@ function ScenarioSimulatorCard({ results, electedWinner, constituencyName }) {
   );
 }
 
+function getVulnColour(level) {
+  if (level === "Critical") return "#b91c1c";
+  if (level === "High") return "#dc2626";
+  if (level === "Medium") return "#ea580c";
+  if (level === "Low") return "#16a34a";
+  return "#6b7280";
+}
+
+function getMargColour(classification) {
+  if (!classification) return "#6b7280";
+  const lc = classification.toLowerCase();
+  if (lc.includes("ultra") || lc.includes("highly")) return "#b91c1c";
+  if (lc.includes("very") || lc.includes("marginal")) return "#dc2626";
+  if (lc.includes("notional") || lc.includes("fairly")) return "#ea580c";
+  return "#6b7280";
+}
+
+function getByElRiskColour(level) {
+  if (!level) return "#6b7280";
+  const lc = level.toLowerCase();
+  if (lc.includes("very high") || lc.includes("critical")) return "#b91c1c";
+  if (lc.includes("high")) return "#dc2626";
+  if (lc.includes("medium") || lc.includes("moderate")) return "#ea580c";
+  return "#6b7280";
+}
+
+function IntelligenceSummaryBar({ constituency, marginalityScore, vulnerabilityScore, byElectionRisk, ldThreat, greenThreat }) {
+  const items = [];
+
+  if (marginalityScore?.classification) {
+    items.push({
+      label: "Marginality",
+      value: marginalityScore.classification,
+      colour: getMargColour(marginalityScore.classification),
+    });
+  }
+  if (vulnerabilityScore?.vulnerability_level) {
+    items.push({
+      label: "Vulnerability",
+      value: vulnerabilityScore.vulnerability_level,
+      colour: getVulnColour(vulnerabilityScore.vulnerability_level),
+    });
+  }
+  if (byElectionRisk?.risk_level) {
+    items.push({
+      label: "By-Election Risk",
+      value: byElectionRisk.risk_level,
+      colour: getByElRiskColour(byElectionRisk.risk_level),
+    });
+  }
+  if (ldThreat?.threat_score != null) {
+    const score = Number(ldThreat.threat_score);
+    const colour = score >= 6 ? "#b45309" : score >= 4 ? "#d97706" : "#6b7280";
+    items.push({
+      label: "LD Threat",
+      value: `${score.toFixed(1)}/10 (#${ldThreat.threat_rank})`,
+      colour,
+    });
+  }
+  if (greenThreat?.threat_score != null) {
+    const score = Number(greenThreat.threat_score);
+    const colour = score >= 6 ? "#15803d" : score >= 4 ? "#16a34a" : "#6b7280";
+    items.push({
+      label: "Green Threat",
+      value: `${score.toFixed(1)}/10 (#${greenThreat.threat_rank})`,
+      colour,
+    });
+  }
+  if (constituency?.leave_vote_share != null) {
+    const lv = Number(constituency.leave_vote_share);
+    items.push({
+      label: "Leave vote",
+      value: `${lv.toFixed(1)}%`,
+      colour: lv >= 55 ? "#dc2626" : lv >= 50 ? "#ea580c" : "#6b7280",
+    });
+  }
+
+  if (items.length === 0) return null;
+
+  return (
+    <div style={{ display: "flex", flexWrap: "wrap", gap: 8, margin: "0 0 16px" }}>
+      {items.map((item) => (
+        <div
+          key={item.label}
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: 6,
+            background: "#f9fafb",
+            border: "1px solid #e5e7eb",
+            borderRadius: 6,
+            padding: "4px 10px",
+          }}
+        >
+          <span style={{ fontSize: 11, color: "#6b7280" }}>{item.label}</span>
+          <span style={{ fontSize: 12, fontWeight: 700, color: item.colour }}>{item.value}</span>
+        </div>
+      ))}
+    </div>
+  );
+}
+
 export default function ConstituencyDetail() {
   const { onsCode } = useParams();
   const [constituency, setConstituency] = useState(null);
@@ -1596,6 +1700,8 @@ export default function ConstituencyDetail() {
   const [swingTimeline, setSwingTimeline] = useState([]);
   const [byElectionRisk, setByElectionRisk] = useState(null);
   const [vulnerabilityScore, setVulnerabilityScore] = useState(null);
+  const [ldThreat, setLdThreat] = useState(null);
+  const [greenThreat, setGreenThreat] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [metadata, setMetadata] = useState(null);
@@ -1618,6 +1724,7 @@ export default function ConstituencyDetail() {
           nextLocalAuthorities,
           nextMarginality, nextElectorateTrend, nextSwingTimeline,
           nextByElectionRisk, nextVulnerability,
+          nextLdThreat, nextGreenThreat,
         ] = await Promise.all([
           getConstituencyResults(nextConstituency.id),
           getConstituencyDemographics(nextConstituency.id),
@@ -1629,6 +1736,8 @@ export default function ConstituencyDetail() {
           getSwingTimeline(nextConstituency.id),
           getByElectionRisk(nextConstituency.id),
           getVulnerabilityScore(nextConstituency.id),
+          getConstituencyLibDemThreat(nextConstituency.id),
+          getConstituencyGreenThreat(nextConstituency.id),
         ]);
 
         if (cancelled) return;
@@ -1643,6 +1752,8 @@ export default function ConstituencyDetail() {
         setSwingTimeline(nextSwingTimeline);
         setByElectionRisk(nextByElectionRisk);
         setVulnerabilityScore(nextVulnerability);
+        setLdThreat(nextLdThreat);
+        setGreenThreat(nextGreenThreat);
         const nextMetadata = await getIntelligenceMetadata({
           tableName: "constituencies",
           entityType: "constituency",
@@ -1755,6 +1866,14 @@ export default function ConstituencyDetail() {
       />
 
       <Card>
+        <IntelligenceSummaryBar
+          constituency={constituency}
+          marginalityScore={marginalityScore}
+          vulnerabilityScore={vulnerabilityScore}
+          byElectionRisk={byElectionRisk}
+          ldThreat={ldThreat}
+          greenThreat={greenThreat}
+        />
         <TabBar active={activeTab} onChange={setActiveTab} />
         {activeTab === "history" && (
           <ElectionHistoryTab

@@ -11,6 +11,7 @@ import {
   getElectionResults,
   getLinkedConstituencies,
   getLocalAuthority,
+  getLgrStatus,
 } from "./localGovApi.js";
 
 // ── Shared helpers ────────────────────────────────────────────────────────────
@@ -481,12 +482,81 @@ function DemographicSynergyPanel({ authority }) {
   );
 }
 
+// ── LGR Banner ───────────────────────────────────────────────────────────────
+
+const LGR_STATUS_COLOURS = {
+  "Order made": { bg: "#fef2f2", border: "#fecaca", left: "#dc2626", badge: "#dc2626" },
+  "Consultation closed": { bg: "#fff7ed", border: "#fed7aa", left: "#ea580c", badge: "#ea580c" },
+  "Consultation open": { bg: "#fffbeb", border: "#fde68a", left: "#d97706", badge: "#d97706" },
+  "Shadow authority": { bg: "#f0fdf4", border: "#bbf7d0", left: "#16a34a", badge: "#16a34a" },
+  "Completed": { bg: "#f0fdf4", border: "#bbf7d0", left: "#16a34a", badge: "#16a34a" },
+};
+
+function LgrBanner({ lgr }) {
+  if (!lgr) return null;
+  const colours = LGR_STATUS_COLOURS[lgr.lgr_status] ?? LGR_STATUS_COLOURS["Consultation open"];
+  const abolitionYear = lgr.abolition_date ? new Date(lgr.abolition_date).getFullYear() : null;
+
+  return (
+    <div style={{
+      background: colours.bg,
+      border: `1px solid ${colours.border}`,
+      borderLeft: `4px solid ${colours.left}`,
+      borderRadius: 6,
+      padding: "14px 16px",
+      marginBottom: 16,
+    }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 8, flexWrap: "wrap" }}>
+        <span style={{
+          background: colours.badge, color: "#fff",
+          borderRadius: 4, padding: "2px 8px", fontSize: 11, fontWeight: 700, letterSpacing: "0.03em",
+        }}>
+          LGR — {lgr.lgr_status}
+        </span>
+        {lgr.lgr_wave && (
+          <span style={{ fontSize: 11, color: "#6b7280", textTransform: "uppercase", letterSpacing: "0.05em" }}>
+            {lgr.lgr_wave}
+          </span>
+        )}
+        {lgr.mayoral_combined_authority && (
+          <span className="status-pill secondary" style={{ fontSize: 11 }}>Mayoral CA planned</span>
+        )}
+      </div>
+      <p style={{ margin: "0 0 6px", fontWeight: 700, fontSize: 14, color: "#1e293b" }}>
+        This authority is subject to Local Government Reorganisation
+        {abolitionYear ? ` — expected abolition ${abolitionYear}` : ""}.
+      </p>
+      {lgr.proposed_unitary_name && lgr.proposed_unitary_name !== "TBC" && (
+        <p style={{ margin: "0 0 6px", fontSize: 13, color: "#374151" }}>
+          Proposed successor: <strong>{lgr.proposed_unitary_name}</strong>
+        </p>
+      )}
+      {lgr.political_context && (
+        <p style={{ margin: "0 0 6px", fontSize: 13, color: "#374151", lineHeight: 1.5 }}>
+          {lgr.political_context}
+        </p>
+      )}
+      <div style={{ display: "flex", gap: 12, marginTop: 8, flexWrap: "wrap" }}>
+        <Link to="/portal/local-government/lgr" style={{ fontSize: 12, color: colours.left, fontWeight: 600 }}>
+          View LGR Tracker →
+        </Link>
+        {lgr.source_url && (
+          <a href={lgr.source_url} target="_blank" rel="noopener noreferrer" style={{ fontSize: 12, color: "#6b7280" }}>
+            MHCLG source →
+          </a>
+        )}
+      </div>
+    </div>
+  );
+}
+
 // ── Main detail component ─────────────────────────────────────────────────────
 
 export default function LocalGovDetail() {
   const { gssCode } = useParams();
   const [authority, setAuthority] = useState(null);
   const [alerts, setAlerts] = useState([]);
+  const [lgrStatus, setLgrStatus] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [metadata, setMetadata] = useState(null);
@@ -502,8 +572,14 @@ export default function LocalGovDetail() {
         const auth = await getLocalAuthority(gssCode);
         if (cancelled) return;
         setAuthority(auth);
-        const authAlerts = await getAuthorityAlerts(auth.id);
-        if (!cancelled) setAlerts(authAlerts);
+        const [authAlerts, lgr] = await Promise.all([
+          getAuthorityAlerts(auth.id),
+          getLgrStatus(auth.name),
+        ]);
+        if (!cancelled) {
+          setAlerts(authAlerts);
+          setLgrStatus(lgr);
+        }
         const nextMetadata = await getIntelligenceMetadata({
           tableName: "local_authorities",
           entityType: "local_authority",
@@ -616,6 +692,7 @@ export default function LocalGovDetail() {
       </Card>
 
       <Card>
+        <LgrBanner lgr={lgrStatus} />
         <TabBar active={activeTab} onChange={setActiveTab} />
         {activeTab === "composition" && (
           <>

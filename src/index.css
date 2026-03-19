@@ -1828,6 +1828,29 @@ p {
   align-items: stretch;
 }
 
+.scenario-form-grid {
+  display: grid;
+  gap: var(--space-3);
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  align-items: end;
+}
+
+.scenario-field {
+  display: grid;
+  gap: var(--space-2);
+}
+
+.scenario-field span {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.scenario-actions {
+  display: flex;
+  align-items: end;
+}
+
 .model-performance-card {
   display: grid;
   gap: var(--space-3);
@@ -1922,6 +1945,96 @@ p {
 
 .model-performance-list li {
   line-height: 1.6;
+}
+
+.validation-category-grid,
+.validation-model-grid {
+  display: grid;
+  gap: 1rem;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+}
+
+.validation-category-card,
+.validation-model-card {
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  background: #fff;
+  padding: 1rem;
+}
+
+.validation-category-card h3,
+.validation-model-card__title {
+  margin: 0 0 0.5rem;
+  font-size: 1rem;
+  color: #1f2937;
+}
+
+.validation-category-card p,
+.validation-model-card__summary,
+.validation-model-card__meta p {
+  margin: 0;
+  color: #4b5563;
+  line-height: 1.6;
+  font-size: 0.95rem;
+}
+
+.validation-model-card {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.validation-model-card__header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.validation-model-card__status,
+.validation-model-card__meta-label,
+.validation-metric__label {
+  display: block;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: #6b7280;
+}
+
+.validation-model-card__meta,
+.validation-model-card__detail-grid {
+  display: grid;
+  gap: 1rem;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+}
+
+.validation-metric-grid {
+  display: grid;
+  gap: 0.75rem;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+}
+
+.validation-metric {
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+  background: #f8fafc;
+  padding: 0.85rem;
+}
+
+.validation-metric__value {
+  display: block;
+  margin-top: 0.35rem;
+  font-size: 1.35rem;
+  font-weight: 700;
+  color: #111827;
+}
+
+.validation-metric__meta {
+  display: block;
+  margin-top: 0.2rem;
+  font-size: 0.82rem;
+  color: #6b7280;
 }
 
 .model-performance-note {

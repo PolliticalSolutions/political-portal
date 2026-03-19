@@ -7,6 +7,7 @@ import ScoringMethodologyPanel from "../../../components/ScoringMethodologyPanel
 import { getScoringModel } from "../../../config/scoringModels.js";
 import { getIntelligenceMetadata } from "../../../lib/intelligenceMetadataApi.js";
 import { getModelConfidence } from "../../../lib/modelConfidence.js";
+import { mpDefections } from "../../../data/currentMPs.js";
 import { getReformThreatIndex, getLatestElectionWinners } from "./constituencyApi.js";
 
 const AnalyticsChoroplethMapClient = lazy(() => import("./AnalyticsChoroplethMapClient.jsx"));
@@ -285,6 +286,47 @@ export default function ReformThreatIndex() {
           </Card>
         </div>
       </div>
+
+      {(() => {
+        const defectedToReform = mpDefections.filter(
+          (d) => d.currentParty === "Reform UK" && d.electedParty === "Conservative"
+        );
+        if (!defectedToReform.length) return null;
+        return (
+          <Card title="Conservative → Reform defections">
+            <div className="portal-data-note" style={{ marginTop: 0 }}>
+              The following 4 Conservative MPs defected to Reform UK after the 2024 election.
+              These constituencies are excluded from the threat index ranking — they have already been lost.
+            </div>
+            <div className="table-wrap" style={{ marginTop: 12 }}>
+              <table className="table">
+                <thead>
+                  <tr>
+                    <th>Constituency</th>
+                    <th>MP</th>
+                    <th>Defected</th>
+                    <th>Status</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {defectedToReform.map((d) => (
+                    <tr key={d.constituencyName}>
+                      <td style={{ fontWeight: 600 }}>{d.constituencyName}</td>
+                      <td>{d.mpName}</td>
+                      <td style={{ fontSize: 12, color: "#6b7280" }}>{d.defectionDate}</td>
+                      <td>
+                        <span className="status-pill" style={{ background: "#12B6CF", color: "#ffffff", fontSize: 11 }}>
+                          Now Reform UK
+                        </span>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </Card>
+        );
+      })()}
 
       <Card>
         <div className="portal-insight-callout portal-insight-callout--warning">
