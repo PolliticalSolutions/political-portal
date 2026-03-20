@@ -708,6 +708,33 @@ describe("POST /jobs approval gating", () => {
     expect(JSON.parse(res.body).code).toBe("PCON_NOT_ALLOWED");
   });
 
+  it("allows uploads when the legacy allowedPconCodes list is absent", async () => {
+    usersMap.set("user-sub-1", {
+      userId: "user-sub-1",
+      status: "APPROVED",
+      orgId: "org-a",
+      orgType: "ASSOCIATION",
+      createdAt: "2026-01-01T00:00:00.000Z",
+    });
+
+    const res = await handler(
+      buildAuthEvent({
+        method: "POST",
+        path: "/jobs",
+        body: {
+          filename: "batch.csv",
+          pconCode: "E14000637",
+          electionId: "election-allowed",
+          fileType: "csv",
+          size: 1024,
+        },
+      })
+    );
+
+    expect(res.statusCode).toBe(201);
+    expect(JSON.parse(res.body).pconCode).toBe("E14000637");
+  });
+
   it("returns 400 when ward does not belong to pconCode", async () => {
     const res = await handler(
       buildAuthEvent({
@@ -814,6 +841,29 @@ describe("GET /elections", () => {
     );
     expect(res.statusCode).toBe(403);
     expect(JSON.parse(res.body).code).toBe("PCON_NOT_ALLOWED");
+  });
+
+  it("returns elections when the legacy allowedPconCodes list is absent", async () => {
+    usersMap.set("user-sub-1", {
+      userId: "user-sub-1",
+      status: "APPROVED",
+      orgId: "org-a",
+      orgType: "ASSOCIATION",
+      createdAt: "2026-01-01T00:00:00.000Z",
+    });
+
+    const res = await handler(
+      buildAuthEvent({
+        method: "GET",
+        path: "/elections",
+        queryStringParameters: { pconCode: "E14000637", status: "OPEN,UPCOMING" },
+      })
+    );
+
+    expect(res.statusCode).toBe(200);
+    const body = JSON.parse(res.body);
+    expect(body.pconCode).toBe("E14000637");
+    expect(Array.isArray(body.items)).toBe(true);
   });
 
   it("returns elections sorted by date", async () => {

@@ -539,7 +539,7 @@ async function handleCreateJob(event, origin) {
   }
 
   const allowedPconCodes = normalizePconCodes("", user?.allowedPconCodes);
-  if (!allowedPconCodes.includes(pconCode)) {
+  if (allowedPconCodes.length > 0 && !allowedPconCodes.includes(pconCode)) {
     return errorResponse(
       origin,
       403,
@@ -958,7 +958,7 @@ async function handleListElections(event, origin) {
   }
 
   const allowedPconCodes = normalizePconCodes("", user?.allowedPconCodes);
-  if (!allowedPconCodes.includes(pconCode)) {
+  if (allowedPconCodes.length > 0 && !allowedPconCodes.includes(pconCode)) {
     return errorResponse(origin, 403, "PCON_NOT_ALLOWED", "You are not allowed to access this constituency.", {
       pconCode,
     });
