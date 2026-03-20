@@ -3,13 +3,10 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 vi.mock("../../lib/uploadApi.js", () => ({
   createJob: vi.fn(),
+  listElections: vi.fn(),
   listJobs: vi.fn(),
   getJob: vi.fn(),
   getDownloadUrls: vi.fn(),
-}));
-
-vi.mock("../../lib/supabaseClient.js", () => ({
-  supabase: { from: vi.fn() },
 }));
 
 vi.mock("../../context/PermissionsContext.jsx", () => ({
@@ -17,7 +14,6 @@ vi.mock("../../context/PermissionsContext.jsx", () => ({
 }));
 
 import * as uploadApi from "../../lib/uploadApi.js";
-import { supabase } from "../../lib/supabaseClient.js";
 import { usePermissions } from "../../context/PermissionsContext.jsx";
 import Uploads from "./Uploads.jsx";
 
@@ -25,8 +21,8 @@ import Uploads from "./Uploads.jsx";
 const POLL_INTERVAL_MS = 5000;
 
 const DEFAULT_ELECTIONS = [
-  { id: "ge2024-uuid", election_date: "2024-07-04", election_type: "general" },
-  { id: "local2026-uuid", election_date: "2026-05-07", election_type: "local" },
+  { electionId: "ge2024-uuid", date: "2024-07-04", electionType: "GENERAL" },
+  { electionId: "local2026-uuid", date: "2026-05-07", electionType: "LOCAL" },
 ];
 
 const DEFAULT_ALLOWED_CONSTITUENCIES = [
@@ -43,33 +39,6 @@ const DEFAULT_ALLOWED_CONSTITUENCIES = [
     association_name: "East Devon Association",
   },
 ];
-
-function makeElectionsMock(data = DEFAULT_ELECTIONS) {
-  return {
-    select: vi.fn().mockReturnValue({
-      order: vi.fn().mockResolvedValue({ data, error: null }),
-    }),
-  };
-}
-
-function makeConstituenciesMock(data = []) {
-  return {
-    select: vi.fn().mockReturnValue({
-      ilike: vi.fn().mockReturnValue({
-        order: vi.fn().mockReturnValue({
-          limit: vi.fn().mockResolvedValue({ data, error: null }),
-        }),
-      }),
-    }),
-  };
-}
-
-function setupSupabaseMock({ elections = DEFAULT_ELECTIONS } = {}) {
-  supabase.from.mockImplementation((table) => {
-    if (table === "elections") return makeElectionsMock(elections);
-    return makeConstituenciesMock([]);
-  });
-}
 
 function makeFile(name, type = "application/pdf", size = 1024) {
   const content = "x".repeat(size);
@@ -88,7 +57,7 @@ function setInputFiles(input, files) {
  * Stages a file and selects a constituency via the search dropdown.
  * Requires fake timers to be active before calling.
  */
-async function stageFileAndSelectConstituency(name, onsCode) {
+async function stageFileAndSelectConstituency(name, onsCode, expectedElectionId = "ge2024-uuid") {
   // Stage a file so the form appears
   const fileInput = document.querySelector('input[type="file"]');
   setInputFiles(fileInput, [makeFile("report.pdf", "application/pdf")]);
@@ -107,7 +76,7 @@ async function stageFileAndSelectConstituency(name, onsCode) {
     vi.advanceTimersByTime(400);
   });
 
-  // Flush promises from the supabase search call
+  // Flush promises from the local search debounce and election fetch
   await act(async () => {
     await Promise.resolve();
     await Promise.resolve();
@@ -116,12 +85,20 @@ async function stageFileAndSelectConstituency(name, onsCode) {
   // Click the result
   const option = screen.getByRole("option", { name: new RegExp(name, "i") });
   fireEvent.click(option);
+
+  await act(async () => {
+    await Promise.resolve();
+    await Promise.resolve();
+  });
+
+  expect(uploadApi.listElections).toHaveBeenCalledWith(onsCode, ["OPEN", "UPCOMING"]);
+  expect(screen.getByLabelText(/^Election$/i)).toHaveValue(expectedElectionId);
 }
 
 beforeEach(() => {
   vi.clearAllMocks();
   uploadApi.listJobs.mockResolvedValue({ items: [] });
-  setupSupabaseMock();
+  uploadApi.listElections.mockResolvedValue({ items: DEFAULT_ELECTIONS });
   usePermissions.mockReturnValue({
     allowedConstituencies: DEFAULT_ALLOWED_CONSTITUENCIES,
     loading: false,
@@ -212,7 +189,7 @@ describe("Uploads – upload flow", () => {
 
     render(<Uploads />);
 
-    // Flush initial data fetches (listJobs + elections)
+    // Flush initial data fetches
     await act(async () => {
       await Promise.resolve();
       await Promise.resolve();
@@ -270,16 +247,26 @@ describe("Uploads – upload flow", () => {
       await Promise.resolve();
     });
 
-    // Override to stage a CSV file
     const fileInput = document.querySelector('input[type="file"]');
     setInputFiles(fileInput, [makeFile("data.csv", "text/csv")]);
-    await act(async () => { await Promise.resolve(); });
+    await act(async () => {
+      await Promise.resolve();
+    });
 
     const searchInput = screen.getByLabelText(/Search constituency/i);
     fireEvent.change(searchInput, { target: { value: "Exeter" } });
-    act(() => { vi.advanceTimersByTime(400); });
-    await act(async () => { await Promise.resolve(); await Promise.resolve(); });
+    act(() => {
+      vi.advanceTimersByTime(400);
+    });
+    await act(async () => {
+      await Promise.resolve();
+    });
     fireEvent.click(screen.getByRole("option", { name: /Exeter/i }));
+    await act(async () => {
+      await Promise.resolve();
+      await Promise.resolve();
+    });
+    expect(screen.getByLabelText(/^Election$/i)).toHaveValue("ge2024-uuid");
 
     fireEvent.click(screen.getByText(/Upload 1 file/));
 
@@ -297,6 +284,21 @@ describe("Uploads – upload flow", () => {
     expect(options.body).toBeInstanceOf(FormData);
     expect(options.body.get("key")).toBe("uploads/sub1/test-job-2/data.csv");
     expect(options.body.get("file")).toBeInstanceOf(File);
+  });
+
+  it("loads elections from the upload API for the selected constituency", async () => {
+    vi.useFakeTimers();
+
+    render(<Uploads />);
+    await act(async () => {
+      await Promise.resolve();
+      await Promise.resolve();
+    });
+
+    await stageFileAndSelectConstituency("Exeter", "E14000637");
+
+    expect(uploadApi.listElections).toHaveBeenCalledWith("E14000637", ["OPEN", "UPCOMING"]);
+    expect(screen.getByLabelText("Election")).toHaveValue("ge2024-uuid");
   });
 
   it("shows the new job in the table after a successful upload", async () => {
@@ -435,49 +437,26 @@ describe("Uploads – polling", () => {
 // ── Elections ──────────────────────────────────────────────────────────────
 
 describe("Uploads – elections", () => {
-  it("loads elections from Supabase and defaults to 2024 General Election", async () => {
-    render(<Uploads />);
-    await waitFor(() => expect(uploadApi.listJobs).toHaveBeenCalled());
-
-    const input = document.querySelector('input[type="file"]');
-    setInputFiles(input, [makeFile("report.pdf", "application/pdf")]);
-
-    await waitFor(() => {
-      const select = screen.getByLabelText(/^Election$/i);
-      expect(select.value).toBe("ge2024-uuid");
-    });
-  });
-
-  it("defaults to the most recent general election when newer local elections exist", async () => {
-    setupSupabaseMock({
-      elections: [
-        { id: "local2026-uuid", election_date: "2026-05-07", election_type: "local" },
-        { id: "ge2024-uuid", election_date: "2024-07-04", election_type: "general" },
-        { id: "ge2019-uuid", election_date: "2019-12-12", election_type: "general" },
-      ],
-    });
-
-    render(<Uploads />);
-    await waitFor(() => expect(uploadApi.listJobs).toHaveBeenCalled());
-
-    const input = document.querySelector('input[type="file"]');
-    setInputFiles(input, [makeFile("report.pdf", "application/pdf")]);
-
-    await waitFor(() => {
-      const select = screen.getByLabelText(/^Election$/i);
-      expect(select.value).toBe("ge2024-uuid");
-    });
-  });
-
-  it("requires election selection when no elections loaded", async () => {
-    // No elections returned → no auto-select → electionId remains ""
-    setupSupabaseMock({ elections: [] });
+  it("loads elections from the upload API and defaults to 2024 General Election", async () => {
     vi.useFakeTimers();
 
     render(<Uploads />);
     await act(async () => { await Promise.resolve(); await Promise.resolve(); });
 
     await stageFileAndSelectConstituency("Exeter", "E14000637");
+
+    const select = screen.getByLabelText(/^Election$/i);
+    expect(select.value).toBe("ge2024-uuid");
+  });
+
+  it("requires election selection when no elections loaded", async () => {
+    uploadApi.listElections.mockResolvedValueOnce({ items: [] });
+    vi.useFakeTimers();
+
+    render(<Uploads />);
+    await act(async () => { await Promise.resolve(); await Promise.resolve(); });
+
+    await stageFileAndSelectConstituency("Exeter", "E14000637", "");
     fireEvent.click(screen.getByText(/Upload 1 file/));
     await act(async () => { await Promise.resolve(); });
 

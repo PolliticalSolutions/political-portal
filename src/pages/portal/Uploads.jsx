@@ -1,8 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import Button from "../../components/Button.jsx";
 import Card from "../../components/Card.jsx";
-import { supabase } from "../../lib/supabaseClient.js";
-import { createJob, getDownloadUrls, getJob, listJobs } from "../../lib/uploadApi.js";
+import { createJob, getDownloadUrls, getJob, listElections, listJobs } from "../../lib/uploadApi.js";
 import { usePermissions } from "../../context/PermissionsContext.jsx";
 
 const MAX_FILE_SIZE = 200 * 1024 * 1024; // 200 MB
@@ -26,14 +25,16 @@ function validateFile(file) {
 }
 
 function formatElection(e) {
-  const year = (e.election_date || "").slice(0, 4);
+  const year = (e.election_date || e.date || "").slice(0, 4);
   const typeMap = {
     general: "General Election",
     notional: "Notional (2019 boundaries)",
     local: "Local Elections",
     by_election: "By-election",
+    pcc: "PCC Election",
   };
-  const type = typeMap[e.election_type] || e.election_type || "Election";
+  const rawType = (e.election_type || e.electionType || "").toString().toLowerCase();
+  const type = typeMap[rawType] || rawType || "Election";
   return year ? `${year} ${type}` : type;
 }
 
@@ -246,6 +247,7 @@ export default function Uploads() {
   });
   const [elections, setElections] = useState([]);
   const [electionsError, setElectionsError] = useState(null);
+  const [electionsLoading, setElectionsLoading] = useState(false);
   const [showAdvanced, setShowAdvanced] = useState(false);
   const [jobs, setJobs] = useState([]);
   const [uploading, setUploading] = useState(false);
@@ -270,23 +272,51 @@ export default function Uploads() {
       .catch((err) => setLoadError(err.message));
   }, []);
 
-  // Load elections from Supabase on mount
   useEffect(() => {
-    supabase
-      .from("elections")
-      .select("id, election_date, election_type")
-      .order("election_date", { ascending: false })
-      .then(({ data, error }) => {
-        if (error) throw error;
-        const items = data || [];
+    const pconCode = submissionScope.pconCode.trim().toUpperCase();
+    if (!pconCode) {
+      setElections([]);
+      setElectionsError(null);
+      setSubmissionScope((scope) =>
+        scope.electionId ? { ...scope, electionId: "" } : scope
+      );
+      return;
+    }
+
+    let cancelled = false;
+    setElectionsLoading(true);
+    setElectionsError(null);
+
+    listElections(pconCode, ["OPEN", "UPCOMING"])
+      .then((data) => {
+        if (cancelled) return;
+        const items = data?.items || [];
         setElections(items);
-        const latestGeneralElection = items.find((e) => e.election_type === "general");
-        if (latestGeneralElection) {
-          setSubmissionScope((s) => ({ ...s, electionId: latestGeneralElection.id }));
-        }
+        const latestGeneralElection = items.find(
+          (e) => (e.electionType || "").toString().trim().toUpperCase() === "GENERAL"
+        );
+        const fallbackElection = items[0] || null;
+        setSubmissionScope((scope) => ({
+          ...scope,
+          electionId: latestGeneralElection?.electionId || fallbackElection?.electionId || "",
+        }));
       })
-      .catch(() => setElectionsError("Failed to load elections."));
-  }, []);
+      .catch(() => {
+        if (cancelled) return;
+        setElections([]);
+        setSubmissionScope((scope) => ({ ...scope, electionId: "" }));
+        setElectionsError("Failed to load elections for the selected constituency.");
+      })
+      .finally(() => {
+        if (!cancelled) {
+          setElectionsLoading(false);
+        }
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [submissionScope.pconCode]);
 
   // Poll active jobs
   useEffect(() => {
@@ -600,6 +630,7 @@ export default function Uploads() {
                 className="input"
                 id="electionId"
                 value={submissionScope.electionId}
+                disabled={!submissionScope.pconCode || electionsLoading}
                 onChange={(e) =>
                   setSubmissionScope((scope) => ({
                     ...scope,
@@ -607,9 +638,17 @@ export default function Uploads() {
                   }))
                 }
               >
-                <option value="">Select an election</option>
+                <option value="">
+                  {!submissionScope.pconCode
+                    ? "Select a constituency first"
+                    : electionsLoading
+                      ? "Loading elections…"
+                      : elections.length === 0
+                        ? "No elections available"
+                        : "Select an election"}
+                </option>
                 {elections.map((e) => (
-                  <option key={e.id} value={e.id}>
+                  <option key={e.electionId} value={e.electionId}>
                     {formatElection(e)}
                   </option>
                 ))}
