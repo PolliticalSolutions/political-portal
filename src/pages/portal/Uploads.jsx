@@ -37,7 +37,7 @@ function formatElection(e) {
   return year ? `${year} ${type}` : type;
 }
 
-function ConstituencySearch({ value, onChange, permittedIds = null }) {
+function ConstituencySearch({ value, onChange, permittedIds = null, assocByConstituencyId = {} }) {
   const [query, setQuery] = useState(value?.name || "");
   const [results, setResults] = useState([]);
   const [searching, setSearching] = useState(false);
@@ -183,7 +183,12 @@ function ConstituencySearch({ value, onChange, permittedIds = null }) {
                 e.currentTarget.style.background = "transparent";
               }}
             >
-              {c.name}
+              <span>{c.name}</span>
+              {assocByConstituencyId[c.id] && (
+                <span style={{ display: "block", fontSize: 12, color: "#64748b" }}>
+                  {assocByConstituencyId[c.id]}
+                </span>
+              )}
             </li>
           ))}
         </ul>
@@ -226,6 +231,12 @@ export default function Uploads() {
   const permittedIds = allowedConstituencies ? allowedConstituencies.map((c) => c.id) : null;
   const hasPermissions = allowedConstituencies !== null && allowedConstituencies.length > 0;
   const permissionsConfigured = allowedConstituencies !== null;
+  // Map constituency id -> association name for showing in search dropdown
+  const assocByConstituencyId = Object.fromEntries(
+    (allowedConstituencies || [])
+      .filter((c) => c.association_name)
+      .map((c) => [c.id, c.association_name])
+  );
 
   const [staged, setStaged] = useState([]);
   const [metadata, setMetadata] = useState({ clientName: "", notes: "" });
@@ -646,6 +657,7 @@ export default function Uploads() {
                 value={constituency}
                 onChange={handleConstituencyChange}
                 permittedIds={permittedIds}
+                assocByConstituencyId={assocByConstituencyId}
               />
               {constituency.code && (
                 <p style={{ margin: "4px 0 0", fontSize: 12, color: "#64748b" }}>

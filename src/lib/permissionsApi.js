@@ -73,7 +73,7 @@ export async function getUserConstituencies(cognitoSub) {
     for (const c of perm.constituencies) {
       if (!seen.has(c.id)) {
         seen.add(c.id);
-        result.push(c);
+        result.push({ ...c, association_name: perm.association_name });
       }
     }
   }
@@ -96,16 +96,43 @@ export async function hasAccessToConstituency(cognitoSub, constituencyId) {
 // ── Admin functions (service role required) ────────────────────────────────
 
 /**
- * Returns all associations (for admin dropdowns).
+ * Returns all associations with computed pricing and constituency count.
+ * Uses the associations_with_pricing view for admin pages.
+ * Falls back to the base table for lightweight dropdowns.
  */
-export async function listAssociations() {
+export async function listAssociations({ withPricing = false } = {}) {
   const db = getSupabaseServiceClient();
   if (!db) return [];
+  if (withPricing) {
+    const { data } = await db
+      .from("associations_with_pricing")
+      .select("*")
+      .order("name");
+    return data || [];
+  }
   const { data } = await db
     .from("associations")
     .select("id, name, region, country, notes, created_at")
     .order("name");
   return data || [];
+}
+
+/**
+ * Returns the count of active users (permissions) per association.
+ * Returns a map of associationId -> count.
+ */
+export async function getActiveUserCountsByAssociation() {
+  const db = getSupabaseServiceClient();
+  if (!db) return {};
+  const { data } = await db
+    .from("user_permissions")
+    .select("association_id")
+    .eq("is_active", true);
+  const counts = {};
+  for (const row of data || []) {
+    counts[row.association_id] = (counts[row.association_id] || 0) + 1;
+  }
+  return counts;
 }
 
 /**

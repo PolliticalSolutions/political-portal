@@ -5,6 +5,7 @@ import Card from "../../../components/Card.jsx";
 import { getAdminMe } from "../../../lib/uploadApi.js";
 import {
   createAssociation,
+  getActiveUserCountsByAssociation,
   getAssociationConstituencies,
   linkConstituency,
   listAssociations,
@@ -19,6 +20,7 @@ export default function AssociationsPage() {
 
   const [associations, setAssociations] = useState([]);
   const [loadingAssocs, setLoadingAssocs] = useState(true);
+  const [userCounts, setUserCounts] = useState({});
 
   const [editingId, setEditingId] = useState(null); // null = not editing
   const [editForm, setEditForm] = useState({ name: "", region: "", country: "England", notes: "" });
@@ -56,8 +58,12 @@ export default function AssociationsPage() {
   async function loadAssociations() {
     setLoadingAssocs(true);
     try {
-      const data = await listAssociations();
+      const [data, counts] = await Promise.all([
+        listAssociations({ withPricing: true }),
+        getActiveUserCountsByAssociation(),
+      ]);
       setAssociations(data);
+      setUserCounts(counts);
     } catch {
       // ignore
     } finally {
@@ -389,7 +395,7 @@ export default function AssociationsPage() {
                     </div>
                   ) : (
                     <div>
-                      <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 4 }}>
+                      <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 4, flexWrap: "wrap" }}>
                         <span style={{ fontWeight: 600, fontSize: 15 }}>{assoc.name}</span>
                         <Button
                           variant="ghost"
@@ -406,11 +412,29 @@ export default function AssociationsPage() {
                           {isExpanded ? "Hide constituencies" : "Constituencies"}
                         </Button>
                       </div>
-                      {assoc.region && (
+                      {(assoc.region || assoc.party_area) && (
                         <p className="muted" style={{ fontSize: 13, margin: 0 }}>
-                          {assoc.region}{assoc.country ? `, ${assoc.country}` : ""}
+                          {[assoc.party_area, assoc.region, assoc.nation].filter(Boolean).join(" · ")}
                         </p>
                       )}
+                      <div style={{ display: "flex", gap: 20, marginTop: 6, fontSize: 13 }}>
+                        <span>
+                          <strong>{assoc.constituency_count ?? 0}</strong>{" "}
+                          <span className="muted">constituency(ies)</span>
+                        </span>
+                        <span>
+                          <strong>£{(assoc.annual_price_calculated ?? 500).toLocaleString()}</strong>{" "}
+                          <span className="muted">ex-VAT / yr</span>
+                        </span>
+                        <span>
+                          <strong>£{(assoc.annual_price_inc_vat ?? 600).toLocaleString()}</strong>{" "}
+                          <span className="muted">inc-VAT</span>
+                        </span>
+                        <span>
+                          <strong>{userCounts[assoc.id] ?? 0}</strong>{" "}
+                          <span className="muted">active user(s)</span>
+                        </span>
+                      </div>
                       {assoc.notes && (
                         <p className="muted" style={{ fontSize: 13, margin: "4px 0 0" }}>
                           {assoc.notes}
