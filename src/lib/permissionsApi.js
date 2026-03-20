@@ -1,13 +1,35 @@
 /**
  * Permissions API — association-based constituency access control.
  *
- * All functions use the Supabase service role client so they can read
- * user_permissions (blocked from the anon role by RLS).
+ * Permissions reads prefer the Supabase service role client, but can fall
+ * back to the anon client for tables that have explicit anon read policies.
  *
  * Caching: callers should cache results in React context rather than
  * calling these functions on every render.
  */
 import { getSupabaseServiceClient } from "./supabaseServiceClient.js";
+import { supabase } from "./supabaseClient.js";
+
+const ASSOCIATION_QUERY_BATCH_SIZE = 50;
+
+function getPermissionsReadClient() {
+  const serviceClient = getSupabaseServiceClient();
+  if (serviceClient) {
+    console.log("[permissionsApi] Using service-role Supabase client for permissions read.");
+    return serviceClient;
+  }
+
+  console.warn("[permissionsApi] Falling back to anon Supabase client for permissions read.");
+  return supabase;
+}
+
+function chunkArray(items, size) {
+  const chunks = [];
+  for (let index = 0; index < items.length; index += size) {
+    chunks.push(items.slice(index, index + size));
+  }
+  return chunks;
+}
 
 /**
  * Returns the full permission record list for a user, including their
@@ -24,9 +46,9 @@ import { getSupabaseServiceClient } from "./supabaseServiceClient.js";
  */
 export async function getUserPermissions(cognitoSub) {
   if (!cognitoSub) return [];
-  const db = getSupabaseServiceClient();
+  const db = getPermissionsReadClient();
   if (!db) {
-    console.warn("[permissionsApi] Supabase service client unavailable in getUserPermissions.", {
+    console.warn("[permissionsApi] No Supabase client available in getUserPermissions.", {
       cognitoSub,
     });
     return [];
@@ -56,29 +78,48 @@ export async function getUserPermissions(cognitoSub) {
   if (permsErr || !perms?.length) return [];
 
   const assocIds = perms.map((p) => p.association_id);
+  const assocIdBatches = chunkArray(assocIds, ASSOCIATION_QUERY_BATCH_SIZE);
+  const allLinks = [];
 
-  console.log("[permissionsApi] Querying association_constituencies.", {
+  console.log("[permissionsApi] Querying association_constituencies in batches.", {
     table: "association_constituencies",
     filters: {
-      association_id_in: assocIds,
+      association_id_in_count: assocIds.length,
+      batchCount: assocIdBatches.length,
+      batchSize: ASSOCIATION_QUERY_BATCH_SIZE,
     },
   });
 
-  const { data: links, error: linksErr } = await db
-    .from("association_constituencies")
-    .select("association_id, constituencies(id, name, ons_code)")
-    .in("association_id", assocIds);
+  for (let index = 0; index < assocIdBatches.length; index += 1) {
+    const batch = assocIdBatches[index];
+    const { data: links, error: linksErr } = await db
+      .from("association_constituencies")
+      .select("association_id, constituencies(id, name, ons_code)")
+      .in("association_id", batch);
 
-  console.log("[permissionsApi] Raw Supabase response for association_constituencies.", {
-    cognitoSub,
-    associationIds: assocIds,
-    data: links,
-    error: linksErr,
-    rowCount: Array.isArray(links) ? links.length : 0,
-  });
+    console.log("[permissionsApi] Raw Supabase response for association_constituencies batch.", {
+      cognitoSub,
+      batchIndex: index,
+      batchAssociationIds: batch,
+      error: linksErr,
+      rowCount: Array.isArray(links) ? links.length : 0,
+    });
+
+    if (linksErr) {
+      console.error("[permissionsApi] association_constituencies batch query failed.", {
+        cognitoSub,
+        batchIndex: index,
+        batchAssociationIds: batch,
+        error: linksErr,
+      });
+      continue;
+    }
+
+    allLinks.push(...(links || []));
+  }
 
   const consByAssoc = {};
-  for (const link of links || []) {
+  for (const link of allLinks) {
     const aid = link.association_id;
     if (!consByAssoc[aid]) consByAssoc[aid] = [];
     if (link.constituencies) consByAssoc[aid].push(link.constituencies);
