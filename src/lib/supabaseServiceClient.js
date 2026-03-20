@@ -19,8 +19,19 @@ export function getSupabaseServiceClient() {
   if (_client) return _client;
   const { supabaseUrl, supabaseServiceKey } = getRuntimeConfig();
   if (!supabaseUrl || !supabaseServiceKey) {
+    console.warn("[supabaseServiceClient] Service client unavailable.", {
+      hasSupabaseUrl: Boolean(supabaseUrl),
+      hasSupabaseServiceKey: Boolean(supabaseServiceKey),
+      usingAnonFallback: false,
+    });
     return null;
   }
+  console.log("[supabaseServiceClient] Initializing service-role Supabase client.", {
+    hasSupabaseUrl: Boolean(supabaseUrl),
+    hasSupabaseServiceKey: Boolean(supabaseServiceKey),
+    usingAnonFallback: false,
+    keyPrefix: supabaseServiceKey.slice(0, 12),
+  });
   _client = createClient(supabaseUrl, supabaseServiceKey, {
     auth: { persistSession: false, autoRefreshToken: false },
   });

@@ -25,7 +25,20 @@ import { getSupabaseServiceClient } from "./supabaseServiceClient.js";
 export async function getUserPermissions(cognitoSub) {
   if (!cognitoSub) return [];
   const db = getSupabaseServiceClient();
-  if (!db) return [];
+  if (!db) {
+    console.warn("[permissionsApi] Supabase service client unavailable in getUserPermissions.", {
+      cognitoSub,
+    });
+    return [];
+  }
+
+  console.log("[permissionsApi] Querying user_permissions.", {
+    table: "user_permissions",
+    filters: {
+      cognito_sub: cognitoSub,
+      is_active: true,
+    },
+  });
 
   const { data: perms, error: permsErr } = await db
     .from("user_permissions")
@@ -33,14 +46,36 @@ export async function getUserPermissions(cognitoSub) {
     .eq("cognito_sub", cognitoSub)
     .eq("is_active", true);
 
+  console.log("[permissionsApi] Raw Supabase response for user_permissions.", {
+    cognitoSub,
+    data: perms,
+    error: permsErr,
+    rowCount: Array.isArray(perms) ? perms.length : 0,
+  });
+
   if (permsErr || !perms?.length) return [];
 
   const assocIds = perms.map((p) => p.association_id);
 
-  const { data: links } = await db
+  console.log("[permissionsApi] Querying association_constituencies.", {
+    table: "association_constituencies",
+    filters: {
+      association_id_in: assocIds,
+    },
+  });
+
+  const { data: links, error: linksErr } = await db
     .from("association_constituencies")
     .select("association_id, constituencies(id, name, ons_code)")
     .in("association_id", assocIds);
+
+  console.log("[permissionsApi] Raw Supabase response for association_constituencies.", {
+    cognitoSub,
+    associationIds: assocIds,
+    data: links,
+    error: linksErr,
+    rowCount: Array.isArray(links) ? links.length : 0,
+  });
 
   const consByAssoc = {};
   for (const link of links || []) {
@@ -66,6 +101,7 @@ export async function getUserPermissions(cognitoSub) {
  * @returns {Promise<Array<{ id: string, name: string, ons_code: string }>>}
  */
 export async function getUserConstituencies(cognitoSub) {
+  console.log("[permissionsApi] getUserConstituencies called.", { cognitoSub });
   const perms = await getUserPermissions(cognitoSub);
   const seen = new Set();
   const result = [];
@@ -78,6 +114,12 @@ export async function getUserConstituencies(cognitoSub) {
     }
   }
   result.sort((a, b) => a.name.localeCompare(b.name));
+  console.log("[permissionsApi] getUserConstituencies flattened result.", {
+    cognitoSub,
+    permissions: perms,
+    constituencies: result,
+    constituencyCount: result.length,
+  });
   return result;
 }
 
