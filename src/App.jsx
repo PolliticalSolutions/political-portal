@@ -18,6 +18,7 @@ import BlogIndexPage from "./pages/BlogIndexPage.jsx";
 import BlogPostPage from "./pages/BlogPostPage.jsx";
 import Home from "./pages/Home.jsx";
 import Login from "./pages/Login.jsx";
+import Subscribe from "./pages/Subscribe.jsx";
 import Subscriptions from "./pages/Subscriptions.jsx";
 import SubscriptionsEntry from "./pages/SubscriptionsEntry.jsx";
 import Services from "./pages/Services.jsx";
@@ -283,7 +284,8 @@ export default function App() {
               path="/checkout/confirmation"
               element={<CheckoutConfirmationEntry authed={authed} />}
             />
-            <Route path="/subscriptions" element={<SubscriptionsEntry authed={authed} />} />
+            <Route path="/subscribe" element={<Subscribe />} />
+            <Route path="/subscriptions" element={<Navigate to="/subscribe" replace />} />
             <Route path="/services" element={<Services />} />
             <Route path="/services/election-support" element={<ServiceSupport />} />
             <Route path="/privacy" element={<PrivacyPage />} />

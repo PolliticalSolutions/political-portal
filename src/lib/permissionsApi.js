@@ -248,3 +248,96 @@ export async function unlinkConstituency(linkId) {
   const { error } = await db.from("association_constituencies").delete().eq("id", linkId);
   if (error) throw new Error(error.message);
 }
+
+export async function listSubscriptions() {
+  const db = getSupabaseServiceClient();
+  if (!db) return [];
+  const { data } = await db
+    .from("subscriptions")
+    .select(`
+      id,
+      association_id,
+      cognito_sub,
+      user_email,
+      stripe_customer_id,
+      stripe_subscription_id,
+      stripe_invoice_id,
+      status,
+      amount_ex_vat,
+      amount_inc_vat,
+      billing_period_start,
+      billing_period_end,
+      created_at,
+      updated_at,
+      admin_override_active,
+      admin_override_notes,
+      associations(id, name)
+    `)
+    .order("created_at", { ascending: false });
+  return data || [];
+}
+
+export async function setSubscriptionStatus({
+  subscriptionId,
+  status,
+  adminEmail,
+  activatePermissions = false,
+  notes = "",
+}) {
+  const db = getSupabaseServiceClient();
+  if (!db) throw new Error("Supabase service client not available.");
+
+  const { data: subscription, error: subscriptionError } = await db
+    .from("subscriptions")
+    .select("id, association_id, cognito_sub, user_email")
+    .eq("id", subscriptionId)
+    .single();
+
+  if (subscriptionError || !subscription) {
+    throw new Error(subscriptionError?.message || "Subscription not found.");
+  }
+
+  const { error } = await db
+    .from("subscriptions")
+    .update({
+      status,
+      admin_override_active: activatePermissions,
+      admin_override_notes: notes || null,
+      updated_at: new Date().toISOString(),
+    })
+    .eq("id", subscriptionId);
+
+  if (error) throw new Error(error.message);
+
+  if (subscription.cognito_sub && subscription.association_id) {
+    if (activatePermissions) {
+      await db
+        .from("user_permissions")
+        .upsert(
+          {
+            cognito_sub: subscription.cognito_sub,
+            user_email: subscription.user_email,
+            association_id: subscription.association_id,
+            granted_by: adminEmail,
+            is_active: true,
+            notes: notes || "Manual subscription activation",
+          },
+          { onConflict: "cognito_sub,association_id" }
+        );
+    } else {
+      await db
+        .from("user_permissions")
+        .update({ is_active: false })
+        .eq("cognito_sub", subscription.cognito_sub)
+        .eq("association_id", subscription.association_id);
+    }
+  }
+
+  await db.from("permission_audit_log").insert({
+    admin_email: adminEmail,
+    action: activatePermissions ? "SUBSCRIPTION_ACTIVATE" : "SUBSCRIPTION_SUSPEND",
+    target_email: subscription.user_email,
+    association_id: subscription.association_id,
+    detail: notes || status,
+  });
+}

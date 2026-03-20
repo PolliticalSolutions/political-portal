@@ -1865,6 +1865,41 @@ p {
   line-height: 1.5;
 }
 
+.subscribe-pricing {
+  display: grid;
+  gap: var(--space-2);
+  padding: var(--space-4);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--surface-subtle);
+}
+
+.subscribe-pricing__row {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--space-3);
+}
+
+.subscribe-pricing__row--total {
+  padding-top: var(--space-2);
+  border-top: 1px solid var(--border);
+  font-size: 16px;
+}
+
+.subscribe-card-element {
+  padding: 14px 16px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--surface);
+}
+
+.subscribe-mode-toggle {
+  display: flex;
+  gap: var(--space-2);
+  flex-wrap: wrap;
+  margin-bottom: var(--space-4);
+}
+
 .portal-placeholder-panel {
   padding: var(--space-5);
   border-radius: var(--radius-lg);

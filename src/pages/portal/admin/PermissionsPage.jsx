@@ -7,7 +7,9 @@ import {
   getPermissionsByEmail,
   grantPermission,
   listAssociations,
+  listSubscriptions,
   revokePermission,
+  setSubscriptionStatus,
 } from "../../../lib/permissionsApi.js";
 import { getSession } from "../../../auth/session.js";
 
@@ -27,6 +29,10 @@ export default function PermissionsPage() {
   const [revoking, setRevoking] = useState("");
 
   const [banner, setBanner] = useState({ type: "", msg: "" });
+  const [activeTab, setActiveTab] = useState("permissions");
+  const [subscriptions, setSubscriptions] = useState([]);
+  const [subscriptionsLoading, setSubscriptionsLoading] = useState(false);
+  const [subscriptionActionId, setSubscriptionActionId] = useState("");
 
   const adminEmail = getSession()?.user?.email || "";
 
@@ -41,6 +47,14 @@ export default function PermissionsPage() {
   // Load associations for dropdown
   useEffect(() => {
     listAssociations().then(setAssociations).catch(() => {});
+  }, []);
+
+  useEffect(() => {
+    setSubscriptionsLoading(true);
+    listSubscriptions()
+      .then(setSubscriptions)
+      .catch(() => setSubscriptions([]))
+      .finally(() => setSubscriptionsLoading(false));
   }, []);
 
   if (!adminChecked) {
@@ -127,6 +141,61 @@ export default function PermissionsPage() {
   const activePerms = (searchResults || []).filter((p) => p.is_active);
   const inactivePerms = (searchResults || []).filter((p) => !p.is_active);
 
+  async function refreshSubscriptions() {
+    const next = await listSubscriptions();
+    setSubscriptions(next);
+  }
+
+  async function handleSubscriptionOverride(subscription, activatePermissions) {
+    setSubscriptionActionId(subscription.id);
+    try {
+      await setSubscriptionStatus({
+        subscriptionId: subscription.id,
+        status: activatePermissions ? "active" : "suspended",
+        adminEmail,
+        activatePermissions,
+        notes: activatePermissions ? "Manual admin activation" : "Manual admin suspension",
+      });
+      flashBanner("success", activatePermissions ? "Subscription activated." : "Subscription suspended.");
+      await refreshSubscriptions();
+    } catch (err) {
+      flashBanner("error", err.message);
+    } finally {
+      setSubscriptionActionId("");
+    }
+  }
+
+  function exportSubscriptionsCsv() {
+    const headers = [
+      "Association",
+      "Email",
+      "Status",
+      "Stripe customer ID",
+      "Stripe subscription ID",
+      "Amount inc VAT",
+      "Renewal date",
+    ];
+    const rows = subscriptions.map((subscription) => [
+      subscription.associations?.name || subscription.association_id || "",
+      subscription.user_email || "",
+      subscription.status || "",
+      subscription.stripe_customer_id || "",
+      subscription.stripe_subscription_id || "",
+      subscription.amount_inc_vat || "",
+      subscription.billing_period_end || "",
+    ]);
+    const csv = [headers, ...rows]
+      .map((row) => row.map((cell) => `"${String(cell ?? "").replace(/"/g, '""')}"`).join(","))
+      .join("\n");
+    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = "subscriptions.csv";
+    link.click();
+    URL.revokeObjectURL(url);
+  }
+
   return (
     <div className="page stack">
       <Card>
@@ -135,9 +204,20 @@ export default function PermissionsPage() {
             <span className="portal-page-header__eyebrow">Admin</span>
             <h1 className="portal-page-header__title">Permissions</h1>
             <p className="portal-page-header__subtitle">
-              Manage which associations users can upload Marked Register data for.
+              Manage upload permissions and subscription-linked access.
             </p>
           </div>
+        </div>
+      </Card>
+
+      <Card>
+        <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+          <Button variant={activeTab === "permissions" ? "primary" : "ghost"} onClick={() => setActiveTab("permissions")}>
+            Permissions
+          </Button>
+          <Button variant={activeTab === "subscriptions" ? "primary" : "ghost"} onClick={() => setActiveTab("subscriptions")}>
+            Subscriptions
+          </Button>
         </div>
       </Card>
 
@@ -157,7 +237,8 @@ export default function PermissionsPage() {
         </div>
       )}
 
-      {/* User search */}
+      {activeTab === "permissions" && (
+        <>
       <Card title="Find user">
         <form
           className="stack"
@@ -291,6 +372,97 @@ export default function PermissionsPage() {
           </Button>
         </div>
       </Card>
+        </>
+      )}
+
+      {activeTab === "subscriptions" && (
+        <Card
+          title="Subscriptions"
+          action={
+            <Button variant="ghost" onClick={exportSubscriptionsCsv} disabled={subscriptions.length === 0}>
+              Export to CSV
+            </Button>
+          }
+        >
+          {subscriptionsLoading ? (
+            <p className="muted">Loading subscriptions…</p>
+          ) : subscriptions.length === 0 ? (
+            <p className="muted">No subscription records found.</p>
+          ) : (
+            <div className="table-wrap">
+              <table className="table">
+                <thead>
+                  <tr>
+                    <th>Association</th>
+                    <th>Status</th>
+                    <th>Stripe</th>
+                    <th>Amount paid</th>
+                    <th>Renewal date</th>
+                    <th>Override</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {subscriptions.map((subscription) => (
+                    <tr key={subscription.id}>
+                      <td>
+                        <div style={{ fontWeight: 600 }}>
+                          {subscription.associations?.name || subscription.association_id}
+                        </div>
+                        <div className="muted" style={{ fontSize: 12 }}>{subscription.user_email}</div>
+                      </td>
+                      <td>
+                        <span className={`status-pill ${
+                          subscription.status === "active"
+                            ? "success"
+                            : subscription.status === "pending"
+                              ? "warning"
+                              : "secondary"
+                        }`}>
+                          {subscription.status}
+                        </span>
+                      </td>
+                      <td style={{ fontSize: 12 }}>
+                        <div>{subscription.stripe_customer_id || "—"}</div>
+                        <div className="muted">{subscription.stripe_subscription_id || subscription.stripe_invoice_id || "—"}</div>
+                      </td>
+                      <td>
+                        {subscription.amount_inc_vat != null ? `£${Number(subscription.amount_inc_vat).toFixed(2)}` : "—"}
+                      </td>
+                      <td>
+                        {subscription.billing_period_end
+                          ? new Date(subscription.billing_period_end).toLocaleDateString("en-GB")
+                          : "—"}
+                      </td>
+                      <td>
+                        <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                          <Button
+                            variant="ghost"
+                            className="button--small"
+                            loading={subscriptionActionId === subscription.id}
+                            disabled={Boolean(subscriptionActionId)}
+                            onClick={() => handleSubscriptionOverride(subscription, true)}
+                          >
+                            Activate
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            className="button--small"
+                            loading={subscriptionActionId === subscription.id}
+                            disabled={Boolean(subscriptionActionId)}
+                            onClick={() => handleSubscriptionOverride(subscription, false)}
+                          >
+                            Suspend
+                          </Button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </Card>
+      )}
     </div>
   );
 }

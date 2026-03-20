@@ -10,10 +10,14 @@ describe("getRuntimeConfig", () => {
     vi.stubEnv("VITE_API_BASE_URL", "https://api.example.com///");
     vi.stubEnv("VITE_ENQUIRY_API_URL", "https://enquiry.example.com/");
     vi.stubEnv("VITE_UPLOAD_API_URL", "https://upload.example.com/");
+    vi.stubEnv("VITE_STRIPE_PUBLISHABLE_KEY", "pk_test_123");
+    vi.stubEnv("VITE_STRIPE_API_URL", "https://stripe.example.com/");
     const config = getRuntimeConfig();
     expect(config.apiBaseUrlExplicit).toBe("https://api.example.com");
     expect(config.enquiryApiUrl).toBe("https://enquiry.example.com");
     expect(config.uploadApiBaseUrl).toBe("https://upload.example.com");
+    expect(config.stripePublishableKey).toBe("pk_test_123");
+    expect(config.stripeApiBaseUrl).toBe("https://stripe.example.com");
   });
 
   it("returns the default site URL when VITE_SITE_URL is not set", () => {
@@ -44,11 +48,15 @@ describe("getRuntimeConfig", () => {
 
   it("returns empty strings for unset optional keys", () => {
     vi.stubEnv("VITE_UPLOAD_API_URL", "");
+    vi.stubEnv("VITE_STRIPE_PUBLISHABLE_KEY", "");
+    vi.stubEnv("VITE_STRIPE_API_URL", "");
     vi.stubEnv("VITE_COGNITO_LOGOUT_URI", "");
     vi.stubEnv("VITE_SUPABASE_URL", "");
     vi.stubEnv("VITE_SUPABASE_ANON_KEY", "");
     const config = getRuntimeConfig();
     expect(config.uploadApiBaseUrl).toBe("");
+    expect(config.stripePublishableKey).toBe("");
+    expect(config.stripeApiBaseUrl).toBe("");
     expect(config.cognitoLogoutUri).toBe("");
     expect(config.supabaseUrl).toBe("");
     expect(config.supabaseAnonKey).toBe("");

@@ -27,6 +27,8 @@
   },
   "dependencies": {
     "@giscus/react": "^3.1.0",
+    "@stripe/react-stripe-js": "^5.6.1",
+    "@stripe/stripe-js": "^8.11.0",
     "@supabase/supabase-js": "^2.99.2",
     "prop-types": "^15.8.1",
     "react": "^19.2.3",
