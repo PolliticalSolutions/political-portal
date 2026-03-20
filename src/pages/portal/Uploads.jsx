@@ -37,7 +37,7 @@ function formatElection(e) {
   return year ? `${year} ${type}` : type;
 }
 
-function ConstituencySearch({ value, onChange, permittedIds = null, assocByConstituencyId = {} }) {
+function ConstituencySearch({ value, onChange, allowedConstituencies = [], assocByConstituencyId = {} }) {
   const [query, setQuery] = useState(value?.name || "");
   const [results, setResults] = useState([]);
   const [searching, setSearching] = useState(false);
@@ -53,20 +53,19 @@ function ConstituencySearch({ value, onChange, permittedIds = null, assocByConst
       return undefined;
     }
     clearTimeout(debounceRef.current);
-    debounceRef.current = setTimeout(async () => {
+    debounceRef.current = setTimeout(() => {
       setSearching(true);
       try {
-        let qb = supabase
-          .from("constituencies")
-          .select("id, ons_code, name")
-          .ilike("name", `%${q}%`)
-          .order("name")
-          .limit(10);
-        if (permittedIds && permittedIds.length > 0) {
-          qb = qb.in("id", permittedIds);
-        }
-        const { data } = await qb;
-        setResults(data || []);
+        const normalizedQuery = q.toLowerCase();
+        const filtered = allowedConstituencies
+          .filter((item) => {
+            const name = (item.name || "").toLowerCase();
+            const onsCode = (item.ons_code || "").toLowerCase();
+            return name.includes(normalizedQuery) || onsCode.includes(normalizedQuery);
+          })
+          .sort((a, b) => a.name.localeCompare(b.name))
+          .slice(0, 10);
+        setResults(filtered);
         setOpen(true);
       } catch {
         setResults([]);
@@ -75,7 +74,7 @@ function ConstituencySearch({ value, onChange, permittedIds = null, assocByConst
       }
     }, 300);
     return () => clearTimeout(debounceRef.current);
-  }, [query, value?.name, permittedIds]);
+  }, [query, value?.name, allowedConstituencies]);
 
   useEffect(() => {
     const handler = (e) => {
@@ -228,7 +227,6 @@ function StatusBadge({ status }) {
 
 export default function Uploads() {
   const { allowedConstituencies, loading: permsLoading } = usePermissions();
-  const permittedIds = allowedConstituencies ? allowedConstituencies.map((c) => c.id) : null;
   const hasPermissions = allowedConstituencies !== null && allowedConstituencies.length > 0;
   const permissionsConfigured = allowedConstituencies !== null;
   // Map constituency id -> association name for showing in search dropdown
@@ -245,7 +243,6 @@ export default function Uploads() {
     pconCode: "",
     wards: "",
     electionId: "",
-    manualReviewReason: "",
   });
   const [elections, setElections] = useState([]);
   const [electionsError, setElectionsError] = useState(null);
@@ -257,6 +254,14 @@ export default function Uploads() {
   const [dragOver, setDragOver] = useState(false);
   const fileInputRef = useRef(null);
   const pollingRef = useRef(null);
+
+  useEffect(() => {
+    if (allowedConstituencies === null) return;
+    console.log("[Uploads] Available constituencies for search.", {
+      constituencyCount: allowedConstituencies.length,
+      constituencies: allowedConstituencies,
+    });
+  }, [allowedConstituencies]);
 
   // Load jobs on mount
   useEffect(() => {
@@ -275,14 +280,9 @@ export default function Uploads() {
         if (error) throw error;
         const items = data || [];
         setElections(items);
-        // Default to 2024 General Election
-        const ge2024 = items.find(
-          (e) =>
-            (e.election_date || "").startsWith("2024") &&
-            e.election_type === "general"
-        );
-        if (ge2024) {
-          setSubmissionScope((s) => ({ ...s, electionId: ge2024.id }));
+        const latestGeneralElection = items.find((e) => e.election_type === "general");
+        if (latestGeneralElection) {
+          setSubmissionScope((s) => ({ ...s, electionId: latestGeneralElection.id }));
         }
       })
       .catch(() => setElectionsError("Failed to load elections."));
@@ -364,10 +364,6 @@ export default function Uploads() {
       setUploadErrors(["Election selection is required."]);
       return;
     }
-    if (electionId === "OTHER" && submissionScope.manualReviewReason.trim().length < 10) {
-      setUploadErrors(["Manual review reason must be at least 10 characters when election is Other."]);
-      return;
-    }
 
     const wardCodes = submissionScope.wards
       .split(",")
@@ -386,9 +382,6 @@ export default function Uploads() {
           filename: file.name,
           pconCode,
           electionId,
-          ...(electionId === "OTHER"
-            ? { manualReviewReason: submissionScope.manualReviewReason.trim() }
-            : {}),
           ...(wardCodes.length > 0 ? { wards: wardCodes } : {}),
           fileType,
           size: file.size,
@@ -611,8 +604,6 @@ export default function Uploads() {
                   setSubmissionScope((scope) => ({
                     ...scope,
                     electionId: e.target.value,
-                    manualReviewReason:
-                      e.target.value === "OTHER" ? scope.manualReviewReason : "",
                   }))
                 }
               >
@@ -622,7 +613,6 @@ export default function Uploads() {
                     {formatElection(e)}
                   </option>
                 ))}
-                <option value="OTHER">Other / Not listed</option>
               </select>
               {electionsError && (
                 <p style={{ margin: "6px 0 0", fontSize: 12, color: "#b91c1c" }}>
@@ -631,32 +621,13 @@ export default function Uploads() {
               )}
             </div>
 
-            {submissionScope.electionId === "OTHER" && (
-              <label className="field" htmlFor="manualReviewReason">
-                <span>Manual review reason</span>
-                <textarea
-                  className="input"
-                  id="manualReviewReason"
-                  rows={3}
-                  value={submissionScope.manualReviewReason}
-                  onChange={(e) =>
-                    setSubmissionScope((scope) => ({
-                      ...scope,
-                      manualReviewReason: e.target.value,
-                    }))
-                  }
-                  placeholder="Explain why this election is not listed (minimum 10 characters)."
-                />
-              </label>
-            )}
-
             {/* Constituency */}
             <div className="field">
               <label htmlFor="constituency-search">Constituency</label>
               <ConstituencySearch
                 value={constituency}
                 onChange={handleConstituencyChange}
-                permittedIds={permittedIds}
+                allowedConstituencies={allowedConstituencies || []}
                 assocByConstituencyId={assocByConstituencyId}
               />
               {constituency.code && (
@@ -727,11 +698,7 @@ export default function Uploads() {
             <Button
               onClick={handleUpload}
               loading={uploading}
-              disabled={
-                uploading ||
-                (submissionScope.electionId === "OTHER" &&
-                  submissionScope.manualReviewReason.trim().length < 10)
-              }
+              disabled={uploading}
             >
               {uploading
                 ? "Uploading…"

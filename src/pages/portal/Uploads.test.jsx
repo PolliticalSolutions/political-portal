@@ -12,8 +12,13 @@ vi.mock("../../lib/supabaseClient.js", () => ({
   supabase: { from: vi.fn() },
 }));
 
+vi.mock("../../context/PermissionsContext.jsx", () => ({
+  usePermissions: vi.fn(),
+}));
+
 import * as uploadApi from "../../lib/uploadApi.js";
 import { supabase } from "../../lib/supabaseClient.js";
+import { usePermissions } from "../../context/PermissionsContext.jsx";
 import Uploads from "./Uploads.jsx";
 
 // Expose the constant so the test can reference it without import
@@ -22,6 +27,21 @@ const POLL_INTERVAL_MS = 5000;
 const DEFAULT_ELECTIONS = [
   { id: "ge2024-uuid", election_date: "2024-07-04", election_type: "general" },
   { id: "local2026-uuid", election_date: "2026-05-07", election_type: "local" },
+];
+
+const DEFAULT_ALLOWED_CONSTITUENCIES = [
+  {
+    id: "c1",
+    ons_code: "E14000637",
+    name: "Exeter",
+    association_name: "Exeter Association",
+  },
+  {
+    id: "c2",
+    ons_code: "E14001234",
+    name: "East Devon",
+    association_name: "East Devon Association",
+  },
 ];
 
 function makeElectionsMock(data = DEFAULT_ELECTIONS) {
@@ -78,11 +98,6 @@ async function stageFileAndSelectConstituency(name, onsCode) {
     await Promise.resolve();
   });
 
-  // Set up constituency mock for the search
-  supabase.from.mockImplementationOnce(() =>
-    makeConstituenciesMock([{ id: "c1", ons_code: onsCode, name }])
-  );
-
   // Type in the constituency search box
   const searchInput = screen.getByLabelText(/Search constituency/i);
   fireEvent.change(searchInput, { target: { value: name } });
@@ -99,7 +114,7 @@ async function stageFileAndSelectConstituency(name, onsCode) {
   });
 
   // Click the result
-  const option = screen.getByRole("option", { name });
+  const option = screen.getByRole("option", { name: new RegExp(name, "i") });
   fireEvent.click(option);
 }
 
@@ -107,6 +122,12 @@ beforeEach(() => {
   vi.clearAllMocks();
   uploadApi.listJobs.mockResolvedValue({ items: [] });
   setupSupabaseMock();
+  usePermissions.mockReturnValue({
+    allowedConstituencies: DEFAULT_ALLOWED_CONSTITUENCIES,
+    loading: false,
+    error: null,
+    reload: vi.fn(),
+  });
 });
 
 afterEach(() => {
@@ -254,14 +275,11 @@ describe("Uploads – upload flow", () => {
     setInputFiles(fileInput, [makeFile("data.csv", "text/csv")]);
     await act(async () => { await Promise.resolve(); });
 
-    supabase.from.mockImplementationOnce(() =>
-      makeConstituenciesMock([{ id: "c1", ons_code: "E14000637", name: "Exeter" }])
-    );
     const searchInput = screen.getByLabelText(/Search constituency/i);
     fireEvent.change(searchInput, { target: { value: "Exeter" } });
     act(() => { vi.advanceTimersByTime(400); });
     await act(async () => { await Promise.resolve(); await Promise.resolve(); });
-    fireEvent.click(screen.getByRole("option", { name: "Exeter" }));
+    fireEvent.click(screen.getByRole("option", { name: /Exeter/i }));
 
     fireEvent.click(screen.getByText(/Upload 1 file/));
 
@@ -430,6 +448,27 @@ describe("Uploads – elections", () => {
     });
   });
 
+  it("defaults to the most recent general election when newer local elections exist", async () => {
+    setupSupabaseMock({
+      elections: [
+        { id: "local2026-uuid", election_date: "2026-05-07", election_type: "local" },
+        { id: "ge2024-uuid", election_date: "2024-07-04", election_type: "general" },
+        { id: "ge2019-uuid", election_date: "2019-12-12", election_type: "general" },
+      ],
+    });
+
+    render(<Uploads />);
+    await waitFor(() => expect(uploadApi.listJobs).toHaveBeenCalled());
+
+    const input = document.querySelector('input[type="file"]');
+    setInputFiles(input, [makeFile("report.pdf", "application/pdf")]);
+
+    await waitFor(() => {
+      const select = screen.getByLabelText(/^Election$/i);
+      expect(select.value).toBe("ge2024-uuid");
+    });
+  });
+
   it("requires election selection when no elections loaded", async () => {
     // No elections returned → no auto-select → electionId remains ""
     setupSupabaseMock({ elections: [] });
@@ -446,46 +485,41 @@ describe("Uploads – elections", () => {
     expect(uploadApi.createJob).not.toHaveBeenCalled();
   });
 
-  it("shows Other / Not listed option and requires manual review reason", async () => {
+  it("filters the allowed constituencies locally and shows matching dropdown results", async () => {
     vi.useFakeTimers();
-
-    uploadApi.createJob.mockResolvedValue({
-      jobId: "test-job-other",
-      upload: {
-        url: "https://s3.example.com/presigned",
-        fields: { key: "uploads/sub1/test-job-other/report.pdf" },
-      },
-      s3Key: "uploads/sub1/test-job-other/report.pdf",
-    });
-    global.fetch = vi.fn().mockResolvedValue({ ok: true });
 
     render(<Uploads />);
     await act(async () => { await Promise.resolve(); await Promise.resolve(); });
 
-    await stageFileAndSelectConstituency("Exeter", "E14000637");
+    const input = document.querySelector('input[type="file"]');
+    setInputFiles(input, [makeFile("report.pdf", "application/pdf")]);
+    await act(async () => { await Promise.resolve(); });
 
-    fireEvent.change(screen.getByLabelText(/^Election$/i), {
-      target: { value: "OTHER" },
+    const searchInput = screen.getByLabelText(/Search constituency/i);
+    fireEvent.change(searchInput, { target: { value: "Exet" } });
+
+    act(() => {
+      vi.advanceTimersByTime(400);
     });
 
-    expect(screen.getByLabelText(/Manual review reason/i)).toBeInTheDocument();
-    expect(screen.getByText(/Upload 1 file/)).toBeDisabled();
-
-    fireEvent.change(screen.getByLabelText(/Manual review reason/i), {
-      target: { value: "Election is not yet configured for this ward set." },
+    await act(async () => {
+      await Promise.resolve();
     });
 
-    expect(screen.getByText(/Upload 1 file/)).not.toBeDisabled();
-    fireEvent.click(screen.getByText(/Upload 1 file/));
+    expect(screen.getByRole("option", { name: /Exeter/i })).toBeInTheDocument();
+    expect(screen.queryByRole("option", { name: /East Devon/i })).not.toBeInTheDocument();
+  });
 
-    await act(async () => { await Promise.resolve(); await Promise.resolve(); });
+  it("does not show the manual review reason field to users", async () => {
+    render(<Uploads />);
+    await waitFor(() => expect(uploadApi.listJobs).toHaveBeenCalled());
 
-    expect(uploadApi.createJob).toHaveBeenCalledWith(
-      expect.objectContaining({
-        pconCode: "E14000637",
-        electionId: "OTHER",
-        manualReviewReason: "Election is not yet configured for this ward set.",
-      })
-    );
+    const input = document.querySelector('input[type="file"]');
+    setInputFiles(input, [makeFile("report.pdf", "application/pdf")]);
+
+    await waitFor(() => {
+      expect(screen.queryByLabelText(/Manual review reason/i)).not.toBeInTheDocument();
+      expect(screen.queryByRole("option", { name: /Other \/ Not listed/i })).not.toBeInTheDocument();
+    });
   });
 });
