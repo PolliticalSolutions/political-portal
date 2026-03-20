@@ -95,6 +95,38 @@ Parameters:
     Type: String
     Default: ""
     Description: Cognito app client id for JWT verification.
+  StripeSecretKey:
+    Type: String
+    Default: ""
+    NoEcho: true
+    Description: Stripe secret key (sk_live_... or sk_test_...).
+  StripeWebhookSecret:
+    Type: String
+    Default: ""
+    NoEcho: true
+    Description: Stripe webhook signing secret (whsec_...).
+  SupabaseUrl:
+    Type: String
+    Default: ""
+    Description: Supabase project URL.
+  SupabaseServiceRoleKey:
+    Type: String
+    Default: ""
+    NoEcho: true
+    Description: Supabase service role key (bypasses RLS).
+  CognitoUserPoolId:
+    Type: String
+    Default: ""
+    Description: Cognito User Pool ID for auto-provisioning users.
+  CognitoTempPassword:
+    Type: String
+    Default: "ChangeMe!123"
+    NoEcho: true
+    Description: Temporary password for auto-created Cognito users.
+  SesFromEmail:
+    Type: String
+    Default: ""
+    Description: SES-verified email for Stripe welcome emails.
   AlarmTopicArn:
     Type: String
     Default: ""
@@ -263,7 +295,7 @@ Resources:
     Type: AWS::Logs::LogGroup
     Condition: WafLoggingOn
     Properties:
-      LogGroupName: !Sub "/aws/waf/${AWS::StackName}"
+      LogGroupName: !Sub "aws-waf-logs-${AWS::StackName}"
       RetentionInDays: !Ref WafLogRetentionDays
 
   EnquiryWafLogging:
@@ -406,6 +438,63 @@ Resources:
             ApiId: !Ref EnquiryApi
             Path: /xero/test-invoice
             Method: POST
+
+  StripeFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: stripe-src/
+      Handler: index.handler
+      Runtime: nodejs20.x
+      Timeout: 29
+      MemorySize: 256
+      Environment:
+        Variables:
+          STRIPE_SECRET_KEY: !Ref StripeSecretKey
+          STRIPE_WEBHOOK_SECRET: !Ref StripeWebhookSecret
+          SUPABASE_URL: !Ref SupabaseUrl
+          SUPABASE_SERVICE_ROLE_KEY: !Ref SupabaseServiceRoleKey
+          COGNITO_USER_POOL_ID: !Ref CognitoUserPoolId
+          COGNITO_TEMP_PASSWORD: !Ref CognitoTempPassword
+          SES_FROM_EMAIL: !Ref SesFromEmail
+      Policies:
+        - Statement:
+            Effect: Allow
+            Action:
+              - ses:SendEmail
+              - ses:SendRawEmail
+            Resource: "*"
+        - Statement:
+            Effect: Allow
+            Action:
+              - cognito-idp:AdminCreateUser
+              - cognito-idp:AdminGetUser
+              - cognito-idp:AdminSetUserPassword
+            Resource: !Sub "arn:aws:cognito-idp:${AWS::Region}:${AWS::AccountId}:userpool/*"
+      Events:
+        StripeCreatePaymentIntent:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref EnquiryApi
+            Path: /stripe/create-payment-intent
+            Method: POST
+        StripeCreateInvoice:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref EnquiryApi
+            Path: /stripe/create-invoice
+            Method: POST
+        StripeWebhook:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref EnquiryApi
+            Path: /stripe/webhook
+            Method: POST
+        StripeRenewalSweep:
+          Type: Schedule
+          Properties:
+            Schedule: cron(0 2 * * ? *)
+            Description: Daily renewal sweep to suspend overdue subscriptions.
+            Enabled: true
 
   QuoteDlqQueue:
     Type: AWS::SQS::Queue

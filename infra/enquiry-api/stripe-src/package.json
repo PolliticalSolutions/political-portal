@@ -1,0 +1,12 @@
+{
+  "name": "political-solutions-stripe-handler",
+  "version": "1.0.0",
+  "private": true,
+  "type": "commonjs",
+  "dependencies": {
+    "@aws-sdk/client-cognito-identity-provider": "^3.775.0",
+    "@aws-sdk/client-sesv2": "^3.775.0",
+    "@supabase/supabase-js": "^2.99.2",
+    "stripe": "^18.0.0"
+  }
+}
