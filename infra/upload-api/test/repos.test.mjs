@@ -25,7 +25,7 @@ describe("usersRepo", () => {
     const created = await repo.putUserIfAbsent({ userId: "sub-2", requestedOrgId: "org-a" });
     expect(created.created).toBe(true);
     expect(created.item.userId).toBe("sub-2");
-    expect(created.item.status).toBe("PENDING");
+    expect(created.item.status).toBe("APPROVED");
 
     expect(dynamo.put).toHaveBeenCalledWith(
       expect.objectContaining({

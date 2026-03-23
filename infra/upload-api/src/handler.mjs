@@ -351,7 +351,7 @@ async function ensureUserRecord({ userSub, payload }) {
 
   const created = await usersRepo.putUserIfAbsent({
     userId: userSub,
-    status: "PENDING",
+    status: "APPROVED",
     email,
   });
   return created.item || null;
@@ -659,8 +659,12 @@ async function handleCreateJob(event, origin) {
     electionId,
     requiresManualReview,
     ...(requiresManualReview ? { manualReviewReason } : {}),
-    manualReviewStatus: requiresManualReview ? "OPEN" : "",
-    manualReviewKey: requiresManualReview ? "MR#OPEN" : "",
+    ...(requiresManualReview
+      ? {
+          manualReviewStatus: "OPEN",
+          manualReviewKey: "MR#OPEN",
+        }
+      : {}),
     blocked: requiresManualReview,
     wardCodes,
     createdAt: now,

@@ -70,6 +70,41 @@ export const getAdminMe = async () => {
   });
 };
 
+export const listAdminUsers = async ({ status = "APPROVED", limit = 50 } = {}) => {
+  const base = resolveUploadApiBaseUrl();
+  if (!base) throw new Error("Missing Upload API URL. Set VITE_UPLOAD_API_URL.");
+  const params = new URLSearchParams({
+    status,
+    limit: String(limit),
+  });
+  return fetchJson(`${base}/admin/users?${params.toString()}`, {
+    method: "GET",
+    headers: getAuthHeaders(),
+  });
+};
+
+export const approveAdminUser = async (userId, payload) => {
+  const base = resolveUploadApiBaseUrl();
+  if (!base) throw new Error("Missing Upload API URL. Set VITE_UPLOAD_API_URL.");
+  if (!userId) throw new Error("Missing user ID.");
+  return fetchJson(`${base}/admin/users/${encodeURIComponent(userId)}/approve`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...getAuthHeaders() },
+    body: JSON.stringify(payload),
+  });
+};
+
+export const rejectAdminUser = async (userId, payload = {}) => {
+  const base = resolveUploadApiBaseUrl();
+  if (!base) throw new Error("Missing Upload API URL. Set VITE_UPLOAD_API_URL.");
+  if (!userId) throw new Error("Missing user ID.");
+  return fetchJson(`${base}/admin/users/${encodeURIComponent(userId)}/reject`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...getAuthHeaders() },
+    body: JSON.stringify(payload),
+  });
+};
+
 export const applyForApproval = async (payload) => {
   const base = resolveUploadApiBaseUrl();
   if (!base) throw new Error("Missing Upload API URL. Set VITE_UPLOAD_API_URL.");

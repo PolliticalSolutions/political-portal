@@ -67,6 +67,13 @@ const createAwsMock = () => {
     put(params) {
       if (params.TableName === process.env.JOBS_TABLE) {
         const item = params.Item;
+        if (item?.manualReviewKey === "") {
+          const err = new Error(
+            "One or more parameter values are not valid. A value specified for a secondary index key is not supported. The AttributeValue for a key attribute cannot contain an empty string value. IndexName: ManualReviewIndex, IndexKey: manualReviewKey"
+          );
+          err.code = "ValidationException";
+          throw err;
+        }
         if (item?.jobId) jobsMap.set(item.jobId, { ...item });
         return makePromise({});
       }
@@ -439,7 +446,7 @@ beforeEach(() => {
 });
 
 describe("User application endpoints", () => {
-  it("GET /me creates a pending user if missing and stores email from claims", async () => {
+  it("GET /me creates an approved user if missing and stores email from claims", async () => {
     const res = await handler(
       buildAuthEvent({
         method: "GET",
@@ -451,9 +458,9 @@ describe("User application endpoints", () => {
     expect(res.statusCode).toBe(200);
     const body = JSON.parse(res.body);
     expect(body.user.userId).toBe("new-user-sub");
-    expect(body.user.status).toBe("PENDING");
+    expect(body.user.status).toBe("APPROVED");
     expect(body.user.email).toBe("new.user@example.com");
-    expect(usersMap.get("new-user-sub")?.status).toBe("PENDING");
+    expect(usersMap.get("new-user-sub")?.status).toBe("APPROVED");
     expect(usersMap.get("new-user-sub")?.email).toBe("new.user@example.com");
   });
 
@@ -596,7 +603,7 @@ describe("User application endpoints", () => {
 });
 
 describe("POST /jobs approval gating", () => {
-  it("returns 403 and auto-creates pending record when user is missing", async () => {
+  it("auto-creates approved record when user is missing and allows job creation", async () => {
     const res = await handler(
       buildAuthEvent({
         method: "POST",
@@ -612,11 +619,10 @@ describe("POST /jobs approval gating", () => {
       })
     );
 
-    expect(res.statusCode).toBe(403);
+    expect(res.statusCode).toBe(201);
     const body = JSON.parse(res.body);
-    expect(body.code).toBe("PENDING_APPROVAL");
-    expect(body.status).toBe("PENDING");
-    expect(usersMap.get("missing-user")?.status).toBe("PENDING");
+    expect(body.jobId).toBeTruthy();
+    expect(usersMap.get("missing-user")?.status).toBe("APPROVED");
   });
 
   it("returns 403 for pending users", async () => {
@@ -673,6 +679,8 @@ describe("POST /jobs approval gating", () => {
     const storedJob = jobsMap.get(body.jobId);
     expect(storedJob.pconCode).toBe("E14000637");
     expect(storedJob.electionId).toBe("election-allowed");
+    expect(storedJob.manualReviewKey).toBeUndefined();
+    expect(storedJob.manualReviewStatus).toBeUndefined();
     expect(storedJob.wardCodes).toEqual(["W1001"]);
     expect(storedJob.orgId).toBe("org-a");
     expect(Array.from(auditMap.values()).some((entry) => entry.action === "JOB_CREATED")).toBe(true);
@@ -827,6 +835,8 @@ describe("POST /jobs approval gating", () => {
     expect(storedJob.electionId).toBe("OTHER");
     expect(storedJob.requiresManualReview).toBe(true);
     expect(storedJob.manualReviewReason).toBe("Election list not yet configured.");
+    expect(storedJob.manualReviewKey).toBe("MR#OPEN");
+    expect(storedJob.manualReviewStatus).toBe("OPEN");
   });
 });
 

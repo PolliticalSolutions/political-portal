@@ -312,7 +312,8 @@ export default function App() {
                 <Route path="ops/quotes" element={<Quotes />} />
                 <Route path="ops/quotes/:ref" element={<QuoteDetail />} />
                 <Route path="admin/manual-review" element={<ManualReviewPage />} />
-                <Route path="admin/permissions" element={<PermissionsPage />} />
+                <Route path="admin/users" element={<PermissionsPage />} />
+                <Route path="admin/permissions" element={<Navigate to="/portal/admin/users" replace />} />
                 <Route path="admin/associations" element={<AssociationsPage />} />
                 <Route path="data-sources" element={<DataSourcesPage />} />
                 <Route

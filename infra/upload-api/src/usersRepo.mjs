@@ -42,7 +42,7 @@ export function createUsersRepo({ dynamo = getDocumentClient(), tableName = USER
         throw new Error("userId is required.");
       }
       const item = {
-        status: "PENDING",
+        status: "APPROVED",
         createdAt: nowIso(),
         ...userRecord,
       };

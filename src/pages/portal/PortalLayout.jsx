@@ -482,8 +482,8 @@ export default function PortalLayout() {
                 </NavLink>
               )}
               {isAdmin && (
-                <NavLink className={navClass} to="/portal/admin/permissions">
-                  Permissions
+                <NavLink className={navClass} to="/portal/admin/users">
+                  Users
                 </NavLink>
               )}
               {isAdmin && (
