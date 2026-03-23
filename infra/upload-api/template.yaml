@@ -545,6 +545,12 @@ Resources:
               - !Sub "${UsersTable.Arn}/index/StatusCreatedAtIndex"
               - !GetAtt ElectionsTable.Arn
               - !Sub "${ElectionsTable.Arn}/index/StatusPconDateIndex"
+        - Statement:
+            Effect: Allow
+            Action:
+              - dynamodb:Scan
+            Resource:
+              - !GetAtt ElectionsTable.Arn
               - !GetAtt SubmissionsTable.Arn
               - !Sub "${SubmissionsTable.Arn}/index/UserIdCreatedAtIndex"
               - !GetAtt OrganisationsTable.Arn
