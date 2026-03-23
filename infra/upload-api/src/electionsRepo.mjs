@@ -235,14 +235,20 @@ export function createElectionsRepo({
 
     async listAllElections(status = ["UPCOMING", "OPEN"]) {
       const statuses = new Set(normalizeStatuses(status));
-      const result = await dynamo
-        .scan({
+      const items = [];
+      let lastKey;
+      do {
+        const params = {
           TableName: tableName,
           FilterExpression: "recordType = :rt",
           ExpressionAttributeValues: { ":rt": CANONICAL_RECORD_TYPE },
-        })
-        .promise();
-      return (result.Items || [])
+        };
+        if (lastKey) params.ExclusiveStartKey = lastKey;
+        const result = await dynamo.scan(params).promise();
+        for (const item of result.Items || []) items.push(item);
+        lastKey = result.LastEvaluatedKey;
+      } while (lastKey);
+      return items
         .map(canonicalToElection)
         .filter((e) => statuses.has(e.status))
         .sort((a, b) => b.date.localeCompare(a.date) || a.electionId.localeCompare(b.electionId));
