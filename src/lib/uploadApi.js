@@ -93,14 +93,10 @@ export const listOrganisations = async ({ orgType = "ASSOCIATION", active = true
   });
 };
 
-export const listElections = async (pconCode, statuses = ["OPEN", "UPCOMING"]) => {
+export const listElections = async (statuses = ["OPEN", "UPCOMING"]) => {
   const base = resolveUploadApiBaseUrl();
   if (!base) throw new Error("Missing Upload API URL. Set VITE_UPLOAD_API_URL.");
-  if (!pconCode) throw new Error("Missing pconCode.");
-  const params = new URLSearchParams({
-    pconCode,
-    status: statuses.join(","),
-  });
+  const params = new URLSearchParams({ status: statuses.join(",") });
   return fetchJson(`${base}/elections?${params.toString()}`, {
     method: "GET",
     headers: getAuthHeaders(),

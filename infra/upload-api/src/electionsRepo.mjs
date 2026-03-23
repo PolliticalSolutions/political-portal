@@ -233,6 +233,21 @@ export function createElectionsRepo({
       });
     },
 
+    async listAllElections(status = ["UPCOMING", "OPEN"]) {
+      const statuses = new Set(normalizeStatuses(status));
+      const result = await dynamo
+        .scan({
+          TableName: tableName,
+          FilterExpression: "recordType = :rt",
+          ExpressionAttributeValues: { ":rt": CANONICAL_RECORD_TYPE },
+        })
+        .promise();
+      return (result.Items || [])
+        .map(canonicalToElection)
+        .filter((e) => statuses.has(e.status))
+        .sort((a, b) => b.date.localeCompare(a.date) || a.electionId.localeCompare(b.electionId));
+    },
+
     async archiveElection(electionId) {
       const existing = await this.getElection(electionId);
       if (!existing) return null;

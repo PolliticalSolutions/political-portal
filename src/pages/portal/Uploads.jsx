@@ -273,50 +273,41 @@ export default function Uploads() {
   }, []);
 
   useEffect(() => {
-    const pconCode = submissionScope.pconCode.trim().toUpperCase();
-    if (!pconCode) {
-      setElections([]);
-      setElectionsError(null);
-      setSubmissionScope((scope) =>
-        scope.electionId ? { ...scope, electionId: "" } : scope
-      );
-      return;
-    }
-
     let cancelled = false;
     setElectionsLoading(true);
     setElectionsError(null);
 
-    listElections(pconCode, ["OPEN", "UPCOMING"])
+    listElections(["OPEN", "UPCOMING"])
       .then((data) => {
         if (cancelled) return;
-        const items = data?.items || [];
+        const items = (data?.items || []).slice().sort((a, b) =>
+          (b.date || b.election_date || "").localeCompare(a.date || a.election_date || "")
+        );
         setElections(items);
-        const latestGeneralElection = items.find(
+        const general2024 = items.find(
+          (e) =>
+            (e.electionType || "").toString().trim().toUpperCase() === "GENERAL" &&
+            (e.date || e.election_date || "").startsWith("2024")
+        );
+        const latestGeneral = items.find(
           (e) => (e.electionType || "").toString().trim().toUpperCase() === "GENERAL"
         );
-        const fallbackElection = items[0] || null;
+        const defaultElection = general2024 || latestGeneral || items[0] || null;
         setSubmissionScope((scope) => ({
           ...scope,
-          electionId: latestGeneralElection?.electionId || fallbackElection?.electionId || "",
+          electionId: scope.electionId || defaultElection?.electionId || "",
         }));
       })
       .catch(() => {
         if (cancelled) return;
-        setElections([]);
-        setSubmissionScope((scope) => ({ ...scope, electionId: "" }));
-        setElectionsError("Failed to load elections for the selected constituency.");
+        setElectionsError("Failed to load elections.");
       })
       .finally(() => {
-        if (!cancelled) {
-          setElectionsLoading(false);
-        }
+        if (!cancelled) setElectionsLoading(false);
       });
 
-    return () => {
-      cancelled = true;
-    };
-  }, [submissionScope.pconCode]);
+    return () => { cancelled = true; };
+  }, []);
 
   // Poll active jobs
   useEffect(() => {
@@ -630,7 +621,7 @@ export default function Uploads() {
                 className="input"
                 id="electionId"
                 value={submissionScope.electionId}
-                disabled={!submissionScope.pconCode || electionsLoading}
+                disabled={electionsLoading}
                 onChange={(e) =>
                   setSubmissionScope((scope) => ({
                     ...scope,
@@ -639,13 +630,7 @@ export default function Uploads() {
                 }
               >
                 <option value="">
-                  {!submissionScope.pconCode
-                    ? "Select a constituency first"
-                    : electionsLoading
-                      ? "Loading elections…"
-                      : elections.length === 0
-                        ? "No elections available"
-                        : "Select an election"}
+                  {electionsLoading ? "Loading elections…" : "Select an election"}
                 </option>
                 {elections.map((e) => (
                   <option key={e.electionId} value={e.electionId}>

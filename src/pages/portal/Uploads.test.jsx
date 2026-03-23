@@ -91,8 +91,9 @@ async function stageFileAndSelectConstituency(name, onsCode, expectedElectionId 
     await Promise.resolve();
   });
 
-  expect(uploadApi.listElections).toHaveBeenCalledWith(onsCode, ["OPEN", "UPCOMING"]);
-  expect(screen.getByLabelText(/^Election$/i)).toHaveValue(expectedElectionId);
+  if (expectedElectionId !== undefined) {
+    expect(screen.getByLabelText(/^Election$/i)).toHaveValue(expectedElectionId);
+  }
 }
 
 beforeEach(() => {
@@ -286,7 +287,7 @@ describe("Uploads – upload flow", () => {
     expect(options.body.get("file")).toBeInstanceOf(File);
   });
 
-  it("loads elections from the upload API for the selected constituency", async () => {
+  it("loads elections on mount and defaults to 2024 General Election", async () => {
     vi.useFakeTimers();
 
     render(<Uploads />);
@@ -295,9 +296,10 @@ describe("Uploads – upload flow", () => {
       await Promise.resolve();
     });
 
+    expect(uploadApi.listElections).toHaveBeenCalledWith(["OPEN", "UPCOMING"]);
+
     await stageFileAndSelectConstituency("Exeter", "E14000637");
 
-    expect(uploadApi.listElections).toHaveBeenCalledWith("E14000637", ["OPEN", "UPCOMING"]);
     expect(screen.getByLabelText("Election")).toHaveValue("ge2024-uuid");
   });
 

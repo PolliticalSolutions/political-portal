@@ -953,8 +953,11 @@ async function handleListElections(event, origin) {
   if (electionsCheck.error) return electionsCheck.error;
 
   const pconCode = sanitize(event?.queryStringParameters?.pconCode, MAX_PCON).toUpperCase();
+  const statuses = normalizeElectionStatuses(event?.queryStringParameters?.status, JOB_OPEN_ELECTION_STATUSES);
+
   if (!pconCode) {
-    return errorResponse(origin, 400, "PCON_REQUIRED", "pconCode query parameter is required.");
+    const elections = await electionsRepo.listAllElections(statuses);
+    return response(200, { statuses, items: elections }, origin);
   }
 
   const allowedPconCodes = normalizePconCodes("", user?.allowedPconCodes);
@@ -964,7 +967,6 @@ async function handleListElections(event, origin) {
     });
   }
 
-  const statuses = normalizeElectionStatuses(event?.queryStringParameters?.status, JOB_OPEN_ELECTION_STATUSES);
   const elections = await electionsRepo.listElectionsForPconByStatuses(pconCode, statuses);
   return response(200, { pconCode, statuses, items: elections }, origin);
 }
