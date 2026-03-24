@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link, useParams } from "react-router-dom";
+import Button from "../../../components/Button.jsx";
 import Card from "../../../components/Card.jsx";
 import DataProvenancePanel from "../../../components/DataProvenancePanel.jsx";
 import ModelConfidenceBadge from "../../../components/ModelConfidenceBadge.jsx";
@@ -24,6 +25,7 @@ import {
   getConstituencyLibDemThreat,
   getConstituencyGreenThreat,
   getLgrImpactsForAuthorityNames,
+  generateConstituencyBrief,
 } from "./constituencyApi.js";
 import { getCurrentStatus } from "./constituencyPresentation.js";
 
@@ -123,6 +125,117 @@ function primaryPairing(winnerPartyId) {
   if (winnerPartyId === RUK_ID)  return { from: CON_ID, to: RUK_ID };
   if (winnerPartyId === SNP_ID)  return { from: LAB_ID, to: SNP_ID };
   return { from: CON_ID, to: LAB_ID }; // default
+}
+
+function getKeySwingStat(swings, nationals, electedWinner) {
+  if (!swings || swings.length === 0) return null;
+  const { from, to } = primaryPairing(electedWinner?.partyId);
+  const match = swings.find((s) => s.from_party_id === from && s.to_party_id === to);
+  if (!match) return null;
+  const national = nationals?.find((s) => s.from_party_id === from && s.to_party_id === to);
+  const pairing = SWING_PAIRINGS.find((p) => p.from === from && p.to === to);
+  return {
+    label: pairing?.label ?? "Swing",
+    value: match.swing_value,
+    national: national?.swing_value ?? null,
+  };
+}
+
+function buildLgrSummary(impact) {
+  if (!impact) return "";
+  const summaryParts = [
+    impact.authority_name || impact.area_name || "",
+    impact.lgr_status || "",
+    impact.abolition_date ? `abolition date ${impact.abolition_date}` : "",
+    impact.replacement_authority ? `replacement authority ${impact.replacement_authority}` : "",
+  ].filter(Boolean);
+
+  return summaryParts.join(" | ");
+}
+
+function buildConstituencyBriefingPayload({
+  constituency,
+  currentStatus,
+  electedWinner,
+  latestGeneralWinner,
+  keySwingStat,
+  vulnerabilityScore,
+  reformThreat,
+  ldThreat,
+  demographics,
+  lgrImpacts,
+}) {
+  const primaryLgrImpact = lgrImpacts?.[0] || null;
+  const reformRank = Number(reformThreat?.threat_rank);
+  const libDemRank = Number(ldThreat?.threat_rank);
+  const latestDemographics = demographics?.[0] || null;
+
+  return {
+    constituencyName: constituency?.name || "",
+    currentMp: {
+      name: currentStatus?.currentMemberName || electedWinner?.candidateName || "",
+      party: currentStatus?.currentPartyName || electedWinner?.partyName || "",
+      majority: electedWinner?.majority ?? latestGeneralWinner?.majority ?? null,
+    },
+    result2024: {
+      winner: electedWinner?.candidateName || "",
+      party: electedWinner?.partyName || "",
+      majority: electedWinner?.majority ?? latestGeneralWinner?.majority ?? null,
+      voteShare: latestGeneralWinner?.vote_share ?? null,
+      turnout: latestGeneralWinner?.turnout ?? null,
+      electionName: latestGeneralWinner?.elections?.name || electedWinner?.electionName || "",
+      electionDate: latestGeneralWinner?.elections?.election_date || "",
+    },
+    swingFromNotional2019: keySwingStat
+      ? {
+          label: keySwingStat.label,
+          value: keySwingStat.value,
+          national: keySwingStat.national,
+        }
+      : null,
+    vulnerability: {
+      score: vulnerabilityScore?.vulnerability_score ?? null,
+      classification: vulnerabilityScore?.vulnerability_level || "",
+    },
+    reformThreat:
+      Number.isFinite(reformRank) && reformRank <= 50
+        ? {
+            rank: reformRank,
+            score: reformThreat?.threat_score ?? null,
+            label: "Reform threat",
+          }
+        : null,
+    libDemThreat:
+      Number.isFinite(libDemRank) && libDemRank <= 50
+        ? {
+            rank: libDemRank,
+            score: ldThreat?.threat_score ?? null,
+            label: "Lib Dem threat",
+          }
+        : null,
+    demographics: {
+      graduatePct: latestDemographics?.pct_degree_qualified ?? null,
+      ownerOccupancyPct: latestDemographics?.pct_owner_occupied ?? null,
+      leaveVotePct: constituency?.leave_vote_share ?? null,
+    },
+    lgr: primaryLgrImpact
+      ? {
+          affected: true,
+          authorityName: primaryLgrImpact.authority_name || primaryLgrImpact.area_name || "",
+          status: primaryLgrImpact.lgr_status || "",
+          abolitionDate: primaryLgrImpact.abolition_date || "",
+          replacementAuthority: primaryLgrImpact.replacement_authority || "",
+          summary: buildLgrSummary(primaryLgrImpact),
+        }
+      : {
+          affected: false,
+          authorityName: "",
+          status: "",
+          abolitionDate: "",
+          replacementAuthority: "",
+          summary: "",
+        },
+  };
 }
 
 function SwingBar({ value, hex }) {
@@ -1314,21 +1427,22 @@ function VulnerabilityBadge({ score }) {
   );
 }
 
-function ConstituencyHeader({ constituency, electedWinner, currentStatus, swings, nationals, marginalityScore, byElectionRisk, vulnerabilityScore }) {
-  // Pick the most relevant swing to highlight in the header
-  const keySwingStat = useMemo(() => {
-    if (!swings || swings.length === 0) return null;
-    const { from, to } = primaryPairing(electedWinner?.partyId);
-    const match = swings.find((s) => s.from_party_id === from && s.to_party_id === to);
-    if (!match) return null;
-    const national = nationals?.find((s) => s.from_party_id === from && s.to_party_id === to);
-    const pairing = SWING_PAIRINGS.find((p) => p.from === from && p.to === to);
-    return {
-      label: pairing?.label ?? "Swing",
-      value: match.swing_value,
-      national: national?.swing_value ?? null,
-    };
-  }, [swings, nationals, electedWinner]);
+function ConstituencyHeader({
+  constituency,
+  electedWinner,
+  currentStatus,
+  swings,
+  nationals,
+  marginalityScore,
+  byElectionRisk,
+  vulnerabilityScore,
+  onGenerateBrief,
+  briefingLoading,
+}) {
+  const keySwingStat = useMemo(
+    () => getKeySwingStat(swings, nationals, electedWinner),
+    [swings, nationals, electedWinner]
+  );
 
   return (
     <Card>
@@ -1348,6 +1462,9 @@ function ConstituencyHeader({ constituency, electedWinner, currentStatus, swings
           </p>
         </div>
         <div className="portal-page-header__actions">
+          <Button variant="primary" onClick={onGenerateBrief} loading={briefingLoading}>
+            {briefingLoading ? "Generating…" : "Generate Intelligence Brief"}
+          </Button>
           <Link to="/portal/constituency" className="button ghost">
             Back to constituency search
           </Link>
@@ -1762,6 +1879,15 @@ export default function ConstituencyDetail() {
   const [error, setError] = useState("");
   const [metadata, setMetadata] = useState(null);
   const [activeTab, setActiveTab] = useState("history");
+  const [briefingModalOpen, setBriefingModalOpen] = useState(false);
+  const [briefingState, setBriefingState] = useState({
+    loading: false,
+    error: "",
+    content: "",
+    model: "",
+    generatedAt: "",
+  });
+  const [copyStatus, setCopyStatus] = useState("");
 
   useEffect(() => {
     if (!onsCode) return;
@@ -1873,6 +1999,100 @@ export default function ConstituencyDetail() {
     return getCurrentStatus(constituency.name, electedWinner?.partyName || "");
   }, [constituency, electedWinner]);
 
+  const latestGeneralWinner = useMemo(
+    () =>
+      results
+        .filter((row) => row.is_winner && row.elections?.election_type === "general")
+        .sort((a, b) => (b.elections?.election_date ?? "").localeCompare(a.elections?.election_date ?? ""))[0] ?? null,
+    [results]
+  );
+
+  const keySwingStat = useMemo(
+    () => getKeySwingStat(swings, nationals, electedWinner),
+    [swings, nationals, electedWinner]
+  );
+
+  const briefingPayload = useMemo(
+    () =>
+      buildConstituencyBriefingPayload({
+        constituency,
+        currentStatus,
+        electedWinner,
+        latestGeneralWinner,
+        keySwingStat,
+        vulnerabilityScore,
+        reformThreat,
+        ldThreat,
+        demographics,
+        lgrImpacts,
+      }),
+    [
+      constituency,
+      currentStatus,
+      electedWinner,
+      latestGeneralWinner,
+      keySwingStat,
+      vulnerabilityScore,
+      reformThreat,
+      ldThreat,
+      demographics,
+      lgrImpacts,
+    ]
+  );
+
+  useEffect(() => {
+    if (!briefingModalOpen) return undefined;
+    const handleKeyDown = (event) => {
+      if (event.key === "Escape") {
+        setBriefingModalOpen(false);
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [briefingModalOpen]);
+
+  const handleGenerateBrief = async () => {
+    setBriefingModalOpen(true);
+    setCopyStatus("");
+    setBriefingState({
+      loading: true,
+      error: "",
+      content: "",
+      model: "",
+      generatedAt: "",
+    });
+
+    try {
+      const result = await generateConstituencyBrief(briefingPayload);
+      setBriefingState({
+        loading: false,
+        error: "",
+        content: result?.brief || "",
+        model: result?.model || "",
+        generatedAt: result?.generatedAt || "",
+      });
+    } catch (err) {
+      setBriefingState({
+        loading: false,
+        error: err.message || "Failed to generate intelligence brief.",
+        content: "",
+        model: "",
+        generatedAt: "",
+      });
+    }
+  };
+
+  const handleCopyBrief = async () => {
+    if (!briefingState.content) return;
+    try {
+      await navigator.clipboard.writeText(briefingState.content);
+      setCopyStatus("Copied to clipboard.");
+    } catch (err) {
+      setCopyStatus(err.message || "Failed to copy.");
+    }
+  };
+
   if (loading) {
     return (
       <div className="page stack">
@@ -1919,6 +2139,8 @@ export default function ConstituencyDetail() {
         marginalityScore={marginalityScore}
         byElectionRisk={byElectionRisk}
         vulnerabilityScore={vulnerabilityScore}
+        onGenerateBrief={handleGenerateBrief}
+        briefingLoading={briefingState.loading}
       />
 
       <ScenarioSimulatorCard
@@ -1980,6 +2202,91 @@ export default function ConstituencyDetail() {
         metadata={metadata}
         fallbackCopy="Confidence and source references for this constituency will appear once provenance records are linked in the intelligence metadata layer."
       />
+
+      {briefingModalOpen && (
+        <div
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="constituency-brief-title"
+          style={{
+            position: "fixed",
+            inset: 0,
+            background: "rgba(15, 23, 42, 0.4)",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            padding: 16,
+            zIndex: 50,
+          }}
+        >
+          <div style={{ maxWidth: 720, width: "100%" }}>
+            <Card className="stack">
+              <div style={{ display: "flex", justifyContent: "space-between", gap: 12, alignItems: "center" }}>
+                <div>
+                  <p
+                    id="constituency-brief-title"
+                    style={{ margin: 0, fontSize: 18, fontWeight: 700, color: "#0f172a" }}
+                  >
+                    Generate Intelligence Brief
+                  </p>
+                  <p style={{ margin: "6px 0 0", fontSize: 13, color: "#64748b" }}>
+                    AI Generated. Review before sharing or relying on it in campaign planning.
+                  </p>
+                </div>
+                <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+                  {briefingState.content && (
+                    <Button variant="secondary" onClick={handleCopyBrief}>
+                      Copy to clipboard
+                    </Button>
+                  )}
+                  <Button variant="ghost" onClick={() => setBriefingModalOpen(false)}>
+                    Close
+                  </Button>
+                </div>
+              </div>
+
+              {briefingState.loading && (
+                <div className="status" role="status">
+                  Generating a three-paragraph constituency brief…
+                </div>
+              )}
+
+              {briefingState.error && (
+                <div className="status error" role="alert">
+                  {briefingState.error}
+                </div>
+              )}
+
+              {briefingState.content && (
+                <div
+                  style={{
+                    whiteSpace: "pre-wrap",
+                    lineHeight: 1.75,
+                    color: "#0f172a",
+                    fontSize: 15,
+                    border: "1px solid #e2e8f0",
+                    borderRadius: 10,
+                    padding: 16,
+                    background: "#f8fafc",
+                  }}
+                >
+                  {briefingState.content}
+                </div>
+              )}
+
+              <div style={{ display: "flex", justifyContent: "space-between", gap: 12, color: "#64748b", fontSize: 12 }}>
+                <span>{copyStatus || "\u00a0"}</span>
+                <span>
+                  {briefingState.generatedAt
+                    ? `Generated ${new Date(briefingState.generatedAt).toLocaleString("en-GB")}`
+                    : "\u00a0"}
+                  {briefingState.model ? ` • ${briefingState.model}` : ""}
+                </span>
+              </div>
+            </Card>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

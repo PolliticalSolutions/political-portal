@@ -1,16 +1,74 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import Button from "../../components/Button.jsx";
 import Card from "../../components/Card.jsx";
-import { createJob, getDownloadUrls, getJob, listElections, listJobs } from "../../lib/uploadApi.js";
+import { createJob, getDownloadUrls, listElections, listJobs } from "../../lib/uploadApi.js";
 import { usePermissions } from "../../context/PermissionsContext.jsx";
 
 const MAX_FILE_SIZE = 200 * 1024 * 1024; // 200 MB
 const ALLOWED_EXTENSIONS = new Set([".pdf", ".csv"]);
-const POLL_INTERVAL_MS = 5000;
+const POLL_INTERVAL_MS = 30000;
+const PENDING_JOB_STATUSES = new Set(["PENDING", "QUEUED", "CREATED", "RECEIVED"]);
+const PROCESSING_JOB_STATUSES = new Set(["PROCESSING", "RUNNING"]);
+const COMPLETE_JOB_STATUSES = new Set(["SUCCEEDED", "COMPLETE", "COMPLETED"]);
+const FAILED_JOB_STATUSES = new Set(["FAILED", "ERROR"]);
 
 function getFileExt(filename) {
   const lastDot = filename.lastIndexOf(".");
   return lastDot >= 0 ? filename.slice(lastDot).toLowerCase() : "";
+}
+
+function normalizeJobStatus(status) {
+  return (status || "").toString().trim().toUpperCase();
+}
+
+function isActiveJobStatus(status) {
+  const normalized = normalizeJobStatus(status);
+  return PENDING_JOB_STATUSES.has(normalized) || PROCESSING_JOB_STATUSES.has(normalized);
+}
+
+function isCompleteJobStatus(status) {
+  return COMPLETE_JOB_STATUSES.has(normalizeJobStatus(status));
+}
+
+function isFailedJobStatus(status) {
+  return FAILED_JOB_STATUSES.has(normalizeJobStatus(status));
+}
+
+function getStatusPresentation(status) {
+  const normalized = normalizeJobStatus(status);
+
+  if (PROCESSING_JOB_STATUSES.has(normalized)) {
+    return {
+      label: "Processing",
+      style: { background: "#dbeafe", color: "#1d4ed8" },
+    };
+  }
+
+  if (COMPLETE_JOB_STATUSES.has(normalized)) {
+    return {
+      label: "Complete",
+      style: { background: "#dcfce7", color: "#15803d" },
+    };
+  }
+
+  if (FAILED_JOB_STATUSES.has(normalized)) {
+    return {
+      label: "Failed",
+      style: { background: "#fee2e2", color: "#b91c1c" },
+    };
+  }
+
+  if (PENDING_JOB_STATUSES.has(normalized) || !normalized) {
+    return {
+      label: "Pending",
+      style: { background: "#e2e8f0", color: "#475569" },
+    };
+  }
+
+  return {
+    label: normalized,
+    style: { background: "#f1f5f9", color: "#64748b" },
+  };
 }
 
 function validateFile(file) {
@@ -198,30 +256,18 @@ function ConstituencySearch({ value, onChange, allowedConstituencies = [], assoc
 }
 
 function StatusBadge({ status }) {
-  const styles = {
-    QUEUED: { background: "#e2e8f0", color: "#475569" },
-    PROCESSING: { background: "#dbeafe", color: "#1d4ed8" },
-    SUCCEEDED: { background: "#dcfce7", color: "#15803d" },
-    FAILED: { background: "#fee2e2", color: "#b91c1c" },
-  };
-  const labels = {
-    QUEUED: "Queued",
-    PROCESSING: "Processing",
-    SUCCEEDED: "Succeeded",
-    FAILED: "Failed",
-  };
-  const style = styles[status] || { background: "#f1f5f9", color: "#64748b" };
+  const presentation = getStatusPresentation(status);
   return (
     <span
       style={{
-        ...style,
+        ...presentation.style,
         padding: "2px 8px",
         borderRadius: 4,
         fontSize: 12,
         fontWeight: 600,
       }}
     >
-      {labels[status] || status}
+      {presentation.label}
     </span>
   );
 }
@@ -252,25 +298,22 @@ export default function Uploads() {
   const [jobs, setJobs] = useState([]);
   const [uploading, setUploading] = useState(false);
   const [uploadErrors, setUploadErrors] = useState([]);
+  const [uploadSuccessMessage, setUploadSuccessMessage] = useState("");
   const [loadError, setLoadError] = useState(null);
   const [dragOver, setDragOver] = useState(false);
   const fileInputRef = useRef(null);
   const pollingRef = useRef(null);
-
-  useEffect(() => {
-    if (allowedConstituencies === null) return;
-    console.log("[Uploads] Available constituencies for search.", {
-      constituencyCount: allowedConstituencies.length,
-      constituencies: allowedConstituencies,
-    });
-  }, [allowedConstituencies]);
-
-  // Load jobs on mount
-  useEffect(() => {
-    listJobs(25)
+  const loadJobs = useCallback(() => {
+    setLoadError(null);
+    return listJobs(25)
       .then((data) => setJobs(data.items || []))
       .catch((err) => setLoadError(err.message));
   }, []);
+
+  // Load jobs on mount
+  useEffect(() => {
+    loadJobs();
+  }, [loadJobs]);
 
   useEffect(() => {
     let cancelled = false;
@@ -316,24 +359,12 @@ export default function Uploads() {
       pollingRef.current = null;
     }
 
-    const activeJobs = jobs.filter(
-      (j) => j.status === "QUEUED" || j.status === "PROCESSING"
-    );
-    if (activeJobs.length === 0) return undefined;
+    if (!jobs.some((job) => isActiveJobStatus(job.status))) {
+      return undefined;
+    }
 
-    pollingRef.current = setInterval(async () => {
-      await Promise.all(
-        activeJobs.map(async (job) => {
-          try {
-            const updated = await getJob(job.jobId);
-            setJobs((prev) =>
-              prev.map((j) => (j.jobId === updated.jobId ? updated : j))
-            );
-          } catch {
-            // ignore transient poll errors
-          }
-        })
-      );
+    pollingRef.current = setInterval(() => {
+      loadJobs();
     }, POLL_INTERVAL_MS);
 
     return () => {
@@ -342,7 +373,7 @@ export default function Uploads() {
         pollingRef.current = null;
       }
     };
-  }, [jobs]);
+  }, [jobs, loadJobs]);
 
   const handleConstituencyChange = (name, code) => {
     setConstituency({ name, code });
@@ -393,7 +424,10 @@ export default function Uploads() {
 
     setUploading(true);
     setUploadErrors([]);
+    setUploadSuccessMessage("");
     const errors = [];
+    const successfulFiles = new Set();
+    let uploadedCount = 0;
 
     for (const { file } of valid) {
       const ext = getFileExt(file.name);
@@ -442,17 +476,25 @@ export default function Uploads() {
           },
           ...prev,
         ]);
+        successfulFiles.add(file);
+        uploadedCount += 1;
       } catch (err) {
         errors.push(`"${file.name}": ${err.message}`);
       }
     }
 
     setUploading(false);
+    if (uploadedCount > 0) {
+      setUploadSuccessMessage(
+        "Your file has been submitted successfully. You will receive an email when processing is complete."
+      );
+      setStaged((prev) => prev.filter(({ file, error }) => error || !successfulFiles.has(file)));
+      if (valid.length === uploadedCount) {
+        setMetadata({ clientName: "", notes: "" });
+      }
+    }
     if (errors.length > 0) {
       setUploadErrors(errors);
-    } else {
-      setStaged([]);
-      setMetadata({ clientName: "", notes: "" });
     }
   };
 
@@ -473,10 +515,7 @@ export default function Uploads() {
   };
 
   const handleRefresh = () => {
-    setLoadError(null);
-    listJobs(25)
-      .then((d) => setJobs(d.items || []))
-      .catch((err) => setLoadError(err.message));
+    loadJobs();
   };
 
   const validStaged = staged.filter((s) => !s.error);
@@ -523,6 +562,11 @@ export default function Uploads() {
 
       {(permsLoading || (permissionsConfigured && !hasPermissions)) ? null : (
       <Card title="Upload files">
+        {uploadSuccessMessage && (
+          <div className="status success" role="status" style={{ marginBottom: 16 }}>
+            {uploadSuccessMessage}
+          </div>
+        )}
         <div
           className={`portal-dropzone${dragOver ? " is-active" : ""}`}
           onDragOver={(e) => {
@@ -793,16 +837,24 @@ export default function Uploads() {
                     </td>
                     <td>
                       <div className="portal-section-actions">
-                        {job.status === "SUCCEEDED" && (
+                        {isCompleteJobStatus(job.status) &&
+                          Array.isArray(job.output?.files) &&
+                          job.output.files.length > 0 && (
                           <Button
-                            variant="secondary"
+                            variant="primary"
                             className="button--small"
                             onClick={() => handleDownload(job)}
                           >
-                            Download
+                            Download Results
                           </Button>
                         )}
-                        {job.status === "FAILED" && job.error?.message && (
+                        {isCompleteJobStatus(job.status) &&
+                          (!Array.isArray(job.output?.files) || job.output.files.length === 0) && (
+                          <span style={{ color: "#64748b", fontSize: 12 }}>
+                            Results not ready yet
+                          </span>
+                        )}
+                        {isFailedJobStatus(job.status) && job.error?.message && (
                           <span
                             style={{ color: "#b91c1c", fontSize: 12 }}
                             title={job.error?.detail}

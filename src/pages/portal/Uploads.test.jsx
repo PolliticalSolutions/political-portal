@@ -18,7 +18,7 @@ import { usePermissions } from "../../context/PermissionsContext.jsx";
 import Uploads from "./Uploads.jsx";
 
 // Expose the constant so the test can reference it without import
-const POLL_INTERVAL_MS = 5000;
+const POLL_INTERVAL_MS = 30000;
 
 const DEFAULT_ELECTIONS = [
   { electionId: "ge2024-uuid", date: "2024-07-04", electionType: "GENERAL" },
@@ -303,7 +303,7 @@ describe("Uploads – upload flow", () => {
     expect(screen.getByLabelText("Election")).toHaveValue("ge2024-uuid");
   });
 
-  it("shows the new job in the table after a successful upload", async () => {
+  it("shows the success message and new job in the table after a successful upload", async () => {
     vi.useFakeTimers();
 
     uploadApi.createJob.mockResolvedValue({
@@ -324,6 +324,11 @@ describe("Uploads – upload flow", () => {
 
     await act(async () => { await Promise.resolve(); await Promise.resolve(); });
 
+    expect(
+      screen.getByText(
+        "Your file has been submitted successfully. You will receive an email when processing is complete."
+      )
+    ).toBeInTheDocument();
     expect(screen.getByText("report.pdf")).toBeInTheDocument();
   });
 
@@ -371,7 +376,7 @@ describe("Uploads – upload flow", () => {
 // ── Polling ────────────────────────────────────────────────────────────────
 
 describe("Uploads – polling", () => {
-  it("calls getJob at each poll interval for non-terminal jobs", async () => {
+  it("refreshes the jobs list every 30 seconds while jobs are in progress", async () => {
     vi.useFakeTimers();
 
     const queuedJob = {
@@ -382,8 +387,9 @@ describe("Uploads – polling", () => {
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
     };
-    uploadApi.listJobs.mockResolvedValue({ items: [queuedJob] });
-    uploadApi.getJob.mockResolvedValue({ ...queuedJob, status: "PROCESSING" });
+    uploadApi.listJobs
+      .mockResolvedValueOnce({ items: [queuedJob] })
+      .mockResolvedValueOnce({ items: [{ ...queuedJob, status: "PROCESSING" }] });
 
     const { unmount } = render(<Uploads />);
 
@@ -392,7 +398,7 @@ describe("Uploads – polling", () => {
       await Promise.resolve();
     });
 
-    uploadApi.getJob.mockClear();
+    uploadApi.listJobs.mockClear();
 
     await act(async () => {
       vi.advanceTimersByTime(POLL_INTERVAL_MS + 100);
@@ -400,7 +406,8 @@ describe("Uploads – polling", () => {
       await Promise.resolve();
     });
 
-    expect(uploadApi.getJob).toHaveBeenCalledWith("poll-job-1");
+    expect(uploadApi.listJobs).toHaveBeenCalledWith(25);
+    expect(screen.getByText("Processing")).toBeInTheDocument();
     unmount();
   });
 
@@ -424,14 +431,14 @@ describe("Uploads – polling", () => {
       await Promise.resolve();
     });
 
-    uploadApi.getJob.mockClear();
+    uploadApi.listJobs.mockClear();
 
     await act(async () => {
-      vi.advanceTimersByTime(10000);
+      vi.advanceTimersByTime(POLL_INTERVAL_MS + 100);
       await Promise.resolve();
     });
 
-    expect(uploadApi.getJob).not.toHaveBeenCalled();
+    expect(uploadApi.listJobs).not.toHaveBeenCalled();
     unmount();
   });
 });
@@ -502,5 +509,46 @@ describe("Uploads – elections", () => {
       expect(screen.queryByLabelText(/Manual review reason/i)).not.toBeInTheDocument();
       expect(screen.queryByRole("option", { name: /Other \/ Not listed/i })).not.toBeInTheDocument();
     });
+  });
+
+  it("shows clear terminal status labels and a prominent download button when results exist", async () => {
+    uploadApi.listJobs.mockResolvedValueOnce({
+      items: [
+        {
+          jobId: "complete-job-1",
+          filename: "results.pdf",
+          fileType: "pdf",
+          status: "SUCCEEDED",
+          output: {
+            files: [{ name: "results.csv", key: "jobs/complete-job-1/results.csv" }],
+          },
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+        },
+        {
+          jobId: "failed-job-1",
+          filename: "failed.pdf",
+          fileType: "pdf",
+          status: "FAILED",
+          error: { message: "OCR failed" },
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+        },
+      ],
+    });
+
+    render(<Uploads />);
+
+    await waitFor(() => {
+      expect(screen.getByText("Complete")).toBeInTheDocument();
+      expect(screen.getByText("Failed")).toBeInTheDocument();
+    });
+
+    expect(
+      screen.getByRole("button", {
+        name: /Download Results/i,
+      })
+    ).toBeInTheDocument();
+    expect(screen.getByText("OCR failed")).toBeInTheDocument();
   });
 });

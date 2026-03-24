@@ -98,6 +98,15 @@ const buildOpsInvoiceEvent = (referenceId, payload, headers = {}) => ({
   isBase64Encoded: false,
 });
 
+const buildBriefingEvent = (payload, headers = {}) => ({
+  requestContext: {
+    http: { method: "POST", path: "/briefings/constituency-intelligence", sourceIp: "1.2.3.4" },
+  },
+  headers,
+  body: JSON.stringify(payload),
+  isBase64Encoded: false,
+});
+
 const buildPayload = (overrides = {}) => ({
   idempotencyKey: "test-key-1",
   customer: {
@@ -175,6 +184,8 @@ describe("quote request handler", () => {
     process.env.XERO_CLIENT_ID = "client-id";
     process.env.XERO_CLIENT_SECRET = "client-secret";
     process.env.XERO_REDIRECT_URI = "https://example.com/xero/callback";
+    delete process.env.ANTHROPIC_API_KEY;
+    delete process.env.ANTHROPIC_MODEL;
     delete process.env.COGNITO_ISSUER;
     delete process.env.COGNITO_AUDIENCE;
   });
@@ -292,6 +303,42 @@ describe("quote request handler", () => {
     const { handler } = await import("../src/handler.mjs");
     const result = await handler(buildGetEvent("/quote-requests"), {});
     expect(result.statusCode).toBe(401);
+  });
+
+  it("rejects constituency briefing requests when AI briefing is not configured", async () => {
+    process.env.COGNITO_ISSUER = "https://example.com/issuer";
+    process.env.COGNITO_AUDIENCE = "audience";
+    const { publicKey, privateKey } = crypto.generateKeyPairSync("rsa", { modulusLength: 2048 });
+    const kid = "briefing-kid-1";
+    const jwk = { ...publicKey.export({ format: "jwk" }), kid };
+    const token = makeJwt(
+      {
+        iss: process.env.COGNITO_ISSUER,
+        aud: process.env.COGNITO_AUDIENCE,
+        exp: Math.floor(Date.now() / 1000) + 300,
+      },
+      privateKey,
+      kid
+    );
+
+    global.fetch = vi.fn(async (url) => {
+      if (url.includes("/.well-known/jwks.json")) {
+        return { ok: true, json: async () => ({ keys: [jwk] }) };
+      }
+      return { ok: false, status: 500, text: async () => "Unexpected" };
+    });
+
+    const { handler } = await import("../src/handler.mjs");
+    const result = await handler(
+      buildBriefingEvent(
+        { constituencyName: "Exeter" },
+        { Authorization: `Bearer ${token}` }
+      ),
+      {}
+    );
+    const body = JSON.parse(result.body);
+    expect(result.statusCode).toBe(503);
+    expect(body.error).toBe("ai_briefing_not_configured");
   });
 
   it("allows public quote requests without auth configuration", async () => {
@@ -414,6 +461,74 @@ describe("quote request handler", () => {
     expect(body.invoiceId).toBe("inv-1");
     const stored = quoteMap.get(referenceId);
     expect(stored?.xero?.invoiceId).toBe("inv-1");
+  });
+
+  it("generates a constituency intelligence brief via Anthropic on the protected route", async () => {
+    process.env.COGNITO_ISSUER = "https://example.com/issuer";
+    process.env.COGNITO_AUDIENCE = "audience";
+    process.env.ANTHROPIC_API_KEY = "anthropic-secret";
+    process.env.ANTHROPIC_MODEL = "claude-sonnet-4-20250514";
+
+    const { publicKey, privateKey } = crypto.generateKeyPairSync("rsa", { modulusLength: 2048 });
+    const kid = "briefing-kid-2";
+    const jwk = { ...publicKey.export({ format: "jwk" }), kid };
+    const token = makeJwt(
+      {
+        iss: process.env.COGNITO_ISSUER,
+        aud: process.env.COGNITO_AUDIENCE,
+        exp: Math.floor(Date.now() / 1000) + 300,
+      },
+      privateKey,
+      kid
+    );
+
+    global.fetch = vi.fn(async (url, options = {}) => {
+      if (url.includes("/.well-known/jwks.json")) {
+        return { ok: true, json: async () => ({ keys: [jwk] }) };
+      }
+      if (url === "https://api.anthropic.com/v1/messages") {
+        const body = JSON.parse(options.body);
+        expect(body.model).toBe("claude-sonnet-4-20250514");
+        expect(body.messages[0].content).toContain("\"constituency_name\": \"Exeter\"");
+        return {
+          ok: true,
+          text: async () =>
+            JSON.stringify({
+              content: [
+                {
+                  type: "text",
+                  text: "Paragraph one.\n\nParagraph two.\n\nParagraph three.",
+                },
+              ],
+            }),
+        };
+      }
+      return { ok: false, status: 500, text: async () => "Unexpected" };
+    });
+
+    const { handler } = await import("../src/handler.mjs");
+    const result = await handler(
+      buildBriefingEvent(
+        {
+          constituencyName: "Exeter",
+          currentMp: { name: "Steve Race", party: "Labour", majority: 1203 },
+          result2024: { winner: "Steve Race", party: "Labour", majority: 1203, voteShare: 41.7 },
+          swingFromNotional2019: { label: "Con → Labour", value: 0.122 },
+          vulnerability: { score: 7.3, classification: "High" },
+          reformThreat: { rank: 18, score: 6.2, label: "Reform threat" },
+          libDemThreat: null,
+          demographics: { graduatePct: 46.1, ownerOccupancyPct: 53.8, leaveVotePct: 41.5 },
+          lgr: { affected: false },
+        },
+        { Authorization: `Bearer ${token}` }
+      ),
+      {}
+    );
+    const body = JSON.parse(result.body);
+    expect(result.statusCode).toBe(200);
+    expect(body.ok).toBe(true);
+    expect(body.model).toBe("claude-sonnet-4-20250514");
+    expect(body.brief).toContain("Paragraph one.");
   });
 
   it("stores errorCode on ops invoice creation failure", async () => {

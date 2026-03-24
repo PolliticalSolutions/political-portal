@@ -95,6 +95,15 @@ Parameters:
     Type: String
     Default: ""
     Description: Cognito app client id for JWT verification.
+  AnthropicApiKey:
+    Type: String
+    Default: ""
+    NoEcho: true
+    Description: Anthropic API key used for constituency intelligence briefs.
+  AnthropicModel:
+    Type: String
+    Default: claude-sonnet-4-20250514
+    Description: Anthropic model id for constituency intelligence briefs.
   StripeSecretKey:
     Type: String
     Default: ""
@@ -341,6 +350,8 @@ Resources:
           QUOTE_TTL_DAYS: !Ref QuoteTtlDays
           COGNITO_ISSUER: !Ref CognitoIssuer
           COGNITO_AUDIENCE: !Ref CognitoAudience
+          ANTHROPIC_API_KEY: !Ref AnthropicApiKey
+          ANTHROPIC_MODEL: !Ref AnthropicModel
       Policies:
         - Statement:
             Effect: Allow
@@ -402,6 +413,12 @@ Resources:
             ApiId: !Ref EnquiryApi
             Path: /quote-requests
             Method: GET
+        ConstituencyBriefingPost:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref EnquiryApi
+            Path: /briefings/constituency-intelligence
+            Method: POST
         QuoteRequestAdmin:
           Type: HttpApi
           Properties:

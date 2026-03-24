@@ -14,13 +14,7 @@ const ASSOCIATION_QUERY_BATCH_SIZE = 50;
 
 function getPermissionsReadClient() {
   const serviceClient = getSupabaseServiceClient();
-  if (serviceClient) {
-    console.log("[permissionsApi] Using service-role Supabase client for permissions read.");
-    return serviceClient;
-  }
-
-  console.warn("[permissionsApi] Falling back to anon Supabase client for permissions read.");
-  return supabase;
+  return serviceClient || supabase;
 }
 
 function chunkArray(items, size) {
@@ -47,20 +41,7 @@ function chunkArray(items, size) {
 export async function getUserPermissions(cognitoSub) {
   if (!cognitoSub) return [];
   const db = getPermissionsReadClient();
-  if (!db) {
-    console.warn("[permissionsApi] No Supabase client available in getUserPermissions.", {
-      cognitoSub,
-    });
-    return [];
-  }
-
-  console.log("[permissionsApi] Querying user_permissions.", {
-    table: "user_permissions",
-    filters: {
-      cognito_sub: cognitoSub,
-      is_active: true,
-    },
-  });
+  if (!db) return [];
 
   const { data: perms, error: permsErr } = await db
     .from("user_permissions")
@@ -68,27 +49,11 @@ export async function getUserPermissions(cognitoSub) {
     .eq("cognito_sub", cognitoSub)
     .eq("is_active", true);
 
-  console.log("[permissionsApi] Raw Supabase response for user_permissions.", {
-    cognitoSub,
-    data: perms,
-    error: permsErr,
-    rowCount: Array.isArray(perms) ? perms.length : 0,
-  });
-
   if (permsErr || !perms?.length) return [];
 
   const assocIds = perms.map((p) => p.association_id);
   const assocIdBatches = chunkArray(assocIds, ASSOCIATION_QUERY_BATCH_SIZE);
   const allLinks = [];
-
-  console.log("[permissionsApi] Querying association_constituencies in batches.", {
-    table: "association_constituencies",
-    filters: {
-      association_id_in_count: assocIds.length,
-      batchCount: assocIdBatches.length,
-      batchSize: ASSOCIATION_QUERY_BATCH_SIZE,
-    },
-  });
 
   for (let index = 0; index < assocIdBatches.length; index += 1) {
     const batch = assocIdBatches[index];
@@ -97,21 +62,7 @@ export async function getUserPermissions(cognitoSub) {
       .select("association_id, constituencies(id, name, ons_code)")
       .in("association_id", batch);
 
-    console.log("[permissionsApi] Raw Supabase response for association_constituencies batch.", {
-      cognitoSub,
-      batchIndex: index,
-      batchAssociationIds: batch,
-      error: linksErr,
-      rowCount: Array.isArray(links) ? links.length : 0,
-    });
-
     if (linksErr) {
-      console.error("[permissionsApi] association_constituencies batch query failed.", {
-        cognitoSub,
-        batchIndex: index,
-        batchAssociationIds: batch,
-        error: linksErr,
-      });
       continue;
     }
 
@@ -134,6 +85,21 @@ export async function getUserPermissions(cognitoSub) {
   }));
 }
 
+function getConstituencyDedupKey(constituency) {
+  const candidateKey = [
+    constituency?.id,
+    constituency?.constituency_id,
+    constituency?.ons_code,
+  ].find((value) => Boolean(value));
+
+  return candidateKey ? candidateKey.toString().trim() : "";
+}
+
+function normalizeConstituencies(value) {
+  if (Array.isArray(value)) return value.filter(Boolean);
+  return value ? [value] : [];
+}
+
 /**
  * Returns a flat, de-duplicated list of constituencies the user can
  * upload for, across all their active associations.
@@ -142,26 +108,35 @@ export async function getUserPermissions(cognitoSub) {
  * @returns {Promise<Array<{ id: string, name: string, ons_code: string }>>}
  */
 export async function getUserConstituencies(cognitoSub) {
-  console.log("[permissionsApi] getUserConstituencies called.", { cognitoSub });
   const perms = await getUserPermissions(cognitoSub);
-  const seen = new Set();
-  const result = [];
+  const constituenciesByKey = new Map();
+
   for (const perm of perms) {
-    for (const c of perm.constituencies) {
-      if (!seen.has(c.id)) {
-        seen.add(c.id);
-        result.push({ ...c, association_name: perm.association_name });
+    for (const constituency of normalizeConstituencies(perm.constituencies)) {
+      const key = getConstituencyDedupKey(constituency);
+      if (!key) continue;
+
+      const existing = constituenciesByKey.get(key);
+      const associationNames = new Set(existing?.association_names || []);
+      if (perm.association_name) {
+        associationNames.add(perm.association_name);
       }
+
+      const next = {
+        ...existing,
+        ...constituency,
+        id: constituency.id || existing?.id || key,
+        association_names: [...associationNames].sort((a, b) => a.localeCompare(b)),
+      };
+      next.association_name = next.association_names.join(", ");
+
+      constituenciesByKey.set(key, next);
     }
   }
-  result.sort((a, b) => a.name.localeCompare(b.name));
-  console.log("[permissionsApi] getUserConstituencies flattened result.", {
-    cognitoSub,
-    permissions: perms,
-    constituencies: result,
-    constituencyCount: result.length,
-  });
-  return result;
+
+  return [...constituenciesByKey.values()].sort((a, b) =>
+    (a.name || "").localeCompare(b.name || "")
+  );
 }
 
 /**

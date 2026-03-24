@@ -1,4 +1,4 @@
-import { describe, expect, it, vi, beforeEach } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 // Mock supabaseClient before importing the module under test.
 vi.mock("../../../lib/supabaseClient.js", () => {
@@ -29,6 +29,7 @@ vi.mock("../../../lib/supabaseClient.js", () => {
 import { supabase } from "../../../lib/supabaseClient.js";
 import {
   getConstituency,
+  generateConstituencyBrief,
   getConstituencyReformThreat,
   getConstituencyResults,
   getLgrImpactsForAuthorityNames,
@@ -74,6 +75,12 @@ describe("searchConstituencies", () => {
     );
     await expect(searchConstituencies()).rejects.toThrow("DB connection failed");
   });
+});
+
+afterEach(() => {
+  vi.unstubAllEnvs();
+  delete global.fetch;
+  sessionStorage.clear();
 });
 
 describe("getConstituency", () => {
@@ -291,5 +298,58 @@ describe("threat and LGR helpers", () => {
     const result = await getLgrImpactsForAuthorityNames(["Kent County Council"]);
     expect(result).toHaveLength(1);
     expect(result[0].authority_name).toBe("Kent County Council");
+  });
+});
+
+describe("generateConstituencyBrief", () => {
+  it("posts the briefing payload to the protected enquiry API route", async () => {
+    vi.stubEnv("VITE_API_BASE_URL", "https://api.example.test");
+    sessionStorage.setItem(
+      "cognito_tokens",
+      JSON.stringify({ access_token: "access-token-123" })
+    );
+
+    global.fetch = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({
+        ok: true,
+        brief: "Paragraph one.\n\nParagraph two.\n\nParagraph three.",
+      }),
+    });
+
+    const payload = {
+      constituencyName: "Exeter",
+      currentMp: { name: "Steve Race", party: "Labour", majority: 1200 },
+    };
+
+    const result = await generateConstituencyBrief(payload);
+
+    expect(result.brief).toContain("Paragraph one");
+    expect(global.fetch).toHaveBeenCalledWith(
+      "https://api.example.test/briefings/constituency-intelligence",
+      expect.objectContaining({
+        method: "POST",
+        headers: expect.objectContaining({
+          "Content-Type": "application/json",
+          Authorization: "Bearer access-token-123",
+        }),
+        body: JSON.stringify(payload),
+      })
+    );
+  });
+
+  it("throws when the briefing endpoint responds with an error", async () => {
+    vi.stubEnv("VITE_ENQUIRY_API_URL", "https://api.example.test");
+    global.fetch = vi.fn().mockResolvedValue({
+      ok: false,
+      status: 502,
+      json: async () => ({
+        message: "AI briefing generation failed.",
+      }),
+    });
+
+    await expect(generateConstituencyBrief({ constituencyName: "Exeter" })).rejects.toThrow(
+      "AI briefing generation failed."
+    );
   });
 });

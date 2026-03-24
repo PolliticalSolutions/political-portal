@@ -49,6 +49,8 @@ const XERO_TOKEN_URL = "https://identity.xero.com/connect/token";
 const XERO_CONNECTIONS_URL = "https://api.xero.com/connections";
 const XERO_INVOICES_URL = "https://api.xero.com/api.xro/2.0/Invoices";
 const XERO_CONTACTS_URL = "https://api.xero.com/api.xro/2.0/Contacts";
+const ANTHROPIC_MESSAGES_URL = "https://api.anthropic.com/v1/messages";
+const DEFAULT_ANTHROPIC_MODEL = "claude-sonnet-4-20250514";
 const XERO_SCOPES = [
   "offline_access",
   "accounting.transactions",
@@ -388,6 +390,163 @@ function buildXeroState() {
     .update(payload)
     .digest("base64url");
   return `${payload}.${signature}`;
+}
+
+function toFiniteNumber(value) {
+  if (value == null || value === "") return null;
+  const parsed = Number(value);
+  return Number.isFinite(parsed) ? parsed : null;
+}
+
+function sanitizeThreatInfo(threat) {
+  if (!threat || typeof threat !== "object") return null;
+  const rank = toFiniteNumber(threat.rank);
+  const score = toFiniteNumber(threat.score);
+  const label = sanitizeText(threat.label, MAX_SERVICE_DESCRIPTION);
+
+  if (rank == null && score == null && !label) {
+    return null;
+  }
+
+  return { rank, score, label };
+}
+
+function sanitizeConstituencyBriefingPayload(payload) {
+  const currentMp = payload?.currentMp || {};
+  const result2024 = payload?.result2024 || {};
+  const swingFromNotional2019 = payload?.swingFromNotional2019 || {};
+  const vulnerability = payload?.vulnerability || {};
+  const demographics = payload?.demographics || {};
+  const lgr = payload?.lgr || {};
+
+  return {
+    constituencyName: sanitizeText(payload?.constituencyName, MAX_NAME),
+    currentMp: {
+      name: sanitizeText(currentMp.name, MAX_NAME),
+      party: sanitizeText(currentMp.party, MAX_SERVICE_DESCRIPTION),
+      majority: toFiniteNumber(currentMp.majority),
+    },
+    result2024: {
+      winner: sanitizeText(result2024.winner, MAX_NAME),
+      party: sanitizeText(result2024.party, MAX_SERVICE_DESCRIPTION),
+      majority: toFiniteNumber(result2024.majority),
+      voteShare: toFiniteNumber(result2024.voteShare),
+      turnout: toFiniteNumber(result2024.turnout),
+      electionName: sanitizeText(result2024.electionName, MAX_SERVICE_DESCRIPTION),
+      electionDate: sanitizeText(result2024.electionDate, 32),
+    },
+    swingFromNotional2019: {
+      label: sanitizeText(swingFromNotional2019.label, MAX_SERVICE_DESCRIPTION),
+      value: toFiniteNumber(swingFromNotional2019.value),
+      national: toFiniteNumber(swingFromNotional2019.national),
+    },
+    vulnerability: {
+      score: toFiniteNumber(vulnerability.score),
+      classification: sanitizeText(vulnerability.classification, MAX_SERVICE_DESCRIPTION),
+    },
+    reformThreat: sanitizeThreatInfo(payload?.reformThreat),
+    libDemThreat: sanitizeThreatInfo(payload?.libDemThreat),
+    demographics: {
+      graduatePct: toFiniteNumber(demographics.graduatePct),
+      ownerOccupancyPct: toFiniteNumber(demographics.ownerOccupancyPct),
+      leaveVotePct: toFiniteNumber(demographics.leaveVotePct),
+    },
+    lgr: {
+      affected: Boolean(lgr.affected),
+      authorityName: sanitizeText(lgr.authorityName, MAX_ASSOCIATION),
+      status: sanitizeText(lgr.status, MAX_SERVICE_DESCRIPTION),
+      abolitionDate: sanitizeText(lgr.abolitionDate, 32),
+      replacementAuthority: sanitizeText(lgr.replacementAuthority, MAX_ASSOCIATION),
+      summary: sanitizeText(lgr.summary, MAX_CONTEXT),
+    },
+  };
+}
+
+function buildConstituencyBriefPrompt(payload) {
+  const promptPayload = {
+    constituency_name: payload.constituencyName,
+    current_mp: payload.currentMp,
+    result_2024: payload.result2024,
+    swing_from_notional_2019: payload.swingFromNotional2019,
+    vulnerability: payload.vulnerability,
+    reform_threat_top_50: payload.reformThreat,
+    lib_dem_threat_top_50: payload.libDemThreat,
+    demographics: payload.demographics,
+    lgr: payload.lgr,
+  };
+
+  return [
+    "Write exactly 3 short paragraphs in plain English for a UK parliamentary candidate or agent.",
+    "Use only the supplied constituency data. Do not invent facts, numbers, or rankings.",
+    "Focus on the current seat picture, the main sources of vulnerability or opportunity, and the practical campaign implication.",
+    "Do not use bullet points, headings, markdown, or quote marks around the answer.",
+    "",
+    JSON.stringify(promptPayload, null, 2),
+  ].join("\n");
+}
+
+function extractAnthropicText(payload) {
+  if (!Array.isArray(payload?.content)) return "";
+  return payload.content
+    .filter((block) => block?.type === "text" && block?.text)
+    .map((block) => block.text.trim())
+    .filter(Boolean)
+    .join("\n\n")
+    .trim();
+}
+
+async function generateConstituencyBrief(payload) {
+  const apiKey = (process.env.ANTHROPIC_API_KEY || "").trim();
+  const model = (process.env.ANTHROPIC_MODEL || DEFAULT_ANTHROPIC_MODEL).trim() || DEFAULT_ANTHROPIC_MODEL;
+  if (!apiKey) {
+    throw new Error("Anthropic API key is not configured.");
+  }
+
+  const response = await fetchWithRetry(
+    ANTHROPIC_MESSAGES_URL,
+    {
+      method: "POST",
+      headers: {
+        "content-type": "application/json",
+        "x-api-key": apiKey,
+        "anthropic-version": "2023-06-01",
+      },
+      body: JSON.stringify({
+        model,
+        max_tokens: 500,
+        temperature: 0.4,
+        system:
+          "You write concise constituency intelligence briefs for UK parliamentary campaign teams.",
+        messages: [
+          {
+            role: "user",
+            content: buildConstituencyBriefPrompt(payload),
+          },
+        ],
+      }),
+    },
+    1
+  );
+
+  const rawText = await response.text();
+  let data = null;
+  try {
+    data = rawText ? JSON.parse(rawText) : {};
+  } catch {
+    data = null;
+  }
+
+  if (!response.ok) {
+    const message = data?.error?.message || `Anthropic request failed (${response.status}).`;
+    throw new Error(message);
+  }
+
+  const brief = extractAnthropicText(data);
+  if (!brief) {
+    throw new Error("Anthropic response did not contain generated text.");
+  }
+
+  return { brief, model };
 }
 
 function verifyXeroState(state) {
@@ -1869,6 +2028,76 @@ async function handleQuoteRequestList(event, origin) {
   );
 }
 
+async function handleConstituencyBriefingPost(event, origin) {
+  const authResult = await requireAuth(event, origin);
+  if (authResult.error) {
+    return authResult.error;
+  }
+
+  if (!(process.env.ANTHROPIC_API_KEY || "").trim()) {
+    return response(
+      503,
+      {
+        ok: false,
+        error: "ai_briefing_not_configured",
+        message: "AI briefing is not configured for this environment.",
+      },
+      origin
+    );
+  }
+
+  const parsed = parseJsonBody(event, origin);
+  if (parsed.error) {
+    return parsed.error;
+  }
+
+  const payload = sanitizeConstituencyBriefingPayload(parsed.payload);
+  if (!payload.constituencyName) {
+    return response(
+      400,
+      {
+        ok: false,
+        error: "validation_error",
+        message: "Constituency name is required.",
+      },
+      origin
+    );
+  }
+
+  try {
+    const result = await generateConstituencyBrief(payload);
+    logEvent("ai.constituency_brief_generated", {
+      constituencyName: payload.constituencyName,
+      model: result.model,
+    });
+
+    return response(
+      200,
+      {
+        ok: true,
+        brief: result.brief,
+        model: result.model,
+        generatedAt: new Date().toISOString(),
+      },
+      origin
+    );
+  } catch (error) {
+    logEvent("ai.constituency_brief_failed", {
+      constituencyName: payload.constituencyName,
+      error: error?.message || "failed",
+    });
+    return response(
+      502,
+      {
+        ok: false,
+        error: "ai_briefing_failed",
+        message: error?.message || "AI briefing generation failed.",
+      },
+      origin
+    );
+  }
+}
+
 async function handleQuoteRequestAdminDetail(event, origin) {
   const quoteTable = process.env.QUOTE_REQUESTS_TABLE;
   if (!quoteTable) {
@@ -2347,6 +2576,9 @@ export async function handler(event, context) {
       const authResult = await requireAuth(event, origin);
       if (authResult.error) return authResult.error;
       return await handleQuoteRequestList(event, origin);
+    }
+    if (path === "/briefings/constituency-intelligence" && method === "POST") {
+      return await handleConstituencyBriefingPost(event, origin);
     }
     if (path.startsWith("/quote-requests/") && path.endsWith("/admin") && method === "GET") {
       const authResult = await requireAuth(event, origin);

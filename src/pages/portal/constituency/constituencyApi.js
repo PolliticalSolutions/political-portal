@@ -1,4 +1,44 @@
 import { supabase } from "../../../lib/supabaseClient.js";
+import { getApiBaseUrl } from "../../../config/runtimeConfig.js";
+
+const resolveApiBaseUrl = () => getApiBaseUrl();
+
+const fetchJson = async (url, options) => {
+  let response;
+  try {
+    response = await fetch(url, options);
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "Network request failed.";
+    throw new Error(message);
+  }
+
+  let data = null;
+  try {
+    data = await response.json();
+  } catch {
+    data = null;
+  }
+
+  if (!response.ok) {
+    const message = data?.message || `Request failed (${response.status}).`;
+    throw new Error(message);
+  }
+
+  return data;
+};
+
+const getAuthHeaders = () => {
+  try {
+    const raw = sessionStorage.getItem("cognito_tokens");
+    if (!raw) return {};
+    const tokens = JSON.parse(raw);
+    const token = tokens?.access_token || tokens?.id_token;
+    if (!token) return {};
+    return { Authorization: `Bearer ${token}` };
+  } catch {
+    return {};
+  }
+};
 
 export async function searchConstituencies({ query = "", region = "", country = "" } = {}) {
   let q = supabase
@@ -484,4 +524,20 @@ export async function getLatestElectionScenarioBaseline() {
     electionDate: elections[0].election_date,
     rows: rows ?? [],
   };
+}
+
+export async function generateConstituencyBrief(payload) {
+  const base = resolveApiBaseUrl();
+  if (!base) {
+    throw new Error("Missing API base URL.");
+  }
+
+  return fetchJson(`${base}/briefings/constituency-intelligence`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      ...getAuthHeaders(),
+    },
+    body: JSON.stringify(payload),
+  });
 }
