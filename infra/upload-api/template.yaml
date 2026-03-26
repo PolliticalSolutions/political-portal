@@ -752,7 +752,7 @@ Resources:
       FunctionName: !Ref WorkerFunction
       FunctionResponseTypes:
         - ReportBatchItemFailures
-      Enabled: true
+      Enabled: false  # Local listener (scripts/listener/listener.py) is the sole consumer
 
   # ── Scan result handler (GuardDuty -> EventBridge -> Lambda -> SQS) ───────
 
