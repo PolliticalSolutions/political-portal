@@ -17,6 +17,27 @@ export default defineConfig({
   ssr: {
     noExternal: ["react-helmet-async"],
   },
+  build: {
+    rollupOptions: {
+      output: {
+        manualChunks(id) {
+          if (id.includes("node_modules/@supabase")) return "vendor-supabase";
+          if (
+            id.includes("node_modules/react-simple-maps") ||
+            id.includes("node_modules/d3-") ||
+            id.includes("node_modules/topojson")
+          )
+            return "vendor-maps";
+          if (
+            id.includes("node_modules/react-dom") ||
+            id.includes("node_modules/react-router") ||
+            id.includes("node_modules/react/")
+          )
+            return "vendor-react";
+        },
+      },
+    },
+  },
   test: {
     globals: true,
     environment: "jsdom",

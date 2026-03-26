@@ -1,10 +1,9 @@
 // Browser-only component. Never import this file statically — always via React.lazy().
 // react-simple-maps uses browser APIs (SVG, ResizeObserver) and cannot run in Node/SSR.
 // The GeoJSON is bundled directly to avoid an HTTP fetch (eliminates the Amplify redirect issue).
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { ComposableMap, Geographies, Geography, ZoomableGroup } from "react-simple-maps";
-import geoData from "/src/data/uk-constituencies.geojson";
 import { resolvePartyColour, toHexColor } from "../../../utils/partyColours.js";
 
 function blendHexWithWhite(hex, blend = 0.3) {
@@ -53,8 +52,13 @@ export default function ConstituencyMapClient({
   onConstituencyClick,
 }) {
   const navigate = useNavigate();
+  const [geoData, setGeoData] = useState(null);
   const [mapError, setMapError] = useState(null);
   const [position, setPosition] = useState({ coordinates: [-2, 55.4], zoom: 1 });
+
+  useEffect(() => {
+    import("/src/data/uk-constituencies.geojson").then((m) => setGeoData(m.default));
+  }, []);
   const errorLoggedRef = useRef(false);
   const fillLoggedRef = useRef(false);
 
@@ -179,9 +183,11 @@ export default function ConstituencyMapClient({
             });
           }}
         >
-          <Geographies geography={geoData}>
-            {handleGeographies}
-          </Geographies>
+          {geoData && (
+            <Geographies geography={geoData}>
+              {handleGeographies}
+            </Geographies>
+          )}
         </ZoomableGroup>
       </ComposableMap>
     </div>

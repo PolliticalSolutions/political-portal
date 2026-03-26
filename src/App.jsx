@@ -19,22 +19,21 @@ import BlogPostPage from "./pages/BlogPostPage.jsx";
 import Home from "./pages/Home.jsx";
 import Login from "./pages/Login.jsx";
 import Subscribe from "./pages/Subscribe.jsx";
-import Subscriptions from "./pages/Subscriptions.jsx";
-import SubscriptionsEntry from "./pages/SubscriptionsEntry.jsx";
 import Services from "./pages/Services.jsx";
 import ServiceSupport from "./pages/ServiceSupport.jsx";
-import PortalLayout from "./pages/portal/PortalLayout.jsx";
-import PortalNotFound from "./pages/portal/PortalNotFound.jsx";
-import PricingRules from "./pages/portal/PricingRules.jsx";
-import Uploads from "./pages/portal/Uploads.jsx";
-import Dashboard from "./pages/portal/Dashboard.jsx";
-import Integrations from "./pages/portal/Integrations.jsx";
-import Quotes from "./pages/portal/Quotes.jsx";
-import QuoteDetail from "./pages/portal/QuoteDetail.jsx";
-import ManualReviewPage from "./pages/portal/admin/ManualReviewPage.jsx";
-import PermissionsPage from "./pages/portal/admin/PermissionsPage.jsx";
-import AssociationsPage from "./pages/portal/admin/AssociationsPage.jsx";
-import DataSourcesPage from "./pages/portal/DataSourcesPage.jsx";
+const PortalLayout = lazy(() => import("./pages/portal/PortalLayout.jsx"));
+const PortalNotFound = lazy(() => import("./pages/portal/PortalNotFound.jsx"));
+const Subscriptions = lazy(() => import("./pages/Subscriptions.jsx"));
+const PricingRules = lazy(() => import("./pages/portal/PricingRules.jsx"));
+const Uploads = lazy(() => import("./pages/portal/Uploads.jsx"));
+const Dashboard = lazy(() => import("./pages/portal/Dashboard.jsx"));
+const Integrations = lazy(() => import("./pages/portal/Integrations.jsx"));
+const Quotes = lazy(() => import("./pages/portal/Quotes.jsx"));
+const QuoteDetail = lazy(() => import("./pages/portal/QuoteDetail.jsx"));
+const ManualReviewPage = lazy(() => import("./pages/portal/admin/ManualReviewPage.jsx"));
+const PermissionsPage = lazy(() => import("./pages/portal/admin/PermissionsPage.jsx"));
+const AssociationsPage = lazy(() => import("./pages/portal/admin/AssociationsPage.jsx"));
+const DataSourcesPage = lazy(() => import("./pages/portal/DataSourcesPage.jsx"));
 const ConstituencyIndex = lazy(() => import("./pages/portal/constituency/ConstituencyIndex.jsx"));
 const ConstituencyDetail = lazy(() => import("./pages/portal/constituency/ConstituencyDetail.jsx"));
 const VulnerabilityDashboard = lazy(() => import("./pages/portal/constituency/VulnerabilityDashboard.jsx"));
@@ -292,30 +291,30 @@ export default function App() {
             <Route path="/terms" element={<TermsPage />} />
             <Route path="/cookies" element={<CookiesPage />} />
             <Route element={<ProtectedRoute authed={authed} session={session} />}>
-              <Route path="/portal" element={<PortalLayout />}>
-                <Route index element={<Dashboard />} />
+              <Route path="/portal" element={<Suspense fallback={<div className="app-shell"><p className="muted" style={{padding:"2rem"}}>Loading…</p></div>}><PortalLayout /></Suspense>}>
+                <Route index element={<Suspense fallback={<div className="page stack"><p className="muted">Loading…</p></div>}><Dashboard /></Suspense>} />
                 <Route
                   path="session"
                   element={<Session session={session} onClear={handleClearSession} />}
                 />
                 <Route path="pricing" element={<Navigate to="/portal/subscriptions" replace />} />
-                <Route path="pricing-rules" element={<PricingRules />} />
-                <Route path="subscriptions" element={<Subscriptions />} />
+                <Route path="pricing-rules" element={<Suspense fallback={<div className="page stack"><p className="muted">Loading…</p></div>}><PricingRules /></Suspense>} />
+                <Route path="subscriptions" element={<Suspense fallback={<div className="page stack"><p className="muted">Loading…</p></div>}><Subscriptions /></Suspense>} />
                 <Route path="cart" element={<Cart basePath="/portal" />} />
                 <Route path="checkout" element={<Checkout basePath="/portal" />} />
                 <Route
                   path="checkout/confirmation"
                   element={<CheckoutConfirmation basePath="/portal" />}
                 />
-                <Route path="settings/integrations" element={<Integrations />} />
-                <Route path="uploads" element={<Uploads />} />
-                <Route path="ops/quotes" element={<Quotes />} />
-                <Route path="ops/quotes/:ref" element={<QuoteDetail />} />
-                <Route path="admin/manual-review" element={<ManualReviewPage />} />
-                <Route path="admin/users" element={<PermissionsPage />} />
+                <Route path="settings/integrations" element={<Suspense fallback={<div className="page stack"><p className="muted">Loading…</p></div>}><Integrations /></Suspense>} />
+                <Route path="uploads" element={<Suspense fallback={<div className="page stack"><p className="muted">Loading…</p></div>}><Uploads /></Suspense>} />
+                <Route path="ops/quotes" element={<Suspense fallback={<div className="page stack"><p className="muted">Loading…</p></div>}><Quotes /></Suspense>} />
+                <Route path="ops/quotes/:ref" element={<Suspense fallback={<div className="page stack"><p className="muted">Loading…</p></div>}><QuoteDetail /></Suspense>} />
+                <Route path="admin/manual-review" element={<Suspense fallback={<div className="page stack"><p className="muted">Loading…</p></div>}><ManualReviewPage /></Suspense>} />
+                <Route path="admin/users" element={<Suspense fallback={<div className="page stack"><p className="muted">Loading…</p></div>}><PermissionsPage /></Suspense>} />
                 <Route path="admin/permissions" element={<Navigate to="/portal/admin/users" replace />} />
-                <Route path="admin/associations" element={<AssociationsPage />} />
-                <Route path="data-sources" element={<DataSourcesPage />} />
+                <Route path="admin/associations" element={<Suspense fallback={<div className="page stack"><p className="muted">Loading…</p></div>}><AssociationsPage /></Suspense>} />
+                <Route path="data-sources" element={<Suspense fallback={<div className="page stack"><p className="muted">Loading…</p></div>}><DataSourcesPage /></Suspense>} />
                 <Route
                   path="constituency"
                   element={
@@ -436,7 +435,7 @@ export default function App() {
                     </Suspense>
                   }
                 />
-                <Route path="*" element={<PortalNotFound />} />
+                <Route path="*" element={<Suspense fallback={null}><PortalNotFound /></Suspense>} />
               </Route>
             </Route>
             <Route path="*" element={<Navigate to="/" replace />} />

@@ -32,4 +32,5 @@ yarn-error.log*
 /dist-ssr/
 .claude/
 .aws-sam/
+infra/enquiry-api/stripe-src/node_modules/
 

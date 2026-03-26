@@ -1,7 +1,6 @@
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { ComposableMap, Geographies, Geography, ZoomableGroup } from "react-simple-maps";
-import geoData from "/src/data/uk-constituencies.geojson";
 
 function toHexColor(hex) {
   if (!hex) return null;
@@ -25,9 +24,14 @@ export default function AnalyticsChoroplethMapClient({
   onConstituencyClick,
 }) {
   const navigate = useNavigate();
+  const [geoData, setGeoData] = useState(null);
   const [mapError, setMapError] = useState(null);
   const [position, setPosition] = useState({ coordinates: [-2, 55.4], zoom: 1 });
   const errorLoggedRef = useRef(false);
+
+  useEffect(() => {
+    import("/src/data/uk-constituencies.geojson").then((m) => setGeoData(m.default));
+  }, []);
 
   const handleClick = (onsCode) => {
     if (!onsCode) return;
@@ -129,7 +133,7 @@ export default function AnalyticsChoroplethMapClient({
             });
           }}
         >
-          <Geographies geography={geoData}>{handleGeographies}</Geographies>
+          {geoData && <Geographies geography={geoData}>{handleGeographies}</Geographies>}
         </ZoomableGroup>
       </ComposableMap>
     </div>
