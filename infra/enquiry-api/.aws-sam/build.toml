@@ -9,4 +9,13 @@ manifest_hash = ""
 packagetype = "Zip"
 functions = ["EnquiryFunction"]
 
+[function_build_definitions.0dbc6273-0664-4411-8ed1-a35e4a87ea80]
+codeuri = "C:\\Users\\pauls\\Documents\\political-portal\\infra\\enquiry-api\\stripe-src"
+runtime = "nodejs20.x"
+architecture = "x86_64"
+handler = "index.handler"
+manifest_hash = ""
+packagetype = "Zip"
+functions = ["StripeFunction"]
+
 [layer_build_definitions]
