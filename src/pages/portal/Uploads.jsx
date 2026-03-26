@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import Button from "../../components/Button.jsx";
 import Card from "../../components/Card.jsx";
-import { createJob, getDownloadUrls, listElections, listJobs } from "../../lib/uploadApi.js";
+import { createJob, listElections, listJobs } from "../../lib/uploadApi.js";
 import { usePermissions } from "../../context/PermissionsContext.jsx";
 
 const MAX_FILE_SIZE = 200 * 1024 * 1024; // 200 MB
@@ -498,22 +498,6 @@ export default function Uploads() {
     }
   };
 
-  const handleDownload = async (job) => {
-    try {
-      const data = await getDownloadUrls(job.jobId);
-      for (const { name, downloadUrl } of data.files || []) {
-        const a = document.createElement("a");
-        a.href = downloadUrl;
-        a.download = name;
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-      }
-    } catch (err) {
-      setUploadErrors([`Download failed: ${err.message}`]);
-    }
-  };
-
   const handleRefresh = () => {
     loadJobs();
   };
@@ -814,7 +798,6 @@ export default function Uploads() {
                   <th>Status</th>
                   <th>Created</th>
                   <th>Updated</th>
-                  <th>Actions</th>
                 </tr>
               </thead>
               <tbody>
@@ -834,35 +817,6 @@ export default function Uploads() {
                       {job.updatedAt
                         ? new Date(job.updatedAt).toLocaleString()
                         : "—"}
-                    </td>
-                    <td>
-                      <div className="portal-section-actions">
-                        {isCompleteJobStatus(job.status) &&
-                          Array.isArray(job.output?.files) &&
-                          job.output.files.length > 0 && (
-                          <Button
-                            variant="primary"
-                            className="button--small"
-                            onClick={() => handleDownload(job)}
-                          >
-                            Download Results
-                          </Button>
-                        )}
-                        {isCompleteJobStatus(job.status) &&
-                          (!Array.isArray(job.output?.files) || job.output.files.length === 0) && (
-                          <span style={{ color: "#64748b", fontSize: 12 }}>
-                            Results not ready yet
-                          </span>
-                        )}
-                        {isFailedJobStatus(job.status) && job.error?.message && (
-                          <span
-                            style={{ color: "#b91c1c", fontSize: 12 }}
-                            title={job.error?.detail}
-                          >
-                            {job.error.message}
-                          </span>
-                        )}
-                      </div>
                     </td>
                   </tr>
                 ))}

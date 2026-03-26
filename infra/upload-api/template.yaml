@@ -77,6 +77,14 @@ Parameters:
     Type: Number
     Default: 14
     Description: CloudWatch Logs retention in days for WAF logs.
+  NotificationEmail:
+    Type: String
+    Default: "paul@politicalsolutions.uk"
+    Description: Recipient email address for job completion notifications.
+  SesFromEmail:
+    Type: String
+    Default: "noreply@politicalsolutions.uk"
+    Description: SES sender address for job completion notifications.
 
 Conditions:
   WafEnabledCondition: !Equals [!Ref WafEnabled, "true"]
@@ -698,6 +706,8 @@ Resources:
           SUBMISSIONS_TABLE: !Ref SubmissionsTable
           GEO_LOOKUP_TABLE: !Ref GeoLookupTableName
           UPLOADS_BUCKET: !Ref UploadsBucket
+          SES_FROM_EMAIL: !Ref SesFromEmail
+          NOTIFICATION_EMAIL: !Ref NotificationEmail
       Policies:
         - Statement:
             Effect: Allow
@@ -727,6 +737,12 @@ Resources:
               - sqs:GetQueueAttributes
               - sqs:ChangeMessageVisibility
             Resource: !GetAtt ProcessQueue.Arn
+        - Statement:
+            Effect: Allow
+            Action:
+              - ses:SendEmail
+              - ses:SendRawEmail
+            Resource: "*"
 
   WorkerProcessQueueMapping:
     Type: AWS::Lambda::EventSourceMapping

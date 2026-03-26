@@ -511,7 +511,7 @@ describe("Uploads – elections", () => {
     });
   });
 
-  it("shows clear terminal status labels and a prominent download button when results exist", async () => {
+  it("shows clear terminal status labels for completed and failed jobs", async () => {
     uploadApi.listJobs.mockResolvedValueOnce({
       items: [
         {
@@ -544,11 +544,6 @@ describe("Uploads – elections", () => {
       expect(screen.getByText("Failed")).toBeInTheDocument();
     });
 
-    expect(
-      screen.getByRole("button", {
-        name: /Download Results/i,
-      })
-    ).toBeInTheDocument();
-    expect(screen.getByText("OCR failed")).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /Download Results/i })).not.toBeInTheDocument();
   });
 });

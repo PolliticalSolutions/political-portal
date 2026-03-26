@@ -23,9 +23,12 @@ try {
 const REGION = process.env.AWS_REGION || "eu-west-2";
 const dynamo = new AWS.DynamoDB.DocumentClient({ region: REGION });
 const s3 = new AWS.S3({ region: REGION });
+const ses = new AWS.SES({ region: REGION });
 
 const JOBS_TABLE = process.env.JOBS_TABLE || "";
 const UPLOADS_BUCKET = process.env.UPLOADS_BUCKET || "";
+const SES_FROM_EMAIL = process.env.SES_FROM_EMAIL || "";
+const NOTIFICATION_EMAIL = process.env.NOTIFICATION_EMAIL || "";
 const MAX_FILE_SIZE_BYTES = 200 * 1024 * 1024;
 
 class RetryableProcessingError extends Error {}
@@ -170,6 +173,29 @@ async function updateJobStatus(jobId, status, extra = {}) {
     .promise();
 }
 
+async function sendCompletionEmail(jobId, filename) {
+  if (!SES_FROM_EMAIL || !NOTIFICATION_EMAIL) return;
+  try {
+    await ses
+      .sendEmail({
+        Source: SES_FROM_EMAIL,
+        Destination: { ToAddresses: [NOTIFICATION_EMAIL] },
+        Message: {
+          Subject: { Data: `Upload processed: ${filename}` },
+          Body: {
+            Text: {
+              Data: `Job ${jobId} has been processed successfully.\n\nFile: ${filename}\nJob ID: ${jobId}\n`,
+            },
+          },
+        },
+      })
+      .promise();
+    logEvent("email_sent", { jobId, to: NOTIFICATION_EMAIL });
+  } catch (error) {
+    logEvent("email_failed", { jobId, message: error.message });
+  }
+}
+
 async function processJobMessage(message) {
   const { job, jobId } = await resolveJob(message);
   const bucket = message.bucket || UPLOADS_BUCKET;
@@ -262,6 +288,7 @@ async function processJobMessage(message) {
     });
 
     logEvent("worker_succeeded", { jobId, outputKey });
+    await sendCompletionEmail(jobId, job.filename || s3Key.split("/").pop());
   } catch (error) {
     if (isNoSuchKey(error)) {
       logEvent("worker_retry", { jobId, reason: "no_such_key", message: error.message });
