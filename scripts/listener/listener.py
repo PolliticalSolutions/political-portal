@@ -25,7 +25,7 @@ from botocore.exceptions import ClientError
 
 # ── Configuration ─────────────────────────────────────────────────────────────
 
-BASE_DIR = Path(__file__).parent
+BASE_DIR = Path(__file__).resolve().parent
 CONFIG_PATH = BASE_DIR / "config.ini"
 
 config = configparser.ConfigParser()
@@ -36,6 +36,9 @@ if not config.read(CONFIG_PATH):
 AWS_REGION = config["aws"].get("region", "eu-west-2")
 ACCESS_KEY = config["aws"].get("access_key_id", "").strip()
 SECRET_KEY = config["aws"].get("secret_access_key", "").strip()
+
+print(f"[DEBUG] config.ini loaded from: {CONFIG_PATH}")
+print(f"[DEBUG] AWS access_key_id starts with: {ACCESS_KEY[:4] if ACCESS_KEY else '(empty)'}")
 
 JOB_QUEUE_URL = config["queues"]["job_queue_url"].strip()
 BUCKET_NAME = config["s3"]["bucket_name"].strip()
