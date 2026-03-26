@@ -34,3 +34,9 @@ yarn-error.log*
 .aws-sam/
 infra/enquiry-api/stripe-src/node_modules/
 
+# Local job listener — credentials and runtime dirs
+scripts/listener/config.ini
+scripts/listener/temp/
+scripts/listener/output/
+scripts/listener/logs/
+

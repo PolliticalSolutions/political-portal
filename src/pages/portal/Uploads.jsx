@@ -40,6 +40,7 @@ function getStatusPresentation(status) {
   if (PROCESSING_JOB_STATUSES.has(normalized)) {
     return {
       label: "Processing",
+      description: "Processing now — large batches may take several hours. You will receive an email when complete.",
       style: { background: "#dbeafe", color: "#1d4ed8" },
     };
   }
@@ -47,6 +48,7 @@ function getStatusPresentation(status) {
   if (COMPLETE_JOB_STATUSES.has(normalized)) {
     return {
       label: "Complete",
+      description: null,
       style: { background: "#dcfce7", color: "#15803d" },
     };
   }
@@ -54,6 +56,7 @@ function getStatusPresentation(status) {
   if (FAILED_JOB_STATUSES.has(normalized)) {
     return {
       label: "Failed",
+      description: "Processing encountered an issue. Our team has been notified.",
       style: { background: "#fee2e2", color: "#b91c1c" },
     };
   }
@@ -61,12 +64,14 @@ function getStatusPresentation(status) {
   if (PENDING_JOB_STATUSES.has(normalized) || !normalized) {
     return {
       label: "Pending",
+      description: "Queued for processing — you will receive an email when complete. Large batches may take several hours.",
       style: { background: "#e2e8f0", color: "#475569" },
     };
   }
 
   return {
     label: normalized,
+    description: null,
     style: { background: "#f1f5f9", color: "#64748b" },
   };
 }
@@ -258,17 +263,24 @@ function ConstituencySearch({ value, onChange, allowedConstituencies = [], assoc
 function StatusBadge({ status }) {
   const presentation = getStatusPresentation(status);
   return (
-    <span
-      style={{
-        ...presentation.style,
-        padding: "2px 8px",
-        borderRadius: 4,
-        fontSize: 12,
-        fontWeight: 600,
-      }}
-    >
-      {presentation.label}
-    </span>
+    <div>
+      <span
+        style={{
+          ...presentation.style,
+          padding: "2px 8px",
+          borderRadius: 4,
+          fontSize: 12,
+          fontWeight: 600,
+        }}
+      >
+        {presentation.label}
+      </span>
+      {presentation.description && (
+        <div style={{ fontSize: 12, color: "#64748b", marginTop: 4, maxWidth: 320 }}>
+          {presentation.description}
+        </div>
+      )}
+    </div>
   );
 }
 
