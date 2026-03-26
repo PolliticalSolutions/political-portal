@@ -39,4 +39,5 @@ scripts/listener/config.ini
 scripts/listener/temp/
 scripts/listener/output/
 scripts/listener/logs/
+scripts/listener/__pycache__/
 

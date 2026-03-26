@@ -1,165 +1,110 @@
-# Political Portal — Local Job Listener
+# Political Portal Local Listener
 
-Polls the AWS SQS job queue, processes uploaded PDFs with `marked_register_processor.py`,
-uploads the resulting CSVs back to S3, and emails Paul with the output attached.
+This listener connects the live portal upload pipeline to your local `marked_register_processor.py` workflow.
 
----
+Flow:
 
-## Prerequisites
+1. A client uploads a PDF in the portal.
+2. The upload API stores it in S3 and places a job on the SQS queue.
+3. `listener.py` picks up one job at a time, downloads the file, runs `marked_register_processor.py`, uploads the CSV output to S3, updates the DynamoDB job record, and emails Paul.
+4. The client sees the job move through `Pending`, `Processing`, `Complete`, or `Failed` in the portal.
 
-- Python 3.9+
-- AWS credentials for an IAM user with the policy in `iam-policy.json`
-- `marked_register_processor.py` available locally
-
----
+Large batches of 100+ PDFs can take many hours and may run for up to a full day.
 
 ## 1. Install Python dependencies
 
-```
-pip install boto3
-```
-
-The listener itself only needs `boto3`. `marked_register_processor.py` may have its
-own dependencies — install them separately if needed (e.g. `pdf2image`, `pytesseract`,
-`pillow`, `pandas`).
-
----
-
-## 2. Fill in config.ini
-
-Open `scripts/listener/config.ini` and set:
-
-| Key | Value |
-|-----|-------|
-| `access_key_id` | AWS access key for the listener IAM user |
-| `secret_access_key` | AWS secret key |
-| `processor_command` | Command to run the processor (see below) |
-
-The `processor_command` must include `{input_pdf}` and `{output_dir}` placeholders:
-
-```ini
-processor_command = python C:\path\to\marked_register_processor.py {input_pdf} {output_dir}
-```
-
-The command runs from the project root directory. Use absolute paths if the script is
-located outside the project.
-
----
-
-## 3. Create the IAM user (one-time, manual)
-
-In the AWS console (IAM → Users → Create user):
-
-1. Create a user named `portal-listener` (no console access needed)
-2. Attach the inline policy from `scripts/listener/iam-policy.json`
-3. Create an access key under Security credentials → Access keys
-4. Copy the key ID and secret into `config.ini`
-
----
-
-## 4. Register the startup task (one-time)
-
-Open PowerShell as your normal user and run:
+From a terminal:
 
 ```powershell
-cd C:\path\to\political-portal\scripts\listener
+pip install boto3 pandas pdf2image pytesseract pillow
+```
+
+Install any additional dependencies that your local `marked_register_processor.py` script needs.
+
+## 2. Fill in `config.ini`
+
+Edit [config.ini](c:/Users/pauls/Documents/political-portal/scripts/listener/config.ini) and replace:
+
+- `YOUR_AWS_ACCESS_KEY`
+- `YOUR_AWS_SECRET_KEY`
+
+The live queue URL is already filled in:
+
+- `https://sqs.eu-west-2.amazonaws.com/561375865143/ps-upload-api-prod-process-queue`
+
+If `marked_register_processor.py` is not in the project root, set `processor_command` to its real location. Example:
+
+```ini
+processor_command = python "C:\path\to\marked_register_processor.py" "{input_pdf}" "{output_dir}"
+```
+
+## 3. Register the startup task once
+
+Open PowerShell in [scripts/listener](c:/Users/pauls/Documents/political-portal/scripts/listener) and run:
+
+```powershell
 .\setup_task_scheduler.ps1
 ```
 
-This registers a Windows Task Scheduler task called `PoliticalPortalListener` that
-starts automatically at login.
+This registers a Windows Scheduled Task called `PoliticalPortalListener` for the current user. It is configured with startup and logon triggers and restart-on-failure settings.
 
-To start it immediately without rebooting:
+## 4. Start it immediately
 
-```powershell
-Start-ScheduledTask -TaskName "PoliticalPortalListener"
-```
-
----
-
-## 5. Start the listener manually
-
-Double-click `run_listener.bat`, or from a terminal:
-
-```
-cd scripts\listener
-run_listener.bat
-```
-
-The batch file restarts the listener automatically if it crashes (10-second delay).
-
----
-
-## 6. Check the logs
-
-Logs are written to `scripts/listener/logs/listener.log`.
-
-To tail them in PowerShell:
+From [scripts/listener](c:/Users/pauls/Documents/political-portal/scripts/listener):
 
 ```powershell
-Get-Content scripts\listener\logs\listener.log -Wait -Tail 50
+.\run_listener.bat
 ```
 
-Each line is timestamped. Key events to look for:
+The batch file will:
 
-- `Starting job <id>` — job picked up from queue
-- `Processor produced N CSV file(s)` — processing finished
-- `Job <id> SUCCEEDED` — DynamoDB updated, email sent
-- `Job <id> FAILED` — error email sent, job marked failed
-- `Email sent` — SES call succeeded
+- activate `.venv` or `venv` automatically if one exists in the listener folder or repo root
+- run `listener.py`
+- wait 10 seconds and restart it if it crashes
 
----
+## 5. Check logs
 
-## 7. Manually reprocess a failed job
+The listener writes timestamped logs to [listener.log](c:/Users/pauls/Documents/political-portal/scripts/listener/logs/listener.log).
 
-1. In the AWS DynamoDB console, find the job in `ps-upload-api-prod-jobs`
-2. Update the `status` field to `PENDING`
-3. Remove the `error` field if present
-4. In the AWS SQS console, send a new message to the queue:
-   ```json
-   { "jobId": "<job-id>", "bucket": "ps-upload-api-prod-uploads-561375865143", "s3Key": "uploads/<userSub>/<jobId>/<filename>" }
-   ```
-5. The listener will pick it up on its next poll
+Useful command:
 
----
+```powershell
+Get-Content .\logs\listener.log -Wait -Tail 50
+```
 
-## 8. What the client sees at each stage
+## 6. Reprocess a failed job manually
 
-| Stage | Portal status | Message shown |
-|-------|--------------|---------------|
-| Just uploaded | Pending | "Queued for processing — you will receive an email when complete." |
-| Listener picked it up | Processing | "Processing now — large batches may take several hours." |
-| Done | Complete | "Complete" |
-| Error | Failed | "Processing encountered an issue. Our team has been notified." |
+1. Find the job in DynamoDB table `ps-upload-api-prod-jobs`.
+2. Set `status` back to `PENDING`.
+3. Remove or ignore the existing `error` field.
+4. Send a replacement SQS message to `ps-upload-api-prod-process-queue` with the job payload:
 
----
+```json
+{
+  "jobId": "JOB_ID_HERE",
+  "bucket": "ps-upload-api-prod-uploads-561375865143",
+  "s3Key": "uploads/USER_SUB/JOB_ID/FILENAME.pdf"
+}
+```
 
-## 9. Processing time expectations
+5. The listener will pick it up on the next poll.
 
-- Small PDFs (1–5 pages): a few minutes
-- Medium batches (10–20 PDFs): 30–90 minutes
-- Large batches (100+ PDFs): several hours or up to a full day
+## 7. What the client sees in the portal
 
-Progress update emails are sent every 2 hours for any job that is still running.
+- `PENDING`: `Queued for processing — you will receive an email when complete. Large batches may take several hours.`
+- `PROCESSING`: `Processing now — large batches may take several hours. You will receive an email when complete.`
+- `COMPLETE`: `Complete`
+- `FAILED`: `Processing encountered an issue. Our team has been notified.`
 
-The listener processes **one job at a time**. If multiple jobs are queued, they will
-be processed sequentially.
+## 8. Email behavior
 
----
+Paul receives emails when:
 
-## 10. Email flow
+- a new job starts processing
+- a job has been running for more than 2 hours, and every 2 hours after that
+- a job completes successfully, with CSV attachments
+- a job fails, with filename and error details
 
-| Event | Email sent |
-|-------|-----------|
-| Job picked up from queue | "New job — Processing started" |
-| Job running > 2h (and every 2h after) | "In progress — Xh Ym elapsed" |
-| Job completes successfully | "Complete — CSV(s) attached" |
-| Job fails | "FAILED — error details" |
+## 9. Notes about long-running jobs
 
----
-
-## SQS visibility timeout note
-
-SQS has a maximum visibility timeout of 12 hours (43,200 seconds). The listener
-extends the message visibility every 6 hours automatically, so jobs running up to
-48 hours will not re-appear in the queue.
+AWS SQS visibility timeout has a hard service limit of 12 hours. The queue and listener are configured to use the maximum supported 12-hour visibility window and the listener renews visibility during long runs, which is how 24 to 48 hour processing windows are handled safely.
