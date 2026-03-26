@@ -128,13 +128,36 @@ export const listOrganisations = async ({ orgType = "ASSOCIATION", active = true
   });
 };
 
-export const listElections = async (statuses = ["OPEN", "UPCOMING"]) => {
+export const listElections = async (statusesOrOptions = ["OPEN", "UPCOMING"], maybePconCodes = []) => {
   const base = resolveUploadApiBaseUrl();
   if (!base) throw new Error("Missing Upload API URL. Set VITE_UPLOAD_API_URL.");
+  const statuses = Array.isArray(statusesOrOptions)
+    ? statusesOrOptions
+    : Array.isArray(statusesOrOptions?.statuses)
+      ? statusesOrOptions.statuses
+      : ["OPEN", "UPCOMING"];
+  const pconCodes = Array.isArray(statusesOrOptions)
+    ? maybePconCodes
+    : Array.isArray(statusesOrOptions?.pconCodes)
+      ? statusesOrOptions.pconCodes
+      : [];
   const params = new URLSearchParams({ status: statuses.join(",") });
+  if (Array.isArray(pconCodes) && pconCodes.length > 0) {
+    params.set("pconCodes", pconCodes.join(","));
+  }
   return fetchJson(`${base}/elections?${params.toString()}`, {
     method: "GET",
     headers: getAuthHeaders(),
+  });
+};
+
+export const runAdminElectionSync = async (payload = {}) => {
+  const base = resolveUploadApiBaseUrl();
+  if (!base) throw new Error("Missing Upload API URL. Set VITE_UPLOAD_API_URL.");
+  return fetchJson(`${base}/admin/elections/sync`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...getAuthHeaders() },
+    body: JSON.stringify(payload),
   });
 };
 

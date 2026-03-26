@@ -491,6 +491,11 @@ export default function PortalLayout() {
                   Associations
                 </NavLink>
               )}
+              {isAdmin && (
+                <NavLink className={navClass} to="/portal/admin/elections">
+                  Elections
+                </NavLink>
+              )}
             </div>
           </nav>
         </div>

@@ -3,9 +3,11 @@ import crypto from "crypto";
 import { createUsersRepo } from "./usersRepo.mjs";
 import { createGeoLookupRepo } from "./geoLookupRepo.mjs";
 import { createElectionsRepo } from "./electionsRepo.mjs";
+import { createSupabaseElectionsRepo, isSupabaseElectionsConfigured } from "./supabaseElectionsRepo.mjs";
 import { createAuditRepo } from "./auditRepo.mjs";
 import { createOrgsRepo } from "./orgsRepo.mjs";
 import { createManualReviewRepo } from "./manualReviewRepo.mjs";
+import { runDemocracyClubSync } from "./democracyClubSync.mjs";
 
 const require = createRequire(import.meta.url);
 let AWS;
@@ -69,7 +71,11 @@ const ADMIN_GROUP = "Admin";
 
 const usersRepo = USERS_TABLE ? createUsersRepo({ dynamo, tableName: USERS_TABLE }) : null;
 const geoLookupRepo = GEO_LOOKUP_TABLE ? createGeoLookupRepo({ dynamo, tableName: GEO_LOOKUP_TABLE }) : null;
-const electionsRepo = ELECTIONS_TABLE ? createElectionsRepo({ dynamo, tableName: ELECTIONS_TABLE }) : null;
+const electionsRepo = isSupabaseElectionsConfigured()
+  ? createSupabaseElectionsRepo()
+  : ELECTIONS_TABLE
+    ? createElectionsRepo({ dynamo, tableName: ELECTIONS_TABLE })
+    : null;
 const orgsRepo = ORGANISATIONS_TABLE ? createOrgsRepo({ dynamo, tableName: ORGANISATIONS_TABLE }) : null;
 const auditRepo = AUDIT_TABLE ? createAuditRepo({ dynamo, tableName: AUDIT_TABLE }) : null;
 const manualReviewRepo = JOBS_TABLE ? createManualReviewRepo({ dynamo, tableName: JOBS_TABLE }) : null;
@@ -222,7 +228,7 @@ function ensureUsersRepo(origin) {
 function ensureElectionsRepo(origin) {
   if (!electionsRepo) {
     return {
-      error: errorResponse(origin, 500, "ELECTIONS_TABLE_NOT_CONFIGURED", "Elections table is not configured."),
+      error: errorResponse(origin, 500, "ELECTIONS_REPO_NOT_CONFIGURED", "Elections repo is not configured."),
     };
   }
   return { electionsRepo };
@@ -264,8 +270,23 @@ function normalizeOrgType(value) {
 }
 
 function normalizePconCodes(singleCode, multipleCodes) {
-  const values = Array.isArray(multipleCodes) ? multipleCodes : singleCode ? [singleCode] : [];
-  return values.map((entry) => (entry || "").toString().trim().toUpperCase()).filter(Boolean);
+  const values = [];
+  for (const candidate of [multipleCodes, singleCode]) {
+    if (Array.isArray(candidate)) {
+      values.push(...candidate);
+      continue;
+    }
+    if (candidate !== undefined && candidate !== null && candidate !== "") {
+      values.push(
+        ...candidate
+          .toString()
+          .split(",")
+      );
+    }
+  }
+  return Array.from(
+    new Set(values.map((entry) => (entry || "").toString().trim().toUpperCase()).filter(Boolean))
+  );
 }
 
 function normalizeElectionStatuses(value, fallback = ["UPCOMING", "OPEN"]) {
@@ -457,12 +478,11 @@ function slugify(value, maxLength = 60) {
 }
 
 function buildGeneratedElectionId({ date, electionType, name, pconCodes }) {
-  const datePart = sanitize(date, 20);
-  const typePart = slugify(electionType, 30) || "election";
-  const scopePart = slugify(name, 40) || "unnamed";
-  const hashSeed = `${datePart}|${typePart}|${scopePart}|${pconCodes.join(",")}`;
-  const shortHash = crypto.createHash("sha1").update(hashSeed).digest("hex").slice(0, 8);
-  return `${datePart}:${typePart}:${scopePart}-${shortHash}`.slice(0, MAX_ELECTION_ID);
+  void date;
+  void electionType;
+  void name;
+  void pconCodes;
+  return crypto.randomUUID().slice(0, MAX_ELECTION_ID);
 }
 
 function normalizeElectionPayload(input = {}, { allowMissingElectionId = false } = {}) {
@@ -956,23 +976,72 @@ async function handleListElections(event, origin) {
   const electionsCheck = ensureElectionsRepo(origin);
   if (electionsCheck.error) return electionsCheck.error;
 
-  const pconCode = sanitize(event?.queryStringParameters?.pconCode, MAX_PCON).toUpperCase();
+  const requestedPconCodes = normalizePconCodes(
+    event?.queryStringParameters?.pconCode,
+    event?.queryStringParameters?.pconCodes
+  );
   const statuses = normalizeElectionStatuses(event?.queryStringParameters?.status, JOB_OPEN_ELECTION_STATUSES);
 
-  if (!pconCode) {
+  if (requestedPconCodes.length === 0) {
     const elections = await electionsRepo.listAllElections(statuses);
     return response(200, { statuses, items: elections }, origin);
   }
 
   const allowedPconCodes = normalizePconCodes("", user?.allowedPconCodes);
-  if (allowedPconCodes.length > 0 && !allowedPconCodes.includes(pconCode)) {
+  const forbiddenPconCode =
+    allowedPconCodes.length > 0
+      ? requestedPconCodes.find((code) => !allowedPconCodes.includes(code))
+      : "";
+  if (forbiddenPconCode) {
     return errorResponse(origin, 403, "PCON_NOT_ALLOWED", "You are not allowed to access this constituency.", {
-      pconCode,
+      pconCode: forbiddenPconCode,
     });
   }
 
-  const elections = await electionsRepo.listElectionsForPconByStatuses(pconCode, statuses);
-  return response(200, { pconCode, statuses, items: elections }, origin);
+  const elections = await electionsRepo.listElectionsByPcon(requestedPconCodes, statuses);
+  return response(200, { pconCodes: requestedPconCodes, statuses, items: elections }, origin);
+}
+
+async function handleAdminSyncElections(event, origin) {
+  const auth = await requireAdmin(event, origin);
+  if (auth.error) return auth.error;
+
+  const electionsCheck = ensureElectionsRepo(origin);
+  if (electionsCheck.error) return electionsCheck.error;
+
+  if (!isSupabaseElectionsConfigured()) {
+    return errorResponse(
+      origin,
+      503,
+      "SUPABASE_SYNC_NOT_CONFIGURED",
+      "Supabase-backed election sync is not configured for this environment."
+    );
+  }
+
+  const body = parseBody(event) || {};
+  const dryRun = parseBoolean(body.dryRun, false);
+  const monthsBack = Math.min(24, Math.max(1, parseInt(body.monthsBack, 10) || 6));
+  const monthsForward = Math.min(24, Math.max(1, parseInt(body.monthsForward, 10) || 12));
+
+  const result = await runDemocracyClubSync({
+    electionsRepo,
+    dryRun,
+    monthsBack,
+    monthsForward,
+  });
+
+  await writeAuditSafe({
+    action: dryRun ? "ELECTION_SYNC_DRY_RUN" : "ELECTION_SYNC_RUN",
+    actor: {
+      actorId: auth.userSub,
+      sub: auth.userSub,
+      email: auth.payload?.email || "",
+    },
+    target: { type: "ELECTION_SYNC", targetKey: "DEMOCRACY_CLUB" },
+    metadata: result,
+  });
+
+  return response(200, result, origin);
 }
 
 async function handleAdminCreateElection(event, origin) {
@@ -1267,6 +1336,10 @@ export async function handler(event) {
 
     if (method === "POST" && path === "/admin/elections") {
       return await handleAdminCreateElection(event, origin);
+    }
+
+    if (method === "POST" && path === "/admin/elections/sync") {
+      return await handleAdminSyncElections(event, origin);
     }
 
     if (method === "GET" && path === "/admin/me") {

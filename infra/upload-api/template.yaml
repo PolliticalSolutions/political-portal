@@ -85,6 +85,15 @@ Parameters:
     Type: String
     Default: "noreply@politicalsolutions.uk"
     Description: SES sender address for job completion notifications.
+  SupabaseUrl:
+    Type: String
+    Default: ""
+    Description: Supabase project URL for elections sync and filtered election reads.
+  SupabaseServiceKey:
+    Type: String
+    Default: ""
+    NoEcho: true
+    Description: Supabase service-role key for elections sync and filtered election reads.
 
 Conditions:
   WafEnabledCondition: !Equals [!Ref WafEnabled, "true"]
@@ -103,7 +112,6 @@ Resources:
 
   UploadsBucket:
     Type: AWS::S3::Bucket
-    DependsOn: ProcessQueueS3SendPolicy
     Properties:
       BucketName: !Sub "${AWS::StackName}-uploads-${AWS::AccountId}"
       AccessControl: Private
@@ -138,9 +146,9 @@ Resources:
               DaysAfterInitiation: 7
       NotificationConfiguration: !If
         - GuardDutyScanDisabled
-        - QueueConfigurations:
+        - LambdaConfigurations:
             - Event: "s3:ObjectCreated:*"
-              Queue: !GetAtt ProcessQueue.Arn
+              Function: !GetAtt UploadCompleteFunction.Arn
               Filter:
                 S3Key:
                   Rules:
@@ -368,24 +376,6 @@ Resources:
         deadLetterTargetArn: !GetAtt ProcessDLQ.Arn
         maxReceiveCount: 3
 
-  ProcessQueueS3SendPolicy:
-    Type: AWS::SQS::QueuePolicy
-    Properties:
-      Queues:
-        - !Ref ProcessQueue
-      PolicyDocument:
-        Version: "2012-10-17"
-        Statement:
-          - Sid: AllowS3SendMessageFromUploadsBucket
-            Effect: Allow
-            Principal:
-              Service: s3.amazonaws.com
-            Action: sqs:SendMessage
-            Resource: !GetAtt ProcessQueue.Arn
-            Condition:
-              ArnEquals:
-                aws:SourceArn: !Sub "arn:aws:s3:::${AWS::StackName}-uploads-${AWS::AccountId}"
-
   # ── HTTP API ───────────────────────────────────────────────────────────────
 
   UploadApi:
@@ -535,6 +525,8 @@ Resources:
           ADMIN_SUB_ALLOWLIST: !Ref AdminSubAllowlist
           ENABLE_GUARDDUTY_SCAN: !Ref EnableGuardDutyScan
           BYPASS_SCAN_WHEN_DISABLED: !Ref BypassScanWhenDisabled
+          SUPABASE_URL: !Ref SupabaseUrl
+          SUPABASE_SERVICE_KEY: !Ref SupabaseServiceKey
       Policies:
         - Statement:
             Effect: Allow
@@ -645,6 +637,12 @@ Resources:
             ApiId: !Ref UploadApi
             Path: /admin/elections/{electionId}/archive
             Method: POST
+        AdminElectionsSync:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref UploadApi
+            Path: /admin/elections/sync
+            Method: POST
         AdminMe:
           Type: HttpApi
           Properties:
@@ -753,6 +751,46 @@ Resources:
       FunctionResponseTypes:
         - ReportBatchItemFailures
       Enabled: false  # Local listener (scripts/listener/listener.py) is the sole consumer
+
+  # ── Upload complete handler (S3 -> Lambda -> DynamoDB -> SQS) ────────────
+  # Triggered by S3 ObjectCreated when GuardDuty scan gating is disabled.
+  # Looks up the job by s3Key in DynamoDB, then enqueues a formatted message
+  # (with jobId) on the ProcessQueue for the local listener to consume.
+
+  UploadCompleteFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: src/
+      Handler: uploadCompleteHandler.handler
+      Runtime: nodejs20.x
+      Timeout: 30
+      MemorySize: 256
+      Environment:
+        Variables:
+          JOBS_TABLE: !Ref JobsTable
+          PROCESS_QUEUE_URL: !Ref ProcessQueue
+      Policies:
+        - Statement:
+            Effect: Allow
+            Action:
+              - dynamodb:GetItem
+              - dynamodb:Query
+            Resource:
+              - !GetAtt JobsTable.Arn
+              - !Sub "${JobsTable.Arn}/index/S3KeyIndex"
+        - Statement:
+            Effect: Allow
+            Action:
+              - sqs:SendMessage
+            Resource: !GetAtt ProcessQueue.Arn
+
+  UploadCompleteFunctionS3Permission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      Action: lambda:InvokeFunction
+      FunctionName: !Ref UploadCompleteFunction
+      Principal: s3.amazonaws.com
+      SourceArn: !Sub "arn:aws:s3:::${AWS::StackName}-uploads-${AWS::AccountId}"
 
   # ── Scan result handler (GuardDuty -> EventBridge -> Lambda -> SQS) ───────
 
@@ -913,6 +951,26 @@ Resources:
       Dimensions:
         - Name: FunctionName
           Value: !Ref WorkerFunction
+      Statistic: Sum
+      Period: 300
+      EvaluationPeriods: 1
+      Threshold: 1
+      ComparisonOperator: GreaterThanOrEqualToThreshold
+      TreatMissingData: notBreaching
+      AlarmActions: !If
+        - AlarmActionsEnabled
+        - - !Ref AlarmTopicArn
+        - !Ref AWS::NoValue
+
+  UploadCompleteFunctionErrorsAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmDescription: Lambda errors for upload complete handler.
+      Namespace: AWS/Lambda
+      MetricName: Errors
+      Dimensions:
+        - Name: FunctionName
+          Value: !Ref UploadCompleteFunction
       Statistic: Sum
       Period: 300
       EvaluationPeriods: 1

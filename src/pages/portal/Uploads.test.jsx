@@ -296,7 +296,10 @@ describe("Uploads – upload flow", () => {
       await Promise.resolve();
     });
 
-    expect(uploadApi.listElections).toHaveBeenCalledWith(["OPEN", "UPCOMING"]);
+    expect(uploadApi.listElections).toHaveBeenCalledWith(["OPEN", "UPCOMING"], [
+      "E14000637",
+      "E14001234",
+    ]);
 
     await stageFileAndSelectConstituency("Exeter", "E14000637");
 
@@ -456,6 +459,39 @@ describe("Uploads – elections", () => {
 
     const select = screen.getByLabelText(/^Election$/i);
     expect(select.value).toBe("ge2024-uuid");
+  });
+
+  it("formats by-elections and local elections with clearer labels", async () => {
+    uploadApi.listElections.mockResolvedValueOnce({
+      items: [
+        {
+          electionId: "byelection-uuid",
+          polling_date: "2025-03-13",
+          electionType: "BY_ELECTION",
+          name: "Hereford By-Election",
+          isByElection: true,
+        },
+        {
+          electionId: "local-uuid",
+          polling_date: "2025-05-01",
+          electionType: "LOCAL",
+          localAuthorityName: "Staffordshire County Council",
+          name: "Staffordshire County Council Elections",
+        },
+      ],
+    });
+    vi.useFakeTimers();
+
+    render(<Uploads />);
+    await act(async () => { await Promise.resolve(); await Promise.resolve(); });
+
+    const input = document.querySelector('input[type="file"]');
+    setInputFiles(input, [makeFile("report.pdf", "application/pdf")]);
+    await act(async () => { await Promise.resolve(); });
+
+    const select = screen.getByLabelText(/^Election$/i);
+    expect(select).toHaveTextContent("Hereford By-Election — March 2025");
+    expect(select).toHaveTextContent("Staffordshire County Council Elections — May 2025");
   });
 
   it("requires election selection when no elections loaded", async () => {

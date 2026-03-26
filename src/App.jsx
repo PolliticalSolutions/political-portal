@@ -33,6 +33,7 @@ const QuoteDetail = lazy(() => import("./pages/portal/QuoteDetail.jsx"));
 const ManualReviewPage = lazy(() => import("./pages/portal/admin/ManualReviewPage.jsx"));
 const PermissionsPage = lazy(() => import("./pages/portal/admin/PermissionsPage.jsx"));
 const AssociationsPage = lazy(() => import("./pages/portal/admin/AssociationsPage.jsx"));
+const ElectionsPage = lazy(() => import("./pages/portal/admin/ElectionsPage.jsx"));
 const DataSourcesPage = lazy(() => import("./pages/portal/DataSourcesPage.jsx"));
 const ConstituencyIndex = lazy(() => import("./pages/portal/constituency/ConstituencyIndex.jsx"));
 const ConstituencyDetail = lazy(() => import("./pages/portal/constituency/ConstituencyDetail.jsx"));
@@ -314,6 +315,7 @@ export default function App() {
                 <Route path="admin/users" element={<Suspense fallback={<div className="page stack"><p className="muted">Loading…</p></div>}><PermissionsPage /></Suspense>} />
                 <Route path="admin/permissions" element={<Navigate to="/portal/admin/users" replace />} />
                 <Route path="admin/associations" element={<Suspense fallback={<div className="page stack"><p className="muted">Loading…</p></div>}><AssociationsPage /></Suspense>} />
+                <Route path="admin/elections" element={<Suspense fallback={<div className="page stack"><p className="muted">Loading…</p></div>}><ElectionsPage /></Suspense>} />
                 <Route path="data-sources" element={<Suspense fallback={<div className="page stack"><p className="muted">Loading…</p></div>}><DataSourcesPage /></Suspense>} />
                 <Route
                   path="constituency"

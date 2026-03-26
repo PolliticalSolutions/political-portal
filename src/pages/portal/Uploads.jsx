@@ -88,17 +88,40 @@ function validateFile(file) {
 }
 
 function formatElection(e) {
-  const year = (e.election_date || e.date || "").slice(0, 4);
-  const typeMap = {
-    general: "General Election",
-    notional: "Notional (2019 boundaries)",
-    local: "Local Elections",
-    by_election: "By-election",
-    pcc: "PCC Election",
-  };
-  const rawType = (e.election_type || e.electionType || "").toString().toLowerCase();
-  const type = typeMap[rawType] || rawType || "Election";
-  return year ? `${year} ${type}` : type;
+  const dateValue = e.polling_date || e.election_date || e.date || "";
+  const year = dateValue.slice(0, 4);
+  const rawType = (e.electionType || e.election_type || "").toString().trim().toUpperCase();
+  const monthYear = dateValue
+    ? new Intl.DateTimeFormat("en-GB", { month: "long", year: "numeric" }).format(new Date(`${dateValue}T00:00:00`))
+    : "";
+
+  if (rawType === "GENERAL") {
+    return year ? `${year} General Election` : e.name || "General Election";
+  }
+
+  if (rawType === "NOTIONAL") {
+    return e.name || (year ? `${year} Notional (2019 boundaries)` : "Notional election");
+  }
+
+  if (e.isByElection || rawType === "BY_ELECTION") {
+    const baseName = (e.name || "").trim();
+    const title = /by-election/i.test(baseName)
+      ? baseName
+      : `${baseName || e.localAuthorityName || e.wardName || "Election"} By-Election`;
+    return monthYear ? `${title} — ${monthYear}` : title;
+  }
+
+  if (rawType === "LOCAL") {
+    const baseName = (e.localAuthorityName || e.authority || e.name || "Local").replace(/\s+elections?$/i, "").trim();
+    const title = /elections?$/i.test(baseName) ? baseName : `${baseName} Elections`;
+    return monthYear ? `${title} — ${monthYear}` : title;
+  }
+
+  if (rawType === "PCC") {
+    return monthYear ? `${e.name || "PCC Election"} — ${monthYear}` : e.name || "PCC Election";
+  }
+
+  return e.name || (year ? `${year} Election` : "Election");
 }
 
 function ConstituencySearch({ value, onChange, allowedConstituencies = [], assocByConstituencyId = {} }) {
@@ -286,6 +309,14 @@ function StatusBadge({ status }) {
 
 export default function Uploads() {
   const { allowedConstituencies, loading: permsLoading } = usePermissions();
+  const allowedPconCodes = Array.from(
+    new Set(
+      (allowedConstituencies || [])
+        .map((item) => (item.ons_code || "").toString().trim().toUpperCase())
+        .filter(Boolean)
+    )
+  );
+  const allowedPconCodesKey = allowedPconCodes.join(",");
   const hasPermissions = allowedConstituencies !== null && allowedConstituencies.length > 0;
   const permissionsConfigured = allowedConstituencies !== null;
   // Map constituency id -> association name for showing in search dropdown
@@ -328,29 +359,42 @@ export default function Uploads() {
   }, [loadJobs]);
 
   useEffect(() => {
+    if (permsLoading || !permissionsConfigured) {
+      return undefined;
+    }
+
+    if (!allowedPconCodesKey) {
+      setElections([]);
+      setSubmissionScope((scope) => ({
+        ...scope,
+        electionId: "",
+      }));
+      return undefined;
+    }
+
     let cancelled = false;
     setElectionsLoading(true);
     setElectionsError(null);
 
-    listElections(["OPEN", "UPCOMING"])
+    listElections(["OPEN", "UPCOMING"], allowedPconCodes)
       .then((data) => {
         if (cancelled) return;
         const items = (data?.items || []).slice().sort((a, b) =>
-          (b.date || b.election_date || "").localeCompare(a.date || a.election_date || "")
+          (b.polling_date || b.date || b.election_date || "").localeCompare(
+            a.polling_date || a.date || a.election_date || ""
+          )
         );
         setElections(items);
-        const general2024 = items.find(
-          (e) =>
-            (e.electionType || "").toString().trim().toUpperCase() === "GENERAL" &&
-            (e.date || e.election_date || "").startsWith("2024")
-        );
         const latestGeneral = items.find(
-          (e) => (e.electionType || "").toString().trim().toUpperCase() === "GENERAL"
+          (e) => (e.electionType || e.election_type || "").toString().trim().toUpperCase() === "GENERAL"
         );
-        const defaultElection = general2024 || latestGeneral || items[0] || null;
+        const defaultElection = latestGeneral || items[0] || null;
         setSubmissionScope((scope) => ({
           ...scope,
-          electionId: scope.electionId || defaultElection?.electionId || "",
+          electionId:
+            scope.electionId && items.some((item) => item.electionId === scope.electionId)
+              ? scope.electionId
+              : defaultElection?.electionId || "",
         }));
       })
       .catch(() => {
@@ -362,7 +406,7 @@ export default function Uploads() {
       });
 
     return () => { cancelled = true; };
-  }, []);
+  }, [allowedPconCodesKey, permissionsConfigured, permsLoading]);
 
   // Poll active jobs
   useEffect(() => {

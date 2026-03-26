@@ -872,7 +872,7 @@ describe("GET /elections", () => {
 
     expect(res.statusCode).toBe(200);
     const body = JSON.parse(res.body);
-    expect(body.pconCode).toBe("E14000637");
+    expect(body.pconCodes).toEqual(["E14000637"]);
     expect(Array.isArray(body.items)).toBe(true);
   });
 
@@ -887,6 +887,43 @@ describe("GET /elections", () => {
     expect(res.statusCode).toBe(200);
     const body = JSON.parse(res.body);
     expect(body.items.map((item) => item.electionId)).toEqual(["election-upcoming", "election-allowed"]);
+  });
+
+  it("accepts multiple pconCodes and deduplicates overlapping elections", async () => {
+    usersMap.set("user-sub-1", {
+      userId: "user-sub-1",
+      status: "APPROVED",
+      orgId: "org-a",
+      orgType: "ASSOCIATION",
+      allowedPconCodes: ["E14000637", "E14000638"],
+      createdAt: "2026-01-01T00:00:00.000Z",
+    });
+    electionsMap.set("election-allowed#E14000638", {
+      electionId: "election-allowed#E14000638",
+      recordType: "ELECTION_PROJECTION",
+      canonicalElectionId: "election-allowed",
+      pconCode: "E14000638",
+      status: "OPEN",
+      statusPconKey: "OPEN#E14000638",
+      dateElectionKey: "2026-05-07#election-allowed",
+      date: "2026-05-07",
+      name: "Allowed Election",
+      electionType: "LOCAL",
+      pconCodes: ["E14000637", "E14000638"],
+    });
+
+    const res = await handler(
+      buildAuthEvent({
+        method: "GET",
+        path: "/elections",
+        queryStringParameters: { pconCodes: "E14000637,E14000638", status: "OPEN,UPCOMING" },
+      })
+    );
+    expect(res.statusCode).toBe(200);
+    const body = JSON.parse(res.body);
+    expect(body.pconCodes).toEqual(["E14000637", "E14000638"]);
+    expect(body.items.map((item) => item.electionId)).toEqual(["election-upcoming", "election-allowed"]);
+    expect(new Set(body.items.map((item) => item.electionId)).size).toBe(body.items.length);
   });
 });
 

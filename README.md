@@ -10,6 +10,12 @@ Minimal routing skeleton for politicalsolutions.uk. Vite + React with react-rout
 ## Production build
 - `npm run build` (outputs to `dist/`)
 
+## Election Sync
+- Apply the SQL in `scripts/elections_democracy_club_ddl.sql` in Supabase before switching uploads to the Supabase-backed election flow.
+- Run `python scripts/sync_elections_from_democracy_club.py --dry-run` first to verify matches.
+- Once the DDL is live, run `python scripts/sync_elections_from_democracy_club.py` and schedule it weekly.
+- The sync uses Democracy Club plus the existing `local_authorities` and `constituency_council_lookup` tables to link elections to relevant constituencies.
+
 ## Blog comments (Giscus)
 - Enable GitHub Discussions in the repository that will host comments.
 - Create a Discussions category for blog comments (for example `General` or `Blog`).
