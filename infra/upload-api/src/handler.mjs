@@ -980,7 +980,7 @@ async function handleListElections(event, origin) {
     event?.queryStringParameters?.pconCode,
     event?.queryStringParameters?.pconCodes
   );
-  const statuses = normalizeElectionStatuses(event?.queryStringParameters?.status, JOB_OPEN_ELECTION_STATUSES);
+  const statuses = normalizeElectionStatuses(event?.queryStringParameters?.status, [...ALLOWED_ELECTION_STATUSES]);
 
   if (requestedPconCodes.length === 0) {
     const elections = await electionsRepo.listAllElections(statuses);

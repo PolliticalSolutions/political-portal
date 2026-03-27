@@ -3,7 +3,7 @@ import { randomUUID } from "node:crypto";
 const SUPABASE_URL = (process.env.SUPABASE_URL || "").trim().replace(/\/+$/, "");
 const SUPABASE_SERVICE_KEY = (process.env.SUPABASE_SERVICE_KEY || "").trim();
 const ALLOWED_STATUSES = new Set(["UPCOMING", "OPEN", "CLOSED", "ARCHIVED"]);
-const DEFAULT_STATUSES = ["UPCOMING", "OPEN"];
+const DEFAULT_STATUSES = ["UPCOMING", "OPEN", "CLOSED", "ARCHIVED"];
 
 function isConfigured() {
   return Boolean(SUPABASE_URL && SUPABASE_SERVICE_KEY);

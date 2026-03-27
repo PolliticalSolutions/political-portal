@@ -380,7 +380,7 @@ export default function Uploads() {
     setElectionsError(null);
 
     const pconFilter = allowedPconCodes.length <= MAX_PCON_FILTER_CODES ? allowedPconCodes : [];
-    listElections(["OPEN", "UPCOMING"], pconFilter)
+    listElections(["OPEN", "UPCOMING", "CLOSED", "ARCHIVED"], pconFilter)
       .then((data) => {
         if (cancelled) return;
         const items = (data?.items || []).slice().sort((a, b) =>
