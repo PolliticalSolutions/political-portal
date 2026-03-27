@@ -54,7 +54,7 @@ POLL_INTERVAL = int(config["processing"].get("poll_interval_seconds", "30"))
 PROGRESS_UPDATE_HOURS = int(config["processing"].get("progress_update_hours", "2"))
 PROCESSOR_COMMAND = config["processing"].get(
     "processor_command",
-    'python marked_register_processor.py "{input_pdf}" "{output_dir}"',
+    'python marked_register_processor.py "{input_pdf}" --output "{output_dir}"',
 )
 PROJECT_ROOT = BASE_DIR.parent.parent  # scripts/listener/ → project root
 LONG_POLL_SECONDS = min(POLL_INTERVAL, 20)
