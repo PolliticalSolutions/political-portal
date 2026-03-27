@@ -7,6 +7,9 @@ import { usePermissions } from "../../context/PermissionsContext.jsx";
 const MAX_FILE_SIZE = 200 * 1024 * 1024; // 200 MB
 const ALLOWED_EXTENSIONS = new Set([".pdf", ".csv"]);
 const POLL_INTERVAL_MS = 30000;
+// API Gateway query string limit is 8192 bytes. Each pconCode is ~10 chars.
+// If the user has more than this many pconCodes, skip filtering and return all elections.
+const MAX_PCON_FILTER_CODES = 500;
 const PENDING_JOB_STATUSES = new Set(["PENDING", "QUEUED", "CREATED", "RECEIVED"]);
 const PROCESSING_JOB_STATUSES = new Set(["PROCESSING", "RUNNING"]);
 const COMPLETE_JOB_STATUSES = new Set(["SUCCEEDED", "COMPLETE", "COMPLETED"]);
@@ -376,7 +379,8 @@ export default function Uploads() {
     setElectionsLoading(true);
     setElectionsError(null);
 
-    listElections(["OPEN", "UPCOMING"], allowedPconCodes)
+    const pconFilter = allowedPconCodes.length <= MAX_PCON_FILTER_CODES ? allowedPconCodes : [];
+    listElections(["OPEN", "UPCOMING"], pconFilter)
       .then((data) => {
         if (cancelled) return;
         const items = (data?.items || []).slice().sort((a, b) =>
