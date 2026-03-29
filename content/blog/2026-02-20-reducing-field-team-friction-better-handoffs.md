@@ -25,5 +25,5 @@ Handoffs are a frequent failure point in campaign operations.
 2. Confirm acceptance criteria before execution
 3. Run a short retrospective after each cycle
 
-If you need structured support, review `/services`.
-If you want a delivery assessment, use `/enquire`.
+If you need structured support, review [our services](/services).
+If you want a delivery assessment, use [our enquiry form](/enquire).

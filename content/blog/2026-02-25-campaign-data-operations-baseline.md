@@ -23,5 +23,5 @@ Campaign operations break down when teams treat data hygiene as a one-off task.
 2. Reconcile missing records before exports
 3. Log changes for auditability
 
-For service support options, see `/services`.
-For implementation planning, start at `/enquire`.
+For service support options, see [our services](/services).
+For implementation planning, start at [our enquiry form](/enquire).

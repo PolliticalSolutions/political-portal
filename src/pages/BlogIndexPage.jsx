@@ -1,4 +1,5 @@
 import { Link } from "react-router-dom";
+import Button from "../components/Button.jsx";
 import Footer from "../components/Footer.jsx";
 import { getAllPosts } from "../blog/blogLoader.js";
 import { formatBlogDate } from "../blog/formatBlogDate.js";
@@ -59,6 +60,19 @@ export default function BlogIndexPage() {
               )}
             </article>
           ))}
+        </div>
+      </section>
+
+      <section className="section">
+        <div className="container cta-section">
+          <div>
+            <h2>Ready to talk campaign delivery?</h2>
+          </div>
+          <div className="hero-actions">
+            <Button as={Link} to="/enquire" variant="primary">
+              Request a briefing
+            </Button>
+          </div>
         </div>
       </section>
 

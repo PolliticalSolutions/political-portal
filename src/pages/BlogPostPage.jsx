@@ -1,6 +1,7 @@
 import ReactMarkdown from "react-markdown";
 import { Link, useLocation, useParams } from "react-router-dom";
 import { Helmet } from "react-helmet-async";
+import Button from "../components/Button.jsx";
 import Footer from "../components/Footer.jsx";
 import { getPostBySlug } from "../blog/blogLoader.js";
 import { formatBlogDate } from "../blog/formatBlogDate.js";
@@ -109,6 +110,20 @@ export default function BlogPostPage() {
           <Comments slug={post.slug} />
         </article>
       </section>
+
+      <section className="section">
+        <div className="container cta-section">
+          <div>
+            <h2>Ready to talk campaign delivery?</h2>
+          </div>
+          <div className="hero-actions">
+            <Button as={Link} to="/enquire" variant="primary">
+              Request a briefing
+            </Button>
+          </div>
+        </div>
+      </section>
+
       <Footer />
     </div>
   );
