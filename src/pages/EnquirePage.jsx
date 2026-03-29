@@ -5,6 +5,8 @@ import Footer from "../components/Footer.jsx";
 import associations from "../data/associations.json";
 import { insertEnquiry } from "../lib/enquiriesApi.js";
 import enquireIllustration from "../assets/enquire-illustration.png";
+import enquireIllustrationWebp from "../assets/enquire-illustration.webp";
+import enquireIllustrationMobileWebp from "../assets/enquire-illustration-mobile.webp";
 
 const SERVICE_OPTIONS = [
   "Marked Register Processing",
@@ -94,15 +96,22 @@ export default function EnquirePage() {
             </p>
           </div>
           <div className="hero-visual">
-            <img
-              className="hero-visual-image"
-              src={enquireIllustration}
-              alt="People submitting an enquiry to Political Solutions"
-              width={1536}
-              height={1024}
-              loading="eager"
-              decoding="async"
-            />
+            <picture>
+              <source
+                type="image/webp"
+                srcSet={`${enquireIllustrationMobileWebp} 768w, ${enquireIllustrationWebp} 1536w`}
+                sizes="(max-width: 768px) 768px, 1536px"
+              />
+              <img
+                className="hero-visual-image"
+                src={enquireIllustration}
+                alt="People submitting an enquiry to Political Solutions"
+                width={1536}
+                height={1024}
+                loading="eager"
+                decoding="async"
+              />
+            </picture>
           </div>
         </div>
       </section>

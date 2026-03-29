@@ -5,6 +5,7 @@ import Card from "../components/Card.jsx";
 import Footer from "../components/Footer.jsx";
 import campaignDataPng from "../assets/campaign-data.png";
 import campaignDataWebp from "../assets/campaign-data.webp";
+import campaignDataMobileWebp from "../assets/campaign-data-mobile.webp";
 
 const trustItems = [
   "Secure authentication and role-aware access are built into the platform.",
@@ -59,7 +60,11 @@ export default function Home() {
           <div className="hero-visual">
             {visualLoaded ? (
               <picture>
-                <source type="image/webp" srcSet={campaignDataWebp} />
+                <source
+                  type="image/webp"
+                  srcSet={`${campaignDataMobileWebp} 768w, ${campaignDataWebp} 1536w`}
+                  sizes="(max-width: 768px) 768px, 1536px"
+                />
                 <img
                   className="hero-visual-image"
                   src={campaignDataPng}

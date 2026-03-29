@@ -3,6 +3,8 @@ import Button from "../components/Button.jsx";
 import Card from "../components/Card.jsx";
 import Footer from "../components/Footer.jsx";
 import servicesCampaignDataImage from "../assets/services-campaign-data.png";
+import servicesCampaignDataWebp from "../assets/services-campaign-data.webp";
+import servicesCampaignDataMobileWebp from "../assets/services-campaign-data-mobile.webp";
 
 export default function Services() {
   return (
@@ -18,11 +20,22 @@ export default function Services() {
             </p>
           </div>
           <div className="hero-visual services-hero-visual">
-            <img
-              className="hero-visual-image services-hero-image"
-              src={servicesCampaignDataImage}
-              alt="Team using data to plan a political campaign"
-            />
+            <picture>
+              <source
+                type="image/webp"
+                srcSet={`${servicesCampaignDataMobileWebp} 768w, ${servicesCampaignDataWebp} 1536w`}
+                sizes="(max-width: 768px) 768px, 1536px"
+              />
+              <img
+                className="hero-visual-image services-hero-image"
+                src={servicesCampaignDataImage}
+                alt="Team using data to plan a political campaign"
+                width={1536}
+                height={1024}
+                loading="eager"
+                decoding="async"
+              />
+            </picture>
           </div>
         </div>
       </section>
