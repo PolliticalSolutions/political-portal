@@ -1,15 +1,20 @@
 import { fireEvent, render, screen } from "@testing-library/react";
 import { HelmetProvider } from "react-helmet-async";
 import { MemoryRouter } from "react-router-dom";
-import { describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import ServiceSupport from "./ServiceSupport.jsx";
+import { insertEnquiry } from "../lib/enquiriesApi.js";
 
-vi.mock("../lib/quoteApi.js", () => ({
-  postServiceEnquiry: vi.fn(async () => ({ referenceId: "svc-123" })),
+vi.mock("../lib/enquiriesApi.js", () => ({
+  insertEnquiry: vi.fn(async () => {}),
 }));
 
 describe("ServiceSupport", () => {
   const renderWithHelmet = (ui) => render(<HelmetProvider>{ui}</HelmetProvider>);
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
 
   it("renders the service support heading", () => {
     renderWithHelmet(
@@ -23,7 +28,7 @@ describe("ServiceSupport", () => {
     ).toBeInTheDocument();
   });
 
-  it("submits the enquiry and shows a reference", async () => {
+  it("submits the enquiry and shows inline success message", async () => {
     renderWithHelmet(
       <MemoryRouter>
         <ServiceSupport />
@@ -35,7 +40,26 @@ describe("ServiceSupport", () => {
     fireEvent.click(screen.getByRole("checkbox"));
     fireEvent.click(screen.getByRole("button", { name: "Submit enquiry" }));
 
-    expect(await screen.findByText("Request received")).toBeInTheDocument();
-    expect(screen.getByText("Reference: svc-123")).toBeInTheDocument();
+    await screen.findByText("Thank you — we'll be in touch within one working day.");
+    expect(screen.getByRole("heading", { name: "Request election & by-election support" })).toBeInTheDocument();
+  });
+
+  it("shows inline error message when Supabase insert fails", async () => {
+    insertEnquiry.mockRejectedValueOnce(new Error("Network error"));
+
+    renderWithHelmet(
+      <MemoryRouter>
+        <ServiceSupport />
+      </MemoryRouter>
+    );
+
+    fireEvent.change(screen.getByLabelText("Name *"), { target: { value: "Alex Doe" } });
+    fireEvent.change(screen.getByLabelText("Email *"), { target: { value: "alex@example.com" } });
+    fireEvent.click(screen.getByRole("checkbox"));
+    fireEvent.click(screen.getByRole("button", { name: "Submit enquiry" }));
+
+    await screen.findByText(/Something went wrong/);
+    const emailLinks = screen.getAllByRole("link", { name: "paul@politicalsolutions.uk" });
+    expect(emailLinks[0]).toHaveAttribute("href", "mailto:paul@politicalsolutions.uk");
   });
 });

@@ -3,7 +3,7 @@ import { Link } from "react-router-dom";
 import Button from "../components/Button.jsx";
 import Card from "../components/Card.jsx";
 import Footer from "../components/Footer.jsx";
-import { postServiceEnquiry } from "../lib/quoteApi.js";
+import { insertEnquiry } from "../lib/enquiriesApi.js";
 
 const MAX_MESSAGE = 1000;
 
@@ -17,7 +17,7 @@ export default function ServiceSupport() {
     consent: false,
   });
   const [errors, setErrors] = useState({});
-  const [status, setStatus] = useState({ submitting: false, error: "", referenceId: "" });
+  const [status, setStatus] = useState({ submitting: false, success: false, error: "" });
 
   const handleChange = (event) => {
     const { name, value, type, checked } = event.target;
@@ -46,50 +46,28 @@ export default function ServiceSupport() {
   const handleSubmit = async (event) => {
     event.preventDefault();
     if (!validate()) return;
-    setStatus({ submitting: true, error: "", referenceId: "" });
+    setStatus({ submitting: true, success: false, error: "" });
+
+    const messageWithPhone = formValues.phone.trim()
+      ? `Phone: ${formValues.phone.trim()}\n\n${formValues.message.trim()}`
+      : formValues.message.trim();
+
     try {
-      const result = await postServiceEnquiry({
+      await insertEnquiry({
         name: formValues.name.trim(),
         email: formValues.email.trim(),
-        phone: formValues.phone.trim(),
         organisation: formValues.organisation.trim(),
-        message: formValues.message.trim(),
-        consent: formValues.consent,
+        message: messageWithPhone,
       });
+      setStatus({ submitting: false, success: true, error: "" });
+    } catch {
       setStatus({
         submitting: false,
-        error: "",
-        referenceId: result.referenceId || "",
-      });
-    } catch (error) {
-      setStatus({
-        submitting: false,
-        error: "Unable to submit right now. Please try again shortly.",
-        referenceId: "",
+        success: false,
+        error: "Something went wrong. Please email paul@politicalsolutions.uk directly.",
       });
     }
   };
-
-  if (status.referenceId) {
-    return (
-      <div className="page">
-        <section className="section">
-          <div className="container">
-            <Card>
-              <h1 style={{ margin: "0 0 12px", fontSize: 22 }}>Request received</h1>
-              <p className="muted">
-                Thank you. We have received your enquiry and will be in touch shortly.
-              </p>
-              <div className="status" style={{ marginTop: 16 }}>
-                Reference: {status.referenceId}
-              </div>
-            </Card>
-          </div>
-        </section>
-        <Footer />
-      </div>
-    );
-  }
 
   return (
     <div className="page">
@@ -199,14 +177,27 @@ export default function ServiceSupport() {
                 </label>
                 {errors.consent && <span className="helper">{errors.consent}</span>}
               </label>
-              {status.error && <div className="status error">{status.error}</div>}
-              <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-                <Button type="submit" variant="primary" loading={status.submitting}>
-                  Submit enquiry
-                </Button>
-                <Button as={Link} to="/services" variant="ghost">
-                  Back to services
-                </Button>
+              <div className="stack" style={{ gap: 6 }}>
+                <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                  <Button type="submit" variant="primary" loading={status.submitting}>
+                    Submit enquiry
+                  </Button>
+                  <Button as={Link} to="/services" variant="ghost">
+                    Back to services
+                  </Button>
+                </div>
+                {status.success && (
+                  <div className="status">
+                    Thank you — we&apos;ll be in touch within one working day.
+                  </div>
+                )}
+                {status.error && (
+                  <div className="status error">
+                    Something went wrong. Please email{" "}
+                    <a href="mailto:paul@politicalsolutions.uk">paul@politicalsolutions.uk</a>{" "}
+                    directly.
+                  </div>
+                )}
               </div>
             </form>
           </Card>

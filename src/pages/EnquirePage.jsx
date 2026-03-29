@@ -1,15 +1,14 @@
 import { useMemo, useState } from "react";
-import { useSearchParams } from "react-router-dom";
 import Button from "../components/Button.jsx";
 import Card from "../components/Card.jsx";
 import Footer from "../components/Footer.jsx";
 import associations from "../data/associations.json";
-import { submitEnquiry } from "../lib/enquiryApi.js";
-import { getRuntimeConfig } from "../config/runtimeConfig.js";
+import { insertEnquiry } from "../lib/enquiriesApi.js";
 import enquireIllustration from "../assets/enquire-illustration.png";
 
 const SERVICE_OPTIONS = [
   "Marked Register Processing",
+  "Constituency Intelligence",
   "By-Election campaign consultancy",
   "General campaigning consultancy",
   "Automated content generation for literature",
@@ -17,76 +16,7 @@ const SERVICE_OPTIONS = [
   "Anything else not listed?",
 ];
 
-function buildOrganisationLine(organisation = "") {
-  const trimmed = organisation.trim();
-  return `Organisation: ${trimmed || "(not specified)"}`;
-}
-
-function buildRoleLine(role = "") {
-  const trimmed = role.trim();
-  return `Role: ${trimmed || "(not specified)"}`;
-}
-
-function buildServicesLine(selectedServices = []) {
-  if (!selectedServices.length) {
-    return "Services interested in: (not specified)";
-  }
-  return `Services interested in: ${selectedServices.join(", ")}`;
-}
-
-function buildEnquiryMessage({ message, organisation, role, selectedServices = [] }) {
-  const trimmedMessage = message.trim();
-  const organisationLine = buildOrganisationLine(organisation);
-  const roleLine = buildRoleLine(role);
-  const servicesLine = buildServicesLine(selectedServices);
-  return `${trimmedMessage}\n\n${organisationLine}\n${roleLine}\n${servicesLine}`;
-}
-
-export function buildEnquiryMailto({ name, email, organisation, message, context, pageUrl }) {
-  const trimmedOrganisation = organisation.trim();
-  const subjectParts = [name || "Enquiry"];
-  if (trimmedOrganisation) subjectParts.push(trimmedOrganisation);
-  const subject = `Political Solutions enquiry - ${subjectParts.join(" / ")}`;
-
-  const lines = [
-    `Name: ${name}`,
-    `Email: ${email}`,
-    "",
-    "Message:",
-    message,
-  ].filter(Boolean);
-
-  if (context) {
-    lines.push("", "Context:");
-    if (context.constituencyCount) lines.push(`Constituency count: ${context.constituencyCount}`);
-  }
-
-  if (pageUrl) {
-    lines.push("", `Page: ${pageUrl}`);
-  }
-
-  const params = new URLSearchParams({
-    subject,
-    body: lines.join("\n"),
-  });
-
-  return `mailto:paul@politicalsolutions.uk?${params.toString()}`;
-}
-
 export default function EnquirePage() {
-  const [searchParams] = useSearchParams();
-  const association = searchParams.get("association") ?? "";
-  const constituency = searchParams.get("constituency") ?? "";
-  const countParam = Number(searchParams.get("count") ?? 0);
-
-  const constituencies = useMemo(() => {
-    if (!association) return [];
-    return associations.byAssociation[association] ?? [];
-  }, [association]);
-
-  const constituencyCount = constituencies.length || countParam;
-  const hasContext = Boolean(association || constituency || constituencyCount);
-
   const [formValues, setFormValues] = useState({
     name: "",
     email: "",
@@ -96,10 +26,8 @@ export default function EnquirePage() {
   });
   const [selectedServices, setSelectedServices] = useState([]);
   const [errors, setErrors] = useState({});
-  const [status, setStatus] = useState({ success: false, requestId: "" });
-  const [autoFallbackNote, setAutoFallbackNote] = useState("");
-  const [rateLimitMessage, setRateLimitMessage] = useState("");
-  const [manualMailto, setManualMailto] = useState("");
+  const [submitted, setSubmitted] = useState(false);
+  const [submitError, setSubmitError] = useState(false);
 
   const handleChange = (event) => {
     const { name, value } = event.target;
@@ -114,10 +42,8 @@ export default function EnquirePage() {
   const handleServiceToggle = (event) => {
     const { checked, value } = event.target;
     setSelectedServices((prev) => {
-      if (checked) {
-        return [...prev, value];
-      }
-      return prev.filter((service) => service !== value);
+      if (checked) return [...prev, value];
+      return prev.filter((s) => s !== value);
     });
   };
 
@@ -138,64 +64,21 @@ export default function EnquirePage() {
   const handleSubmit = async (event) => {
     event.preventDefault();
     if (!validate()) return;
-    setAutoFallbackNote("");
-    setRateLimitMessage("");
-    setManualMailto("");
-    setStatus({ success: false, requestId: "" });
-
-    const pageUrl = typeof window !== "undefined" ? window.location.href : "";
-    const enquiryMessage = buildEnquiryMessage({
-      message: formValues.message,
-      organisation: formValues.organisation,
-      role: formValues.role,
-      selectedServices,
-    });
-    const context = hasContext
-      ? {
-          association,
-          constituency,
-          constituencyCount,
-          constituencies,
-        }
-      : null;
-    const payload = {
-      ...formValues,
-      message: enquiryMessage,
-      context,
-      pageUrl,
-      userAgent: typeof navigator !== "undefined" ? navigator.userAgent : "",
-      timestampIso: new Date().toISOString(),
-    };
-    const mailto = buildEnquiryMailto({
-      ...formValues,
-      message: enquiryMessage,
-      context,
-      pageUrl,
-    });
-
-    const apiUrl = getRuntimeConfig().enquiryApiUrl;
-    if (apiUrl) {
-      try {
-        const result = await submitEnquiry(apiUrl, payload);
-        if (!result?.ok) {
-          throw new Error("Enquiry API response not OK.");
-        }
-        setStatus({ success: true, requestId: result.requestId || "" });
-        return;
-      } catch (err) {
-        const message = err?.message || "";
-        const statusMatch = message.match(/\((\d{3})\)/);
-        const statusCode = statusMatch ? Number(statusMatch[1]) : null;
-        if (statusCode === 429) {
-          setRateLimitMessage("Too many requests -- please wait a minute and try again.");
-          setManualMailto(mailto);
-          return;
-        }
-        setAutoFallbackNote("Automatic send isn't available right now -- opening your email client instead.");
-      }
+    setSubmitted(false);
+    setSubmitError(false);
+    try {
+      await insertEnquiry({
+        name: formValues.name.trim(),
+        email: formValues.email.trim(),
+        organisation: formValues.organisation.trim(),
+        services_interested: selectedServices,
+        role: formValues.role.trim(),
+        message: formValues.message.trim(),
+      });
+      setSubmitted(true);
+    } catch {
+      setSubmitError(true);
     }
-
-    window.location.href = mailto;
   };
 
   return (
@@ -306,22 +189,16 @@ export default function EnquirePage() {
                 <Button type="submit" variant="primary">
                   Send enquiry
                 </Button>
-                {!status.success && (
-                  <span className="helper">
-                    We will respond by email. Your email client may open to send this enquiry.
-                  </span>
-                )}
-                {autoFallbackNote && <span className="helper">{autoFallbackNote}</span>}
-                {rateLimitMessage && <div className="status">{rateLimitMessage}</div>}
-                {rateLimitMessage && manualMailto && (
-                  <a className="helper" href={manualMailto}>
-                    Or email us directly instead.
-                  </a>
-                )}
-                {status.success && (
+                {submitted && (
                   <div className="status">
-                    Enquiry sent. We will get back to you shortly.
-                    {status.requestId && <div className="helper">Reference: {status.requestId}</div>}
+                    Thank you — we&apos;ll be in touch within one working day.
+                  </div>
+                )}
+                {submitError && (
+                  <div className="status error">
+                    Something went wrong. Please email{" "}
+                    <a href="mailto:paul@politicalsolutions.uk">paul@politicalsolutions.uk</a>{" "}
+                    directly.
                   </div>
                 )}
               </div>
