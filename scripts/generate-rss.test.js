@@ -15,7 +15,7 @@ describe("RSS generator", () => {
     expect(xml).toContain("<title>Building a campaign data operations baseline</title>");
     expect(xml).toContain("<title>Reducing field-team friction with better handoffs</title>");
     expect(xml).not.toContain("Internal draft: volunteer rota quality checks");
-    expect(xml).toContain(`<link>${siteUrl}/blog/2026-02-25-example-post-1</link>`);
+    expect(xml).toContain(`<link>${siteUrl}/blog/2026-02-25-campaign-data-operations-baseline</link>`);
     expect(xml).toContain("<link>https://example.com/original-post</link>");
   });
 

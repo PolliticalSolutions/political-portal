@@ -17,7 +17,7 @@ const renderRoute = (path) =>
 
 describe("BlogPostPage", () => {
   it("renders a post by slug", () => {
-    renderRoute("/blog/2026-02-25-example-post-1");
+    renderRoute("/blog/2026-02-25-campaign-data-operations-baseline");
 
     expect(screen.getByRole("heading", { name: "Building a campaign data operations baseline" })).toBeInTheDocument();
     expect(screen.getByText("Operational briefing")).toBeInTheDocument();

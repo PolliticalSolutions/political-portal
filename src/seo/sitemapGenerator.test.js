@@ -10,8 +10,8 @@ describe("sitemap generator output", () => {
     expect(xml).toContain(`<loc>${siteUrl}/services</loc>`);
     expect(xml).toContain(`<loc>${siteUrl}/subscriptions</loc>`);
     expect(xml).toContain(`<loc>${siteUrl}/blog</loc>`);
-    expect(xml).toContain(`<loc>${siteUrl}/blog/2026-02-25-example-post-1</loc>`);
-    expect(xml).toContain(`<loc>${siteUrl}/blog/2026-02-20-example-post-2</loc>`);
+    expect(xml).toContain(`<loc>${siteUrl}/blog/2026-02-25-campaign-data-operations-baseline</loc>`);
+    expect(xml).toContain(`<loc>${siteUrl}/blog/2026-02-20-reducing-field-team-friction-better-handoffs</loc>`);
     expect(xml).not.toContain(`<loc>${siteUrl}/blog/2026-02-24-draft-post</loc>`);
   });
 });

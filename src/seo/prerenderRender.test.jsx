@@ -93,7 +93,7 @@ describe("entry-server render", () => {
     vi.stubEnv("VITE_ENQUIRY_API_URL", "https://api.example.test");
 
     const template = await readFile(path.join(repoRoot, "index.html"), "utf8");
-    const { appHtml, headHtml } = await render("/blog/2026-02-25-example-post-1");
+    const { appHtml, headHtml } = await render("/blog/2026-02-25-campaign-data-operations-baseline");
     const finalHtml = injectApp(injectHead(template, headHtml), appHtml);
 
     expect(finalHtml).toContain("Political Solutions | Building a campaign data operations baseline");
@@ -101,7 +101,7 @@ describe("entry-server render", () => {
       'name="description" content="How local campaign teams can reduce operational risk with a disciplined data baseline before peak election periods."'
     );
     expect(finalHtml).toContain(
-      `rel="canonical" href="${siteUrl}/blog/2026-02-25-example-post-1"`
+      `rel="canonical" href="${siteUrl}/blog/2026-02-25-campaign-data-operations-baseline"`
     );
     expect(finalHtml.match(/<title\b/g)?.length ?? 0).toBe(1);
 
@@ -114,7 +114,7 @@ describe("entry-server render", () => {
     vi.stubEnv("VITE_COGNITO_REDIRECT_URI", "https://example.test/callback");
     vi.stubEnv("VITE_ENQUIRY_API_URL", "https://api.example.test");
 
-    const post = await render("/blog/2026-02-20-example-post-2");
+    const post = await render("/blog/2026-02-20-reducing-field-team-friction-better-handoffs");
     expect(post.headHtml).toContain('rel="canonical" href="https://example.com/original-post"');
     expect(post.headHtml).toContain(
       'property="og:url" content="https://example.com/original-post"'
@@ -141,7 +141,7 @@ describe("entry-server render", () => {
     vi.stubEnv("VITE_COGNITO_REDIRECT_URI", "https://example.test/callback");
     vi.stubEnv("VITE_ENQUIRY_API_URL", "https://api.example.test");
 
-    const post = await render("/blog/2026-02-20-example-post-2");
+    const post = await render("/blog/2026-02-20-reducing-field-team-friction-better-handoffs");
     expect(post.headHtml).toContain('"@type":"BlogPosting"');
     expect(post.headHtml).toContain('"headline":"Reducing field-team friction with better handoffs"');
     expect(post.headHtml).toContain('"datePublished":"2026-02-20"');
@@ -161,7 +161,7 @@ describe("entry-server render", () => {
     vi.stubEnv("VITE_GISCUS_CATEGORY", "General");
     vi.stubEnv("VITE_GISCUS_CATEGORY_ID", "category-id");
 
-    const post = await render("/blog/2026-02-25-example-post-1");
+    const post = await render("/blog/2026-02-25-campaign-data-operations-baseline");
     expect(post.appHtml).toContain("Build a resilient campaign data baseline");
     expect(post.appHtml).not.toContain("blog-giscus");
 

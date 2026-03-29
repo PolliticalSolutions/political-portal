@@ -15,7 +15,7 @@ describe("blogLoader", () => {
   });
 
   it("getPostBySlug returns the correct post content", () => {
-    const post = getPostBySlug("2026-02-25-example-post-1");
+    const post = getPostBySlug("2026-02-25-campaign-data-operations-baseline");
     expect(post).toBeTruthy();
     expect(post?.content).toContain("## What to standardise first");
   });
