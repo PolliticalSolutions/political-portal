@@ -11,7 +11,7 @@ import {
   listAssociationsWithPricing,
   requestSubscriptionInvoice,
 } from "../lib/subscriptionApi.js";
-import { formatPenceToPounds } from "../lib/subscriptionPricing.js";
+import { calculateAssociationSubscriptionPricing, formatPenceToPounds } from "../lib/subscriptionPricing.js";
 
 let _stripePromise;
 function getStripePromise() {
@@ -272,7 +272,40 @@ export default function Subscribe() {
                   Associations can now subscribe online and trigger automatic account setup, constituency access,
                   and renewal management.
                 </p>
+                <p className="muted" style={{ marginTop: 8 }}>
+                  Already subscribed?{" "}
+                  <Link className="blog-inline-link" to="/login">
+                    Log in here
+                  </Link>
+                </p>
               </div>
+            </div>
+          </Card>
+
+          <Card title="Subscription pricing">
+            <div className="stack" style={{ gap: 12 }}>
+              <p className="muted">
+                Pricing is based on the number of constituencies in your association. All prices are annual and
+                exclude VAT (20% added at checkout). Invoice payment is available on request.
+              </p>
+              <div className="subscribe-pricing">
+                {[1, 2, 5, 10].map((n) => {
+                  const p = calculateAssociationSubscriptionPricing(n);
+                  return (
+                    <div key={n} className="subscribe-pricing__row">
+                      <span>{n} {n === 1 ? "constituency" : "constituencies"}</span>
+                      <strong>£{formatPenceToPounds(p.amountIncVatPence)}/year inc. VAT</strong>
+                    </div>
+                  );
+                })}
+                <div className="subscribe-pricing__row subscribe-pricing__row--total">
+                  <span>Each additional constituency</span>
+                  <strong>+£300/year inc. VAT</strong>
+                </div>
+              </div>
+              <p className="muted" style={{ fontSize: "0.875em" }}>
+                Your exact price is shown once you select your association below.
+              </p>
             </div>
           </Card>
 
