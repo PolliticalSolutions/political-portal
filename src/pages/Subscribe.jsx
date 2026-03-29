@@ -13,10 +13,14 @@ import {
 } from "../lib/subscriptionApi.js";
 import { formatPenceToPounds } from "../lib/subscriptionPricing.js";
 
-const stripePromise = (() => {
-  const { stripePublishableKey } = getRuntimeConfig();
-  return stripePublishableKey ? loadStripe(stripePublishableKey) : null;
-})();
+let _stripePromise;
+function getStripePromise() {
+  if (_stripePromise === undefined) {
+    const { stripePublishableKey } = getRuntimeConfig();
+    _stripePromise = stripePublishableKey ? loadStripe(stripePublishableKey) : null;
+  }
+  return _stripePromise;
+}
 
 const initialCustomer = {
   name: "",
@@ -366,8 +370,8 @@ export default function Subscribe() {
                 </p>
               </div>
             ) : mode === "card" ? (
-              stripePromise ? (
-                <Elements stripe={stripePromise}>
+              getStripePromise() ? (
+                <Elements stripe={getStripePromise()}>
                   <PaymentForm
                     association={selectedAssociation}
                     customer={customer}

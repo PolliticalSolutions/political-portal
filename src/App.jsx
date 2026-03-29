@@ -18,7 +18,7 @@ import BlogIndexPage from "./pages/BlogIndexPage.jsx";
 import BlogPostPage from "./pages/BlogPostPage.jsx";
 import Home from "./pages/Home.jsx";
 import Login from "./pages/Login.jsx";
-import Subscribe from "./pages/Subscribe.jsx";
+const Subscribe = lazy(() => import("./pages/Subscribe.jsx"));
 import Services from "./pages/Services.jsx";
 import ServiceSupport from "./pages/ServiceSupport.jsx";
 const PortalLayout = lazy(() => import("./pages/portal/PortalLayout.jsx"));
