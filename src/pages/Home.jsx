@@ -48,7 +48,7 @@ export default function Home() {
               <Button as={Link} to="/subscriptions" variant="primary">
                 View Marked Register plans
               </Button>
-              <Button as={Link} to="/enquire" variant="ghost">
+              <Button as={Link} to="/enquire?service=platform-briefing" variant="ghost">
                 Request a platform briefing
               </Button>
             </div>
@@ -131,7 +131,7 @@ export default function Home() {
                 </p>
               </div>
               <div className="product-card__cta">
-                <Button as={Link} to="/enquire" variant="primary">
+                <Button as={Link} to="/constituency-intelligence" variant="primary">
                   Request a Constituency Intelligence briefing
                 </Button>
               </div>

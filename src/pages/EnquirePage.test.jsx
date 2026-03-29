@@ -76,14 +76,69 @@ describe("EnquirePage", () => {
 
     const markedRegister = screen.getByRole("checkbox", { name: "Marked Register Processing" });
     const constituencyIntelligence = screen.getByRole("checkbox", { name: "Constituency Intelligence" });
-    const byElection = screen.getByRole("checkbox", { name: "By-Election campaign consultancy" });
+    const electionSupport = screen.getByRole("checkbox", { name: "Campaigning, Training & Election Support" });
 
     fireEvent.click(markedRegister);
     fireEvent.click(constituencyIntelligence);
 
     expect(markedRegister).toBeChecked();
     expect(constituencyIntelligence).toBeChecked();
-    expect(byElection).not.toBeChecked();
+    expect(electionSupport).not.toBeChecked();
+  });
+
+  it("pre-checks Constituency Intelligence when ?service=constituency-intelligence", () => {
+    renderWithHelmet(
+      <MemoryRouter initialEntries={["/enquire?service=constituency-intelligence"]}>
+        <Routes>
+          <Route path="/enquire" element={<EnquirePage />} />
+        </Routes>
+      </MemoryRouter>
+    );
+
+    expect(screen.getByRole("checkbox", { name: "Constituency Intelligence" })).toBeChecked();
+    expect(screen.getByRole("checkbox", { name: "Marked Register Processing" })).not.toBeChecked();
+  });
+
+  it("pre-checks Marked Register Processing when ?service=marked-register", () => {
+    renderWithHelmet(
+      <MemoryRouter initialEntries={["/enquire?service=marked-register"]}>
+        <Routes>
+          <Route path="/enquire" element={<EnquirePage />} />
+        </Routes>
+      </MemoryRouter>
+    );
+
+    expect(screen.getByRole("checkbox", { name: "Marked Register Processing" })).toBeChecked();
+    expect(screen.getByRole("checkbox", { name: "Constituency Intelligence" })).not.toBeChecked();
+  });
+
+  it("pre-checks Campaigning, Training & Election Support when ?service=election-support", () => {
+    renderWithHelmet(
+      <MemoryRouter initialEntries={["/enquire?service=election-support"]}>
+        <Routes>
+          <Route path="/enquire" element={<EnquirePage />} />
+        </Routes>
+      </MemoryRouter>
+    );
+
+    expect(
+      screen.getByRole("checkbox", { name: "Campaigning, Training & Election Support" })
+    ).toBeChecked();
+  });
+
+  it("pre-fills message when ?service=platform-briefing", () => {
+    renderWithHelmet(
+      <MemoryRouter initialEntries={["/enquire?service=platform-briefing"]}>
+        <Routes>
+          <Route path="/enquire" element={<EnquirePage />} />
+        </Routes>
+      </MemoryRouter>
+    );
+
+    expect(screen.getByLabelText("Message *")).toHaveValue(
+      "I'd like to request a platform briefing."
+    );
+    expect(screen.getByRole("checkbox", { name: "Constituency Intelligence" })).not.toBeChecked();
   });
 
   it("blocks submit when organisation is not selected", () => {

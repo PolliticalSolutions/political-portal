@@ -20,6 +20,7 @@ import Home from "./pages/Home.jsx";
 import Login from "./pages/Login.jsx";
 const Subscribe = lazy(() => import("./pages/Subscribe.jsx"));
 import Services from "./pages/Services.jsx";
+import ConstituencyIntelligence from "./pages/ConstituencyIntelligence.jsx";
 import ServiceSupport from "./pages/ServiceSupport.jsx";
 const PortalLayout = lazy(() => import("./pages/portal/PortalLayout.jsx"));
 const PortalNotFound = lazy(() => import("./pages/portal/PortalNotFound.jsx"));
@@ -57,6 +58,32 @@ import PrivacyPage from "./pages/legal/PrivacyPage.jsx";
 import TermsPage from "./pages/legal/TermsPage.jsx";
 import brandLogo from "./assets/brand/political-solutions-logo.png";
 import RouteSeo from "./seo/RouteSeo.jsx";
+import { usePageTracking, _devGaId } from "./lib/analytics.js";
+
+function GaDebugBadge() {
+  if (!import.meta.env.DEV) return null;
+  const active = Boolean(_devGaId);
+  return (
+    <div
+      style={{
+        position: "fixed",
+        bottom: 12,
+        right: 12,
+        zIndex: 9999,
+        padding: "4px 10px",
+        borderRadius: 4,
+        fontSize: 12,
+        fontFamily: "monospace",
+        background: active ? "#166534" : "#991b1b",
+        color: "#fff",
+        pointerEvents: "none",
+        userSelect: "none",
+      }}
+    >
+      {active ? `GA: active (${_devGaId})` : "GA: missing ID"}
+    </div>
+  );
+}
 
 const WARNING_DELAY_MS = 4 * 60 * 1000; // 4 minutes before showing the warning
 const WARNING_WINDOW_MS = 60 * 1000; // 1 minute countdown before auto-logout
@@ -149,6 +176,7 @@ function TopNav({ authed, onLogout, cartCount }) {
 }
 
 export default function App() {
+  usePageTracking();
   const { items } = useCart();
   const [session, setSession] = useState(() => getSession());
   const [showIdleWarning, setShowIdleWarning] = useState(false);
@@ -287,6 +315,7 @@ export default function App() {
             <Route path="/subscribe" element={<Subscribe />} />
             <Route path="/subscriptions" element={<Navigate to="/subscribe" replace />} />
             <Route path="/services" element={<Services />} />
+            <Route path="/constituency-intelligence" element={<ConstituencyIntelligence />} />
             <Route path="/services/election-support" element={<ServiceSupport />} />
             <Route path="/privacy" element={<PrivacyPage />} />
             <Route path="/terms" element={<TermsPage />} />
@@ -453,6 +482,7 @@ export default function App() {
         />
       )}
       <CookieNotice />
+      <GaDebugBadge />
     </div>
   );
 }

@@ -34,7 +34,7 @@ describe("entry-server render", () => {
       "Political Solutions | Political operations services"
     );
     expect(electionSupport.headHtml).toContain(
-      "Political Solutions | Election and by-election support"
+      "Political Solutions | Campaigning, Training & Election Support"
     );
     expect(services.headHtml).toContain(`rel="canonical" href="${siteUrl}/services"`);
     expect(electionSupport.headHtml).toContain(

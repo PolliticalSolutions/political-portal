@@ -36,6 +36,7 @@ export const getRuntimeConfig = () => {
     supabaseUrl: readEnv("VITE_SUPABASE_URL"),
     supabaseAnonKey: readEnv("VITE_SUPABASE_ANON_KEY"),
     supabaseServiceKey: readEnv("VITE_SUPABASE_SERVICE_KEY"),
+    ga4MeasurementId: readEnv("VITE_GA4_MEASUREMENT_ID"),
   };
 };
 

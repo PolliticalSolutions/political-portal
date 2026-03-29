@@ -75,17 +75,17 @@ export default function ServiceSupport() {
       <section className="section">
         <div className="container hero">
           <div>
-            <h1>Request election & by-election support</h1>
+            <h1>Request Campaigning, Training &amp; Election Support</h1>
             <p className="muted">
               This is a separate, chargeable service. Provide a brief outline and we will confirm scope,
               timelines, and next steps.
             </p>
             <div className="hero-actions">
+              <Button as={Link} to="/enquire?service=election-support" variant="primary">
+                Request election support
+              </Button>
               <Button as={Link} to="/services" variant="secondary">
                 Back to services
-              </Button>
-              <Button as={Link} to="/subscriptions" variant="ghost">
-                View subscriptions
               </Button>
             </div>
           </div>
@@ -108,7 +108,7 @@ export default function ServiceSupport() {
                 coordination, print logistics, and delivery oversight.
               </p>
               <p className="muted" style={{ margin: 0 }}>
-                We will confirm scope and pricing before any work starts. Election and by-election support is
+                We will confirm scope and pricing before any work starts. Campaigning, Training &amp; Election Support is
                 not included in subscription capability tiers.
               </p>
             </div>

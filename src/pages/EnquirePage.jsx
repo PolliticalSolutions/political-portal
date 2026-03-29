@@ -1,4 +1,5 @@
 import { useMemo, useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import Button from "../components/Button.jsx";
 import Card from "../components/Card.jsx";
 import Footer from "../components/Footer.jsx";
@@ -11,22 +12,34 @@ import enquireIllustrationMobileWebp from "../assets/enquire-illustration-mobile
 const SERVICE_OPTIONS = [
   "Marked Register Processing",
   "Constituency Intelligence",
-  "By-Election campaign consultancy",
+  "Campaigning, Training & Election Support",
   "General campaigning consultancy",
   "Automated content generation for literature",
   "Clerical services for your association/federation",
   "Anything else not listed?",
 ];
 
+const SERVICE_PARAM_MAP = {
+  "constituency-intelligence": { service: "Constituency Intelligence" },
+  "marked-register": { service: "Marked Register Processing" },
+  "election-support": { service: "Campaigning, Training & Election Support" },
+  "platform-briefing": { message: "I'd like to request a platform briefing." },
+};
+
 export default function EnquirePage() {
+  const [searchParams] = useSearchParams();
+  const preset = SERVICE_PARAM_MAP[searchParams.get("service")] ?? {};
+
   const [formValues, setFormValues] = useState({
     name: "",
     email: "",
     organisation: "",
     role: "",
-    message: "",
+    message: preset.message ?? "",
   });
-  const [selectedServices, setSelectedServices] = useState([]);
+  const [selectedServices, setSelectedServices] = useState(
+    preset.service ? [preset.service] : []
+  );
   const [errors, setErrors] = useState({});
   const [submitted, setSubmitted] = useState(false);
   const [submitError, setSubmitError] = useState(false);

@@ -268,7 +268,7 @@ export default function QuoteDetail() {
             {isServiceEnquiry && (
               <div>
                 <div className="muted">Service enquiry</div>
-                <div style={{ fontWeight: 700 }}>Election & by-election support</div>
+                <div style={{ fontWeight: 700 }}>Campaigning, Training &amp; Election Support</div>
                 <ol className="muted" style={{ marginTop: 8, paddingLeft: 18 }}>
                   <li>Received: {formatDate(state.record.createdAt)}</li>
                   <li>Invoice: {invoiceState}</li>

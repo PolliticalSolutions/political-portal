@@ -8,6 +8,7 @@ describe("sitemap generator", () => {
 
     expect(xml).toContain(`<loc>${siteUrl}/</loc>`);
     expect(xml).toContain(`<loc>${siteUrl}/services</loc>`);
+    expect(xml).toContain(`<loc>${siteUrl}/constituency-intelligence</loc>`);
     expect(xml).toContain(`<loc>${siteUrl}/services/election-support</loc>`);
     expect(xml).toContain(`<loc>${siteUrl}/subscriptions</loc>`);
     expect(xml).toContain(`<loc>${siteUrl}/blog</loc>`);

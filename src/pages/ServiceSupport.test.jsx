@@ -16,7 +16,7 @@ describe("ServiceSupport", () => {
     vi.clearAllMocks();
   });
 
-  it("renders the service support heading", () => {
+  it("renders the service support heading and hero CTA", () => {
     renderWithHelmet(
       <MemoryRouter>
         <ServiceSupport />
@@ -24,8 +24,12 @@ describe("ServiceSupport", () => {
     );
 
     expect(
-      screen.getByRole("heading", { name: "Request election & by-election support" })
+      screen.getByRole("heading", { name: "Request Campaigning, Training & Election Support" })
     ).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Request election support" })).toHaveAttribute(
+      "href",
+      "/enquire?service=election-support"
+    );
   });
 
   it("submits the enquiry and shows inline success message", async () => {
@@ -41,7 +45,7 @@ describe("ServiceSupport", () => {
     fireEvent.click(screen.getByRole("button", { name: "Submit enquiry" }));
 
     await screen.findByText("Thank you — we'll be in touch within one working day.");
-    expect(screen.getByRole("heading", { name: "Request election & by-election support" })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Request Campaigning, Training & Election Support" })).toBeInTheDocument();
   });
 
   it("shows inline error message when Supabase insert fails", async () => {

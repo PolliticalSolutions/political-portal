@@ -21,10 +21,18 @@ export const seoRoutes = [
     priority: 0.8,
   },
   {
-    path: "/services/election-support",
-    title: "Election and by-election support",
+    path: "/constituency-intelligence",
+    title: "Constituency Intelligence",
     description:
-      "UK-wide election and by-election support for campaign operations, data coordination, and delivery planning. Separate chargeable service with clear scope.",
+      "Current data on every Conservative-held and target seat — council composition, by-election tracking, and full electoral history for UK associations and campaign managers.",
+    changefreq: "monthly",
+    priority: 0.8,
+  },
+  {
+    path: "/services/election-support",
+    title: "Campaigning, Training & Election Support",
+    description:
+      "UK-wide Campaigning, Training & Election Support for campaign operations, data coordination, and delivery planning. Separate chargeable service with clear scope.",
     changefreq: "monthly",
     priority: 0.7,
   },

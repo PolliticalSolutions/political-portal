@@ -10,6 +10,11 @@
     "status": "200"
   },
   {
+    "source": "</^/constituency-intelligence\\/?$/>",
+    "target": "/constituency-intelligence/index.html",
+    "status": "200"
+  },
+  {
     "source": "</^/services/election-support\\/?$/>",
     "target": "/services/election-support/index.html",
     "status": "200"

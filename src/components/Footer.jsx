@@ -15,8 +15,8 @@ export default function Footer() {
           <div className="footer-heading">Products</div>
           <div className="footer-links" style={{ marginTop: 8 }}>
             <Link to="/subscriptions">Marked Register Processing</Link>
-            <Link to="/enquire">Constituency Intelligence</Link>
-            <Link to="/services/election-support">Campaigning Support</Link>
+            <Link to="/constituency-intelligence">Constituency Intelligence</Link>
+            <Link to="/services/election-support">Campaigning, Training &amp; Election Support</Link>
           </div>
         </div>
         <div className="footer-panel">

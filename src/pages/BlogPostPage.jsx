@@ -117,7 +117,7 @@ export default function BlogPostPage() {
             <h2>Ready to talk campaign delivery?</h2>
           </div>
           <div className="hero-actions">
-            <Button as={Link} to="/enquire" variant="primary">
+            <Button as={Link} to="/enquire?service=platform-briefing" variant="primary">
               Request a briefing
             </Button>
           </div>

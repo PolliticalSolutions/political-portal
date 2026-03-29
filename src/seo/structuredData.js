@@ -38,17 +38,16 @@ export const buildServicesSchema = () => ({
     "Marked register processing",
     "Data and insight",
     "Subscription platform",
-    "Training and support",
-    "Election and by-election support (separate charge)",
+    "Campaigning, Training & Election Support",
   ],
 });
 
 export const buildElectionSupportSchema = () => ({
   "@context": "https://schema.org",
   "@type": "Service",
-  name: "Election and by-election support",
+  name: "Campaigning, Training & Election Support",
   description:
-    "UK-wide election and by-election support for campaign operations, data coordination, and delivery planning.",
+    "UK-wide Campaigning, Training & Election Support for campaign operations, data coordination, and delivery planning.",
   provider: {
     "@type": "Organization",
     name: SITE_LEGAL_NAME,

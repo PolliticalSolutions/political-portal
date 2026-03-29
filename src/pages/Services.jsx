@@ -74,7 +74,7 @@ export default function Services() {
                 </p>
               </div>
               <div className="product-card__cta">
-                <Button as={Link} to="/enquire" variant="primary">
+                <Button as={Link} to="/constituency-intelligence" variant="primary">
                   Request a Constituency Intelligence briefing
                 </Button>
               </div>

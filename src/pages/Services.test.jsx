@@ -43,7 +43,7 @@ describe("Services", () => {
     );
     expect(screen.getByRole("link", { name: "Request a Constituency Intelligence briefing" })).toHaveAttribute(
       "href",
-      "/enquire"
+      "/constituency-intelligence"
     );
     expect(screen.getByRole("link", { name: "Request election support" })).toHaveAttribute(
       "href",
