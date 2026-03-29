@@ -4,6 +4,7 @@ import Button from "../components/Button.jsx";
 import Card from "../components/Card.jsx";
 import Footer from "../components/Footer.jsx";
 import { insertEnquiry } from "../lib/enquiriesApi.js";
+import logo from "../assets/brand/political-solutions-logo.png";
 
 const MAX_MESSAGE = 1000;
 
@@ -88,11 +89,12 @@ export default function ServiceSupport() {
               </Button>
             </div>
           </div>
-          <div className="hero-visual" aria-hidden="true">
-            <span>Campaign delivery snapshot</span>
-            <p className="muted" style={{ marginTop: 8 }}>
-              Operational support visual placeholder
-            </p>
+          <div
+            className="hero-visual"
+            aria-hidden="true"
+            style={{ background: "#0a3b7c", display: "flex", alignItems: "center", justifyContent: "center", borderRadius: 8, minHeight: 180 }}
+          >
+            <img src={logo} alt="" style={{ maxWidth: 160, opacity: 0.9 }} />
           </div>
         </div>
       </section>

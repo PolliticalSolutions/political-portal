@@ -1,5 +1,6 @@
 import Card from "../../components/Card.jsx";
 import Footer from "../../components/Footer.jsx";
+import logo from "../../assets/brand/political-solutions-logo.png";
 
 export default function TermsPage() {
   return (
@@ -13,11 +14,12 @@ export default function TermsPage() {
               the site you agree to these terms.
             </p>
           </div>
-          <div className="hero-visual" aria-hidden="true">
-            <span>Terms overview</span>
-            <p className="muted" style={{ marginTop: 8 }}>
-              Usage guidance placeholder
-            </p>
+          <div
+            className="hero-visual"
+            aria-hidden="true"
+            style={{ background: "#0a3b7c", display: "flex", alignItems: "center", justifyContent: "center", borderRadius: 8, minHeight: 180 }}
+          >
+            <img src={logo} alt="" style={{ maxWidth: 160, opacity: 0.9 }} />
           </div>
         </div>
       </section>

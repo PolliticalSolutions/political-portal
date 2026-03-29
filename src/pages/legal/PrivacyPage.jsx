@@ -1,5 +1,6 @@
 import Card from "../../components/Card.jsx";
 import Footer from "../../components/Footer.jsx";
+import logo from "../../assets/brand/political-solutions-logo.png";
 
 export default function PrivacyPage() {
   return (
@@ -13,11 +14,12 @@ export default function PrivacyPage() {
               collect it, and how you can contact us with questions.
             </p>
           </div>
-          <div className="hero-visual" aria-hidden="true">
-            <span>Privacy overview</span>
-            <p className="muted" style={{ marginTop: 8 }}>
-              Policy summary placeholder
-            </p>
+          <div
+            className="hero-visual"
+            aria-hidden="true"
+            style={{ background: "#0a3b7c", display: "flex", alignItems: "center", justifyContent: "center", borderRadius: 8, minHeight: 180 }}
+          >
+            <img src={logo} alt="" style={{ maxWidth: 160, opacity: 0.9 }} />
           </div>
         </div>
       </section>
