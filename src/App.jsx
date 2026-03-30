@@ -59,7 +59,7 @@ import SignUp from "./pages/SignUp.jsx";
 const CookiesPage = lazy(() => import("./pages/legal/CookiesPage.jsx"));
 const PrivacyPage = lazy(() => import("./pages/legal/PrivacyPage.jsx"));
 const TermsPage = lazy(() => import("./pages/legal/TermsPage.jsx"));
-import brandLogo from "./assets/brand/political-solutions-logo.png";
+import brandLogo from "./assets/brand/political-solutions-logo.webp";
 import RouteSeo from "./seo/RouteSeo.jsx";
 import { usePageTracking, _devGaId } from "./lib/analytics.js";
 

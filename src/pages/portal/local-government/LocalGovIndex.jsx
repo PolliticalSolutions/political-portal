@@ -50,12 +50,12 @@ function ActiveAlertsPanel({ alerts }) {
     <div style={{
       background: "#fef2f2",
       border: "1px solid #fecaca",
-      borderLeft: "4px solid #dc2626",
+      borderLeft: "4px solid var(--danger)",
       borderRadius: 8,
       overflow: "hidden",
       marginBottom: 0,
     }}>
-      <div style={{ background: "#dc2626", padding: "10px 16px", display: "flex", alignItems: "center", gap: 8 }}>
+      <div style={{ background: "var(--danger)", padding: "10px 16px", display: "flex", alignItems: "center", gap: 8 }}>
         <span style={{ fontSize: 13, fontWeight: 700, color: "#fff", letterSpacing: "0.03em" }}>
           ACTIVE INTELLIGENCE ALERTS
         </span>
@@ -73,7 +73,7 @@ function ActiveAlertsPanel({ alerts }) {
         }}>
           <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 6, flexWrap: "wrap" }}>
             <span style={{
-              background: alert.risk_level === "high" ? "#dc2626" : "#d97706",
+              background: alert.risk_level === "high" ? "var(--danger)" : "#d97706",
               color: "#fff", fontSize: 10, fontWeight: 700,
               padding: "1px 6px", borderRadius: 4, textTransform: "uppercase",
             }}>
@@ -206,7 +206,7 @@ export default function LocalGovIndex() {
           </div>
           <div className="portal-stat">
             <span className="portal-stat__label">Active alerts</span>
-            <span className="portal-stat__value" style={{ color: "#dc2626" }}>{stats.withAlerts}</span>
+            <span className="portal-stat__value" style={{ color: "var(--danger)" }}>{stats.withAlerts}</span>
             <span className="portal-stat__meta">Authorities with live intelligence flags</span>
           </div>
         </div>
@@ -301,7 +301,7 @@ export default function LocalGovIndex() {
                         <Link className="table-link" to={`/portal/local-government/${auth.gss_code}`}>
                           {auth.name}
                         </Link>
-                        <div style={{ fontSize: 11, color: "#64748b", marginTop: 1 }}>{auth.region}</div>
+                        <div style={{ fontSize: 11, color: "var(--text-muted)", marginTop: 1 }}>{auth.region}</div>
                       </td>
                       <td style={{ fontSize: 12 }}>{auth.authority_type}</td>
                       <td>
@@ -311,14 +311,14 @@ export default function LocalGovIndex() {
                             <span style={{ fontSize: 12 }}>{auth.controlling_party}</span>
                           </span>
                         ) : (
-                          <span style={{ fontSize: 12, color: "#64748b" }}>—</span>
+                          <span style={{ fontSize: 12, color: "var(--text-muted)" }}>—</span>
                         )}
                       </td>
                       <td>
                         <div style={{ display: "grid", gap: 4 }}>
                           <CompositionQualityBadge authority={auth} />
                           {!isWarwickshireVerified(auth) && (
-                            <span style={{ fontSize: 11, color: "#64748b", lineHeight: 1.4 }}>
+                            <span style={{ fontSize: 11, color: "var(--text-muted)", lineHeight: 1.4 }}>
                               {getCompositionQuality(auth).status === "missing"
                                 ? "Composition data not yet available"
                                 : "Automated import pending manual review"}

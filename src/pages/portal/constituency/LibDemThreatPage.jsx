@@ -113,7 +113,7 @@ export default function LibDemThreatPage() {
         </div>
 
         {stats && (
-          <div className="portal-summary-grid" style={{ marginTop: 24 }}>
+          <div className="portal-summary-grid" style={{ marginTop: "var(--space-4)" }}>
             <div className="portal-stat">
               <span className="portal-stat__label">Seats ranked</span>
               <span className="portal-stat__value">{stats.total}</span>
@@ -126,7 +126,7 @@ export default function LibDemThreatPage() {
             </div>
             <div className="portal-stat">
               <span className="portal-stat__label">Avg LD trend</span>
-              <span className="portal-stat__value" style={{ color: stats.avgTrend > 0 ? "#16a34a" : "#b91c1c" }}>
+              <span className="portal-stat__value" style={{ color: stats.avgTrend > 0 ? "#16a34a" : "var(--danger)" }}>
                 {stats.avgTrend > 0 ? "+" : ""}{stats.avgTrend.toFixed(1)}pp
               </span>
               <span className="portal-stat__meta">2019→2024 swing</span>
@@ -154,7 +154,16 @@ export default function LibDemThreatPage() {
 
       <Card title="Top 50 Lib Dem threat seats">
         <div className="table-wrap">
-          <table className="table table--compact">
+          <table className="table table--compact" style={{ tableLayout: "fixed" }}>
+            <colgroup>
+              <col style={{ width: "6%" }} />
+              <col style={{ width: "28%" }} />
+              <col style={{ width: "20%" }} />
+              <col style={{ width: "11%" }} />
+              <col style={{ width: "11%" }} />
+              <col style={{ width: "11%" }} />
+              <col style={{ width: "13%" }} />
+            </colgroup>
             <thead>
               <tr>
                 <th>Rank</th>
@@ -171,7 +180,7 @@ export default function LibDemThreatPage() {
                 const con = s.constituencies;
                 return (
                   <tr key={s.constituency_id || s.threat_rank}>
-                    <td style={{ fontWeight: 700, color: "#94a3b8", fontSize: 13 }}>#{s.threat_rank}</td>
+                    <td style={{ fontWeight: 700, color: "var(--text-muted)", fontSize: 13 }}>#{s.threat_rank}</td>
                     <td>
                       {con ? (
                         <Link className="table-link" to={`/portal/constituency/${con.ons_code}`}>
@@ -179,10 +188,10 @@ export default function LibDemThreatPage() {
                         </Link>
                       ) : "—"}
                     </td>
-                    <td style={{ fontSize: 12, color: "#6b7280" }}>{con?.region ?? "—"}</td>
+                    <td style={{ fontSize: 12, color: "var(--text-muted)" }}>{con?.region ?? "—"}</td>
                     <td style={{ fontWeight: 600 }}>{Number(s.ld_2024_share ?? 0).toFixed(1)}%</td>
                     <td><TrendCell value={s.ld_share_trend} /></td>
-                    <td style={{ fontSize: 12, color: "#6b7280" }}>{Number(s.con_ld_majority ?? 0).toFixed(1)}%</td>
+                    <td style={{ fontSize: 12, color: "var(--text-muted)" }}>{Number(s.con_ld_majority ?? 0).toFixed(1)}%</td>
                     <td><ScoreBar value={s.threat_score} colour="#FAA61A" /></td>
                   </tr>
                 );
@@ -193,7 +202,7 @@ export default function LibDemThreatPage() {
       </Card>
 
       <Card title="Methodology">
-        <div className="portal-data-note" style={{ marginTop: 0 }}>
+        <div className="portal-data-note">
           <strong>Signals:</strong> LD 2024 vote share (25%), LD trend 2019→2024 (25%),
           Conservative majority over LD (25%), graduate population % (15%), owner-occupancy % (10%).
           Scored across 117 Conservative-held seats (4 Reform defections excluded). Only seats

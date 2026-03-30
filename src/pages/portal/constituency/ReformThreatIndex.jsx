@@ -193,7 +193,7 @@ export default function ReformThreatIndex() {
         </div>
 
         {stats && (
-          <div className="portal-summary-grid" style={{ marginTop: 24 }}>
+          <div className="portal-summary-grid" style={{ marginTop: "var(--space-4)" }}>
             <div className="portal-stat">
               <span className="portal-stat__label">Seats in index</span>
               <span className="portal-stat__value">{threats.length}</span>
@@ -211,7 +211,7 @@ export default function ReformThreatIndex() {
             </div>
             <div className="portal-stat">
               <span className="portal-stat__label">Extreme risk seats</span>
-              <span className="portal-stat__value" style={{ color: "#dc2626" }}>{stats.extreme}</span>
+              <span className="portal-stat__value" style={{ color: "var(--danger)" }}>{stats.extreme}</span>
               <span className="portal-stat__meta">Threat score 8.5+</span>
             </div>
             <div className="portal-stat">
@@ -292,7 +292,7 @@ export default function ReformThreatIndex() {
           <Card title="Analytical readout">
             <div className="portal-stack-compact">
               <ModelConfidenceBadge confidence={confidence} compact />
-              <div className="portal-data-note" style={{ marginTop: 0 }}>
+              <div className="portal-data-note">
                 {model?.explanationText}
               </div>
               <div className="portal-summary-grid">
@@ -319,12 +319,18 @@ export default function ReformThreatIndex() {
         if (!defectedToReform.length) return null;
         return (
           <Card title="Conservative → Reform defections">
-            <div className="portal-data-note" style={{ marginTop: 0 }}>
+            <div className="portal-data-note">
               The following 4 Conservative MPs defected to Reform UK after the 2024 election.
               These constituencies are excluded from the threat index ranking — they have already been lost.
             </div>
-            <div className="table-wrap" style={{ marginTop: 12 }}>
-              <table className="table">
+            <div className="table-wrap" style={{ marginTop: "var(--space-2)" }}>
+              <table className="table" style={{ tableLayout: "fixed" }}>
+                <colgroup>
+                  <col style={{ width: "36%" }} />
+                  <col style={{ width: "28%" }} />
+                  <col style={{ width: "18%" }} />
+                  <col style={{ width: "18%" }} />
+                </colgroup>
                 <thead>
                   <tr>
                     <th>Constituency</th>
@@ -338,7 +344,7 @@ export default function ReformThreatIndex() {
                     <tr key={d.constituencyName}>
                       <td style={{ fontWeight: 600 }}>{d.constituencyName}</td>
                       <td>{d.mpName}</td>
-                      <td style={{ fontSize: 12, color: "#6b7280" }}>{d.defectionDate}</td>
+                      <td style={{ fontSize: 12, color: "var(--text-muted)" }}>{d.defectionDate}</td>
                       <td>
                         <span className="status-pill" style={{ background: "#12B6CF", color: "#ffffff", fontSize: 11 }}>
                           Now Reform UK
@@ -362,7 +368,16 @@ export default function ReformThreatIndex() {
         </div>
 
         <div className="table-wrap">
-          <table className="table">
+          <table className="table" style={{ tableLayout: "fixed" }}>
+            <colgroup>
+              <col style={{ width: "6%" }} />
+              <col style={{ width: "28%" }} />
+              <col style={{ width: "13%" }} />
+              <col style={{ width: "17%" }} />
+              <col style={{ width: "12%" }} />
+              <col style={{ width: "12%" }} />
+              <col style={{ width: "12%" }} />
+            </colgroup>
             <thead>
               <tr>
                 <th>Rank</th>
@@ -381,7 +396,7 @@ export default function ReformThreatIndex() {
                 const threatColour = getThreatFill(t.threat_score);
                 return (
                   <tr key={t.constituency_id || t.threat_rank}>
-                    <td style={{ fontWeight: 700, color: "#94a3b8", fontSize: 13 }}>
+                    <td style={{ fontWeight: 700, color: "var(--text-muted)", fontSize: 13 }}>
                       #{t.threat_rank}
                     </td>
                     <td>
@@ -396,7 +411,7 @@ export default function ReformThreatIndex() {
                         {threatBand}
                       </span>
                     </td>
-                    <td style={{ minWidth: 100 }}>
+                    <td>
                       <ScoreBar value={t.threat_score} />
                     </td>
                     <td>
@@ -410,7 +425,7 @@ export default function ReformThreatIndex() {
                       </span>
                     </td>
                     <td>
-                      <span style={{ color: Number(t.con_majority) < 5 ? "#dc2626" : "#374151" }}>
+                      <span style={{ color: Number(t.con_majority) < 5 ? "var(--danger)" : "var(--text)" }}>
                         {Number(t.con_majority).toFixed(1)}%
                       </span>
                     </td>

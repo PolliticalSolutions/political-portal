@@ -1,10 +1,11 @@
 import { useEffect, useMemo, useState } from "react";
-import { NavLink, Outlet } from "react-router-dom";
+import { Link, NavLink, Outlet } from "react-router-dom";
 import Card from "../../components/Card.jsx";
 import Button from "../../components/Button.jsx";
 import { applyForApproval, getAdminMe, getMe, listOrganisations } from "../../lib/uploadApi.js";
 import { getSession } from "../../auth/session.js";
 import { PermissionsProvider } from "../../context/PermissionsContext.jsx";
+import brandLogo from "../../assets/brand/political-solutions-logo.webp";
 
 function hasAuthTokens() {
   try {
@@ -269,6 +270,7 @@ export default function PortalLayout() {
   const [reloadKey, setReloadKey] = useState(0);
   const [isAdmin, setIsAdmin] = useState(false);
   const [analyticsExpanded, setAnalyticsExpanded] = useState(readAnalyticsExpanded);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
 
   useEffect(() => {
     setCognitoSub(getSession()?.user?.sub || null);
@@ -385,49 +387,77 @@ export default function PortalLayout() {
   }
 
   return (
-    <div className="page stack">
-      <div className="container">
-        {error && (
-          <p role="alert" style={{ color: "#b91c1c" }}>
-            {error}
-          </p>
-        )}
+    <>
+      {/* Mobile hamburger button */}
+      <button
+        type="button"
+        className="portal-sidebar-toggle no-print"
+        aria-expanded={sidebarOpen}
+        aria-label="Toggle navigation"
+        onClick={() => setSidebarOpen((v) => !v)}
+      >
+        ☰
+      </button>
+
+      {/* Mobile overlay */}
+      {sidebarOpen && (
         <div
-          className="no-print"
-          style={{ display: "grid", gap: 16 }}
-        >
-          <div style={{ fontSize: 18, fontWeight: 700 }}>Portal</div>
-          <nav className="nav portal-nav-groups" aria-label="Portal">
+          className="portal-sidebar-overlay open"
+          onClick={() => setSidebarOpen(false)}
+          aria-hidden="true"
+        />
+      )}
+
+      <div className="portal-shell">
+        {/* Left sidebar */}
+        <aside className={`portal-sidebar no-print${sidebarOpen ? " open" : ""}`}>
+          <Link
+            to="/"
+            className="portal-sidebar__brand"
+            onClick={() => setSidebarOpen(false)}
+          >
+            <img
+              src={brandLogo}
+              alt="Political Solutions"
+              width={40}
+              height={40}
+              className="portal-sidebar__brand-logo"
+            />
+            <span className="portal-sidebar__brand-name">Political Solutions</span>
+          </Link>
+
+          <nav className="portal-nav-groups" aria-label="Portal">
             <div className="portal-nav-group">
               <span className="portal-nav-group__label">Products</span>
-              <NavLink className={navClass} to="/portal" end>
+              <NavLink className={navClass} to="/portal" end onClick={() => setSidebarOpen(false)}>
                 Dashboard
               </NavLink>
-              <NavLink className={navClass} to="/portal/uploads">
+              <NavLink className={navClass} to="/portal/uploads" onClick={() => setSidebarOpen(false)}>
                 Uploads
               </NavLink>
-              <NavLink className={navClass} to="/portal/constituency">
+              <NavLink className={navClass} to="/portal/constituency" onClick={() => setSidebarOpen(false)}>
                 Constituency Intelligence
               </NavLink>
-              <NavLink className={navClass} to="/portal/local-government">
+              <NavLink className={navClass} to="/portal/local-government" onClick={() => setSidebarOpen(false)}>
                 Local Government
               </NavLink>
-              <NavLink className={navClass} to="/portal/local-government/lgr">
+              <NavLink className={navClass} to="/portal/local-government/lgr" onClick={() => setSidebarOpen(false)}>
                 LGR Tracker
               </NavLink>
             </div>
+
             <div className="portal-nav-group">
               <span className="portal-nav-group__label">Analytics</span>
-              <NavLink className={navClass} to="/portal/constituency/reform-threat">
+              <NavLink className={navClass} to="/portal/constituency/reform-threat" onClick={() => setSidebarOpen(false)}>
                 Reform Threat
               </NavLink>
-              <NavLink className={navClass} to="/portal/constituency/libdem-threat">
+              <NavLink className={navClass} to="/portal/constituency/libdem-threat" onClick={() => setSidebarOpen(false)}>
                 Lib Dem Threat
               </NavLink>
-              <NavLink className={navClass} to="/portal/constituency/vulnerability">
+              <NavLink className={navClass} to="/portal/constituency/vulnerability" onClick={() => setSidebarOpen(false)}>
                 Vulnerability
               </NavLink>
-              <NavLink className={navClass} to="/portal/constituency/target-seats">
+              <NavLink className={navClass} to="/portal/constituency/target-seats" onClick={() => setSidebarOpen(false)}>
                 Target Seats 2029
               </NavLink>
               <button
@@ -440,74 +470,85 @@ export default function PortalLayout() {
               </button>
               {analyticsExpanded && (
                 <>
-                  <NavLink className={navClass} to="/portal/constituency/green-threat">
+                  <NavLink className={navClass} to="/portal/constituency/green-threat" onClick={() => setSidebarOpen(false)}>
                     Green Threat
                   </NavLink>
-                  <NavLink className={navClass} to="/portal/analytics/by-election-watch">
+                  <NavLink className={navClass} to="/portal/analytics/by-election-watch" onClick={() => setSidebarOpen(false)}>
                     By-Election Watch
                   </NavLink>
-                  <NavLink className={navClass} to="/portal/analytics/scenario">
+                  <NavLink className={navClass} to="/portal/analytics/scenario" onClick={() => setSidebarOpen(false)}>
                     Scenario modeller
                   </NavLink>
-                  <NavLink className={navClass} to="/portal/analytics/correlations">
+                  <NavLink className={navClass} to="/portal/analytics/correlations" onClick={() => setSidebarOpen(false)}>
                     Correlations
                   </NavLink>
-                  <NavLink className={navClass} to="/portal/analytics/model-performance">
+                  <NavLink className={navClass} to="/portal/analytics/model-performance" onClick={() => setSidebarOpen(false)}>
                     Model Performance
                   </NavLink>
-                  <NavLink className={navClass} to="/portal/data-sources">
+                  <NavLink className={navClass} to="/portal/data-sources" onClick={() => setSidebarOpen(false)}>
                     Data Sources
                   </NavLink>
                 </>
               )}
             </div>
+
             <div className="portal-nav-group">
               <span className="portal-nav-group__label">Account</span>
-              <NavLink className={navClass} to="/portal/cart">
+              <NavLink className={navClass} to="/portal/cart" onClick={() => setSidebarOpen(false)}>
                 Cart
               </NavLink>
-              <NavLink className={navClass} to="/portal/settings/integrations">
+              <NavLink className={navClass} to="/portal/settings/integrations" onClick={() => setSidebarOpen(false)}>
                 Integrations
               </NavLink>
-              <NavLink className={navClass} to="/portal/alerts">
+              <NavLink className={navClass} to="/portal/alerts" onClick={() => setSidebarOpen(false)}>
                 My Alerts
               </NavLink>
             </div>
+
             <div className="portal-nav-group">
               <span className="portal-nav-group__label">Admin</span>
-              <NavLink className={navClass} to="/portal/ops/quotes">
+              <NavLink className={navClass} to="/portal/ops/quotes" onClick={() => setSidebarOpen(false)}>
                 Quotes
               </NavLink>
-              <NavLink className={navClass} to="/services">
+              <NavLink className={navClass} to="/services" onClick={() => setSidebarOpen(false)}>
                 Services
               </NavLink>
               {isAdmin && (
-                <NavLink className={navClass} to="/portal/admin/manual-review">
+                <NavLink className={navClass} to="/portal/admin/manual-review" onClick={() => setSidebarOpen(false)}>
                   Manual review
                 </NavLink>
               )}
               {isAdmin && (
-                <NavLink className={navClass} to="/portal/admin/users">
+                <NavLink className={navClass} to="/portal/admin/users" onClick={() => setSidebarOpen(false)}>
                   Users
                 </NavLink>
               )}
               {isAdmin && (
-                <NavLink className={navClass} to="/portal/admin/associations">
+                <NavLink className={navClass} to="/portal/admin/associations" onClick={() => setSidebarOpen(false)}>
                   Associations
                 </NavLink>
               )}
               {isAdmin && (
-                <NavLink className={navClass} to="/portal/admin/elections">
+                <NavLink className={navClass} to="/portal/admin/elections" onClick={() => setSidebarOpen(false)}>
                   Elections
                 </NavLink>
               )}
             </div>
           </nav>
+        </aside>
+
+        {/* Main content */}
+        <div className="portal-content">
+          {error && (
+            <p role="alert" style={{ color: "var(--danger)" }}>
+              {error}
+            </p>
+          )}
+          <PermissionsProvider cognitoSub={cognitoSub}>
+            <Outlet />
+          </PermissionsProvider>
         </div>
-        <PermissionsProvider cognitoSub={cognitoSub}>
-          <Outlet />
-        </PermissionsProvider>
       </div>
-    </div>
+    </>
   );
 }
