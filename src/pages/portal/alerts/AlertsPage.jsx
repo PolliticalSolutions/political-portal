@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
+import { Helmet } from "react-helmet-async";
 import Card from "../../../components/Card.jsx";
 import Button from "../../../components/Button.jsx";
 import { getAlertSubscriptions, addAlertSubscription, removeAlertSubscription } from "../constituency/constituencyApi.js";
@@ -162,6 +163,7 @@ export default function AlertsPage() {
 
   return (
     <div className="page stack">
+      <Helmet><title>Alerts | Political Solutions</title></Helmet>
       <Card>
         <div className="portal-page-header">
           <div className="portal-page-header__content">

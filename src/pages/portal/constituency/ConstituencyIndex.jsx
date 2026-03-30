@@ -1,5 +1,7 @@
-import { lazy, Suspense, useEffect, useMemo, useState } from "react";
+import { lazy, Suspense, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
+import { useQuery } from "@tanstack/react-query";
+import { Helmet } from "react-helmet-async";
 import Button from "../../../components/Button.jsx";
 import Card from "../../../components/Card.jsx";
 import { byElectionAlerts } from "../../../data/byElectionAlerts.js";
@@ -160,117 +162,76 @@ function AlertsFeed({ alerts }) {
 }
 
 export default function ConstituencyIndex() {
-  const [allConstituencies, setAllConstituencies] = useState([]);
-  const [regions, setRegions] = useState([]);
-  const [countries, setCountries] = useState([]);
-  const [latestElection, setLatestElection] = useState(null);
-  const [winnerRows, setWinnerRows] = useState([]);
-  const [winnersByOnsCode, setWinnersByOnsCode] = useState({});
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
-
-  const [marginalityByConId, setMarginalityByConId] = useState({});
-  const [highRiskSeats, setHighRiskSeats] = useState([]);
-
   const [query, setQuery] = useState("");
   const [selectedRegion, setSelectedRegion] = useState("");
   const [selectedCountry, setSelectedCountry] = useState("");
   const [selectedMarginality, setSelectedMarginality] = useState("");
 
-  useEffect(() => {
-    let cancelled = false;
+  // All three queries fire in parallel. latestElectionWinners is shared with ReformThreatIndex cache.
+  const { data: electionData, isLoading: electionLoading, isError: electionError } = useQuery({
+    queryKey: ["latestElectionWinners"],
+    queryFn: getLatestElectionWinners,
+  });
 
-    async function load() {
-      try {
-        const electionData = await getLatestElectionWinners();
-        if (cancelled) return;
+  const { data: marginalityRows = [] } = useQuery({
+    queryKey: ["marginalityScores"],
+    queryFn: getAllMarginalityScores,
+  });
 
-        const validOnsCode = /^[ESWN]\d/;
-        const seenCodes = new Set();
-        const constituencies = electionData.winners
-          .map((winner) => winner.constituencies)
-          .filter((constituency) => {
-            if (!constituency) return false;
-            const code = constituency.ons_code ?? "";
-            if (!validOnsCode.test(code)) {
-              console.warn("[ConstituencyIndex] Invalid ONS code — excluded:", {
-                code,
-                name: constituency.name,
-              });
-              return false;
-            }
-            if (seenCodes.has(code)) {
-              console.warn("[ConstituencyIndex] Duplicate ONS code — excluded:", {
-                code,
-                name: constituency.name,
-              });
-              return false;
-            }
-            seenCodes.add(code);
-            return true;
-          })
-          .sort((a, b) => a.name.localeCompare(b.name));
+  const { data: highRiskSeats = [] } = useQuery({
+    queryKey: ["highRiskByElectionSeats"],
+    queryFn: getHighRiskByElectionSeats,
+  });
 
-        const nextRegions = [...new Set(constituencies.map((c) => c.region).filter(Boolean))].sort();
-        const nextCountries = [...new Set(constituencies.map((c) => c.country).filter(Boolean))].sort();
+  const loading = electionLoading;
+  const error = electionError ? "Failed to load constituency data." : "";
 
-        const winnerMap = {};
-        electionData.winners.forEach((winner) => {
-          const onsCode = winner.constituencies?.ons_code;
-          const normalizedOnsCode = (onsCode || "").toUpperCase();
-          if (normalizedOnsCode && validOnsCode.test(normalizedOnsCode) && !winnerMap[normalizedOnsCode]) {
-            winnerMap[normalizedOnsCode] = winner.parties;
-          }
-        });
+  const validOnsCode = /^[ESWN]\d/;
 
-        console.log(
-          "[ConstituencyIndex] First 3 winner rows:",
-          electionData.winners.slice(0, 3).map((winner) => ({
-            ons_code: winner.constituencies?.ons_code ?? null,
-            party_short_name: winner.parties?.short_name ?? winner.parties?.name ?? null,
-            colour_hex: winner.parties?.colour_hex ?? null,
-          }))
-        );
-        console.log(
-          "[ConstituencyIndex] First 3 winner map entries:",
-          Object.entries(winnerMap)
-            .slice(0, 3)
-            .map(([onsCode, party]) => ({
-              ons_code: onsCode,
-              party_short_name: party?.short_name ?? party?.name ?? null,
-              colour_hex: party?.colour_hex ?? null,
-            }))
-        );
+  const allConstituencies = useMemo(() => {
+    const winners = electionData?.winners ?? [];
+    const seenCodes = new Set();
+    return winners
+      .map((winner) => winner.constituencies)
+      .filter((constituency) => {
+        if (!constituency) return false;
+        const code = constituency.ons_code ?? "";
+        if (!validOnsCode.test(code)) return false;
+        if (seenCodes.has(code)) return false;
+        seenCodes.add(code);
+        return true;
+      })
+      .sort((a, b) => a.name.localeCompare(b.name));
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [electionData]);
 
-        setAllConstituencies(constituencies);
-        setRegions(nextRegions);
-        setCountries(nextCountries);
-        setLatestElection({ name: electionData.electionName, date: electionData.electionDate });
-        setWinnerRows(electionData.winners);
-        setWinnersByOnsCode(winnerMap);
+  const winnerRows = useMemo(() => electionData?.winners ?? [], [electionData]);
 
-        // Non-blocking: load analytics data after main data is ready
-        Promise.all([getAllMarginalityScores(), getHighRiskByElectionSeats()]).then(
-          ([scores, riskSeats]) => {
-            if (cancelled) return;
-            const mMap = {};
-            scores.forEach((s) => { mMap[s.constituency_id] = s; });
-            setMarginalityByConId(mMap);
-            setHighRiskSeats(riskSeats ?? []);
-          }
-        ).catch(() => {}); // analytics tables may not exist yet
-      } catch (err) {
-        if (!cancelled) setError(err.message || "Failed to load constituency data.");
-      } finally {
-        if (!cancelled) setLoading(false);
+  const winnersByOnsCode = useMemo(() => {
+    const map = {};
+    (electionData?.winners ?? []).forEach((winner) => {
+      const onsCode = winner.constituencies?.ons_code;
+      const normalizedOnsCode = (onsCode || "").toUpperCase();
+      if (normalizedOnsCode && validOnsCode.test(normalizedOnsCode) && !map[normalizedOnsCode]) {
+        map[normalizedOnsCode] = winner.parties;
       }
-    }
+    });
+    return map;
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [electionData]);
 
-    load();
-    return () => {
-      cancelled = true;
-    };
-  }, []);
+  const latestElection = useMemo(() => (
+    electionData ? { name: electionData.electionName, date: electionData.electionDate } : null
+  ), [electionData]);
+
+  const regions = useMemo(() => [...new Set(allConstituencies.map((c) => c.region).filter(Boolean))].sort(), [allConstituencies]);
+  const countries = useMemo(() => [...new Set(allConstituencies.map((c) => c.country).filter(Boolean))].sort(), [allConstituencies]);
+
+  const marginalityByConId = useMemo(() => {
+    const map = {};
+    marginalityRows.forEach((s) => { map[s.constituency_id] = s; });
+    return map;
+  }, [marginalityRows]);
 
   const filteredConstituencies = useMemo(() => {
     const normalizedQuery = query.trim().toLowerCase();
@@ -326,6 +287,7 @@ export default function ConstituencyIndex() {
 
   return (
     <div className="page stack">
+      <Helmet><title>Constituency Intelligence | Political Solutions</title></Helmet>
       <Card>
         <div className="portal-page-header">
           <div className="portal-page-header__content">

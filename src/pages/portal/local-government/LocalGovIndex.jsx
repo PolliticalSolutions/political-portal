@@ -1,5 +1,7 @@
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { Link } from "react-router-dom";
+import { useQuery } from "@tanstack/react-query";
+import { Helmet } from "react-helmet-async";
 import Button from "../../../components/Button.jsx";
 import Card from "../../../components/Card.jsx";
 import { resolvePartyColour, toHexColor } from "../../../utils/partyColours.js";
@@ -96,37 +98,25 @@ function ActiveAlertsPanel({ alerts }) {
 }
 
 export default function LocalGovIndex() {
-  const [authorities, setAuthorities] = useState([]);
-  const [alerts, setAlerts] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
-
   const [query, setQuery] = useState("");
   const [selectedCountry, setSelectedCountry] = useState("");
   const [selectedRegion, setSelectedRegion] = useState("");
   const [selectedType, setSelectedType] = useState("");
   const [selectedControl, setSelectedControl] = useState("");
 
-  useEffect(() => {
-    let cancelled = false;
-    async function load() {
-      try {
-        const [auths, activeAlerts] = await Promise.all([
-          getLocalAuthorities(),
-          getAllActiveAlerts(),
-        ]);
-        if (cancelled) return;
-        setAuthorities(auths);
-        setAlerts(activeAlerts);
-      } catch (err) {
-        if (!cancelled) setError(err.message || "Failed to load local government data.");
-      } finally {
-        if (!cancelled) setLoading(false);
-      }
-    }
-    load();
-    return () => { cancelled = true; };
-  }, []);
+  // Both queries fire in parallel
+  const { data: authorities = [], isLoading: authsLoading, isError: authsError } = useQuery({
+    queryKey: ["localAuthorities"],
+    queryFn: getLocalAuthorities,
+  });
+
+  const { data: alerts = [], isLoading: alertsLoading } = useQuery({
+    queryKey: ["activeAlerts"],
+    queryFn: getAllActiveAlerts,
+  });
+
+  const loading = authsLoading || alertsLoading;
+  const error = authsError ? "Failed to load local government data." : "";
 
   const countries = useMemo(() => [...new Set(authorities.map((a) => a.country).filter(Boolean))].sort(), [authorities]);
   const regions = useMemo(() => {
@@ -180,6 +170,7 @@ export default function LocalGovIndex() {
 
   return (
     <div className="page stack">
+      <Helmet><title>Local Government | Political Solutions</title></Helmet>
       <Card>
         <div className="portal-page-header">
           <div className="portal-page-header__content">

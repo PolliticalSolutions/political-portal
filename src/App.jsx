@@ -1,5 +1,6 @@
 import { lazy, Suspense, useCallback, useEffect, useRef, useState } from "react";
 import { Link, NavLink, Navigate, Route, Routes } from "react-router-dom";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { clearStoredSession, startLogout } from "./lib/cognito.js";
 import { clearMeCache } from "./lib/uploadApi.js";
 import { useCart } from "./cart/cartStore.jsx";
@@ -177,6 +178,16 @@ function TopNav({ authed, onLogout, cartCount }) {
   );
 }
 
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      staleTime: 5 * 60 * 1000,
+      gcTime: 10 * 60 * 1000,
+      retry: 1,
+    },
+  },
+});
+
 export default function App() {
   usePageTracking();
   const { items } = useCart();
@@ -304,6 +315,7 @@ export default function App() {
   );
 
   return (
+    <QueryClientProvider client={queryClient}>
     <div className="app">
       <TopNav authed={authed} onLogout={handleLogout} cartCount={items.length} />
       <main className="content">
@@ -494,5 +506,6 @@ export default function App() {
       <CookieNotice />
       <GaDebugBadge />
     </div>
+    </QueryClientProvider>
   );
 }

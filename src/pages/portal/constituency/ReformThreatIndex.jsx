@@ -1,5 +1,7 @@
-import { lazy, Suspense, useEffect, useMemo, useState } from "react";
+import { lazy, Suspense, useMemo } from "react";
 import { Link } from "react-router-dom";
+import { useQuery } from "@tanstack/react-query";
+import { Helmet } from "react-helmet-async";
 import Card from "../../../components/Card.jsx";
 import DataProvenancePanel from "../../../components/DataProvenancePanel.jsx";
 import ModelConfidenceBadge from "../../../components/ModelConfidenceBadge.jsx";
@@ -43,40 +45,33 @@ function getThreatBand(score) {
 
 export default function ReformThreatIndex() {
   const model = getScoringModel("reformThreat");
-  const [threats, setThreats] = useState([]);
-  const [constituencyMap, setConstituencyMap] = useState({});
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
-  const [metadata, setMetadata] = useState(null);
 
-  useEffect(() => {
-    let cancelled = false;
-    async function load() {
-      try {
-        const [threatData, electionData] = await Promise.all([
-          getReformThreatIndex(),
-          getLatestElectionWinners(),
-        ]);
-        if (cancelled) return;
-        const conMap = {};
-        electionData.winners.forEach((w) => {
-          if (w.constituencies) conMap[w.constituencies.id] = w.constituencies;
-        });
-        setThreats(threatData);
-        setConstituencyMap(conMap);
-        const nextMetadata = await getIntelligenceMetadata({
-          modelKey: "reformThreat",
-        });
-        if (!cancelled) setMetadata(nextMetadata);
-      } catch (err) {
-        if (!cancelled) setError(err.message || "Failed to load Reform threat index.");
-      } finally {
-        if (!cancelled) setLoading(false);
-      }
-    }
-    load();
-    return () => { cancelled = true; };
-  }, []);
+  const { data: threats = [], isLoading: threatsLoading, isError: threatsError } = useQuery({
+    queryKey: ["reformThreatIndex"],
+    queryFn: getReformThreatIndex,
+  });
+
+  const { data: electionData, isLoading: electionLoading } = useQuery({
+    queryKey: ["latestElectionWinners"],
+    queryFn: getLatestElectionWinners,
+  });
+
+  const { data: metadata = null } = useQuery({
+    queryKey: ["intelligenceMetadata", "reformThreat"],
+    queryFn: () => getIntelligenceMetadata({ modelKey: "reformThreat" }),
+    staleTime: Infinity,
+  });
+
+  const loading = threatsLoading || electionLoading;
+  const error = threatsError ? "Failed to load Reform threat index." : "";
+
+  const constituencyMap = useMemo(() => {
+    const map = {};
+    (electionData?.winners ?? []).forEach((w) => {
+      if (w.constituencies) map[w.constituencies.id] = w.constituencies;
+    });
+    return map;
+  }, [electionData]);
 
   const stats = useMemo(() => {
     if (!threats.length) return null;
@@ -181,6 +176,7 @@ export default function ReformThreatIndex() {
 
   return (
     <div className="page stack">
+      <Helmet><title>Reform UK Threat Index | Political Solutions</title></Helmet>
       <Card>
         <div className="portal-page-header">
           <div className="portal-page-header__content">

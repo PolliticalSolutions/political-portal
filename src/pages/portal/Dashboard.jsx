@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
+import { Helmet } from "react-helmet-async";
 import Button from "../../components/Button.jsx";
 import Card from "../../components/Card.jsx";
 
@@ -56,6 +57,7 @@ export default function Dashboard() {
 
   return (
     <div className="page stack">
+      <Helmet><title>Dashboard | Political Solutions</title></Helmet>
       <Card>
         <div className="portal-page-header">
           <div className="portal-page-header__content">

@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
+import { Helmet } from "react-helmet-async";
 import Button from "../../components/Button.jsx";
 import Card from "../../components/Card.jsx";
 import { createJob, listElections, listJobs } from "../../lib/uploadApi.js";
@@ -567,6 +568,7 @@ export default function Uploads() {
 
   return (
     <div className="page stack">
+      <Helmet><title>Data Uploads | Political Solutions</title></Helmet>
       <Card>
         <div className="portal-page-header">
           <div className="portal-page-header__content">

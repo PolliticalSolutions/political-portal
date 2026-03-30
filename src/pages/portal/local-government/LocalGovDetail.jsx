@@ -1,5 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link, useParams } from "react-router-dom";
+import { useQuery } from "@tanstack/react-query";
+import { Helmet } from "react-helmet-async";
 import Card from "../../../components/Card.jsx";
 import DataProvenancePanel from "../../../components/DataProvenancePanel.jsx";
 import { getIntelligenceMetadata } from "../../../lib/intelligenceMetadataApi.js";
@@ -587,50 +589,44 @@ function LgrBanner({ lgr }) {
 
 export default function LocalGovDetail() {
   const { gssCode } = useParams();
-  const [authority, setAuthority] = useState(null);
-  const [alerts, setAlerts] = useState([]);
-  const [lgrStatus, setLgrStatus] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
-  const [metadata, setMetadata] = useState(null);
   const [activeTab, setActiveTab] = useState("composition");
 
-  useEffect(() => {
-    if (!gssCode) return;
-    let cancelled = false;
-    async function load() {
-      setLoading(true);
-      setError("");
-      try {
-        const auth = await getLocalAuthority(gssCode);
-        if (cancelled) return;
-        setAuthority(auth);
-        const [authAlerts, lgr] = await Promise.all([
-          getAuthorityAlerts(auth.id),
-          getLgrStatus(auth.name),
-        ]);
-        if (!cancelled) {
-          setAlerts(authAlerts);
-          setLgrStatus(lgr);
-        }
-        const nextMetadata = await getIntelligenceMetadata({
-          tableName: "local_authorities",
-          entityType: "local_authority",
-          entityId: auth.id,
-          datasetKey: "local_government_intelligence",
-        });
-        if (!cancelled) setMetadata(nextMetadata);
-      } catch (err) {
-        if (!cancelled) setError(err.message || "Authority not found.");
-      } finally {
-        if (!cancelled) setLoading(false);
-      }
-    }
-    load();
-    return () => { cancelled = true; };
-  }, [gssCode]);
+  // Query 1: authority header — fires immediately
+  const { data: authority, isLoading: loading, isError, error: authError } = useQuery({
+    queryKey: ["localAuthority", gssCode],
+    queryFn: () => getLocalAuthority(gssCode),
+    enabled: Boolean(gssCode),
+  });
 
-  const highAlerts = useMemo(() => alerts.filter((a) => a.risk_level === "high"), [alerts]);
+  // Queries 2, 3, 4: all fire in parallel once authority resolves
+  const { data: alerts = [] } = useQuery({
+    queryKey: ["authorityAlerts", authority?.id],
+    queryFn: () => getAuthorityAlerts(authority.id),
+    enabled: Boolean(authority?.id),
+  });
+
+  const { data: lgrStatus = null } = useQuery({
+    queryKey: ["lgrStatus", authority?.name],
+    queryFn: () => getLgrStatus(authority.name),
+    enabled: Boolean(authority?.name),
+    staleTime: Infinity,
+  });
+
+  const { data: metadata = null } = useQuery({
+    queryKey: ["localAuthorityMetadata", authority?.id],
+    queryFn: () => getIntelligenceMetadata({
+      tableName: "local_authorities",
+      entityType: "local_authority",
+      entityId: authority.id,
+      datasetKey: "local_government_intelligence",
+    }),
+    enabled: Boolean(authority?.id),
+    staleTime: Infinity,
+  });
+
+  const error = isError ? (authError?.message || "Authority not found.") : "";
+
+  const highAlerts = useMemo(() => (alerts || []).filter((a) => a.risk_level === "high"), [alerts]);
 
   if (loading) {
     return (
@@ -667,6 +663,7 @@ export default function LocalGovDetail() {
 
   return (
     <div className="page stack">
+      <Helmet><title>{authority.name} | Local Government | Political Solutions</title></Helmet>
       <Card>
         <div className="portal-page-header">
           <div className="portal-page-header__content">

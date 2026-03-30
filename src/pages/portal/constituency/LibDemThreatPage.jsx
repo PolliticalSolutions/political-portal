@@ -1,5 +1,7 @@
-import { useEffect, useMemo, useState } from "react";
+import { useMemo } from "react";
 import { Link } from "react-router-dom";
+import { useQuery } from "@tanstack/react-query";
+import { Helmet } from "react-helmet-async";
 import Card from "../../../components/Card.jsx";
 import ThreatMethodologyDisclosure from "../../../components/ThreatMethodologyDisclosure.jsx";
 import { getLibDemThreatIndex } from "./constituencyApi.js";
@@ -29,18 +31,11 @@ function ScoreBar({ value, max = 10, colour }) {
 }
 
 export default function LibDemThreatPage() {
-  const [seats, setSeats] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
-
-  useEffect(() => {
-    let cancelled = false;
-    getLibDemThreatIndex()
-      .then((data) => { if (!cancelled) setSeats(data); })
-      .catch((err) => { if (!cancelled) setError(err.message || "Failed to load data."); })
-      .finally(() => { if (!cancelled) setLoading(false); });
-    return () => { cancelled = true; };
-  }, []);
+  const { data: seats = [], isLoading: loading, isError, error: queryError } = useQuery({
+    queryKey: ["libDemThreatIndex"],
+    queryFn: getLibDemThreatIndex,
+  });
+  const error = isError ? (queryError?.message || "Failed to load data.") : "";
 
   const stats = useMemo(() => {
     if (!seats.length) return null;
@@ -99,6 +94,7 @@ export default function LibDemThreatPage() {
 
   return (
     <div className="page stack">
+      <Helmet><title>Lib Dem Threat Index | Political Solutions</title></Helmet>
       <Card>
         <div className="portal-page-header">
           <div className="portal-page-header__content">
