@@ -13,15 +13,16 @@ import Checkout from "./pages/Checkout.jsx";
 import CheckoutEntry from "./pages/CheckoutEntry.jsx";
 import CheckoutConfirmation from "./pages/CheckoutConfirmation.jsx";
 import CheckoutConfirmationEntry from "./pages/CheckoutConfirmationEntry.jsx";
-import EnquirePage from "./pages/EnquirePage.jsx";
-import BlogIndexPage from "./pages/BlogIndexPage.jsx";
-import BlogPostPage from "./pages/BlogPostPage.jsx";
 import Home from "./pages/Home.jsx";
 import Login from "./pages/Login.jsx";
+// Public pages — lazy split so Supabase and heavy deps only load when needed
+const BlogIndexPage = lazy(() => import("./pages/BlogIndexPage.jsx"));
+const BlogPostPage = lazy(() => import("./pages/BlogPostPage.jsx"));
+const ConstituencyIntelligence = lazy(() => import("./pages/ConstituencyIntelligence.jsx"));
+const EnquirePage = lazy(() => import("./pages/EnquirePage.jsx"));
+const ServiceSupport = lazy(() => import("./pages/ServiceSupport.jsx"));
+const Services = lazy(() => import("./pages/Services.jsx"));
 const Subscribe = lazy(() => import("./pages/Subscribe.jsx"));
-import Services from "./pages/Services.jsx";
-import ConstituencyIntelligence from "./pages/ConstituencyIntelligence.jsx";
-import ServiceSupport from "./pages/ServiceSupport.jsx";
 const PortalLayout = lazy(() => import("./pages/portal/PortalLayout.jsx"));
 const PortalNotFound = lazy(() => import("./pages/portal/PortalNotFound.jsx"));
 const Subscriptions = lazy(() => import("./pages/Subscriptions.jsx"));
@@ -53,9 +54,9 @@ const GreenThreatPage = lazy(() => import("./pages/portal/constituency/GreenThre
 const ScenarioPage = lazy(() => import("./pages/portal/analytics/ScenarioPage.jsx"));
 import Session from "./pages/Session.jsx";
 import SignUp from "./pages/SignUp.jsx";
-import CookiesPage from "./pages/legal/CookiesPage.jsx";
-import PrivacyPage from "./pages/legal/PrivacyPage.jsx";
-import TermsPage from "./pages/legal/TermsPage.jsx";
+const CookiesPage = lazy(() => import("./pages/legal/CookiesPage.jsx"));
+const PrivacyPage = lazy(() => import("./pages/legal/PrivacyPage.jsx"));
+const TermsPage = lazy(() => import("./pages/legal/TermsPage.jsx"));
 import brandLogo from "./assets/brand/political-solutions-logo.png";
 import RouteSeo from "./seo/RouteSeo.jsx";
 import { usePageTracking, _devGaId } from "./lib/analytics.js";
@@ -178,7 +179,9 @@ function TopNav({ authed, onLogout, cartCount }) {
 export default function App() {
   usePageTracking();
   const { items } = useCart();
-  const [session, setSession] = useState(() => getSession());
+  // Start with empty session to match server-rendered HTML (no sessionStorage on server).
+  // Populate from sessionStorage after hydration to avoid React error #418.
+  const [session, setSession] = useState({ isAuthed: false, user: null, expiresAt: null, tokens: null, reason: null });
   const [showIdleWarning, setShowIdleWarning] = useState(false);
   const [warningSecondsLeft, setWarningSecondsLeft] = useState(WARNING_SECONDS);
 
@@ -188,6 +191,11 @@ export default function App() {
 
   const authed = session.isAuthed;
   const tokens = authed ? session.tokens : null;
+
+  // Hydrate session from sessionStorage after the initial render matches the server.
+  useEffect(() => {
+    setSession(getSession());
+  }, []);
 
   const refreshSession = useCallback(() => {
     setSession(getSession());
@@ -303,23 +311,23 @@ export default function App() {
             <Route path="/login" element={<Login authed={authed} />} />
             <Route path="/callback" element={<Callback onAuth={handleAuthSuccess} />} />
             <Route path="/signup" element={<SignUp />} />
-            <Route path="/enquire" element={<EnquirePage />} />
-            <Route path="/blog" element={<BlogIndexPage />} />
-            <Route path="/blog/:slug" element={<BlogPostPage />} />
+            <Route path="/enquire" element={<Suspense fallback={null}><EnquirePage /></Suspense>} />
+            <Route path="/blog" element={<Suspense fallback={null}><BlogIndexPage /></Suspense>} />
+            <Route path="/blog/:slug" element={<Suspense fallback={null}><BlogPostPage /></Suspense>} />
             <Route path="/cart" element={<CartEntry authed={authed} />} />
             <Route path="/checkout" element={<CheckoutEntry authed={authed} />} />
             <Route
               path="/checkout/confirmation"
               element={<CheckoutConfirmationEntry authed={authed} />}
             />
-            <Route path="/subscribe" element={<Subscribe />} />
+            <Route path="/subscribe" element={<Suspense fallback={null}><Subscribe /></Suspense>} />
             <Route path="/subscriptions" element={<Navigate to="/subscribe" replace />} />
-            <Route path="/services" element={<Services />} />
-            <Route path="/constituency-intelligence" element={<ConstituencyIntelligence />} />
-            <Route path="/services/election-support" element={<ServiceSupport />} />
-            <Route path="/privacy" element={<PrivacyPage />} />
-            <Route path="/terms" element={<TermsPage />} />
-            <Route path="/cookies" element={<CookiesPage />} />
+            <Route path="/services" element={<Suspense fallback={null}><Services /></Suspense>} />
+            <Route path="/constituency-intelligence" element={<Suspense fallback={null}><ConstituencyIntelligence /></Suspense>} />
+            <Route path="/services/election-support" element={<Suspense fallback={null}><ServiceSupport /></Suspense>} />
+            <Route path="/privacy" element={<Suspense fallback={null}><PrivacyPage /></Suspense>} />
+            <Route path="/terms" element={<Suspense fallback={null}><TermsPage /></Suspense>} />
+            <Route path="/cookies" element={<Suspense fallback={null}><CookiesPage /></Suspense>} />
             <Route element={<ProtectedRoute authed={authed} session={session} />}>
               <Route path="/portal" element={<Suspense fallback={<div className="app-shell"><p className="muted" style={{padding:"2rem"}}>Loading…</p></div>}><PortalLayout /></Suspense>}>
                 <Route index element={<Suspense fallback={<div className="page stack"><p className="muted">Loading…</p></div>}><Dashboard /></Suspense>} />

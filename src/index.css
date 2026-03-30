@@ -1,4 +1,4 @@
-@import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap");
+/* Inter loaded via <link> in index.html with preconnect — do not re-add @import here */
 
 :root {
   font-family: "Inter", "Segoe UI", system-ui, -apple-system, sans-serif;
