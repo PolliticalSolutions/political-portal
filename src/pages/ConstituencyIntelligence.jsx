@@ -2,7 +2,9 @@ import { Link } from "react-router-dom";
 import Button from "../components/Button.jsx";
 import Card from "../components/Card.jsx";
 import Footer from "../components/Footer.jsx";
-import logo from "../assets/brand/political-solutions-logo.png";
+import campaignDataPng from "../assets/campaign-data.png";
+import campaignDataWebp from "../assets/campaign-data.webp";
+import campaignDataMobileWebp from "../assets/campaign-data-mobile.webp";
 
 export default function ConstituencyIntelligence() {
   return (
@@ -24,19 +26,23 @@ export default function ConstituencyIntelligence() {
               </Button>
             </div>
           </div>
-          <div
-            className="hero-visual"
-            aria-hidden="true"
-            style={{
-              background: "#0a3b7c",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              borderRadius: 8,
-              minHeight: 180,
-            }}
-          >
-            <img src={logo} alt="" style={{ maxWidth: 160, opacity: 0.9 }} />
+          <div className="hero-visual services-hero-visual">
+            <picture>
+              <source
+                type="image/webp"
+                srcSet={`${campaignDataMobileWebp} 768w, ${campaignDataWebp} 1536w`}
+                sizes="(max-width: 768px) 768px, 1536px"
+              />
+              <img
+                className="hero-visual-image services-hero-image"
+                src={campaignDataPng}
+                alt="Campaign data and constituency analysis"
+                width={1536}
+                height={1024}
+                loading="eager"
+                decoding="async"
+              />
+            </picture>
           </div>
         </div>
       </section>
