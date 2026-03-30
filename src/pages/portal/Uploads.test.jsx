@@ -296,7 +296,7 @@ describe("Uploads – upload flow", () => {
       await Promise.resolve();
     });
 
-    expect(uploadApi.listElections).toHaveBeenCalledWith(["OPEN", "UPCOMING"], [
+    expect(uploadApi.listElections).toHaveBeenCalledWith(["OPEN", "UPCOMING", "CLOSED", "ARCHIVED"], [
       "E14000637",
       "E14001234",
     ]);
