@@ -263,11 +263,16 @@ export default function PortalLayout() {
   const navClass = ({ isActive }) => (isActive ? "navLink active" : "navLink");
   const [loading, setLoading] = useState(true);
   const [user, setUser] = useState(null);
+  const [cognitoSub, setCognitoSub] = useState(null);
   const [error, setError] = useState("");
   const [serviceUnavailable, setServiceUnavailable] = useState(false);
   const [reloadKey, setReloadKey] = useState(0);
   const [isAdmin, setIsAdmin] = useState(false);
   const [analyticsExpanded, setAnalyticsExpanded] = useState(readAnalyticsExpanded);
+
+  useEffect(() => {
+    setCognitoSub(getSession()?.user?.sub || null);
+  }, []);
 
   useEffect(() => {
     try {
@@ -499,7 +504,7 @@ export default function PortalLayout() {
             </div>
           </nav>
         </div>
-        <PermissionsProvider cognitoSub={getSession()?.user?.sub || null}>
+        <PermissionsProvider cognitoSub={cognitoSub}>
           <Outlet />
         </PermissionsProvider>
       </div>

@@ -52,13 +52,25 @@ export const createJob = async (payload) => {
   });
 };
 
+const ME_TTL_MS = 5 * 60 * 1000; // 5 minutes
+let _meCache = null; // { data, expiresAt }
+
+export const clearMeCache = () => {
+  _meCache = null;
+};
+
 export const getMe = async () => {
+  if (_meCache && Date.now() < _meCache.expiresAt) {
+    return _meCache.data;
+  }
   const base = resolveUploadApiBaseUrl();
   if (!base) throw new Error("Missing Upload API URL. Set VITE_UPLOAD_API_URL.");
-  return fetchJson(`${base}/me`, {
+  const data = await fetchJson(`${base}/me`, {
     method: "GET",
     headers: getAuthHeaders(),
   });
+  _meCache = { data, expiresAt: Date.now() + ME_TTL_MS };
+  return data;
 };
 
 export const getAdminMe = async () => {

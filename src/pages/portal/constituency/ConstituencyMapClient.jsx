@@ -1,6 +1,6 @@
 // Browser-only component. Never import this file statically — always via React.lazy().
 // react-simple-maps uses browser APIs (SVG, ResizeObserver) and cannot run in Node/SSR.
-// The GeoJSON is bundled directly to avoid an HTTP fetch (eliminates the Amplify redirect issue).
+// GeoJSON is fetched from /geo/uk-constituencies.geojson (public static asset, immutable cache).
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { ComposableMap, Geographies, Geography, ZoomableGroup } from "react-simple-maps";
@@ -57,7 +57,9 @@ export default function ConstituencyMapClient({
   const [position, setPosition] = useState({ coordinates: [-2, 55.4], zoom: 1 });
 
   useEffect(() => {
-    import("/src/data/uk-constituencies.geojson").then((m) => setGeoData(m.default));
+    fetch("/geo/uk-constituencies.geojson")
+      .then((res) => res.json())
+      .then((data) => setGeoData(data));
   }, []);
   const errorLoggedRef = useRef(false);
   const fillLoggedRef = useRef(false);

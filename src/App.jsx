@@ -1,6 +1,7 @@
 import { lazy, Suspense, useCallback, useEffect, useRef, useState } from "react";
 import { Link, NavLink, Navigate, Route, Routes } from "react-router-dom";
 import { clearStoredSession, startLogout } from "./lib/cognito.js";
+import { clearMeCache } from "./lib/uploadApi.js";
 import { useCart } from "./cart/cartStore.jsx";
 import { getSession } from "./auth/session.js";
 import CookieNotice from "./components/CookieNotice.jsx";
@@ -207,6 +208,7 @@ export default function App() {
   }, []);
 
   const handleLogout = useCallback(() => {
+    clearMeCache();
     setSession({ isAuthed: false, user: null, expiresAt: null, tokens: null, reason: null });
     startLogout();
   }, []);

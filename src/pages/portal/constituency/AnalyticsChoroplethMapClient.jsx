@@ -30,7 +30,9 @@ export default function AnalyticsChoroplethMapClient({
   const errorLoggedRef = useRef(false);
 
   useEffect(() => {
-    import("/src/data/uk-constituencies.geojson").then((m) => setGeoData(m.default));
+    fetch("/geo/uk-constituencies.geojson")
+      .then((res) => res.json())
+      .then((data) => setGeoData(data));
   }, []);
 
   const handleClick = (onsCode) => {
