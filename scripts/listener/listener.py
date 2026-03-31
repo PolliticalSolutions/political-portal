@@ -349,12 +349,15 @@ def run_processor(input_pdf, output_dir):
         output_dir=str(output_dir),
     )
     log.info("Running processor: %s", cmd)
+    env = os.environ.copy()
+    env['TESSDATA_PREFIX'] = r'C:\Program Files\Tesseract-OCR\tessdata'
     result = subprocess.run(
         cmd,
         shell=True,
         capture_output=True,
         text=True,
         cwd=str(PROJECT_ROOT),
+        env=env,
     )
     if result.stdout.strip():
         log.info("Processor stdout:\n%s", result.stdout.strip())
