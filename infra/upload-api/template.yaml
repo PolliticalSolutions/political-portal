@@ -920,6 +920,46 @@ Resources:
         Tagging:
           Status: ENABLED
 
+  # ── MP Persona Generator ─────────────────────────────────────────────────────
+  # Long-running Lambda (up to 300s) exposed via a Function URL, not API Gateway,
+  # to bypass the 29s HTTP API integration timeout. CORS is handled here.
+
+  PersonaFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: src/
+      Handler: personaHandler.handler
+      Runtime: nodejs20.x
+      Timeout: 300
+      MemorySize: 512
+      Environment:
+        Variables:
+          ALLOWED_ORIGINS: !Join [",", !Ref AllowedOrigins]
+          ANTHROPIC_API_KEY: ""  # Set manually in Lambda console after deploy
+
+  PersonaFunctionUrl:
+    Type: AWS::Lambda::Url
+    Properties:
+      TargetFunctionArn: !Ref PersonaFunction
+      AuthType: NONE
+      Cors:
+        AllowOrigins: !Ref AllowedOrigins
+        AllowMethods:
+          - POST
+          - OPTIONS
+        AllowHeaders:
+          - content-type
+          - authorization
+        MaxAge: 3600
+
+  PersonaFunctionUrlPermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      Action: lambda:InvokeFunctionUrl
+      FunctionName: !Ref PersonaFunction
+      Principal: "*"
+      FunctionUrlAuthType: NONE
+
   # ── CloudWatch Alarms ──────────────────────────────────────────────────────
 
   UploadFunctionErrorsAlarm:
@@ -1039,6 +1079,9 @@ Outputs:
   ProcessDlqArn:
     Description: ARN of the processing dead-letter queue.
     Value: !GetAtt ProcessDLQ.Arn
+  PersonaApiUrl:
+    Description: Lambda Function URL for the MP Persona Generator (set as VITE_PERSONA_API_URL).
+    Value: !GetAtt PersonaFunctionUrl.FunctionUrl
   ScanResultsRuleName:
     Condition: GuardDutyScanEnabled
     Description: EventBridge rule name for GuardDuty malware scan results.

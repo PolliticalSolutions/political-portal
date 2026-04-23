@@ -54,6 +54,7 @@ const TargetSeatsPage = lazy(() => import("./pages/portal/constituency/TargetSea
 const LibDemThreatPage = lazy(() => import("./pages/portal/constituency/LibDemThreatPage.jsx"));
 const GreenThreatPage = lazy(() => import("./pages/portal/constituency/GreenThreatPage.jsx"));
 const ScenarioPage = lazy(() => import("./pages/portal/analytics/ScenarioPage.jsx"));
+const MPPersona = lazy(() => import("./pages/portal/MPPersona.jsx"));
 import Session from "./pages/Session.jsx";
 import SignUp from "./pages/SignUp.jsx";
 const CookiesPage = lazy(() => import("./pages/legal/CookiesPage.jsx"));
@@ -485,6 +486,14 @@ export default function App() {
                   element={
                     <Suspense fallback={<div className="page stack"><p className="muted">Loading…</p></div>}>
                       <LGRTrackerPage />
+                    </Suspense>
+                  }
+                />
+                <Route
+                  path="mp-persona"
+                  element={
+                    <Suspense fallback={<div className="page stack"><p className="muted">Loading…</p></div>}>
+                      <MPPersona />
                     </Suspense>
                   }
                 />

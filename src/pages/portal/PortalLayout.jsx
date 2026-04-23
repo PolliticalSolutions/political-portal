@@ -444,6 +444,9 @@ export default function PortalLayout() {
               <NavLink className={navClass} to="/portal/local-government/lgr" onClick={() => setSidebarOpen(false)}>
                 LGR Tracker
               </NavLink>
+              <NavLink className={navClass} to="/portal/mp-persona" onClick={() => setSidebarOpen(false)}>
+                MP Persona Generator
+              </NavLink>
             </div>
 
             <div className="portal-nav-group">
