@@ -945,8 +945,7 @@ Resources:
       Cors:
         AllowOrigins: !Ref AllowedOrigins
         AllowMethods:
-          - POST
-          - OPTIONS
+          - "*"
         AllowHeaders:
           - content-type
           - authorization
