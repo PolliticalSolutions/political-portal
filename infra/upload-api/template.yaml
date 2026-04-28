@@ -959,6 +959,30 @@ Resources:
       Principal: "*"
       FunctionUrlAuthType: NONE
 
+  # ── By-Election Monitor ──────────────────────────────────────────────────────
+  # Scheduled Lambda that polls the Parliament Members API daily at 06:00 UTC,
+  # detects recently departed Commons members, and writes political_alerts rows.
+
+  ByElectionMonitorFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: src/
+      Handler: byElectionMonitor.handler
+      Runtime: nodejs20.x
+      Timeout: 120
+      MemorySize: 256
+      Environment:
+        Variables:
+          SUPABASE_URL: !Ref SupabaseUrl
+          SUPABASE_SERVICE_KEY: !Ref SupabaseServiceKey
+      Events:
+        DailySchedule:
+          Type: Schedule
+          Properties:
+            Schedule: cron(0 6 * * ? *)
+            Description: Daily by-election trigger check at 06:00 UTC
+            Enabled: true
+
   # ── CloudWatch Alarms ──────────────────────────────────────────────────────
 
   UploadFunctionErrorsAlarm:

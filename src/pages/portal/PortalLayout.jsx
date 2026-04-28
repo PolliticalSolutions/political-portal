@@ -4,6 +4,7 @@ import Card from "../../components/Card.jsx";
 import Button from "../../components/Button.jsx";
 import { applyForApproval, getAdminMe, getMe, listOrganisations } from "../../lib/uploadApi.js";
 import { getSession } from "../../auth/session.js";
+import { supabase } from "../../lib/supabaseClient.js";
 import { PermissionsProvider } from "../../context/PermissionsContext.jsx";
 import brandLogo from "../../assets/brand/political-solutions-logo.webp";
 
@@ -271,6 +272,7 @@ export default function PortalLayout() {
   const [isAdmin, setIsAdmin] = useState(false);
   const [analyticsExpanded, setAnalyticsExpanded] = useState(readAnalyticsExpanded);
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [alertCount, setAlertCount] = useState(0);
 
   useEffect(() => {
     setCognitoSub(getSession()?.user?.sub || null);
@@ -337,6 +339,23 @@ export default function PortalLayout() {
       cancelled = true;
     };
   }, [reloadKey]);
+
+  useEffect(() => {
+    async function fetchAlertCount() {
+      try {
+        const { count } = await supabase
+          .from("political_alerts")
+          .select("id", { count: "exact", head: true })
+          .eq("is_active", true);
+        setAlertCount(count || 0);
+      } catch {
+        // Non-critical — badge stays at 0 on error
+      }
+    }
+    fetchAlertCount();
+    const interval = setInterval(fetchAlertCount, 5 * 60 * 1000);
+    return () => clearInterval(interval);
+  }, []);
 
   const status = useMemo(() => normalizeUserStatus(user), [user]);
 
@@ -505,6 +524,27 @@ export default function PortalLayout() {
               </NavLink>
               <NavLink className={navClass} to="/portal/alerts" onClick={() => setSidebarOpen(false)}>
                 My Alerts
+                {alertCount > 0 && (
+                  <span
+                    style={{
+                      display: "inline-flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      minWidth: 18,
+                      height: 18,
+                      borderRadius: 9,
+                      background: "#dc2626",
+                      color: "#fff",
+                      fontSize: 11,
+                      fontWeight: 700,
+                      padding: "0 4px",
+                      marginLeft: 6,
+                      lineHeight: 1,
+                    }}
+                  >
+                    {alertCount > 99 ? "99+" : alertCount}
+                  </span>
+                )}
               </NavLink>
             </div>
 
