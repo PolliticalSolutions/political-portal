@@ -1,4 +1,5 @@
 import { fireEvent, render, screen } from "@testing-library/react";
+import { HelmetProvider } from "react-helmet-async";
 import { MemoryRouter, Route, Routes, useLocation } from "react-router-dom";
 import { describe, expect, it, beforeEach } from "vitest";
 import Dashboard from "./Dashboard.jsx";
@@ -20,11 +21,13 @@ describe("Dashboard", () => {
 
   it("renders the basic dashboard sections", () => {
     const { container } = render(
-      <MemoryRouter initialEntries={["/portal"]}>
-        <Routes>
-          <Route path="/portal" element={<Dashboard />} />
-        </Routes>
-      </MemoryRouter>
+      <HelmetProvider>
+        <MemoryRouter initialEntries={["/portal"]}>
+          <Routes>
+            <Route path="/portal" element={<Dashboard />} />
+          </Routes>
+        </MemoryRouter>
+      </HelmetProvider>
     );
 
     expect(screen.getByRole("heading", { name: "Dashboard" })).toBeInTheDocument();
@@ -53,12 +56,14 @@ describe("Dashboard", () => {
     );
 
     render(
-      <MemoryRouter initialEntries={["/portal"]}>
-        <Routes>
-          <Route path="/portal" element={<Dashboard />} />
-          <Route path="/portal/subscriptions" element={<LocationDisplay />} />
-        </Routes>
-      </MemoryRouter>
+      <HelmetProvider>
+        <MemoryRouter initialEntries={["/portal"]}>
+          <Routes>
+            <Route path="/portal" element={<Dashboard />} />
+            <Route path="/portal/subscriptions" element={<LocationDisplay />} />
+          </Routes>
+        </MemoryRouter>
+      </HelmetProvider>
     );
 
     expect(await screen.findByText(/Current selection:/)).toBeInTheDocument();
@@ -77,11 +82,13 @@ describe("Dashboard", () => {
     sessionStorage.setItem("ps_signup_context_v1", "not-json");
 
     render(
-      <MemoryRouter initialEntries={["/portal"]}>
-        <Routes>
-          <Route path="/portal" element={<Dashboard />} />
-        </Routes>
-      </MemoryRouter>
+      <HelmetProvider>
+        <MemoryRouter initialEntries={["/portal"]}>
+          <Routes>
+            <Route path="/portal" element={<Dashboard />} />
+          </Routes>
+        </MemoryRouter>
+      </HelmetProvider>
     );
 
     expect(screen.getByRole("heading", { name: "Dashboard" })).toBeInTheDocument();

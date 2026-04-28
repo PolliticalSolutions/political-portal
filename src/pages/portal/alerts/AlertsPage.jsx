@@ -1,165 +1,75 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { Helmet } from "react-helmet-async";
 import Card from "../../../components/Card.jsx";
-import Button from "../../../components/Button.jsx";
-import { getAlertSubscriptions, addAlertSubscription, removeAlertSubscription } from "../constituency/constituencyApi.js";
+import { supabase } from "../../../lib/supabaseClient.js";
 
-const ALERT_TYPE_OPTIONS = [
-  { key: "by_election_risk",    label: "By-election risk changes" },
-  { key: "council_instability", label: "Council instability updates" },
-  { key: "mp_defection",        label: "MP defections / party changes" },
-  { key: "swing_threshold",     label: "Swing threshold breaches" },
-];
+const getFirstValue = (row, keys, fallback = "") => {
+  for (const key of keys) {
+    const value = row?.[key];
+    if (value !== undefined && value !== null && String(value).trim()) return value;
+  }
+  return fallback;
+};
 
-function SubscriptionRow({ sub, constituencyMap, onRemove }) {
-  const [removing, setRemoving] = useState(false);
-  const target = sub.constituency_id
-    ? (constituencyMap[sub.constituency_id]?.name || "Unknown constituency")
-    : sub.local_authority_id
-      ? "Local authority"
-      : "All alerts";
-
-  const types = Object.entries(sub.alert_types || {})
-    .filter(([, v]) => v)
-    .map(([k]) => ALERT_TYPE_OPTIONS.find((o) => o.key === k)?.label || k);
-
-  const handleRemove = async () => {
-    setRemoving(true);
-    try {
-      await onRemove(sub.id);
-    } finally {
-      setRemoving(false);
-    }
+const normalizeAlert = (row) => {
+  const dateValue = getFirstValue(row, ["date", "alert_date", "published_at", "created_at", "updated_at"]);
+  return {
+    id: row.id || row.alert_id || `${getFirstValue(row, ["title", "headline", "name"], "alert")}-${dateValue}`,
+    title: getFirstValue(row, ["title", "headline", "name", "alert_title"], "Political alert"),
+    description: getFirstValue(row, ["description", "summary", "details", "body", "message"], "No description supplied."),
+    status: getFirstValue(row, ["severity", "status", "alert_status", "risk_level"], "Update"),
+    date: dateValue,
   };
+};
 
-  return (
-    <div className="portal-record" style={{ marginBottom: 12 }}>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 12 }}>
-        <div>
-          <p style={{ margin: "0 0 4px", fontWeight: 700, fontSize: 14 }}>{target}</p>
-          <p style={{ margin: 0, fontSize: 12, color: "#64748b" }}>
-            {types.length > 0 ? types.join(", ") : "All alert types"}
-          </p>
-          <p style={{ margin: "4px 0 0", fontSize: 11, color: "#9ca3af" }}>
-            Since {new Date(sub.created_at).toLocaleDateString("en-GB")}
-          </p>
-        </div>
-        <Button
-          type="button"
-          variant="ghost"
-          onClick={handleRemove}
-          loading={removing}
-          disabled={removing}
-          style={{ fontSize: 12, padding: "4px 10px" }}
-        >
-          Remove
-        </Button>
-      </div>
-    </div>
-  );
-}
-
-function AddSubscriptionForm({ onAdd }) {
-  const [email, setEmail] = useState("");
-  const [alertTypes, setAlertTypes] = useState(
-    Object.fromEntries(ALERT_TYPE_OPTIONS.map((o) => [o.key, true]))
-  );
-  const [saving, setSaving] = useState(false);
-  const [error, setError] = useState("");
-  const [success, setSuccess] = useState("");
-
-  const handleToggle = (key) => {
-    setAlertTypes((prev) => ({ ...prev, [key]: !prev[key] }));
-  };
-
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    if (!email.trim()) {
-      setError("Email address is required.");
-      return;
-    }
-    setSaving(true);
-    setError("");
-    setSuccess("");
-    try {
-      await addAlertSubscription({ email: email.trim(), alertTypes });
-      setSuccess("Subscription added. You will receive alerts at this address when configured.");
-      setEmail("");
-      onAdd();
-    } catch (err) {
-      setError(err.message || "Failed to add subscription.");
-    } finally {
-      setSaving(false);
-    }
-  };
-
-  return (
-    <form className="stack" onSubmit={handleSubmit}>
-      <label className="field">
-        <span style={{ fontWeight: 600 }}>Email address</span>
-        <input
-          type="email"
-          className="input"
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-          placeholder="you@example.com"
-        />
-      </label>
-      <div>
-        <p style={{ margin: "0 0 8px", fontWeight: 600, fontSize: 13 }}>Alert types</p>
-        {ALERT_TYPE_OPTIONS.map((opt) => (
-          <label key={opt.key} style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 6, cursor: "pointer" }}>
-            <input
-              type="checkbox"
-              checked={alertTypes[opt.key]}
-              onChange={() => handleToggle(opt.key)}
-            />
-            <span style={{ fontSize: 13 }}>{opt.label}</span>
-          </label>
-        ))}
-      </div>
-      <Button type="submit" loading={saving} disabled={saving}>
-        {saving ? "Saving…" : "Subscribe to alerts"}
-      </Button>
-      {error && <p style={{ color: "#b91c1c", margin: 0, fontSize: 13 }} role="alert">{error}</p>}
-      {success && <p style={{ color: "#15803d", margin: 0, fontSize: 13 }} role="status">{success}</p>}
-    </form>
-  );
-}
+const formatAlertDate = (value) => {
+  if (!value) return "Date pending";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return String(value);
+  return date.toLocaleDateString("en-GB", {
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
+  });
+};
 
 export default function AlertsPage() {
-  const [subscriptions, setSubscriptions] = useState([]);
+  const [alerts, setAlerts] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [email, setEmail] = useState("");
-  const [lookupEmail, setLookupEmail] = useState("");
   const [error, setError] = useState("");
 
-  const loadSubscriptions = async (addr) => {
-    if (!addr) return;
-    setLoading(true);
-    try {
-      const subs = await getAlertSubscriptions(addr);
-      setSubscriptions(subs);
-    } catch (err) {
-      setError(err.message || "Failed to load subscriptions.");
-    } finally {
-      setLoading(false);
-    }
-  };
-
   useEffect(() => {
-    setLoading(false);
+    let active = true;
+    const loadAlerts = async () => {
+      setLoading(true);
+      setError("");
+      const { data, error: queryError } = await supabase.from("political_alerts").select("*");
+      if (!active) return;
+      if (queryError) {
+        setError(queryError.message || "Failed to load political alerts.");
+        setAlerts([]);
+      } else {
+        setAlerts((data || []).map(normalizeAlert));
+      }
+      setLoading(false);
+    };
+    loadAlerts();
+    return () => {
+      active = false;
+    };
   }, []);
 
-  const handleRemove = async (id) => {
-    try {
-      await removeAlertSubscription(id);
-      setSubscriptions((prev) => prev.filter((s) => s.id !== id));
-    } catch (err) {
-      setError(err.message || "Failed to remove subscription.");
-    }
-  };
+  const sortedAlerts = useMemo(() => {
+    return [...alerts].sort((a, b) => {
+      const aTime = new Date(a.date).getTime();
+      const bTime = new Date(b.date).getTime();
+      if (Number.isNaN(aTime) && Number.isNaN(bTime)) return a.title.localeCompare(b.title);
+      if (Number.isNaN(aTime)) return 1;
+      if (Number.isNaN(bTime)) return -1;
+      return bTime - aTime;
+    });
+  }, [alerts]);
 
   return (
     <div className="page stack">
@@ -167,77 +77,45 @@ export default function AlertsPage() {
       <Card>
         <div className="portal-page-header">
           <div className="portal-page-header__content">
-            <span className="portal-page-header__eyebrow">Analytics Engine</span>
-            <h1 className="portal-page-header__title">My Alert Subscriptions</h1>
+            <span className="portal-page-header__eyebrow">Local Government Reorganisation</span>
+            <h1 className="portal-page-header__title">Political Alerts</h1>
             <p className="portal-page-header__subtitle">
-              Subscribe to political intelligence alerts for constituencies and local authorities.
-              Receive notifications when by-election risk changes, councils become unstable, or
-              MPs switch parties.
+              Live alerts from the political intelligence database covering LGR developments and related status
+              changes.
             </p>
           </div>
           <div className="portal-page-header__actions">
-            <Link to="/portal/constituency" className="button ghost">Constituencies</Link>
+            <Link to="/portal/local-government/lgr" className="button ghost">LGR tracker</Link>
           </div>
         </div>
       </Card>
 
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, alignItems: "start" }}>
-        <Card title="Subscribe to alerts">
-          <AddSubscriptionForm onAdd={() => lookupEmail && loadSubscriptions(lookupEmail)} />
-        </Card>
-
-        <Card title="View my subscriptions">
-          <div className="stack">
-            <label className="field">
-              <span style={{ fontWeight: 600, fontSize: 13 }}>Look up by email</span>
-              <div style={{ display: "flex", gap: 8 }}>
-                <input
-                  type="email"
-                  className="input"
-                  value={lookupEmail}
-                  onChange={(e) => setLookupEmail(e.target.value)}
-                  placeholder="you@example.com"
-                />
-                <Button
-                  type="button"
-                  onClick={() => { setEmail(lookupEmail); loadSubscriptions(lookupEmail); }}
-                  disabled={!lookupEmail.trim() || loading}
-                >
-                  Load
-                </Button>
-              </div>
-            </label>
-
-            {error && <p style={{ color: "#b91c1c", margin: 0, fontSize: 13 }} role="alert">{error}</p>}
-
-            {subscriptions.length === 0 && !loading && email && (
-              <p className="portal-placeholder-panel__body">No active subscriptions found for this email.</p>
-            )}
-
-            {subscriptions.map((sub) => (
-              <SubscriptionRow
-                key={sub.id}
-                sub={sub}
-                constituencyMap={{}}
-                onRemove={handleRemove}
-              />
-            ))}
+      <Card title="LGR alerts">
+        {loading && <p className="muted">Loading alerts...</p>}
+        {error && <div className="status error">{error}</div>}
+        {!loading && !error && sortedAlerts.length === 0 && (
+          <div className="portal-placeholder-panel">
+            <p className="portal-placeholder-panel__title">No alerts found</p>
+            <p className="portal-placeholder-panel__body">
+              The political_alerts table did not return any rows.
+            </p>
           </div>
-        </Card>
-      </div>
-
-      <Card title="About alert delivery">
-        <div className="portal-data-note">
-          <strong>Email delivery requires backend configuration.</strong> The subscription data is stored in Supabase.
-          To send actual emails, connect a serverless function or third-party service (Resend, SendGrid, AWS SES)
-          that queries <code>alert_subscriptions</code> and dispatches on trigger events.
-          The <code>alert_subscriptions</code> DDL is:{" "}
-          <code>
-            CREATE TABLE alert_subscriptions (id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-            user_email varchar(255), constituency_id uuid REFERENCES constituencies(id),
-            local_authority_id uuid, alert_types jsonb, is_active boolean DEFAULT true,
-            created_at timestamptz DEFAULT now());
-          </code>
+        )}
+        <div className="stack" style={{ gap: 12 }}>
+          {sortedAlerts.map((alert) => (
+            <article key={alert.id} className="portal-record">
+              <div style={{ display: "flex", justifyContent: "space-between", gap: 12, alignItems: "flex-start" }}>
+                <div>
+                  <h2 style={{ margin: "0 0 6px", fontSize: 16 }}>{alert.title}</h2>
+                  <p className="muted" style={{ margin: 0 }}>{alert.description}</p>
+                </div>
+                <span className="badge accent" style={{ flexShrink: 0 }}>{alert.status}</span>
+              </div>
+              <p className="muted" style={{ margin: "10px 0 0", fontSize: 12 }}>
+                {formatAlertDate(alert.date)}
+              </p>
+            </article>
+          ))}
         </div>
       </Card>
     </div>

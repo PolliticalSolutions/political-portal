@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { CardElement, Elements, useElements, useStripe } from "@stripe/react-stripe-js";
 import { loadStripe } from "@stripe/stripe-js";
 import Button from "../components/Button.jsx";
@@ -12,6 +12,7 @@ import {
   requestSubscriptionInvoice,
 } from "../lib/subscriptionApi.js";
 import { calculateAssociationSubscriptionPricing, formatPenceToPounds } from "../lib/subscriptionPricing.js";
+import { saveSelection } from "./CartEntry.jsx";
 
 let _stripePromise;
 function getStripePromise() {
@@ -137,6 +138,7 @@ function PaymentForm({ association, customer, onSuccess, disabledReason }) {
 }
 
 export default function Subscribe() {
+  const navigate = useNavigate();
   const { stripePublishableKey, stripeApiBaseUrl, apiBaseUrl } = getRuntimeConfig();
   const [associations, setAssociations] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -227,6 +229,12 @@ export default function Subscribe() {
     }
   };
 
+  const handleCheckoutContinue = () => {
+    if (!selectedAssociation) return;
+    saveSelection(selectedAssociation);
+    navigate(`/cart?association_id=${encodeURIComponent(selectedAssociation.id)}`);
+  };
+
   if (confirmation) {
     return (
       <div className="page">
@@ -238,8 +246,8 @@ export default function Subscribe() {
                   <span className="portal-page-header__eyebrow">Subscription</span>
                   <h1 className="portal-page-header__title">Payment successful — your account is being set up</h1>
                   <p className="portal-page-header__subtitle">
-                    You will receive a welcome email at {confirmation.email} within a few minutes with your login
-                    details.
+                    You will receive onboarding details at {confirmation.email}. Your account will be activated
+                    within 24 hours.
                   </p>
                 </div>
               </div>
@@ -387,6 +395,9 @@ export default function Subscribe() {
 
           <Card title="Step 3 — Payment or invoice">
             <div className="subscribe-mode-toggle">
+              <Button variant="secondary" onClick={handleCheckoutContinue} disabled={!selectedAssociation}>
+                Continue to checkout
+              </Button>
               <Button variant={mode === "card" ? "primary" : "ghost"} onClick={() => setMode("card")}>
                 Pay by card
               </Button>
