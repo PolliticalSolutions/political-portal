@@ -1,0 +1,88 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: >
+  Lambda error alarms — SNS email alert when any monitored function
+  exceeds 5 errors in a 10-minute window.
+
+Parameters:
+  AlertEmail:
+    Type: String
+    Description: Email address to receive alarm notifications.
+    Default: ALERT_EMAIL
+
+Resources:
+
+  # ── SNS topic + email subscription ─────────────────────────────────────────
+
+  AlarmTopic:
+    Type: AWS::SNS::Topic
+    Properties:
+      TopicName: lambda-error-alerts
+      Subscription:
+        - Protocol: email
+          Endpoint: !Ref AlertEmail
+
+  # ── Alarms ──────────────────────────────────────────────────────────────────
+  # Period: 600s (10 min), Threshold: >5 errors, Sum statistic.
+  # Function names are stable after initial SAM deploy; update if stacks are torn down and rebuilt.
+
+  PersonaFunctionErrorAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmName: PersonaFunction-ErrorAlarm
+      AlarmDescription: "MP Persona Lambda: >5 errors in 10 minutes."
+      Namespace: AWS/Lambda
+      MetricName: Errors
+      Dimensions:
+        - Name: FunctionName
+          Value: upload-api-PersonaFunction-p2gocjyrFglV
+      Statistic: Sum
+      Period: 600
+      EvaluationPeriods: 1
+      Threshold: 5
+      ComparisonOperator: GreaterThanThreshold
+      TreatMissingData: notBreaching
+      AlarmActions:
+        - !Ref AlarmTopic
+
+  UploadCompleteFunctionErrorAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmName: UploadCompleteFunction-ErrorAlarm
+      AlarmDescription: "Upload complete handler: >5 errors in 10 minutes."
+      Namespace: AWS/Lambda
+      MetricName: Errors
+      Dimensions:
+        - Name: FunctionName
+          Value: upload-api-UploadCompleteFunction-3Lr0pLltMCt0
+      Statistic: Sum
+      Period: 600
+      EvaluationPeriods: 1
+      Threshold: 5
+      ComparisonOperator: GreaterThanThreshold
+      TreatMissingData: notBreaching
+      AlarmActions:
+        - !Ref AlarmTopic
+
+  StripeFunctionErrorAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmName: StripeFunction-ErrorAlarm
+      AlarmDescription: "Stripe function: >5 errors in 10 minutes."
+      Namespace: AWS/Lambda
+      MetricName: Errors
+      Dimensions:
+        - Name: FunctionName
+          Value: enquiry-api-StripeFunction-4Re22nUm1YkQ
+      Statistic: Sum
+      Period: 600
+      EvaluationPeriods: 1
+      Threshold: 5
+      ComparisonOperator: GreaterThanThreshold
+      TreatMissingData: notBreaching
+      AlarmActions:
+        - !Ref AlarmTopic
+
+Outputs:
+  AlarmTopicArn:
+    Description: SNS topic ARN for Lambda error alerts.
+    Value: !Ref AlarmTopic
