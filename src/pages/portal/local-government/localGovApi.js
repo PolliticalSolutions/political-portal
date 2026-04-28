@@ -125,6 +125,16 @@ export async function getAuthoritiesByNames(names) {
   return data ?? [];
 }
 
+export async function getCouncillorAttendance(authorityId) {
+  const { data, error } = await supabase
+    .from("councillor_attendance")
+    .select("id, councillor_name, ward, party, meetings_eligible, meetings_attended, attendance_pct, period_start, period_end, source_url")
+    .eq("local_authority_id", authorityId)
+    .order("attendance_pct", { ascending: true });
+  if (error) return [];
+  return data ?? [];
+}
+
 export async function getLinkedAuthorities(constituencyId) {
   const { data, error } = await supabase
     .from("constituency_council_lookup")

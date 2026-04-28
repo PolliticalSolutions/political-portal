@@ -10,6 +10,7 @@ import {
   getAuthorityAlerts,
   getAuthorityElections,
   getAuthorityWards,
+  getCouncillorAttendance,
   getElectionResults,
   getLinkedConstituencies,
   getLocalAuthority,
@@ -40,6 +41,7 @@ function formatPct(val) {
 
 const TABS = [
   { id: "composition", label: "Composition" },
+  { id: "attendance", label: "Attendance" },
   { id: "history", label: "Election History" },
   { id: "wards", label: "Wards" },
   { id: "parliament", label: "Parliamentary Link" },
@@ -481,6 +483,80 @@ function IntelligenceTab({ authorityId }) {
   );
 }
 
+// ── Attendance tab ────────────────────────────────────────────────────────────
+
+function AttendanceTab({ authorityId }) {
+  const { data: rows = [], isLoading } = useQuery({
+    queryKey: ["councillorAttendance", authorityId],
+    queryFn: () => getCouncillorAttendance(authorityId),
+    enabled: Boolean(authorityId),
+    staleTime: Infinity,
+  });
+
+  if (isLoading) return <p className="muted" style={{ padding: 16 }}>Loading attendance data…</p>;
+
+  if (rows.length === 0) {
+    return (
+      <div className="portal-placeholder-panel">
+        <p className="portal-placeholder-panel__title">Attendance data not yet available for this authority</p>
+        <p className="portal-placeholder-panel__body">
+          Councillor attendance records have not been loaded for this authority.
+        </p>
+      </div>
+    );
+  }
+
+  const first = rows[0];
+  const periodStr = first.period_start && first.period_end
+    ? `${formatShortDate(first.period_start)} – ${formatShortDate(first.period_end)}`
+    : null;
+  const hasParty = rows.some((r) => r.party);
+
+  return (
+    <div className="portal-data-section">
+      {periodStr && (
+        <div className="portal-data-note" style={{ marginBottom: 12 }}>
+          Period: {periodStr}
+          {first.source_url && (
+            <> · <a href={first.source_url} target="_blank" rel="noopener noreferrer">View source</a></>
+          )}
+        </div>
+      )}
+      <div className="table-wrap">
+        <table className="table table--compact">
+          <thead>
+            <tr>
+              <th>Councillor</th>
+              {hasParty && <th>Party</th>}
+              <th>Eligible</th>
+              <th>Attended</th>
+              <th>Attendance</th>
+            </tr>
+          </thead>
+          <tbody>
+            {rows.map((row) => {
+              const pct = parseFloat(row.attendance_pct ?? 100);
+              const rowBg = pct < 25 ? "#fef2f2" : pct < 50 ? "#fffbeb" : undefined;
+              const pctColor = pct < 25 ? "#b91c1c" : pct < 50 ? "#d97706" : "#15803d";
+              return (
+                <tr key={row.id} style={rowBg ? { background: rowBg } : undefined}>
+                  <td>{row.councillor_name}</td>
+                  {hasParty && <td style={{ fontSize: 12 }}>{row.party ?? "—"}</td>}
+                  <td>{row.meetings_eligible ?? "—"}</td>
+                  <td>{row.meetings_attended ?? "—"}</td>
+                  <td>
+                    <span style={{ fontWeight: 700, color: pctColor }}>{formatPct(row.attendance_pct)}</span>
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+}
+
 // ── Demographics synergy panel ───────────────────────────────────────────────
 
 function DemographicSynergyPanel({ authority }) {
@@ -735,6 +811,7 @@ export default function LocalGovDetail() {
             <DemographicSynergyPanel authority={authority} />
           </>
         )}
+        {activeTab === "attendance" && <AttendanceTab authorityId={authority.id} />}
         {activeTab === "history" && <ElectionHistoryTab authorityId={authority.id} />}
         {activeTab === "wards" && <WardsTab authorityId={authority.id} />}
         {activeTab === "parliament" && <ParliamentaryLinkTab authorityId={authority.id} authority={authority} />}
