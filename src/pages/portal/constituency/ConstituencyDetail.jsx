@@ -6,7 +6,9 @@ import DataProvenancePanel from "../../../components/DataProvenancePanel.jsx";
 import ModelConfidenceBadge from "../../../components/ModelConfidenceBadge.jsx";
 import UpgradePrompt from "../../../components/UpgradePrompt.jsx";
 import { usePermissions } from "../../../context/PermissionsContext.jsx";
+import { getSession } from "../../../auth/session.js";
 import { getIntelligenceMetadata } from "../../../lib/intelligenceMetadataApi.js";
+import { getUserSubscriptionStatus } from "../../../lib/subscriptionApi.js";
 import { getModelConfidence } from "../../../lib/modelConfidence.js";
 import { resolvePartyColour, toHexColor } from "../../../utils/partyColours.js";
 import { simulateConstituencyScenario } from "../../../utils/scenarioSimulator.js";
@@ -1464,9 +1466,11 @@ function ConstituencyHeader({
           </p>
         </div>
         <div className="portal-page-header__actions">
-          <Button variant="primary" onClick={onGenerateBrief} loading={briefingLoading}>
-            {briefingLoading ? "Generating…" : "Generate Intelligence Brief"}
-          </Button>
+          {onGenerateBrief && (
+            <Button variant="primary" onClick={onGenerateBrief} loading={briefingLoading}>
+              {briefingLoading ? "Generating…" : "Generate Intelligence Brief"}
+            </Button>
+          )}
           <Link to="/portal/constituency" className="button ghost">
             Back to constituency search
           </Link>
@@ -1880,6 +1884,7 @@ export default function ConstituencyDetail() {
   const [lgrImpacts, setLgrImpacts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [detailLoading, setDetailLoading] = useState(false);
+  const [subscriptionStatus, setSubscriptionStatus] = useState("loading");
   const [error, setError] = useState("");
   const [metadata, setMetadata] = useState(null);
   const [activeTab, setActiveTab] = useState("history");
@@ -1902,6 +1907,22 @@ export default function ConstituencyDetail() {
       return allowedId === constituency.id || allowedCode === constituency.ons_code;
     });
   }, [allowedConstituencies, constituency, isAdmin]);
+  const isDemoMode = !isAdmin && subscriptionStatus !== "loading" && !["active", "trialing"].includes(subscriptionStatus);
+
+  useEffect(() => {
+    let cancelled = false;
+    const cognitoSub = getSession()?.user?.sub || "";
+    getUserSubscriptionStatus(cognitoSub)
+      .then((status) => {
+        if (!cancelled) setSubscriptionStatus(status);
+      })
+      .catch(() => {
+        if (!cancelled) setSubscriptionStatus("none");
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   useEffect(() => {
     if (!onsCode) return;
@@ -2149,7 +2170,13 @@ export default function ConstituencyDetail() {
     }
   };
 
-  if (loading || permissionsLoading || (constituency && !isAdmin && allowedConstituencies === null) || detailLoading) {
+  if (
+    loading ||
+    subscriptionStatus === "loading" ||
+    permissionsLoading ||
+    (constituency && !isAdmin && allowedConstituencies === null) ||
+    detailLoading
+  ) {
     return (
       <div className="page stack">
         <Card>
@@ -2188,6 +2215,27 @@ export default function ConstituencyDetail() {
     return (
       <div className="page stack">
         <UpgradePrompt missing="This constituency is not included in your subscription" />
+      </div>
+    );
+  }
+
+  if (isDemoMode) {
+    return (
+      <div className="page stack">
+        <ConstituencyHeader
+          constituency={constituency}
+          electedWinner={electedWinner}
+          currentStatus={currentStatus}
+          swings={swings}
+          nationals={nationals}
+          marginalityScore={marginalityScore}
+          byElectionRisk={byElectionRisk}
+          vulnerabilityScore={vulnerabilityScore}
+        />
+        <UpgradePrompt
+          missing="Detailed constituency data is locked in demo mode"
+          ctaLabel="Upgrade to unlock full access"
+        />
       </div>
     );
   }

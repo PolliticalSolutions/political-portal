@@ -24,6 +24,17 @@ try {
 const REGION = process.env.AWS_REGION || "eu-west-2";
 const dynamo = new AWS.DynamoDB.DocumentClient({ region: REGION });
 const s3 = new AWS.S3({ region: REGION });
+const missingAwsClient = (name) => ({
+  adminCreateUser: () => ({ promise: async () => { throw new Error(`${name} is not available.`); } }),
+  adminSetUserPassword: () => ({ promise: async () => { throw new Error(`${name} is not available.`); } }),
+  sendEmail: () => ({ promise: async () => { throw new Error(`${name} is not available.`); } }),
+});
+const cognito = AWS.CognitoIdentityServiceProvider
+  ? new AWS.CognitoIdentityServiceProvider({ region: "eu-west-2" })
+  : missingAwsClient("CognitoIdentityServiceProvider");
+const sesv2 = AWS.SESV2
+  ? new AWS.SESV2({ region: "eu-west-2" })
+  : missingAwsClient("SESV2");
 
 const JOBS_TABLE = process.env.JOBS_TABLE || "";
 const USERS_TABLE = process.env.USERS_TABLE || "";
@@ -68,6 +79,8 @@ const ALLOWED_ELECTION_STATUSES = new Set(["UPCOMING", "OPEN", "CLOSED", "ARCHIV
 const JOB_OPEN_ELECTION_STATUSES = ["UPCOMING", "OPEN"];
 const OTHER_ELECTION_ID = "OTHER";
 const ADMIN_GROUP = "Admin";
+const ONBOARDING_COGNITO_USER_POOL_ID = "eu-west-2_rLrUAqYiJ";
+const ONBOARDING_SES_SENDER_EMAIL = "paul@politicalsolutions.uk";
 
 const usersRepo = USERS_TABLE ? createUsersRepo({ dynamo, tableName: USERS_TABLE }) : null;
 const geoLookupRepo = GEO_LOOKUP_TABLE ? createGeoLookupRepo({ dynamo, tableName: GEO_LOOKUP_TABLE }) : null;
@@ -541,6 +554,115 @@ function shouldBypassScanWhenDisabled() {
   return (process.env.BYPASS_SCAN_WHEN_DISABLED || "false").toLowerCase() === "true";
 }
 
+function isSupabaseConfigured() {
+  return Boolean((process.env.SUPABASE_URL || "").trim() && (process.env.SUPABASE_SERVICE_KEY || "").trim());
+}
+
+function buildSupabaseRestUrl(path, params = {}) {
+  const base = (process.env.SUPABASE_URL || "").trim().replace(/\/+$/, "");
+  const url = new URL(`/rest/v1/${path}`, `${base}/`);
+  for (const [key, value] of Object.entries(params)) {
+    if (value === undefined || value === null || value === "") continue;
+    url.searchParams.append(key, value);
+  }
+  return url.toString();
+}
+
+async function supabaseRest(path, { method = "GET", params = {}, body, headers = {} } = {}) {
+  if (!isSupabaseConfigured()) {
+    throw new Error("Supabase service role configuration is missing.");
+  }
+  const serviceKey = (process.env.SUPABASE_SERVICE_KEY || "").trim();
+  const result = await fetch(buildSupabaseRestUrl(path, params), {
+    method,
+    headers: {
+      apikey: serviceKey,
+      Authorization: `Bearer ${serviceKey}`,
+      "Content-Type": "application/json",
+      ...headers,
+    },
+    ...(body === undefined ? {} : { body: JSON.stringify(body) }),
+  });
+  const text = await result.text();
+  const data = text ? JSON.parse(text) : null;
+  if (!result.ok) {
+    throw new Error(data?.message || data?.hint || `Supabase request failed (${result.status}).`);
+  }
+  return data;
+}
+
+function normalizeCognitoPhone(value) {
+  const raw = (value || "").toString().trim().replace(/\s+/g, "");
+  if (!raw) return "";
+  if (/^\+[1-9]\d{7,14}$/.test(raw)) return raw;
+  if (/^0\d{9,10}$/.test(raw)) return `+44${raw.slice(1)}`;
+  return "";
+}
+
+function isValidSignupPassword(value) {
+  return (
+    typeof value === "string" &&
+    value.length >= 8 &&
+    /[A-Z]/.test(value) &&
+    /\d/.test(value) &&
+    /[^A-Za-z0-9]/.test(value)
+  );
+}
+
+async function associationHasActiveAccount(associationId) {
+  const rows = await supabaseRest("user_permissions", {
+    params: {
+      select: "id",
+      association_id: `eq.${associationId}`,
+      is_active: "eq.true",
+      limit: "1",
+    },
+  });
+  return Array.isArray(rows) && rows.length > 0;
+}
+
+async function grantDemoAssociationAccess({ cognitoSub, email, associationId }) {
+  // ASSUMPTION: user_permissions is association-scoped and access_level distinguishes demo/full access.
+  await supabaseRest("user_permissions?on_conflict=cognito_sub,association_id", {
+    method: "POST",
+    headers: { Prefer: "resolution=merge-duplicates,return=minimal" },
+    body: {
+      cognito_sub: cognitoSub,
+      user_email: email,
+      association_id: associationId,
+      is_active: true,
+      access_level: "demo",
+      granted_by: "automated_onboarding",
+      notes: "Automated signup demo access",
+    },
+  });
+}
+
+async function sendOnboardingWelcomeEmail({ email }) {
+  await sesv2
+    .sendEmail({
+      FromEmailAddress: ONBOARDING_SES_SENDER_EMAIL,
+      Destination: { ToAddresses: [email] },
+      Content: {
+        Simple: {
+          Subject: { Data: "Welcome to Political Solutions" },
+          Body: {
+            Text: {
+              Data: [
+                "Your Political Solutions account has been created.",
+                "",
+                `Email address: ${email}`,
+                "",
+                "Log in at https://www.politicalsolutions.uk/login to access your account.",
+              ].join("\n"),
+            },
+          },
+        },
+      },
+    })
+    .promise();
+}
+
 // ── Route handlers ────────────────────────────────────────────────────────────
 
 async function handleCreateJob(event, origin) {
@@ -831,6 +953,106 @@ async function handleApply(event, origin) {
   });
 
   return response(200, { user: updated }, origin);
+}
+
+async function handleOnboardingSignup(event, origin) {
+  const usersCheck = ensureUsersRepo(origin);
+  if (usersCheck.error) return usersCheck.error;
+
+  const body = parseBody(event);
+  if (!body) {
+    return errorResponse(origin, 400, "INVALID_JSON", "Invalid JSON body.");
+  }
+
+  const fullName = sanitize(body.name || body.fullName, 200);
+  const email = sanitize(body.email, 255).toLowerCase();
+  const associationId = sanitize(body.associationId, MAX_ORG);
+  const associationName = sanitize(body.associationName, 200);
+  const phone = sanitize(body.phone, 40);
+  const password = typeof body.password === "string" ? body.password : "";
+  // ASSUMPTION: existing DynamoDB records may keep the legacy jobTitle attribute blank now that signup no longer asks for it.
+  const jobTitle = "";
+
+  if (!fullName || !email || !associationId || !phone || !password) {
+    return errorResponse(origin, 400, "VALIDATION_ERROR", "Name, email, phone, association and password are required.");
+  }
+
+  if (!/^0\d{10}$/.test(phone)) {
+    return errorResponse(origin, 400, "VALIDATION_ERROR", "Phone number must be 11 digits and start with 0.");
+  }
+
+  if (!isValidSignupPassword(password)) {
+    return errorResponse(
+      origin,
+      400,
+      "VALIDATION_ERROR",
+      "Password must be at least 8 characters and include an uppercase letter, a number, and a special character."
+    );
+  }
+
+  if (await associationHasActiveAccount(associationId)) {
+    return errorResponse(
+      origin,
+      409,
+      "ASSOCIATION_ACCOUNT_EXISTS",
+      "An account already exists for this association. To discuss access please contact admin@politicalsolutions.uk"
+    );
+  }
+
+  const phoneNumber = normalizeCognitoPhone(phone);
+  const attributes = [
+    { Name: "email", Value: email },
+    { Name: "email_verified", Value: "true" },
+    { Name: "name", Value: fullName },
+    ...(phoneNumber ? [{ Name: "phone_number", Value: phoneNumber }] : []),
+  ];
+
+  const created = await cognito
+    .adminCreateUser({
+      UserPoolId: ONBOARDING_COGNITO_USER_POOL_ID,
+      Username: email,
+      UserAttributes: attributes,
+      MessageAction: "SUPPRESS",
+    })
+    .promise();
+
+  await cognito
+    .adminSetUserPassword({
+      UserPoolId: ONBOARDING_COGNITO_USER_POOL_ID,
+      Username: email,
+      Password: password,
+      Permanent: true,
+    })
+    .promise();
+
+  const cognitoSub = created?.User?.Attributes?.find((attribute) => attribute.Name === "sub")?.Value;
+  if (!cognitoSub) {
+    throw new Error("Cognito user was created without a sub attribute.");
+  }
+
+  const createdAt = new Date().toISOString();
+  await dynamo
+    .put({
+      TableName: USERS_TABLE,
+      Item: {
+        userId: cognitoSub,
+        email,
+        associationId,
+        associationName,
+        phone,
+        jobTitle,
+        status: "APPROVED",
+        createdAt,
+        updatedAt: createdAt,
+      },
+      ConditionExpression: "attribute_not_exists(userId)",
+    })
+    .promise();
+
+  await grantDemoAssociationAccess({ cognitoSub, email, associationId });
+  await sendOnboardingWelcomeEmail({ email });
+
+  return response(200, { success: true }, origin);
 }
 
 async function handleListOrganisations(event, origin) {
@@ -1320,6 +1542,10 @@ export async function handler(event) {
 
     if (method === "POST" && path === "/apply") {
       return await handleApply(event, origin);
+    }
+
+    if (method === "POST" && path === "/onboarding/signup") {
+      return await handleOnboardingSignup(event, origin);
     }
 
     if (method === "GET" && path === "/admin/users") {

@@ -232,6 +232,111 @@ async function createInvoice(body) {
   });
 }
 
+async function createCheckoutSession(body) {
+  const association = await getAssociationWithPricing(body.association_id);
+  const constituencyCount = Math.max(1, Number(body.constituency_count) || association.constituency_count || 1);
+  const pricing = calculateAssociationPricePence(constituencyCount);
+
+  const customer = await findOrCreateStripeCustomer(body.user_email, body.customer_name);
+  const siteUrl = process.env.SITE_URL || "https://www.politicalsolutions.uk";
+
+  const session = await stripe.checkout.sessions.create({
+    mode: "subscription",
+    customer: customer.id,
+    success_url: `${siteUrl.replace(/\/$/, "")}/portal?subscription=success`,
+    cancel_url: `${siteUrl.replace(/\/$/, "")}/subscribe?cancelled=true`,
+    line_items: [
+      {
+        price_data: {
+          currency: "gbp",
+          unit_amount: pricing.exVatPence,
+          // ASSUMPTION: subscriptions are monthly recurring until Paul confirms a one-off model.
+          recurring: { interval: "month" },
+          product_data: {
+            name: `${association.name} Political Solutions subscription`,
+            description: `${constituencyCount} constituency access before VAT`,
+          },
+        },
+        quantity: 1,
+      },
+    ],
+    subscription_data: {
+      metadata: {
+        association_id: association.id,
+        association_name: association.name,
+        cognito_sub: body.cognito_sub || "",
+        user_email: body.user_email || "",
+        constituency_count: String(constituencyCount),
+        amount_ex_vat_pence: String(pricing.exVatPence),
+      },
+    },
+    metadata: {
+      association_id: association.id,
+      cognito_sub: body.cognito_sub || "",
+      user_email: body.user_email || "",
+    },
+  });
+
+  return json(200, { id: session.id, url: session.url });
+}
+
+async function handleSubscriptionCreated(subscription) {
+  const metadata = subscription.metadata || {};
+  const associationId = metadata.association_id;
+  const cognitoSub = metadata.cognito_sub;
+  const userEmail = metadata.user_email || "";
+  const amountExVatPence = Number(metadata.amount_ex_vat_pence || 0);
+
+  if (!associationId || !cognitoSub) return;
+
+  // ASSUMPTION: user_permissions grants association-level access; association_constituencies expands that to constituencies.
+  await supabase.from("user_permissions").upsert(
+    {
+      cognito_sub: cognitoSub,
+      user_email: userEmail,
+      association_id: associationId,
+      is_active: true,
+      access_level: "full",
+      granted_by: "stripe_subscription_created",
+      notes: "Auto-upgraded after Stripe subscription creation",
+    },
+    { onConflict: "cognito_sub,association_id" }
+  );
+
+  const row = {
+    association_id: associationId,
+    cognito_sub: cognitoSub,
+    user_email: userEmail,
+    stripe_customer_id: subscription.customer,
+    stripe_subscription_id: subscription.id,
+    status: "active",
+    payment_method: "stripe",
+    amount_ex_vat: amountExVatPence ? amountExVatPence / 100 : null,
+    amount_inc_vat: null,
+    currency: subscription.currency || "gbp",
+    billing_period_start: new Date((subscription.current_period_start || Date.now() / 1000) * 1000)
+      .toISOString()
+      .slice(0, 10),
+    billing_period_end: subscription.current_period_end
+      ? new Date(subscription.current_period_end * 1000).toISOString().slice(0, 10)
+      : null,
+  };
+
+  const { data: existing } = await supabase
+    .from("subscriptions")
+    .select("id")
+    .eq("stripe_subscription_id", subscription.id)
+    .maybeSingle();
+
+  if (existing?.id) {
+    await supabase.from("subscriptions").update({ ...row, updated_at: new Date().toISOString() }).eq("id", existing.id);
+  } else {
+    await supabase.from("subscriptions").insert(row);
+  }
+
+  await audit("SUBSCRIPTION_CREATED", subscription.id, userEmail, associationId);
+}
+
 async function handleWebhook(event) {
   const signature = event.headers["stripe-signature"] || event.headers["Stripe-Signature"];
   const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
@@ -270,6 +375,10 @@ async function handleWebhook(event) {
     }
     await sendWelcomeEmail(paymentIntent.receipt_email, association.name, association.constituency_names || []);
     await audit("SUBSCRIPTION_PAID", `PaymentIntent ${paymentIntent.id}`, paymentIntent.receipt_email, association.id);
+  }
+
+  if (stripeEvent.type === "customer.subscription.created") {
+    await handleSubscriptionCreated(stripeEvent.data.object);
   }
 
   if (stripeEvent.type === "invoice.payment_failed") {
@@ -342,6 +451,9 @@ exports.handler = async (event) => {
     }
     if (method === "POST" && path.endsWith("/create-invoice")) {
       return createInvoice(body);
+    }
+    if (method === "POST" && path.endsWith("/create-checkout-session")) {
+      return createCheckoutSession(body);
     }
     if (method === "POST" && path.endsWith("/webhook")) {
       return handleWebhook(event);

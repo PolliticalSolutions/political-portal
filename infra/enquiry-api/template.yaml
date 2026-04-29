@@ -500,6 +500,12 @@ Resources:
             ApiId: !Ref EnquiryApi
             Path: /stripe/create-invoice
             Method: POST
+        StripeCreateCheckoutSession:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref EnquiryApi
+            Path: /stripe/create-checkout-session
+            Method: POST
         StripeWebhook:
           Type: HttpApi
           Properties:

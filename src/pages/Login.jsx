@@ -22,6 +22,7 @@ export default function Login({ authed }) {
   const safeStoredReturnTo = isSafeInternalPath(storedReturnTo) ? storedReturnTo : "";
   const safeReturnTo = isSafeInternalPath(returnToParam) ? returnToParam : "";
   const effectiveReturnTo = safeReturnTo || safeStoredReturnTo;
+  const showWelcome = searchParams.get("welcome") === "true";
 
   useEffect(() => {
     if (safeReturnTo) {
@@ -75,6 +76,11 @@ export default function Login({ authed }) {
                 {returnLabel && (
                   <div className="status">
                     After sign-in you'll be directed to the {returnLabel.toLowerCase()}
+                  </div>
+                )}
+                {showWelcome && (
+                  <div className="status success">
+                    Your account has been created. Check your email for the temporary password.
                   </div>
                 )}
                 <Button variant="primary" onClick={handleLogin} disabled={authed}>

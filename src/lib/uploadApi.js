@@ -127,6 +127,16 @@ export const applyForApproval = async (payload) => {
   });
 };
 
+export const createOnboardingAccount = async (payload) => {
+  const base = resolveUploadApiBaseUrl();
+  if (!base) throw new Error("Missing Upload API URL. Set VITE_UPLOAD_API_URL.");
+  return fetchJson(`${base}/onboarding/signup`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
+  });
+};
+
 export const listOrganisations = async ({ orgType = "ASSOCIATION", active = true } = {}) => {
   const base = resolveUploadApiBaseUrl();
   if (!base) throw new Error("Missing Upload API URL. Set VITE_UPLOAD_API_URL.");

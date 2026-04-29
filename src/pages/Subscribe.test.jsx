@@ -5,6 +5,7 @@ import Subscribe from "./Subscribe.jsx";
 
 vi.mock("../lib/subscriptionApi.js", () => ({
   listAssociationsWithPricing: vi.fn(),
+  createSubscriptionCheckoutSession: vi.fn(),
   createSubscriptionPaymentIntent: vi.fn(),
   requestSubscriptionInvoice: vi.fn(),
 }));
@@ -27,6 +28,7 @@ vi.mock("@stripe/react-stripe-js", () => ({
 }));
 
 import {
+  createSubscriptionCheckoutSession,
   createSubscriptionPaymentIntent,
   listAssociationsWithPricing,
   requestSubscriptionInvoice,
@@ -47,6 +49,7 @@ describe("Subscribe", () => {
         amount_inc_vat_pence: 90000,
       },
     ]);
+    createSubscriptionCheckoutSession.mockResolvedValue({ url: "https://checkout.stripe.test/session" });
     createSubscriptionPaymentIntent.mockResolvedValue({ client_secret: "pi_secret" });
     requestSubscriptionInvoice.mockResolvedValue({ invoice_url: "https://invoice.example.com" });
   });
@@ -63,7 +66,7 @@ describe("Subscribe", () => {
       target: { value: "assoc-1" },
     });
 
-    expect(screen.getByText("£750.00")).toBeInTheDocument();
+    expect(screen.getAllByText("£750.00").length).toBeGreaterThan(0);
     expect(screen.getByText(/Seat A, Seat B/)).toBeInTheDocument();
   });
 

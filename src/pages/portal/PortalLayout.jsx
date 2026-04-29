@@ -5,6 +5,7 @@ import Button from "../../components/Button.jsx";
 import { applyForApproval, getAdminMe, getMe, listOrganisations } from "../../lib/uploadApi.js";
 import { getSession } from "../../auth/session.js";
 import { supabase } from "../../lib/supabaseClient.js";
+import { getUserSubscriptionStatus } from "../../lib/subscriptionApi.js";
 import { PermissionsProvider } from "../../context/PermissionsContext.jsx";
 import brandLogo from "../../assets/brand/political-solutions-logo.webp";
 
@@ -273,10 +274,29 @@ export default function PortalLayout() {
   const [analyticsExpanded, setAnalyticsExpanded] = useState(readAnalyticsExpanded);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [alertCount, setAlertCount] = useState(0);
+  const [subscriptionStatus, setSubscriptionStatus] = useState("loading");
 
   useEffect(() => {
     setCognitoSub(getSession()?.user?.sub || null);
   }, []);
+
+  useEffect(() => {
+    if (!cognitoSub) {
+      setSubscriptionStatus("none");
+      return undefined;
+    }
+    let cancelled = false;
+    getUserSubscriptionStatus(cognitoSub)
+      .then((status) => {
+        if (!cancelled) setSubscriptionStatus(status);
+      })
+      .catch(() => {
+        if (!cancelled) setSubscriptionStatus("none");
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [cognitoSub]);
 
   useEffect(() => {
     try {
@@ -586,6 +606,14 @@ export default function PortalLayout() {
             <p role="alert" style={{ color: "var(--danger)" }}>
               {error}
             </p>
+          )}
+          {subscriptionStatus !== "loading" && !["active", "trialing"].includes(subscriptionStatus) && (
+            <div className="status warning" style={{ marginBottom: 16 }}>
+              <span>You're on a free demo. Upgrade to unlock full access.</span>
+              <Link to="/subscribe" className="button secondary">
+                Upgrade
+              </Link>
+            </div>
           )}
           <PermissionsProvider cognitoSub={cognitoSub}>
             <Outlet />

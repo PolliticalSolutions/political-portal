@@ -6,7 +6,10 @@ import Button from "../components/Button.jsx";
 import Card from "../components/Card.jsx";
 import Footer from "../components/Footer.jsx";
 import { getRuntimeConfig } from "../config/runtimeConfig.js";
+import { getSession } from "../auth/session.js";
+import { supabase } from "../lib/supabase.js";
 import {
+  createSubscriptionCheckoutSession,
   createSubscriptionPaymentIntent,
   listAssociationsWithPricing,
   requestSubscriptionInvoice,
@@ -39,12 +42,12 @@ function PriceSummary({ association }) {
         <strong>£{formatPenceToPounds(association.amount_ex_vat_pence)}</strong>
       </div>
       <div className="subscribe-pricing__row">
-        <span>VAT (20%)</span>
+        <span>VAT handled separately (20%)</span>
         <strong>£{formatPenceToPounds(association.vat_pence)}</strong>
       </div>
       <div className="subscribe-pricing__row subscribe-pricing__row--total">
-        <span>Total due today</span>
-        <strong>£{formatPenceToPounds(association.amount_inc_vat_pence)}</strong>
+        <span>Stripe charge before VAT</span>
+        <strong>£{formatPenceToPounds(association.amount_ex_vat_pence)}</strong>
       </div>
     </div>
   );
@@ -145,8 +148,10 @@ export default function Subscribe() {
   const [error, setError] = useState("");
   const [query, setQuery] = useState("");
   const [selectedAssociationId, setSelectedAssociationId] = useState("");
+  const [unlockCount, setUnlockCount] = useState(1);
   const [customer, setCustomer] = useState(initialCustomer);
-  const [mode, setMode] = useState("card");
+  const [checkoutState, setCheckoutState] = useState({ submitting: false, error: "" });
+  const [mode, setMode] = useState("checkout");
   const [invoiceState, setInvoiceState] = useState({ submitting: false, error: "", success: null });
   const [confirmation, setConfirmation] = useState(null);
 
@@ -181,6 +186,34 @@ export default function Subscribe() {
     () => associations.find((association) => association.id === selectedAssociationId) ?? null,
     [associations, selectedAssociationId]
   );
+  const selectedAssociationPricing = useMemo(
+    () => calculateAssociationSubscriptionPricing(unlockCount),
+    [unlockCount]
+  );
+
+  useEffect(() => {
+    const count = selectedAssociation?.constituency_count || selectedAssociation?.constituency_names?.length || 1;
+    setUnlockCount(Math.max(1, count));
+  }, [selectedAssociation]);
+
+  useEffect(() => {
+    let active = true;
+    const cognitoSub = getSession()?.user?.sub || "";
+    if (!cognitoSub) return undefined;
+    supabase
+      .from("user_permissions")
+      .select("association_id")
+      .eq("cognito_sub", cognitoSub)
+      .eq("is_active", true)
+      .limit(1)
+      .then(({ data }) => {
+        const associationId = data?.[0]?.association_id;
+        if (active && associationId) setSelectedAssociationId(associationId);
+      });
+    return () => {
+      active = false;
+    };
+  }, []);
 
   const paymentDisabledReason =
     !stripePublishableKey || !(stripeApiBaseUrl || apiBaseUrl)
@@ -233,6 +266,28 @@ export default function Subscribe() {
     if (!selectedAssociation) return;
     saveSelection(selectedAssociation);
     navigate(`/cart?association_id=${encodeURIComponent(selectedAssociation.id)}`);
+  };
+
+  const handleStripeCheckout = async () => {
+    if (!selectedAssociation) return;
+    setCheckoutState({ submitting: true, error: "" });
+    try {
+      const session = getSession();
+      const result = await createSubscriptionCheckoutSession({
+        association_id: selectedAssociation.id,
+        constituency_count: unlockCount,
+        user_email: customer.email.trim() || session?.user?.email || "",
+        customer_name: customer.name.trim() || session?.user?.name || "",
+        cognito_sub: session?.user?.sub || "",
+      });
+      if (!result?.url) throw new Error("Stripe Checkout did not return a redirect URL.");
+      window.location.assign(result.url);
+    } catch (nextError) {
+      setCheckoutState({
+        submitting: false,
+        error: nextError.message || "Unable to start Stripe Checkout.",
+      });
+    }
   };
 
   if (confirmation) {
@@ -294,7 +349,7 @@ export default function Subscribe() {
             <div className="stack" style={{ gap: 12 }}>
               <p className="muted">
                 Pricing is based on the number of constituencies in your association. All prices are annual and
-                exclude VAT (20% added at checkout). Invoice payment is available on request.
+                exclude VAT. VAT is handled separately by Political Solutions invoicing unless instructed otherwise.
               </p>
               <div className="subscribe-pricing">
                 {[1, 2, 5, 10].map((n) => {
@@ -302,13 +357,13 @@ export default function Subscribe() {
                   return (
                     <div key={n} className="subscribe-pricing__row">
                       <span>{n} {n === 1 ? "constituency" : "constituencies"}</span>
-                      <strong>£{formatPenceToPounds(p.amountIncVatPence)}/year inc. VAT</strong>
+                      <strong>£{formatPenceToPounds(p.amountExVatPence)}/year + VAT</strong>
                     </div>
                   );
                 })}
                 <div className="subscribe-pricing__row subscribe-pricing__row--total">
                   <span>Each additional constituency</span>
-                  <strong>+£300/year inc. VAT</strong>
+                  <strong>+£250/year + VAT</strong>
                 </div>
               </div>
               <p className="muted" style={{ fontSize: "0.875em" }}>
@@ -351,6 +406,31 @@ export default function Subscribe() {
                 {selectedAssociation && (
                   <>
                     <PriceSummary association={selectedAssociation} />
+                    <label className="field">
+                      <span>Constituencies to unlock</span>
+                      <input
+                        className="input"
+                        type="number"
+                        min="1"
+                        max={selectedAssociation.constituency_count || selectedAssociation.constituency_names?.length || 1}
+                        value={unlockCount}
+                        onChange={(event) => {
+                          const max = selectedAssociation.constituency_count || selectedAssociation.constituency_names?.length || 1;
+                          const next = Math.max(1, Math.min(max, Number(event.target.value) || 1));
+                          setUnlockCount(next);
+                        }}
+                      />
+                    </label>
+                    <div className="subscribe-pricing">
+                      <div className="subscribe-pricing__row">
+                        <span>Stripe charge today</span>
+                        <strong>£{formatPenceToPounds(selectedAssociationPricing.amountExVatPence)}</strong>
+                      </div>
+                      <div className="subscribe-pricing__row">
+                        <span>VAT handled separately</span>
+                        <strong>£{formatPenceToPounds(selectedAssociationPricing.vatPence)}</strong>
+                      </div>
+                    </div>
                     <div className="portal-data-note" style={{ marginTop: 0 }}>
                       <strong>Your subscription covers:</strong>{" "}
                       {selectedAssociation.constituency_names?.join(", ") || "Constituency list pending"}.
@@ -398,8 +478,13 @@ export default function Subscribe() {
               <Button variant="secondary" onClick={handleCheckoutContinue} disabled={!selectedAssociation}>
                 Continue to checkout
               </Button>
-              <Button variant={mode === "card" ? "primary" : "ghost"} onClick={() => setMode("card")}>
-                Pay by card
+              <Button
+                variant="primary"
+                onClick={handleStripeCheckout}
+                loading={checkoutState.submitting}
+                disabled={!selectedAssociation || checkoutState.submitting}
+              >
+                Continue to Stripe Checkout
               </Button>
               <Button variant={mode === "invoice" ? "primary" : "ghost"} onClick={() => setMode("invoice")}>
                 Request invoice
@@ -413,20 +498,7 @@ export default function Subscribe() {
                   Select the association before continuing to payment or invoice.
                 </p>
               </div>
-            ) : mode === "card" ? (
-              getStripePromise() ? (
-                <Elements stripe={getStripePromise()}>
-                  <PaymentForm
-                    association={selectedAssociation}
-                    customer={customer}
-                    onSuccess={setConfirmation}
-                    disabledReason={paymentDisabledReason}
-                  />
-                </Elements>
-              ) : (
-                <div className="status warning">{paymentDisabledReason}</div>
-              )
-            ) : (
+            ) : mode === "invoice" ? (
               <div className="stack">
                 <div className="portal-data-note" style={{ marginTop: 0 }}>
                   Request Invoice for associations that prefer to pay against an invoice. Your account will be
@@ -455,6 +527,14 @@ export default function Subscribe() {
                     Request invoice
                   </Button>
                 )}
+              </div>
+            ) : (
+              <div className="stack">
+                <div className="portal-data-note" style={{ marginTop: 0 }}>
+                  Stripe Checkout will charge £{formatPenceToPounds(selectedAssociationPricing.amountExVatPence)}
+                  {" "}before VAT. VAT invoicing is handled separately.
+                </div>
+                {checkoutState.error && <div className="status error">{checkoutState.error}</div>}
               </div>
             )}
           </Card>

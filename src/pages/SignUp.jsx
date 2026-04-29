@@ -1,66 +1,111 @@
 import { useEffect, useMemo, useState } from "react";
-import { Link, useSearchParams } from "react-router-dom";
-import Button from "../components/Button.jsx";
+import { Link, useNavigate } from "react-router-dom";
 import Card from "../components/Card.jsx";
 import Footer from "../components/Footer.jsx";
-import associations from "../data/associations.json";
-import { calculateFederationPricing } from "../portal/pricing/federationPricing.js";
-import { startSignUp } from "../lib/cognito.js";
-import { isSafeInternalPath, setPostAuthRedirect } from "../utils/postAuthRedirect.js";
+import SignupForm from "../components/SignupForm.jsx";
+import { supabase } from "../lib/supabase.js";
+import { createOnboardingAccount } from "../lib/uploadApi.js";
 
-const gbp = new Intl.NumberFormat("en-GB", {
-  style: "currency",
-  currency: "GBP",
-  minimumFractionDigits: 2,
-  maximumFractionDigits: 2,
-});
+const ACCOUNT_EXISTS_MESSAGE =
+  "An account already exists for this association. To discuss access please contact admin@politicalsolutions.uk";
+
+const initialForm = {
+  name: "",
+  email: "",
+  phone: "",
+  associationId: "",
+  password: "",
+  confirmPassword: "",
+};
+
+async function hasActiveAssociationAccount(associationId) {
+  if (!associationId) return false;
+  const { data, error } = await supabase
+    .from("user_permissions")
+    .select("id")
+    .eq("association_id", associationId)
+    .eq("is_active", true)
+    .limit(1);
+  if (error) throw new Error(error.message || "Unable to check association access.");
+  return Boolean(data?.length);
+}
 
 export default function SignUp() {
-  const [error, setError] = useState(null);
-  const [searchParams] = useSearchParams();
-  const association = searchParams.get("association") ?? "";
-  const countParam = Number(searchParams.get("count") ?? 0);
-  const queryString = searchParams.toString();
-  const enquireLink = queryString ? `/enquire?${queryString}` : "/enquire";
-  const returnToParam = searchParams.get("returnTo") ?? "";
-  const storedReturnTo =
-    typeof sessionStorage !== "undefined" ? sessionStorage.getItem("ps_post_auth_redirect_v1") : "";
-  const safeStoredReturnTo = isSafeInternalPath(storedReturnTo) ? storedReturnTo : "";
-  const safeReturnTo = isSafeInternalPath(returnToParam) ? returnToParam : "";
-  const loginLink = safeReturnTo ? `/login?${new URLSearchParams({ returnTo: safeReturnTo })}` : "/login";
-
-  const constituencies = useMemo(() => {
-    if (!association) return [];
-    return associations.byAssociation[association] ?? [];
-  }, [association]);
-
-  const constituencyCount = constituencies.length || countParam;
-  const pricing = association && constituencyCount ? calculateFederationPricing(constituencyCount) : null;
+  const navigate = useNavigate();
+  const [form, setForm] = useState(initialForm);
+  const [associations, setAssociations] = useState([]);
+  const [loadingAssociations, setLoadingAssociations] = useState(true);
+  const [submitting, setSubmitting] = useState(false);
+  const [errors, setErrors] = useState({});
 
   useEffect(() => {
-    if (!association && !constituencyCount) return;
-    const payload = {
-      association,
-      constituencyCount,
-      constituencies,
-      query: queryString,
-      storedAt: new Date().toISOString(),
+    let active = true;
+    supabase
+      .from("associations")
+      .select("id,name")
+      .order("name", { ascending: true })
+      .then(({ data, error: queryError }) => {
+        if (!active) return;
+        if (queryError) {
+          setErrors((current) => ({
+            ...current,
+            associationId: queryError.message || "Unable to load associations.",
+          }));
+          setAssociations([]);
+        } else {
+          setAssociations(data || []);
+        }
+      })
+      .finally(() => {
+        if (active) setLoadingAssociations(false);
+      });
+    return () => {
+      active = false;
     };
-    sessionStorage.setItem("ps_signup_context_v1", JSON.stringify(payload));
-  }, [association, constituencyCount, constituencies, queryString]);
+  }, []);
 
-  useEffect(() => {
-    if (safeReturnTo) {
-      setPostAuthRedirect(safeReturnTo);
-    }
-  }, [safeReturnTo]);
+  const selectedAssociation = useMemo(
+    () => associations.find((association) => association.id === form.associationId) || null,
+    [associations, form.associationId]
+  );
 
-  const handleCreateAccount = async () => {
-    setError(null);
+  const handleChange = (event) => {
+    const { name, value } = event.target;
+    setForm((current) => ({ ...current, [name]: value }));
+    setErrors((current) => {
+      if (!current[name]) return current;
+      const next = { ...current };
+      delete next[name];
+      return next;
+    });
+  };
+
+  const handleSubmit = async (event) => {
+    event.preventDefault();
+    setErrors({});
+
+    setSubmitting(true);
     try {
-      await startSignUp("/portal");
-    } catch (err) {
-      setError(err.message || "Sign-up failed to start.");
+      const accountExists = await hasActiveAssociationAccount(form.associationId);
+      if (accountExists) {
+        setErrors({ associationId: ACCOUNT_EXISTS_MESSAGE });
+        return;
+      }
+
+      await createOnboardingAccount({
+        name: form.name.trim(),
+        fullName: form.name.trim(),
+        email: form.email.trim(),
+        phone: form.phone.trim(),
+        associationId: form.associationId,
+        associationName: selectedAssociation?.name || "",
+        password: form.password,
+      });
+      navigate("/login?welcome=true");
+    } catch (nextError) {
+      setErrors({ associationId: nextError.message || "Unable to create account." });
+    } finally {
+      setSubmitting(false);
     }
   };
 
@@ -70,37 +115,25 @@ export default function SignUp() {
         <div className="container centered">
           <Card>
             <h1 style={{ margin: "0 0 12px", fontSize: 22 }}>Create account</h1>
-            {association || constituencyCount ? (
-              <>
-                <div style={{ marginBottom: 16 }}>
-                  <div style={{ fontSize: 16, fontWeight: 700 }}>Pricing context captured</div>
-                  {constituencyCount ? (
-                    <div className="muted" style={{ marginTop: 4 }}>
-                      {constituencyCount} constituenc{constituencyCount === 1 ? "y" : "ies"}
-                    </div>
-                  ) : null}
-                </div>
-                {pricing && (
-                  <div style={{ marginBottom: 16 }}>
-                    <div>Total (ex VAT): {gbp.format(pricing.netTotal)}</div>
-                    <div>VAT (20%): {gbp.format(pricing.vatTotal)}</div>
-                    <div>Total (inc VAT): {gbp.format(pricing.grossTotal)}</div>
-                  </div>
-                )}
-              </>
-            ) : null}
-            <div className="stack" style={{ marginTop: 16 }}>
-              <Button variant="primary" onClick={handleCreateAccount}>
-                Create account
-              </Button>
-              <Button as={Link} to={enquireLink} variant="ghost">
-                Prefer to ask a question first?
-              </Button>
-              <Button as={Link} to={loginLink} variant="ghost">
-                Already have an account? Sign in
-              </Button>
-              {error && <div className="status error">{error}</div>}
-            </div>
+            <p className="muted" style={{ marginTop: 0 }}>
+              One account is available for each association. New accounts start with restricted demo access.
+            </p>
+            <SignupForm
+              associations={associations}
+              form={form}
+              loading={loadingAssociations}
+              submitting={submitting}
+              errors={errors}
+              onChange={handleChange}
+              onSubmit={handleSubmit}
+              onValidationChange={setErrors}
+            />
+            <p className="muted" style={{ marginTop: 16 }}>
+              Already have an account?{" "}
+              <Link className="blog-inline-link" to="/login">
+                Sign in
+              </Link>
+            </p>
           </Card>
         </div>
       </section>
@@ -108,3 +141,5 @@ export default function SignUp() {
     </div>
   );
 }
+
+export { ACCOUNT_EXISTS_MESSAGE, hasActiveAssociationAccount };

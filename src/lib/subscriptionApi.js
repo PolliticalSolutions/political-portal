@@ -101,6 +101,10 @@ export function requestSubscriptionInvoice(payload) {
   return postStripeApi("/create-invoice", payload);
 }
 
+export function createSubscriptionCheckoutSession(payload) {
+  return postStripeApi("/create-checkout-session", payload);
+}
+
 /**
  * Returns true if the given Cognito sub belongs to an admin user.
  * Checks the admin_users table using the service role client (bypasses RLS).
