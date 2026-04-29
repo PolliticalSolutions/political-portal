@@ -57,6 +57,7 @@ const ScenarioPage = lazy(() => import("./pages/portal/analytics/ScenarioPage.js
 const MPPersona = lazy(() => import("./pages/portal/MPPersona.jsx"));
 import Session from "./pages/Session.jsx";
 import SignUp from "./pages/SignUp.jsx";
+import Verify from "./pages/Verify.jsx";
 const CookiesPage = lazy(() => import("./pages/legal/CookiesPage.jsx"));
 const PrivacyPage = lazy(() => import("./pages/legal/PrivacyPage.jsx"));
 const TermsPage = lazy(() => import("./pages/legal/TermsPage.jsx"));
@@ -326,6 +327,7 @@ export default function App() {
             <Route path="/login" element={<Login authed={authed} />} />
             <Route path="/callback" element={<Callback onAuth={handleAuthSuccess} />} />
             <Route path="/signup" element={<SignUp />} />
+            <Route path="/verify" element={<Verify />} />
             <Route path="/enquire" element={<Suspense fallback={null}><EnquirePage /></Suspense>} />
             <Route path="/blog" element={<Suspense fallback={null}><BlogIndexPage /></Suspense>} />
             <Route path="/blog/:slug" element={<Suspense fallback={null}><BlogPostPage /></Suspense>} />

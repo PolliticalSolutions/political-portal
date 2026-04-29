@@ -27,6 +27,7 @@ const s3 = new AWS.S3({ region: REGION });
 const missingAwsClient = (name) => ({
   adminCreateUser: () => ({ promise: async () => { throw new Error(`${name} is not available.`); } }),
   adminSetUserPassword: () => ({ promise: async () => { throw new Error(`${name} is not available.`); } }),
+  adminUpdateUserAttributes: () => ({ promise: async () => { throw new Error(`${name} is not available.`); } }),
   sendEmail: () => ({ promise: async () => { throw new Error(`${name} is not available.`); } }),
 });
 const cognito = AWS.CognitoIdentityServiceProvider
@@ -1027,17 +1028,18 @@ async function handleOnboardingSignup(event, origin) {
   const phoneNumber = normalizeCognitoPhone(phone);
   const attributes = [
     { Name: "email", Value: email },
-    { Name: "email_verified", Value: "true" },
+    { Name: "email_verified", Value: "false" },
     { Name: "name", Value: fullName },
     ...(phoneNumber ? [{ Name: "phone_number", Value: phoneNumber }] : []),
   ];
 
+  // ASSUMPTION: User Pool eu-west-2_rLrUAqYiJ has email in AutoVerifiedAttributes and sends Cognito's verification message when AdminCreateUser is not suppressed.
   const created = await cognito
     .adminCreateUser({
       UserPoolId: ONBOARDING_COGNITO_USER_POOL_ID,
       Username: email,
       UserAttributes: attributes,
-      MessageAction: "SUPPRESS",
+      DesiredDeliveryMediums: ["EMAIL"],
     })
     .promise();
 
@@ -1047,6 +1049,14 @@ async function handleOnboardingSignup(event, origin) {
       Username: email,
       Password: password,
       Permanent: true,
+    })
+    .promise();
+
+  await cognito
+    .adminUpdateUserAttributes({
+      UserPoolId: ONBOARDING_COGNITO_USER_POOL_ID,
+      Username: email,
+      UserAttributes: [{ Name: "email_verified", Value: "false" }],
     })
     .promise();
 

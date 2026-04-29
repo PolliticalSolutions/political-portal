@@ -24,6 +24,7 @@ export default function Login({ authed }) {
   const safeReturnTo = isSafeInternalPath(returnToParam) ? returnToParam : "";
   const effectiveReturnTo = safeReturnTo || safeStoredReturnTo;
   const showWelcome = searchParams.get("welcome") === "true";
+  const showVerified = searchParams.get("verified") === "true";
 
   useEffect(() => {
     if (safeReturnTo) {
@@ -77,7 +78,12 @@ export default function Login({ authed }) {
                 )}
                 {showWelcome && (
                   <div className="status success">
-                    Your account has been created. Check your email for the temporary password.
+                    Your account has been created. Please check your email to verify your account. Once verified, return here to log in.
+                  </div>
+                )}
+                {showVerified && (
+                  <div className="status success">
+                    Email verified — please log in.
                   </div>
                 )}
                 <Button variant="primary" onClick={handleLogin} disabled={authed}>
