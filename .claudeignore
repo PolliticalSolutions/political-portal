@@ -1,0 +1,85 @@
+# Dependencies
+node_modules/
+.npm/
+
+# Build outputs
+dist/
+dist-ssr/
+.aws-sam/
+build/
+.amplify/
+
+# Lock files (too large, no context value)
+package-lock.json
+yarn.lock
+
+# Test outputs
+coverage/
+*.test.jsx
+*.test.js
+*.test.mjs
+__snapshots__/
+
+# Environment files (sensitive)
+.env
+.env.local
+.env.production
+config.ini
+
+# AWS deployment artifacts
+samconfig.toml
+.aws/
+
+# OS and editor noise
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+
+# Large data files
+*.csv
+*.pdf
+*.zip
+*.xlsx
+*.xls
+
+# Python bytecode
+__pycache__/
+*.pyc
+*.pyo
+
+# Large generated JSON in scripts
+scripts/notional-2019-candidacies.csv
+scripts/organisations.seed.json
+scripts/elections.seed.json
+scripts/unmatched_constituencies.txt
+
+# Python data/analysis scripts (not codebase logic)
+scripts/*.py
+scripts/lib/
+
+# One-off SQL DDL and seed files (not runtime code)
+scripts/*.sql
+docs/*.sql
+
+# Amplify config backups
+scripts/amplify-customRules.backup.json
+scripts/amplify-customRules.next.json
+
+# Temporary session notes (not codebase docs)
+OVERNIGHT_REPORT.md
+OVERNIGHT_INTELLIGENCE_NOTES.md
+POST_MERGE_NOTES.md
+PRE_DEMO_NOTES.md
+PORTAL_POLISH_NOTES.md
+DEMO_POLISH_NOTES.md
+ANALYTICS_ENGINE_NOTES.md
+ENRICHMENT_TESTING_NOTES.md
+STRIPE_SETUP_NOTES.md
+LOCAL_GOV_NOTES.md
+
+# Blog content (editorial, not code)
+content/
+
+# Stripe handler (separate deployment unit, rarely touched)
+scripts/stripe_handler/
