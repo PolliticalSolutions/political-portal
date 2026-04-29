@@ -1,8 +1,15 @@
 import { fireEvent, render, screen } from "@testing-library/react";
+import { act } from "react";
 import { HelmetProvider } from "react-helmet-async";
 import { MemoryRouter, Route, Routes, useLocation } from "react-router-dom";
-import { describe, expect, it, beforeEach } from "vitest";
+import { describe, expect, it, beforeEach, vi } from "vitest";
 import Dashboard from "./Dashboard.jsx";
+
+vi.mock("../../lib/subscriptionApi.js", () => ({
+  getUserSubscriptionStatus: vi.fn(() => Promise.resolve("active")),
+}));
+
+import { getUserSubscriptionStatus } from "../../lib/subscriptionApi.js";
 
 function LocationDisplay() {
   const location = useLocation();
@@ -17,9 +24,10 @@ function LocationDisplay() {
 describe("Dashboard", () => {
   beforeEach(() => {
     sessionStorage.clear();
+    getUserSubscriptionStatus.mockResolvedValue("active");
   });
 
-  it("renders the basic dashboard sections", () => {
+  it("renders the basic dashboard sections", async () => {
     const { container } = render(
       <HelmetProvider>
         <MemoryRouter initialEntries={["/portal"]}>
@@ -29,6 +37,7 @@ describe("Dashboard", () => {
         </MemoryRouter>
       </HelmetProvider>
     );
+    await act(async () => {});
 
     expect(screen.getByRole("heading", { name: "Dashboard" })).toBeInTheDocument();
     expect(document.querySelector(".portal-dashboard-grid")).toBeInTheDocument();
@@ -65,6 +74,7 @@ describe("Dashboard", () => {
         </MemoryRouter>
       </HelmetProvider>
     );
+    await act(async () => {});
 
     expect(await screen.findByText(/Current selection:/)).toBeInTheDocument();
     expect(screen.getByText("Seat A")).toBeInTheDocument();
@@ -78,7 +88,7 @@ describe("Dashboard", () => {
     expect(screen.queryByText(/Current selection:/)).not.toBeInTheDocument();
   });
 
-  it("hides the selection section when context is missing or invalid", () => {
+  it("hides the selection section when context is missing or invalid", async () => {
     sessionStorage.setItem("ps_signup_context_v1", "not-json");
 
     render(
@@ -90,8 +100,31 @@ describe("Dashboard", () => {
         </MemoryRouter>
       </HelmetProvider>
     );
+    await act(async () => {});
 
     expect(screen.getByRole("heading", { name: "Dashboard" })).toBeInTheDocument();
     expect(screen.queryByText(/Current selection:/)).not.toBeInTheDocument();
+  });
+
+  it("shows an access-limited banner when there is no active subscription", async () => {
+    getUserSubscriptionStatus.mockResolvedValue("none");
+
+    render(
+      <HelmetProvider>
+        <MemoryRouter initialEntries={["/portal"]}>
+          <Routes>
+            <Route path="/portal" element={<Dashboard />} />
+          </Routes>
+        </MemoryRouter>
+      </HelmetProvider>
+    );
+
+    expect(
+      await screen.findByText("You don't have an active subscription. Access is limited.")
+    ).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Upgrade your subscription" })).toHaveAttribute(
+      "href",
+      "/subscribe"
+    );
   });
 });

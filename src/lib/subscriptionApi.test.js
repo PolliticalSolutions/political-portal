@@ -1,14 +1,15 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-vi.mock("./supabaseClient.js", () => ({
+vi.mock("./supabase.js", () => ({
   supabase: {
     from: vi.fn(),
   },
 }));
 
-import { supabase } from "./supabaseClient.js";
+import { supabase } from "./supabase.js";
 import {
   createSubscriptionPaymentIntent,
+  getUserSubscriptionStatus,
   listAssociationsWithPricing,
   requestSubscriptionInvoice,
 } from "./subscriptionApi.js";
@@ -16,7 +17,10 @@ import {
 function mockQuery(result) {
   const query = {
     select: () => query,
-    order: () => Promise.resolve(result),
+    eq: () => query,
+    limit: () => Promise.resolve(result),
+    order: () => query,
+    then: (resolve, reject) => Promise.resolve(result).then(resolve, reject),
   };
   return query;
 }
@@ -77,5 +81,36 @@ describe("subscriptionApi", () => {
 
     const result = await requestSubscriptionInvoice({ association_id: "assoc-1" });
     expect(result.invoice_url).toContain("invoice");
+  });
+
+  it("returns none when a user has no subscription rows", async () => {
+    supabase.from.mockReturnValue(mockQuery({ data: [], error: null }));
+
+    await expect(getUserSubscriptionStatus("user-sub-1")).resolves.toBe("none");
+  });
+
+  it("prioritises active and trialing subscription statuses", async () => {
+    supabase.from.mockReturnValue(
+      mockQuery({
+        data: [
+          { status: "cancelled", admin_override_active: false },
+          { status: "trialing", admin_override_active: false },
+        ],
+        error: null,
+      })
+    );
+
+    await expect(getUserSubscriptionStatus("user-sub-1")).resolves.toBe("trialing");
+  });
+
+  it("treats admin override as active", async () => {
+    supabase.from.mockReturnValue(
+      mockQuery({
+        data: [{ status: "cancelled", admin_override_active: true }],
+        error: null,
+      })
+    );
+
+    await expect(getUserSubscriptionStatus("user-sub-1")).resolves.toBe("active");
   });
 });

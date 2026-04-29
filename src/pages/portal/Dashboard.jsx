@@ -3,6 +3,8 @@ import { Link } from "react-router-dom";
 import { Helmet } from "react-helmet-async";
 import Button from "../../components/Button.jsx";
 import Card from "../../components/Card.jsx";
+import { getSession } from "../../auth/session.js";
+import { getUserSubscriptionStatus } from "../../lib/subscriptionApi.js";
 
 const signupContextKey = "ps_signup_context_v1";
 
@@ -35,10 +37,26 @@ const dashboardCtaStyle = {
 
 export default function Dashboard() {
   const [signupContext, setSignupContext] = useState(null);
+  const [subscriptionStatus, setSubscriptionStatus] = useState("loading");
 
   useEffect(() => {
     const stored = sessionStorage.getItem(signupContextKey);
     setSignupContext(parseSignupContext(stored));
+  }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+    const cognitoSub = getSession()?.user?.sub || "";
+    getUserSubscriptionStatus(cognitoSub)
+      .then((status) => {
+        if (!cancelled) setSubscriptionStatus(status);
+      })
+      .catch(() => {
+        if (!cancelled) setSubscriptionStatus("none");
+      });
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   const pricingLink = useMemo(() => {
@@ -69,6 +87,13 @@ export default function Dashboard() {
           </div>
         </div>
       </Card>
+
+      {subscriptionStatus !== "loading" && !["active", "trialing"].includes(subscriptionStatus) && (
+        <div className="status warning">
+          <span>You don't have an active subscription. Access is limited.</span>
+          <Link to="/subscribe">Upgrade your subscription</Link>
+        </div>
+      )}
 
       <div className="portal-dashboard-grid">
         <div

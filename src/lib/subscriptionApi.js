@@ -1,7 +1,10 @@
 import associations from "../data/associations.json";
 import { getRuntimeConfig } from "../config/runtimeConfig.js";
-import { supabase } from "./supabaseClient.js";
+import { supabase } from "./supabase.js";
 import { calculateAssociationSubscriptionPricing } from "./subscriptionPricing.js";
+
+const ACTIVE_SUBSCRIPTION_STATUSES = new Set(["active", "trialing"]);
+const KNOWN_SUBSCRIPTION_STATUSES = new Set(["active", "trialing", "cancelled", "none"]);
 
 function getStripeApiBaseUrl() {
   const { stripeApiBaseUrl, apiBaseUrl } = getRuntimeConfig();
@@ -43,6 +46,31 @@ export async function listAssociationsWithPricing() {
   }
 
   return buildFallbackAssociationRows();
+}
+
+export async function getUserSubscriptionStatus(cognitoSub) {
+  if (!cognitoSub) return "none";
+
+  const { data, error } = await supabase
+    .from("subscriptions")
+    .select("status, admin_override_active, created_at, updated_at")
+    .eq("cognito_sub", cognitoSub)
+    .order("created_at", { ascending: false })
+    .limit(20);
+
+  if (error || !data?.length) return "none";
+  if (data.some((subscription) => subscription.admin_override_active)) return "active";
+
+  const statuses = data
+    .map((subscription) => (subscription.status || "").toString().trim().toLowerCase())
+    .filter(Boolean);
+
+  if (statuses.some((status) => ACTIVE_SUBSCRIPTION_STATUSES.has(status))) {
+    return statuses.includes("active") ? "active" : "trialing";
+  }
+
+  const knownStatus = statuses.find((status) => KNOWN_SUBSCRIPTION_STATUSES.has(status));
+  return knownStatus || "none";
 }
 
 async function postStripeApi(path, payload) {

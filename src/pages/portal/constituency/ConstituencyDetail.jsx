@@ -4,6 +4,8 @@ import Button from "../../../components/Button.jsx";
 import Card from "../../../components/Card.jsx";
 import DataProvenancePanel from "../../../components/DataProvenancePanel.jsx";
 import ModelConfidenceBadge from "../../../components/ModelConfidenceBadge.jsx";
+import UpgradePrompt from "../../../components/UpgradePrompt.jsx";
+import { usePermissions } from "../../../context/PermissionsContext.jsx";
 import { getIntelligenceMetadata } from "../../../lib/intelligenceMetadataApi.js";
 import { getModelConfidence } from "../../../lib/modelConfidence.js";
 import { resolvePartyColour, toHexColor } from "../../../utils/partyColours.js";
@@ -1859,6 +1861,7 @@ function IntelligenceSummaryBar({
 
 export default function ConstituencyDetail() {
   const { onsCode } = useParams();
+  const { allowedConstituencies, loading: permissionsLoading } = usePermissions();
   const [constituency, setConstituency] = useState(null);
   const [results, setResults] = useState([]);
   const [demographics, setDemographics] = useState([]);
@@ -1876,6 +1879,7 @@ export default function ConstituencyDetail() {
   const [greenThreat, setGreenThreat] = useState(null);
   const [lgrImpacts, setLgrImpacts] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [detailLoading, setDetailLoading] = useState(false);
   const [error, setError] = useState("");
   const [metadata, setMetadata] = useState(null);
   const [activeTab, setActiveTab] = useState("history");
@@ -1889,6 +1893,15 @@ export default function ConstituencyDetail() {
   });
   const [copyStatus, setCopyStatus] = useState("");
 
+  const hasConstituencyAccess = useMemo(() => {
+    if (!constituency || !Array.isArray(allowedConstituencies)) return false;
+    return allowedConstituencies.some((allowed) => {
+      const allowedId = allowed?.id || allowed?.constituency_id;
+      const allowedCode = allowed?.ons_code || allowed?.pcon_code;
+      return allowedId === constituency.id || allowedCode === constituency.ons_code;
+    });
+  }, [allowedConstituencies, constituency]);
+
   useEffect(() => {
     if (!onsCode) return;
     let cancelled = false;
@@ -1900,7 +1913,47 @@ export default function ConstituencyDetail() {
         const nextConstituency = await getConstituency(onsCode);
         if (cancelled) return;
         setConstituency(nextConstituency);
+      } catch (err) {
+        if (!cancelled) setError(err.message || "Failed to load constituency.");
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    }
 
+    load();
+    return () => {
+      cancelled = true;
+    };
+  }, [onsCode]);
+
+  useEffect(() => {
+    if (!constituency || permissionsLoading || allowedConstituencies === null) return undefined;
+    if (!hasConstituencyAccess) {
+      setDetailLoading(false);
+      setResults([]);
+      setDemographics([]);
+      setSwings([]);
+      setNationals([]);
+      setCouncils([]);
+      setLocalAuthorities([]);
+      setMarginalityScore(null);
+      setElectorateTrend([]);
+      setSwingTimeline([]);
+      setByElectionRisk(null);
+      setVulnerabilityScore(null);
+      setReformThreat(null);
+      setLdThreat(null);
+      setGreenThreat(null);
+      setLgrImpacts([]);
+      setMetadata(null);
+      return undefined;
+    }
+
+    let cancelled = false;
+    async function loadDetails() {
+      setDetailLoading(true);
+      setError("");
+      try {
         const [
           nextResults, nextDemographics, nextSwings, nextCouncils,
           nextLocalAuthorities,
@@ -1908,19 +1961,19 @@ export default function ConstituencyDetail() {
           nextByElectionRisk, nextVulnerability,
           nextReformThreat, nextLdThreat, nextGreenThreat,
         ] = await Promise.all([
-          getConstituencyResults(nextConstituency.id),
-          getConstituencyDemographics(nextConstituency.id),
-          getConstituencySwings(nextConstituency.id),
-          getCouncilData(nextConstituency.id),
-          getLinkedAuthorities(nextConstituency.id),
-          getMarginalityScore(nextConstituency.id),
-          getElectorateTrend(nextConstituency.id),
-          getSwingTimeline(nextConstituency.id),
-          getByElectionRisk(nextConstituency.id),
-          getVulnerabilityScore(nextConstituency.id),
-          getConstituencyReformThreat(nextConstituency.id),
-          getConstituencyLibDemThreat(nextConstituency.id),
-          getConstituencyGreenThreat(nextConstituency.id),
+          getConstituencyResults(constituency.id),
+          getConstituencyDemographics(constituency.id),
+          getConstituencySwings(constituency.id),
+          getCouncilData(constituency.id),
+          getLinkedAuthorities(constituency.id),
+          getMarginalityScore(constituency.id),
+          getElectorateTrend(constituency.id),
+          getSwingTimeline(constituency.id),
+          getByElectionRisk(constituency.id),
+          getVulnerabilityScore(constituency.id),
+          getConstituencyReformThreat(constituency.id),
+          getConstituencyLibDemThreat(constituency.id),
+          getConstituencyGreenThreat(constituency.id),
         ]);
 
         if (cancelled) return;
@@ -1938,29 +1991,31 @@ export default function ConstituencyDetail() {
         setReformThreat(nextReformThreat);
         setLdThreat(nextLdThreat);
         setGreenThreat(nextGreenThreat);
+
         const nextLgrImpacts = await getLgrImpactsForAuthorityNames(
           (nextLocalAuthorities ?? []).map((authority) => authority?.name).filter(Boolean)
         );
         if (!cancelled) setLgrImpacts(nextLgrImpacts);
+
         const nextMetadata = await getIntelligenceMetadata({
           tableName: "constituencies",
           entityType: "constituency",
-          entityId: nextConstituency.id,
+          entityId: constituency.id,
           datasetKey: "constituency_intelligence",
         });
         if (!cancelled) setMetadata(nextMetadata);
       } catch (err) {
         if (!cancelled) setError(err.message || "Failed to load constituency.");
       } finally {
-        if (!cancelled) setLoading(false);
+        if (!cancelled) setDetailLoading(false);
       }
     }
 
-    load();
+    loadDetails();
     return () => {
       cancelled = true;
     };
-  }, [onsCode]);
+  }, [allowedConstituencies, constituency, hasConstituencyAccess, permissionsLoading]);
 
   // Build a party id → party object lookup from results (covers all parties in this constituency)
   const partyMap = useMemo(() => {
@@ -2093,7 +2148,7 @@ export default function ConstituencyDetail() {
     }
   };
 
-  if (loading) {
+  if (loading || permissionsLoading || (constituency && allowedConstituencies === null) || detailLoading) {
     return (
       <div className="page stack">
         <Card>
@@ -2124,6 +2179,14 @@ export default function ConstituencyDetail() {
             </Link>
           </div>
         </Card>
+      </div>
+    );
+  }
+
+  if (!hasConstituencyAccess) {
+    return (
+      <div className="page stack">
+        <UpgradePrompt missing="This constituency is not included in your subscription" />
       </div>
     );
   }
