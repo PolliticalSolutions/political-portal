@@ -6,9 +6,6 @@ import SignupForm from "../components/SignupForm.jsx";
 import { supabase } from "../lib/supabase.js";
 import { createOnboardingAccount } from "../lib/uploadApi.js";
 
-const ACCOUNT_EXISTS_MESSAGE =
-  "An account already exists for this association. To discuss access please contact admin@politicalsolutions.uk";
-
 const initialForm = {
   name: "",
   email: "",
@@ -17,18 +14,6 @@ const initialForm = {
   password: "",
   confirmPassword: "",
 };
-
-async function hasActiveAssociationAccount(associationId) {
-  if (!associationId) return false;
-  const { data, error } = await supabase
-    .from("user_permissions")
-    .select("id")
-    .eq("association_id", associationId)
-    .eq("is_active", true)
-    .limit(1);
-  if (error) throw new Error(error.message || "Unable to check association access.");
-  return Boolean(data?.length);
-}
 
 export default function SignUp() {
   const navigate = useNavigate();
@@ -86,13 +71,7 @@ export default function SignUp() {
 
     setSubmitting(true);
     try {
-      const accountExists = await hasActiveAssociationAccount(form.associationId);
-      if (accountExists) {
-        setErrors({ associationId: ACCOUNT_EXISTS_MESSAGE });
-        return;
-      }
-
-      await createOnboardingAccount({
+      const onboardingPayload = {
         name: form.name.trim(),
         fullName: form.name.trim(),
         email: form.email.trim(),
@@ -100,9 +79,16 @@ export default function SignUp() {
         associationId: form.associationId,
         associationName: selectedAssociation?.name || "",
         password: form.password,
+      };
+      console.log("[signup] submitting onboarding payload", {
+        ...onboardingPayload,
+        password: "[redacted]",
       });
+      const onboardingResponse = await createOnboardingAccount(onboardingPayload);
+      console.log("[signup] raw onboarding response", onboardingResponse);
       navigate("/login?welcome=true");
     } catch (nextError) {
+      console.log("[signup] onboarding request error", nextError);
       setErrors({ associationId: nextError.message || "Unable to create account." });
     } finally {
       setSubmitting(false);
@@ -141,5 +127,3 @@ export default function SignUp() {
     </div>
   );
 }
-
-export { ACCOUNT_EXISTS_MESSAGE, hasActiveAssociationAccount };
