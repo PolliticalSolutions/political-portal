@@ -5,6 +5,7 @@ import Button from "../../components/Button.jsx";
 import Card from "../../components/Card.jsx";
 import { getSession } from "../../auth/session.js";
 import { getUserSubscriptionStatus } from "../../lib/subscriptionApi.js";
+import { usePermissions } from "../../context/PermissionsContext.jsx";
 
 const signupContextKey = "ps_signup_context_v1";
 
@@ -36,6 +37,7 @@ const dashboardCtaStyle = {
 };
 
 export default function Dashboard() {
+  const { isAdmin } = usePermissions();
   const [signupContext, setSignupContext] = useState(null);
   const [subscriptionStatus, setSubscriptionStatus] = useState("loading");
 
@@ -88,7 +90,7 @@ export default function Dashboard() {
         </div>
       </Card>
 
-      {subscriptionStatus !== "loading" && !["active", "trialing"].includes(subscriptionStatus) && (
+      {!isAdmin && subscriptionStatus !== "loading" && !["active", "trialing"].includes(subscriptionStatus) && (
         <div className="status warning">
           <span>You don't have an active subscription. Access is limited.</span>
           <Link to="/subscribe">Upgrade your subscription</Link>

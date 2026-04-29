@@ -1861,7 +1861,7 @@ function IntelligenceSummaryBar({
 
 export default function ConstituencyDetail() {
   const { onsCode } = useParams();
-  const { allowedConstituencies, loading: permissionsLoading } = usePermissions();
+  const { allowedConstituencies, loading: permissionsLoading, isAdmin } = usePermissions();
   const [constituency, setConstituency] = useState(null);
   const [results, setResults] = useState([]);
   const [demographics, setDemographics] = useState([]);
@@ -1894,13 +1894,14 @@ export default function ConstituencyDetail() {
   const [copyStatus, setCopyStatus] = useState("");
 
   const hasConstituencyAccess = useMemo(() => {
+    if (isAdmin) return true;
     if (!constituency || !Array.isArray(allowedConstituencies)) return false;
     return allowedConstituencies.some((allowed) => {
       const allowedId = allowed?.id || allowed?.constituency_id;
       const allowedCode = allowed?.ons_code || allowed?.pcon_code;
       return allowedId === constituency.id || allowedCode === constituency.ons_code;
     });
-  }, [allowedConstituencies, constituency]);
+  }, [allowedConstituencies, constituency, isAdmin]);
 
   useEffect(() => {
     if (!onsCode) return;
@@ -1927,7 +1928,7 @@ export default function ConstituencyDetail() {
   }, [onsCode]);
 
   useEffect(() => {
-    if (!constituency || permissionsLoading || allowedConstituencies === null) return undefined;
+    if (!constituency || permissionsLoading || (!isAdmin && allowedConstituencies === null)) return undefined;
     if (!hasConstituencyAccess) {
       setDetailLoading(false);
       setResults([]);
@@ -2015,7 +2016,7 @@ export default function ConstituencyDetail() {
     return () => {
       cancelled = true;
     };
-  }, [allowedConstituencies, constituency, hasConstituencyAccess, permissionsLoading]);
+  }, [allowedConstituencies, constituency, hasConstituencyAccess, isAdmin, permissionsLoading]);
 
   // Build a party id → party object lookup from results (covers all parties in this constituency)
   const partyMap = useMemo(() => {
@@ -2148,7 +2149,7 @@ export default function ConstituencyDetail() {
     }
   };
 
-  if (loading || permissionsLoading || (constituency && allowedConstituencies === null) || detailLoading) {
+  if (loading || permissionsLoading || (constituency && !isAdmin && allowedConstituencies === null) || detailLoading) {
     return (
       <div className="page stack">
         <Card>

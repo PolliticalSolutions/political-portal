@@ -1,6 +1,7 @@
 import associations from "../data/associations.json";
 import { getRuntimeConfig } from "../config/runtimeConfig.js";
 import { supabase } from "./supabase.js";
+import { getSupabaseServiceClient } from "./supabaseServiceClient.js";
 import { calculateAssociationSubscriptionPricing } from "./subscriptionPricing.js";
 
 const ACTIVE_SUBSCRIPTION_STATUSES = new Set(["active", "trialing"]);
@@ -98,5 +99,28 @@ export function createSubscriptionPaymentIntent(payload) {
 
 export function requestSubscriptionInvoice(payload) {
   return postStripeApi("/create-invoice", payload);
+}
+
+/**
+ * Returns true if the given Cognito sub belongs to an admin user.
+ * Checks the admin_users table using the service role client (bypasses RLS).
+ *
+ * @param {string} cognitoSub
+ * @returns {Promise<boolean>}
+ */
+export async function isAdmin(cognitoSub) {
+  if (!cognitoSub) return false;
+  const db = getSupabaseServiceClient();
+  if (!db) return false;
+  try {
+    const { data } = await db
+      .from("admin_users")
+      .select("cognito_sub")
+      .eq("cognito_sub", cognitoSub)
+      .maybeSingle();
+    return !!data;
+  } catch {
+    return false;
+  }
 }
 
