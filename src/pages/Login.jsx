@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
-import { useLocation, useSearchParams } from "react-router-dom";
-import { startLogin, startSignUp } from "../lib/cognito.js";
+import { useLocation, useNavigate, useSearchParams } from "react-router-dom";
+import { startLogin } from "../lib/cognito.js";
 import Button from "../components/Button.jsx";
 import Card from "../components/Card.jsx";
 import Footer from "../components/Footer.jsx";
@@ -9,6 +9,7 @@ import { isSafeInternalPath, setPostAuthRedirect } from "../utils/postAuthRedire
 export default function Login({ authed }) {
   const [error, setError] = useState(null);
   const location = useLocation();
+  const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const fromState = location.state?.from;
   const redirectedFrom = typeof fromState === "string" ? fromState : fromState?.pathname;
@@ -53,13 +54,9 @@ export default function Login({ authed }) {
     }
   };
 
-  const handleSignUp = async () => {
+  const handleSignUp = () => {
     setError(null);
-    try {
-      await startSignUp("/portal");
-    } catch (err) {
-      setError(err.message || "Sign-up failed to start.");
-    }
+    navigate("/signup");
   };
 
   return (
