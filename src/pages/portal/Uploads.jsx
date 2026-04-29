@@ -8,8 +8,6 @@ import { usePermissions } from "../../context/PermissionsContext.jsx";
 const MAX_FILE_SIZE = 200 * 1024 * 1024; // 200 MB
 const ALLOWED_EXTENSIONS = new Set([".pdf", ".csv"]);
 const POLL_INTERVAL_MS = 30000;
-// API Gateway query string limit is 8192 bytes. Each pconCode is ~10 chars.
-// If the user has more than this many pconCodes, skip filtering and return all elections.
 const MAX_PCON_FILTER_CODES = 500;
 const PENDING_JOB_STATUSES = new Set(["PENDING", "QUEUED", "CREATED", "RECEIVED"]);
 const PROCESSING_JOB_STATUSES = new Set(["PROCESSING", "RUNNING"]);
@@ -50,11 +48,7 @@ function getStatusPresentation(status) {
   }
 
   if (COMPLETE_JOB_STATUSES.has(normalized)) {
-    return {
-      label: "Complete",
-      description: null,
-      style: { background: "#dcfce7", color: "#15803d" },
-    };
+    return { label: "Complete", description: null, style: { background: "#dcfce7", color: "#15803d" } };
   }
 
   if (FAILED_JOB_STATUSES.has(normalized)) {
@@ -65,68 +59,52 @@ function getStatusPresentation(status) {
     };
   }
 
-  if (PENDING_JOB_STATUSES.has(normalized) || !normalized) {
-    return {
-      label: "Pending",
-      description: "Queued for processing — you will receive an email when complete. Large batches may take several hours.",
-      style: { background: "#e2e8f0", color: "#475569" },
-    };
-  }
-
   return {
-    label: normalized,
-    description: null,
-    style: { background: "#f1f5f9", color: "#64748b" },
+    label: PENDING_JOB_STATUSES.has(normalized) || !normalized ? "Pending" : normalized,
+    description: PENDING_JOB_STATUSES.has(normalized)
+      ? "Queued for processing — you will receive an email when complete. Large batches may take several hours."
+      : null,
+    style: PENDING_JOB_STATUSES.has(normalized)
+      ? { background: "#e2e8f0", color: "#475569" }
+      : { background: "#f1f5f9", color: "#64748b" },
   };
 }
 
 function validateFile(file) {
   const ext = getFileExt(file.name);
-  if (!ALLOWED_EXTENSIONS.has(ext)) {
-    return `"${file.name}": only PDF and CSV files are accepted.`;
-  }
-  if (file.size > MAX_FILE_SIZE) {
-    return `"${file.name}": exceeds the 200 MB size limit.`;
-  }
+  if (!ALLOWED_EXTENSIONS.has(ext)) return `"${file.name}": only PDF and CSV files are accepted.`;
+  if (file.size > MAX_FILE_SIZE) return `"${file.name}": exceeds the 200 MB size limit.`;
   return null;
 }
 
-function formatElection(e) {
+/** Format: ConstituencyName — ElectionName — Date */
+function formatElectionLabel(e, constituencyName) {
   const dateValue = e.polling_date || e.election_date || e.date || "";
-  const year = dateValue.slice(0, 4);
-  const rawType = (e.electionType || e.election_type || "").toString().trim().toUpperCase();
-  const monthYear = dateValue
-    ? new Intl.DateTimeFormat("en-GB", { month: "long", year: "numeric" }).format(new Date(`${dateValue}T00:00:00`))
+  const dateStr = dateValue
+    ? new Intl.DateTimeFormat("en-GB", { day: "numeric", month: "long", year: "numeric" }).format(
+        new Date(`${dateValue}T00:00:00`)
+      )
     : "";
 
-  if (rawType === "GENERAL") {
-    return year ? `${year} General Election` : e.name || "General Election";
+  const rawType = (e.electionType || e.election_type || "").toString().trim().toUpperCase();
+  const year = dateValue.slice(0, 4);
+  let name;
+  if (rawType === "GENERAL") name = year ? `${year} General Election` : "General Election";
+  else if (rawType === "NOTIONAL") name = e.name || (year ? `${year} Notional` : "Notional");
+  else if (rawType === "BY_ELECTION" || e.isByElection) {
+    const base = (e.name || "").trim();
+    name = /by-election/i.test(base) ? base : `${base || "Election"} By-Election`;
+  } else if (rawType === "LOCAL") {
+    const base = (e.localAuthorityName || e.authority || e.name || "Local").replace(/\s+elections?$/i, "").trim();
+    name = /elections?$/i.test(base) ? base : `${base} Elections`;
+  } else {
+    name = e.name || "Election";
   }
 
-  if (rawType === "NOTIONAL") {
-    return e.name || (year ? `${year} Notional (2019 boundaries)` : "Notional election");
-  }
-
-  if (e.isByElection || rawType === "BY_ELECTION") {
-    const baseName = (e.name || "").trim();
-    const title = /by-election/i.test(baseName)
-      ? baseName
-      : `${baseName || e.localAuthorityName || e.wardName || "Election"} By-Election`;
-    return monthYear ? `${title} — ${monthYear}` : title;
-  }
-
-  if (rawType === "LOCAL") {
-    const baseName = (e.localAuthorityName || e.authority || e.name || "Local").replace(/\s+elections?$/i, "").trim();
-    const title = /elections?$/i.test(baseName) ? baseName : `${baseName} Elections`;
-    return monthYear ? `${title} — ${monthYear}` : title;
-  }
-
-  if (rawType === "PCC") {
-    return monthYear ? `${e.name || "PCC Election"} — ${monthYear}` : e.name || "PCC Election";
-  }
-
-  return e.name || (year ? `${year} Election` : "Election");
+  return [constituencyName, name, dateStr].filter(Boolean).join(" — ");
 }
+
+// ── ConstituencySearch (kept as-is) ──────────────────────────────────────────
 
 function ConstituencySearch({ value, onChange, allowedConstituencies = [], assocByConstituencyId = {} }) {
   const [query, setQuery] = useState(value?.name || "");
@@ -147,12 +125,12 @@ function ConstituencySearch({ value, onChange, allowedConstituencies = [], assoc
     debounceRef.current = setTimeout(() => {
       setSearching(true);
       try {
-        const normalizedQuery = q.toLowerCase();
+        const normalized = q.toLowerCase();
         const filtered = allowedConstituencies
           .filter((item) => {
-            const name = (item.name || "").toLowerCase();
-            const onsCode = (item.ons_code || "").toLowerCase();
-            return name.includes(normalizedQuery) || onsCode.includes(normalizedQuery);
+            const n = (item.name || "").toLowerCase();
+            const code = (item.ons_code || "").toLowerCase();
+            return n.includes(normalized) || code.includes(normalized);
           })
           .sort((a, b) => a.name.localeCompare(b.name))
           .slice(0, 10);
@@ -169,9 +147,7 @@ function ConstituencySearch({ value, onChange, allowedConstituencies = [], assoc
 
   useEffect(() => {
     const handler = (e) => {
-      if (containerRef.current && !containerRef.current.contains(e.target)) {
-        setOpen(false);
-      }
+      if (containerRef.current && !containerRef.current.contains(e.target)) setOpen(false);
     };
     document.addEventListener("mousedown", handler);
     return () => document.removeEventListener("mousedown", handler);
@@ -227,11 +203,7 @@ function ConstituencySearch({ value, onChange, allowedConstituencies = [], assoc
           </button>
         )}
       </div>
-      {searching && (
-        <p style={{ fontSize: 12, color: "#64748b", margin: "4px 0 0" }}>
-          Searching…
-        </p>
-      )}
+      {searching && <p style={{ fontSize: 12, color: "#64748b", margin: "4px 0 0" }}>Searching…</p>}
       {open && results.length > 0 && (
         <ul
           role="listbox"
@@ -266,12 +238,8 @@ function ConstituencySearch({ value, onChange, allowedConstituencies = [], assoc
                 fontSize: 14,
                 borderBottom: "1px solid #f1f5f9",
               }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.background = "#f8fafc";
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.background = "transparent";
-              }}
+              onMouseEnter={(e) => { e.currentTarget.style.background = "#f8fafc"; }}
+              onMouseLeave={(e) => { e.currentTarget.style.background = "transparent"; }}
             >
               <span>{c.name}</span>
               {assocByConstituencyId[c.id] && (
@@ -287,69 +255,161 @@ function ConstituencySearch({ value, onChange, allowedConstituencies = [], assoc
   );
 }
 
+// ── StatusBadge ───────────────────────────────────────────────────────────────
+
 function StatusBadge({ status }) {
-  const presentation = getStatusPresentation(status);
+  const p = getStatusPresentation(status);
   return (
     <div>
-      <span
-        style={{
-          ...presentation.style,
-          padding: "2px 8px",
-          borderRadius: 4,
-          fontSize: 12,
-          fontWeight: 600,
-        }}
-      >
-        {presentation.label}
+      <span style={{ ...p.style, padding: "2px 8px", borderRadius: 4, fontSize: 12, fontWeight: 600 }}>
+        {p.label}
       </span>
-      {presentation.description && (
-        <div style={{ fontSize: 12, color: "#64748b", marginTop: 4, maxWidth: 320 }}>
-          {presentation.description}
-        </div>
+      {p.description && (
+        <div style={{ fontSize: 12, color: "#64748b", marginTop: 4, maxWidth: 320 }}>{p.description}</div>
       )}
     </div>
   );
 }
 
+// ── Confirmation Modal ────────────────────────────────────────────────────────
+
+function ConfirmUploadModal({ constituency, electionLabel, files, onConfirm, onBack }) {
+  return (
+    <div
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="confirm-modal-title"
+      style={{
+        position: "fixed",
+        inset: 0,
+        zIndex: 100,
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        padding: 24,
+      }}
+    >
+      {/* Backdrop */}
+      <div
+        style={{
+          position: "absolute",
+          inset: 0,
+          background: "rgba(0,0,0,0.45)",
+        }}
+        onClick={onBack}
+        aria-hidden="true"
+      />
+      {/* Panel */}
+      <div
+        style={{
+          position: "relative",
+          background: "white",
+          borderRadius: 12,
+          padding: 28,
+          maxWidth: 520,
+          width: "100%",
+          boxShadow: "0 8px 32px rgba(0,0,0,0.18)",
+        }}
+      >
+        <h2 id="confirm-modal-title" style={{ margin: "0 0 16px", fontSize: 18, fontWeight: 700 }}>
+          Confirm upload
+        </h2>
+
+        <dl style={{ margin: "0 0 16px", display: "grid", gridTemplateColumns: "auto 1fr", gap: "8px 16px" }}>
+          <dt style={{ fontWeight: 600, color: "#475569", fontSize: 14 }}>Constituency</dt>
+          <dd style={{ margin: 0, fontSize: 14 }}>
+            {constituency.name}
+            {constituency.code && (
+              <span style={{ marginLeft: 6, color: "#64748b", fontSize: 12 }}>({constituency.code})</span>
+            )}
+          </dd>
+          <dt style={{ fontWeight: 600, color: "#475569", fontSize: 14 }}>Election</dt>
+          <dd style={{ margin: 0, fontSize: 14 }}>{electionLabel}</dd>
+          <dt style={{ fontWeight: 600, color: "#475569", fontSize: 14 }}>Files</dt>
+          <dd style={{ margin: 0, fontSize: 14 }}>{files.length} file{files.length !== 1 ? "s" : ""}</dd>
+        </dl>
+
+        <ul
+          style={{
+            margin: "0 0 20px",
+            padding: "10px 14px",
+            background: "#f8fafc",
+            borderRadius: 8,
+            listStyle: "none",
+            maxHeight: 180,
+            overflowY: "auto",
+          }}
+        >
+          {files.map((f) => (
+            <li
+              key={f.name}
+              style={{ fontSize: 13, padding: "2px 0", color: "#1e293b", borderBottom: "1px solid #e2e8f0" }}
+            >
+              {f.name}
+              <span style={{ marginLeft: 8, color: "#94a3b8", fontSize: 11 }}>
+                ({(f.size / 1024 / 1024).toFixed(1)} MB)
+              </span>
+            </li>
+          ))}
+        </ul>
+
+        <p style={{ margin: "0 0 20px", fontSize: 13, color: "#64748b" }}>
+          Once confirmed, this batch is sealed — no further files can be added. Proceed?
+        </p>
+
+        <div style={{ display: "flex", gap: 10, justifyContent: "flex-end" }}>
+          <Button type="button" variant="ghost" onClick={onBack}>
+            Go Back
+          </Button>
+          <Button type="button" onClick={onConfirm}>
+            Confirm and Upload
+          </Button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ── Main component ────────────────────────────────────────────────────────────
+
 export default function Uploads() {
   const { allowedConstituencies, loading: permsLoading } = usePermissions();
-  const allowedPconCodes = Array.from(
-    new Set(
-      (allowedConstituencies || [])
-        .map((item) => (item.ons_code || "").toString().trim().toUpperCase())
-        .filter(Boolean)
-    )
-  );
-  const allowedPconCodesKey = allowedPconCodes.join(",");
+
   const hasPermissions = allowedConstituencies !== null && allowedConstituencies.length > 0;
   const permissionsConfigured = allowedConstituencies !== null;
-  // Map constituency id -> association name for showing in search dropdown
+
   const assocByConstituencyId = Object.fromEntries(
     (allowedConstituencies || [])
       .filter((c) => c.association_name)
       .map((c) => [c.id, c.association_name])
   );
 
-  const [staged, setStaged] = useState([]);
-  const [metadata, setMetadata] = useState({ clientName: "", notes: "" });
+  // ── Form state ──────────────────────────────────────────────────────────────
   const [constituency, setConstituency] = useState({ name: "", code: "" });
-  const [submissionScope, setSubmissionScope] = useState({
-    pconCode: "",
-    wards: "",
-    electionId: "",
-  });
   const [elections, setElections] = useState([]);
   const [electionsError, setElectionsError] = useState(null);
   const [electionsLoading, setElectionsLoading] = useState(false);
+  const [selectedElectionId, setSelectedElectionId] = useState("");
+  const [staged, setStaged] = useState([]);
+  const [metadata, setMetadata] = useState({ clientName: "", notes: "" });
+  const [wardCodes, setWardCodes] = useState("");
   const [showAdvanced, setShowAdvanced] = useState(false);
-  const [jobs, setJobs] = useState([]);
+
+  // ── Upload state ────────────────────────────────────────────────────────────
+  const [confirmModalOpen, setConfirmModalOpen] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [uploadErrors, setUploadErrors] = useState([]);
   const [uploadSuccessMessage, setUploadSuccessMessage] = useState("");
+
+  // ── Jobs state ──────────────────────────────────────────────────────────────
+  const [jobs, setJobs] = useState([]);
   const [loadError, setLoadError] = useState(null);
   const [dragOver, setDragOver] = useState(false);
+
   const fileInputRef = useRef(null);
   const pollingRef = useRef(null);
+
+  // ── Load jobs ───────────────────────────────────────────────────────────────
   const loadJobs = useCallback(() => {
     setLoadError(null);
     return listJobs(25)
@@ -357,31 +417,23 @@ export default function Uploads() {
       .catch((err) => setLoadError(err.message));
   }, []);
 
-  // Load jobs on mount
-  useEffect(() => {
-    loadJobs();
-  }, [loadJobs]);
+  useEffect(() => { loadJobs(); }, [loadJobs]);
 
+  // ── Load elections per constituency ─────────────────────────────────────────
   useEffect(() => {
-    if (permsLoading || !permissionsConfigured) {
-      return undefined;
-    }
-
-    if (!allowedPconCodesKey) {
+    const code = constituency.code;
+    if (!code) {
       setElections([]);
-      setSubmissionScope((scope) => ({
-        ...scope,
-        electionId: "",
-      }));
+      setSelectedElectionId("");
       return undefined;
     }
 
     let cancelled = false;
     setElectionsLoading(true);
     setElectionsError(null);
+    setSelectedElectionId("");
 
-    const pconFilter = allowedPconCodes.length <= MAX_PCON_FILTER_CODES ? allowedPconCodes : [];
-    listElections(["OPEN", "UPCOMING", "CLOSED", "ARCHIVED"], pconFilter)
+    listElections(["OPEN", "UPCOMING", "CLOSED", "ARCHIVED"], [code])
       .then((data) => {
         if (cancelled) return;
         const items = (data?.items || []).slice().sort((a, b) =>
@@ -390,68 +442,44 @@ export default function Uploads() {
           )
         );
         setElections(items);
+        // Auto-select the most recent general election, or first available
         const latestGeneral = items.find(
           (e) => (e.electionType || e.election_type || "").toString().trim().toUpperCase() === "GENERAL"
         );
         const defaultElection = latestGeneral || items[0] || null;
-        setSubmissionScope((scope) => ({
-          ...scope,
-          electionId:
-            scope.electionId && items.some((item) => item.electionId === scope.electionId)
-              ? scope.electionId
-              : defaultElection?.electionId || "",
-        }));
+        if (defaultElection) setSelectedElectionId(defaultElection.electionId);
       })
       .catch(() => {
         if (cancelled) return;
-        setElectionsError("Failed to load elections.");
+        setElectionsError("Failed to load elections for this constituency.");
       })
       .finally(() => {
         if (!cancelled) setElectionsLoading(false);
       });
 
     return () => { cancelled = true; };
-  }, [allowedPconCodesKey, permissionsConfigured, permsLoading]);
+  }, [constituency.code]);
 
-  // Poll active jobs
+  // ── Poll active jobs ─────────────────────────────────────────────────────────
   useEffect(() => {
     if (pollingRef.current) {
       clearInterval(pollingRef.current);
       pollingRef.current = null;
     }
-
-    if (!jobs.some((job) => isActiveJobStatus(job.status))) {
-      return undefined;
-    }
-
-    pollingRef.current = setInterval(() => {
-      loadJobs();
-    }, POLL_INTERVAL_MS);
-
+    if (!jobs.some((j) => isActiveJobStatus(j.status))) return undefined;
+    pollingRef.current = setInterval(loadJobs, POLL_INTERVAL_MS);
     return () => {
-      if (pollingRef.current) {
-        clearInterval(pollingRef.current);
-        pollingRef.current = null;
-      }
+      if (pollingRef.current) { clearInterval(pollingRef.current); pollingRef.current = null; }
     };
   }, [jobs, loadJobs]);
 
-  const handleConstituencyChange = (name, code) => {
-    setConstituency({ name, code });
-    setSubmissionScope((s) => ({ ...s, pconCode: code }));
-  };
-
+  // ── File handling ────────────────────────────────────────────────────────────
   const addFiles = useCallback((fileList) => {
-    const incoming = Array.from(fileList).map((file) => ({
-      file,
-      error: validateFile(file),
-    }));
+    const incoming = Array.from(fileList).map((file) => ({ file, error: validateFile(file) }));
     setStaged((prev) => [...prev, ...incoming]);
   }, []);
 
-  const removeStaged = (index) => {
-    setStaged((prev) => prev.filter((_, i) => i !== index));
-  };
+  const removeStaged = (index) => setStaged((prev) => prev.filter((_, i) => i !== index));
 
   const handleDrop = (e) => {
     e.preventDefault();
@@ -464,28 +492,42 @@ export default function Uploads() {
     e.target.value = "";
   };
 
-  const handleUpload = async () => {
+  const handleConstituencyChange = (name, code) => {
+    setConstituency({ name, code });
+  };
+
+  // ── Open confirm modal ───────────────────────────────────────────────────────
+  const handleUploadClick = () => {
     const valid = staged.filter((s) => !s.error);
     if (valid.length === 0) return;
-    const pconCode = submissionScope.pconCode.trim().toUpperCase();
-    if (!pconCode) {
-      setUploadErrors(["Constituency is required."]);
-      return;
-    }
-    const electionId = submissionScope.electionId.trim();
-    if (!electionId) {
-      setUploadErrors(["Election selection is required."]);
-      return;
-    }
 
-    const wardCodes = submissionScope.wards
+    const errors = [];
+    if (!constituency.code) errors.push("Please select a constituency.");
+    if (!selectedElectionId) errors.push("Please select an election.");
+    if (errors.length > 0) { setUploadErrors(errors); return; }
+
+    setUploadErrors([]);
+    setConfirmModalOpen(true);
+  };
+
+  // ── Confirmed upload — batchId sealed here ───────────────────────────────────
+  const handleConfirm = async () => {
+    setConfirmModalOpen(false);
+
+    const batchId = crypto.randomUUID();
+    const valid = staged.filter((s) => !s.error);
+    const totalFilesInBatch = valid.length;
+    const pconCode = constituency.code.trim().toUpperCase();
+    const electionId = selectedElectionId.trim();
+    const parsedWards = wardCodes
       .split(",")
-      .map((entry) => entry.trim().toUpperCase())
+      .map((w) => w.trim().toUpperCase())
       .filter(Boolean);
 
     setUploading(true);
     setUploadErrors([]);
     setUploadSuccessMessage("");
+
     const errors = [];
     const successfulFiles = new Set();
     let uploadedCount = 0;
@@ -498,7 +540,10 @@ export default function Uploads() {
           filename: file.name,
           pconCode,
           electionId,
-          ...(wardCodes.length > 0 ? { wards: wardCodes } : {}),
+          batchId,
+          totalFilesInBatch,
+          constituencyOnsCode: pconCode,
+          ...(parsedWards.length > 0 ? { wards: parsedWards } : {}),
           fileType,
           size: file.size,
           metadata: {
@@ -506,6 +551,7 @@ export default function Uploads() {
             notes: metadata.notes.trim(),
           },
         });
+
         if (!upload?.url || !upload?.fields) {
           throw new Error("Upload details were missing from API response.");
         }
@@ -516,25 +562,12 @@ export default function Uploads() {
         }
         form.append("file", file);
 
-        const postRes = await fetch(upload.url, {
-          method: "POST",
-          body: form,
-        });
-        if (!postRes.ok) {
-          throw new Error(`S3 upload failed (${postRes.status}).`);
-        }
+        const postRes = await fetch(upload.url, { method: "POST", body: form });
+        if (!postRes.ok) throw new Error(`S3 upload failed (${postRes.status}).`);
 
         const now = new Date().toISOString();
         setJobs((prev) => [
-          {
-            jobId,
-            filename: file.name,
-            fileType,
-            s3Key,
-            status: "QUEUED",
-            createdAt: now,
-            updatedAt: now,
-          },
+          { jobId, filename: file.name, fileType, s3Key, status: "QUEUED", createdAt: now, updatedAt: now },
           ...prev,
         ]);
         successfulFiles.add(file);
@@ -545,38 +578,44 @@ export default function Uploads() {
     }
 
     setUploading(false);
+
     if (uploadedCount > 0) {
       setUploadSuccessMessage(
-        "Your file has been submitted successfully. You will receive an email when processing is complete."
+        `${uploadedCount} file${uploadedCount !== 1 ? "s" : ""} submitted. You will receive an email when processing is complete.`
       );
       setStaged((prev) => prev.filter(({ file, error }) => error || !successfulFiles.has(file)));
       if (valid.length === uploadedCount) {
         setMetadata({ clientName: "", notes: "" });
+        setWardCodes("");
       }
     }
-    if (errors.length > 0) {
-      setUploadErrors(errors);
-    }
+    if (errors.length > 0) setUploadErrors(errors);
   };
 
-  const handleRefresh = () => {
-    loadJobs();
-  };
-
+  // ── Derived ──────────────────────────────────────────────────────────────────
   const validStaged = staged.filter((s) => !s.error);
   const invalidStaged = staged.filter((s) => s.error);
 
+  const selectedElection = elections.find((e) => e.electionId === selectedElectionId) || null;
+  const electionLabel = selectedElection
+    ? formatElectionLabel(selectedElection, constituency.name)
+    : "";
+
+  const canUpload = !uploading && validStaged.length > 0 && !!constituency.code && !!selectedElectionId;
+
+  // ── Render ───────────────────────────────────────────────────────────────────
   return (
     <div className="page stack">
       <Helmet><title>Data Uploads | Political Solutions</title></Helmet>
+
       <Card>
         <div className="portal-page-header">
           <div className="portal-page-header__content">
             <span className="portal-page-header__eyebrow">Marked Register Processing</span>
             <h1 className="portal-page-header__title">Uploads</h1>
             <p className="portal-page-header__subtitle">
-              Upload your Marked Register PDF, select the relevant election and
-              constituency, and we will process it and email you the results.
+              Select a constituency and election, then upload your Marked Register PDFs. We will process
+              them and email you the results.
             </p>
           </div>
         </div>
@@ -591,153 +630,31 @@ export default function Uploads() {
       {!permsLoading && permissionsConfigured && !hasPermissions && (
         <Card>
           <div role="alert" style={{ padding: "8px 0" }}>
-            <p style={{ fontWeight: 600, marginBottom: 8 }}>
-              No constituencies configured
-            </p>
+            <p style={{ fontWeight: 600, marginBottom: 8 }}>No constituencies configured</p>
             <p className="muted" style={{ margin: 0 }}>
               Your account has not yet been configured for any associations.
               Please contact{" "}
-              <a href="mailto:paul@politicalsolutions.uk">
-                paul@politicalsolutions.uk
-              </a>{" "}
+              <a href="mailto:paul@politicalsolutions.uk">paul@politicalsolutions.uk</a>{" "}
               to have your access set up.
             </p>
           </div>
         </Card>
       )}
 
-      {(permsLoading || (permissionsConfigured && !hasPermissions)) ? null : (
-      <Card title="Upload files">
-        {uploadSuccessMessage && (
-          <div className="status success" role="status" style={{ marginBottom: 16 }}>
-            {uploadSuccessMessage}
-          </div>
-        )}
-        <div
-          className={`portal-dropzone${dragOver ? " is-active" : ""}`}
-          onDragOver={(e) => {
-            e.preventDefault();
-            setDragOver(true);
-          }}
-          onDragLeave={() => setDragOver(false)}
-          onDrop={handleDrop}
-          onClick={() => fileInputRef.current?.click()}
-          onKeyDown={(e) => e.key === "Enter" && fileInputRef.current?.click()}
-          role="button"
-          tabIndex={0}
-          aria-label="Drop files here or click to choose"
-        >
-          <p className="portal-dropzone__title">
-            Drag &amp; drop PDF or CSV files here, or{" "}
-            <strong style={{ color: "#2563eb" }}>click to browse</strong>
-          </p>
-          <p className="portal-dropzone__meta">
-            Accepted: .pdf, .csv — max 200 MB per file
-          </p>
-          <input
-            ref={fileInputRef}
-            type="file"
-            accept=".pdf,.csv,application/pdf,text/csv"
-            multiple
-            onChange={handleFileChange}
-            style={{ display: "none" }}
-            aria-hidden="true"
-          />
-        </div>
-
-        {staged.length > 0 && (
-          <div className="stack" style={{ marginTop: 16, gap: 6 }}>
-            <strong>Selected files ({staged.length}):</strong>
-            <ul className="portal-file-list">
-              {staged.map(({ file, error }, i) => (
-                <li
-                  key={`${file.name}-${i}`}
-                  className="portal-file-list__item"
-                  style={{ color: error ? "#b91c1c" : "inherit" }}
-                >
-                  <span style={{ flex: 1 }}>
-                    {file.name}{" "}
-                    <span className="portal-file-list__meta">
-                      ({(file.size / 1024 / 1024).toFixed(1)} MB)
-                    </span>
-                    {error && (
-                      <span
-                        style={{ display: "block", fontSize: 12, color: "#b91c1c" }}
-                      >
-                        {error}
-                      </span>
-                    )}
-                  </span>
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    onClick={() => removeStaged(i)}
-                    className="button--small"
-                  >
-                    Remove
-                  </Button>
-                </li>
-              ))}
-            </ul>
-            {invalidStaged.length > 0 && (
-              <p style={{ margin: 0, fontSize: 13, color: "#b91c1c" }}>
-                {invalidStaged.length} file(s) with errors will not be uploaded.
-              </p>
-            )}
-          </div>
-        )}
-
-        {validStaged.length > 0 && (
-          <div className="stack" style={{ marginTop: 20, gap: 12 }}>
-            {/* Client name */}
-            <label className="field" htmlFor="clientName">
-              <span>Client name (optional)</span>
-              <input
-                className="input"
-                id="clientName"
-                type="text"
-                value={metadata.clientName}
-                onChange={(e) =>
-                  setMetadata((m) => ({ ...m, clientName: e.target.value }))
-                }
-                placeholder="e.g. North Association"
-              />
-            </label>
-
-            {/* Election */}
-            <div className="field">
-              <label htmlFor="electionId">Election</label>
-              <select
-                className="input"
-                id="electionId"
-                value={submissionScope.electionId}
-                disabled={electionsLoading}
-                onChange={(e) =>
-                  setSubmissionScope((scope) => ({
-                    ...scope,
-                    electionId: e.target.value,
-                  }))
-                }
-              >
-                <option value="">
-                  {electionsLoading ? "Loading elections…" : "Select an election"}
-                </option>
-                {elections.map((e) => (
-                  <option key={e.electionId} value={e.electionId}>
-                    {formatElection(e)}
-                  </option>
-                ))}
-              </select>
-              {electionsError && (
-                <p style={{ margin: "6px 0 0", fontSize: 12, color: "#b91c1c" }}>
-                  {electionsError}
-                </p>
-              )}
+      {!(permsLoading || (permissionsConfigured && !hasPermissions)) && (
+        <Card title="Upload files">
+          {uploadSuccessMessage && (
+            <div className="status success" role="status" style={{ marginBottom: 16 }}>
+              {uploadSuccessMessage}
             </div>
+          )}
 
-            {/* Constituency */}
+          {/* ── Step 1: Constituency ── */}
+          <div className="stack" style={{ gap: 16 }}>
             <div className="field">
-              <label htmlFor="constituency-search">Constituency</label>
+              <label htmlFor="constituency-search">
+                <strong>Step 1:</strong> Select constituency
+              </label>
               <ConstituencySearch
                 value={constituency}
                 onChange={handleConstituencyChange}
@@ -751,104 +668,210 @@ export default function Uploads() {
               )}
             </div>
 
-            {/* Notes */}
-            <label className="field" htmlFor="notes">
-              <span>Notes (optional)</span>
-              <textarea
-                className="input"
-                id="notes"
-                rows={3}
-                value={metadata.notes}
-                onChange={(e) =>
-                  setMetadata((m) => ({ ...m, notes: e.target.value }))
-                }
-                placeholder="Any additional notes about this batch"
-              />
-            </label>
-
-            {/* Advanced options */}
-            <div>
-              <button
-                type="button"
-                onClick={() => setShowAdvanced((v) => !v)}
-                style={{
-                  background: "none",
-                  border: "none",
-                  padding: 0,
-                  cursor: "pointer",
-                  color: "#2563eb",
-                  fontSize: 13,
-                  fontWeight: 600,
-                  display: "flex",
-                  alignItems: "center",
-                  gap: 4,
-                }}
-              >
-                <span>{showAdvanced ? "▾" : "▸"}</span>
-                Advanced options
-              </button>
-              {showAdvanced && (
-                <div style={{ marginTop: 10 }}>
-                  <label className="field" htmlFor="wardCodes">
-                    <span>Ward codes (optional, comma-separated WD24CD)</span>
-                    <input
-                      className="input"
-                      id="wardCodes"
-                      type="text"
-                      value={submissionScope.wards}
-                      onChange={(e) =>
-                        setSubmissionScope((scope) => ({
-                          ...scope,
-                          wards: e.target.value,
-                        }))
-                      }
-                      placeholder="e.g. W1001,W1002"
-                    />
-                  </label>
-                </div>
+            {/* ── Step 2: Election ── */}
+            <div className="field">
+              <label htmlFor="electionId">
+                <strong>Step 2:</strong> Select election
+              </label>
+              {!constituency.code ? (
+                <p style={{ margin: 0, fontSize: 13, color: "#94a3b8" }}>
+                  Select a constituency above to load available elections.
+                </p>
+              ) : (
+                <>
+                  <select
+                    className="input"
+                    id="electionId"
+                    value={selectedElectionId}
+                    disabled={electionsLoading}
+                    onChange={(e) => setSelectedElectionId(e.target.value)}
+                  >
+                    <option value="">
+                      {electionsLoading ? "Loading elections…" : elections.length === 0 ? "No elections available" : "Select an election"}
+                    </option>
+                    {elections.map((e) => (
+                      <option key={e.electionId} value={e.electionId}>
+                        {formatElectionLabel(e, constituency.name)}
+                      </option>
+                    ))}
+                  </select>
+                  {electionsError && (
+                    <p style={{ margin: "6px 0 0", fontSize: 12, color: "#b91c1c" }}>{electionsError}</p>
+                  )}
+                </>
               )}
             </div>
 
-            <Button
-              onClick={handleUpload}
-              loading={uploading}
-              disabled={uploading}
-            >
-              {uploading
-                ? "Uploading…"
-                : `Upload ${validStaged.length} file${validStaged.length !== 1 ? "s" : ""}`}
-            </Button>
-          </div>
-        )}
+            {/* ── Step 3: Files ── */}
+            <div>
+              <p style={{ margin: "0 0 8px", fontWeight: 600, fontSize: 14 }}>
+                <strong>Step 3:</strong> Add files
+              </p>
+              <div
+                className={`portal-dropzone${dragOver ? " is-active" : ""}`}
+                onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
+                onDragLeave={() => setDragOver(false)}
+                onDrop={handleDrop}
+                onClick={() => fileInputRef.current?.click()}
+                onKeyDown={(e) => e.key === "Enter" && fileInputRef.current?.click()}
+                role="button"
+                tabIndex={0}
+                aria-label="Drop files here or click to choose"
+              >
+                <p className="portal-dropzone__title">
+                  Drag &amp; drop PDF or CSV files here, or{" "}
+                  <strong style={{ color: "#2563eb" }}>click to browse</strong>
+                </p>
+                <p className="portal-dropzone__meta">Accepted: .pdf, .csv — max 200 MB per file</p>
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept=".pdf,.csv,application/pdf,text/csv"
+                  multiple
+                  onChange={handleFileChange}
+                  style={{ display: "none" }}
+                  aria-hidden="true"
+                />
+              </div>
+            </div>
 
-        {uploadErrors.length > 0 && (
-          <div className="status error" style={{ marginTop: 12, display: "block" }}>
-            <strong>Errors:</strong>
-            <ul className="portal-error-list">
-              {uploadErrors.map((e) => (
-                <li key={e}>{e}</li>
-              ))}
-            </ul>
+            {staged.length > 0 && (
+              <div className="stack" style={{ gap: 6 }}>
+                <strong>Selected files ({staged.length}):</strong>
+                <ul className="portal-file-list">
+                  {staged.map(({ file, error }, i) => (
+                    <li
+                      key={`${file.name}-${i}`}
+                      className="portal-file-list__item"
+                      style={{ color: error ? "#b91c1c" : "inherit" }}
+                    >
+                      <span style={{ flex: 1 }}>
+                        {file.name}{" "}
+                        <span className="portal-file-list__meta">
+                          ({(file.size / 1024 / 1024).toFixed(1)} MB)
+                        </span>
+                        {error && (
+                          <span style={{ display: "block", fontSize: 12, color: "#b91c1c" }}>{error}</span>
+                        )}
+                      </span>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        onClick={() => removeStaged(i)}
+                        className="button--small"
+                      >
+                        Remove
+                      </Button>
+                    </li>
+                  ))}
+                </ul>
+                {invalidStaged.length > 0 && (
+                  <p style={{ margin: 0, fontSize: 13, color: "#b91c1c" }}>
+                    {invalidStaged.length} file(s) with errors will not be uploaded.
+                  </p>
+                )}
+              </div>
+            )}
+
+            {/* Optional metadata */}
+            {validStaged.length > 0 && (
+              <div className="stack" style={{ gap: 12 }}>
+                <label className="field" htmlFor="clientName">
+                  <span>Client name (optional)</span>
+                  <input
+                    className="input"
+                    id="clientName"
+                    type="text"
+                    value={metadata.clientName}
+                    onChange={(e) => setMetadata((m) => ({ ...m, clientName: e.target.value }))}
+                    placeholder="e.g. North Association"
+                  />
+                </label>
+
+                <label className="field" htmlFor="notes">
+                  <span>Notes (optional)</span>
+                  <textarea
+                    className="input"
+                    id="notes"
+                    rows={3}
+                    value={metadata.notes}
+                    onChange={(e) => setMetadata((m) => ({ ...m, notes: e.target.value }))}
+                    placeholder="Any additional notes about this batch"
+                  />
+                </label>
+
+                <div>
+                  <button
+                    type="button"
+                    onClick={() => setShowAdvanced((v) => !v)}
+                    style={{
+                      background: "none",
+                      border: "none",
+                      padding: 0,
+                      cursor: "pointer",
+                      color: "#2563eb",
+                      fontSize: 13,
+                      fontWeight: 600,
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 4,
+                    }}
+                  >
+                    <span>{showAdvanced ? "▾" : "▸"}</span>
+                    Advanced options
+                  </button>
+                  {showAdvanced && (
+                    <div style={{ marginTop: 10 }}>
+                      <label className="field" htmlFor="wardCodes">
+                        <span>Ward codes (optional, comma-separated WD24CD)</span>
+                        <input
+                          className="input"
+                          id="wardCodes"
+                          type="text"
+                          value={wardCodes}
+                          onChange={(e) => setWardCodes(e.target.value)}
+                          placeholder="e.g. W1001,W1002"
+                        />
+                      </label>
+                    </div>
+                  )}
+                </div>
+
+                <Button
+                  onClick={handleUploadClick}
+                  loading={uploading}
+                  disabled={!canUpload}
+                >
+                  {uploading
+                    ? "Uploading…"
+                    : `Review and upload ${validStaged.length} file${validStaged.length !== 1 ? "s" : ""}`}
+                </Button>
+              </div>
+            )}
+
+            {uploadErrors.length > 0 && (
+              <div className="status error" style={{ display: "block" }}>
+                <strong>Errors:</strong>
+                <ul className="portal-error-list">
+                  {uploadErrors.map((e) => <li key={e}>{e}</li>)}
+                </ul>
+              </div>
+            )}
           </div>
-        )}
-      </Card>
+        </Card>
       )}
 
       <Card
         title="Processing jobs"
         action={
-          <Button type="button" variant="ghost" className="button--small" onClick={handleRefresh}>
+          <Button type="button" variant="ghost" className="button--small" onClick={loadJobs}>
             Refresh
           </Button>
         }
       >
-        {loadError && (
-          <p style={{ color: "#b91c1c", margin: 0 }}>{loadError}</p>
-        )}
+        {loadError && <p style={{ color: "#b91c1c", margin: 0 }}>{loadError}</p>}
         {jobs.length === 0 && !loadError && (
-          <p className="muted" style={{ margin: 0 }}>
-            No jobs yet. Upload files above to get started.
-          </p>
+          <p className="muted" style={{ margin: 0 }}>No jobs yet. Upload files above to get started.</p>
         )}
         {jobs.length > 0 && (
           <div className="table-wrap">
@@ -867,19 +890,9 @@ export default function Uploads() {
                   <tr key={job.jobId}>
                     <td title={job.jobId}>{job.filename}</td>
                     <td>{job.fileType?.toUpperCase()}</td>
-                    <td>
-                      <StatusBadge status={job.status} />
-                    </td>
-                    <td>
-                      {job.createdAt
-                        ? new Date(job.createdAt).toLocaleString()
-                        : "—"}
-                    </td>
-                    <td>
-                      {job.updatedAt
-                        ? new Date(job.updatedAt).toLocaleString()
-                        : "—"}
-                    </td>
+                    <td><StatusBadge status={job.status} /></td>
+                    <td>{job.createdAt ? new Date(job.createdAt).toLocaleString() : "—"}</td>
+                    <td>{job.updatedAt ? new Date(job.updatedAt).toLocaleString() : "—"}</td>
                   </tr>
                 ))}
               </tbody>
@@ -887,6 +900,17 @@ export default function Uploads() {
           </div>
         )}
       </Card>
+
+      {/* Confirmation modal rendered at root level */}
+      {confirmModalOpen && (
+        <ConfirmUploadModal
+          constituency={constituency}
+          electionLabel={electionLabel}
+          files={validStaged.map((s) => s.file)}
+          onConfirm={handleConfirm}
+          onBack={() => setConfirmModalOpen(false)}
+        />
+      )}
     </div>
   );
 }

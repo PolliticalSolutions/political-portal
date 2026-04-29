@@ -807,6 +807,11 @@ async function handleCreateJob(event, origin) {
   const notes = sanitize(body.metadata?.notes, MAX_NOTES);
   const contentType = FILE_TYPE_CONTENT_TYPES[fileType];
 
+  // Batch fields (optional — present when frontend generates a batchId for multi-file uploads)
+  const batchId = sanitize(body.batchId || "", 64);
+  const totalFilesInBatch = Math.max(1, parseInt(body.totalFilesInBatch, 10) || 1);
+  const constituencyOnsCode = sanitize(body.constituencyOnsCode || "", MAX_PCON).toUpperCase();
+
   const jobId = crypto.randomUUID();
   const s3Key = `uploads/${userSub}/${jobId}/${filename}`;
   const now = new Date().toISOString();
@@ -835,6 +840,7 @@ async function handleCreateJob(event, origin) {
       : {}),
     blocked: requiresManualReview,
     wardCodes,
+    ...(batchId ? { batchId, totalFilesInBatch, constituencyOnsCode: constituencyOnsCode || pconCode } : {}),
     createdAt: now,
     updatedAt: now,
     expiresAt,

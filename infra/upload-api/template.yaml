@@ -94,6 +94,14 @@ Parameters:
     Default: ""
     NoEcho: true
     Description: Supabase service-role key for elections sync and filtered election reads.
+  TesseractLayerArn:
+    Type: String
+    Default: ""
+    Description: ARN of the Tesseract + poppler Lambda layer (built via build_layer.sh and published manually).
+  SesRecipientEmail:
+    Type: String
+    Default: "markedregisters@politicalsolutions.uk"
+    Description: Recipient email for processed marked register CSV notifications.
 
 Conditions:
   WafEnabledCondition: !Equals [!Ref WafEnabled, "true"]
@@ -105,6 +113,7 @@ Conditions:
   AlarmActionsEnabled: !Not [!Equals [!Ref AlarmTopicArn, ""]]
   GuardDutyScanEnabled: !Equals [!Ref EnableGuardDutyScan, "true"]
   GuardDutyScanDisabled: !Not [!Condition GuardDutyScanEnabled]
+  TesseractLayerConfigured: !Not [!Equals [!Ref TesseractLayerArn, ""]]
 
 Resources:
 
@@ -178,6 +187,8 @@ Resources:
           AttributeType: S
         - AttributeName: manualReviewKey
           AttributeType: S
+        - AttributeName: batchId
+          AttributeType: S
       KeySchema:
         - AttributeName: jobId
           KeyType: HASH
@@ -202,6 +213,12 @@ Resources:
               KeyType: HASH
             - AttributeName: createdAt
               KeyType: RANGE
+          Projection:
+            ProjectionType: ALL
+        - IndexName: BatchIdIndex
+          KeySchema:
+            - AttributeName: batchId
+              KeyType: HASH
           Projection:
             ProjectionType: ALL
       TimeToLiveSpecification:
@@ -541,6 +558,7 @@ Resources:
               - !Sub "${JobsTable.Arn}/index/UserSubIndex"
               - !Sub "${JobsTable.Arn}/index/S3KeyIndex"
               - !Sub "${JobsTable.Arn}/index/ManualReviewIndex"
+              - !Sub "${JobsTable.Arn}/index/BatchIdIndex"
               - !GetAtt UsersTable.Arn
               - !Sub "${UsersTable.Arn}/index/StatusCreatedAtIndex"
               - !GetAtt ElectionsTable.Arn
@@ -1082,6 +1100,168 @@ Resources:
         - - !Ref AlarmTopicArn
         - !Ref AWS::NoValue
 
+  # ── Marked Register OCR processor (Python, SQS-triggered) ─────────────────
+  # Processes one PDF per invocation at 600dpi. Page images are deleted after
+  # OCR to keep within the 4096 MB /tmp limit. Requires TesseractLayerArn.
+
+  ProcessRegisterFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: src_python/process_register/
+      Handler: handler.handler
+      Runtime: python3.12
+      Timeout: 900
+      MemorySize: 3008
+      EphemeralStorage:
+        Size: 4096
+      ReservedConcurrentExecutions: 100
+      Layers: !If
+        - TesseractLayerConfigured
+        - - !Ref TesseractLayerArn
+        - !Ref AWS::NoValue
+      Environment:
+        Variables:
+          JOBS_TABLE: !Ref JobsTable
+          UPLOADS_BUCKET: !Ref UploadsBucket
+          COMBINE_FUNCTION_ARN: !GetAtt CombineRegisterFunction.Arn
+          SUPABASE_URL: !Ref SupabaseUrl
+          SUPABASE_SERVICE_KEY: !Ref SupabaseServiceKey
+          TESSDATA_PREFIX: /opt/tessdata
+      Policies:
+        - Statement:
+            Effect: Allow
+            Action:
+              - dynamodb:GetItem
+              - dynamodb:PutItem
+              - dynamodb:UpdateItem
+            Resource: !GetAtt JobsTable.Arn
+        - Statement:
+            Effect: Allow
+            Action:
+              - dynamodb:Query
+            Resource: !Sub "${JobsTable.Arn}/index/BatchIdIndex"
+        - Statement:
+            Effect: Allow
+            Action:
+              - s3:GetObject
+            Resource: !Sub "${UploadsBucket.Arn}/uploads/*"
+        - Statement:
+            Effect: Allow
+            Action:
+              - s3:PutObject
+            Resource: !Sub "${UploadsBucket.Arn}/outputs/*"
+        - Statement:
+            Effect: Allow
+            Action:
+              - sqs:ReceiveMessage
+              - sqs:DeleteMessage
+              - sqs:GetQueueAttributes
+              - sqs:ChangeMessageVisibility
+            Resource: !GetAtt ProcessQueue.Arn
+        - Statement:
+            Effect: Allow
+            Action:
+              - lambda:InvokeFunction
+            Resource: !GetAtt CombineRegisterFunction.Arn
+      Events:
+        SQSSource:
+          Type: SQS
+          Properties:
+            Queue: !GetAtt ProcessQueue.Arn
+            BatchSize: 1
+            FunctionResponseTypes:
+              - ReportBatchItemFailures
+            Enabled: true
+
+  # ── Marked Register batch combiner (Python, direct invoke) ────────────────
+  # Invoked async by ProcessRegisterFunction once all jobs in a batch complete.
+  # Merges per-job JSON outputs into a single CSV and emails a download link.
+
+  CombineRegisterFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: src_python/combine_register/
+      Handler: handler.handler
+      Runtime: python3.12
+      Timeout: 300
+      MemorySize: 1024
+      Environment:
+        Variables:
+          JOBS_TABLE: !Ref JobsTable
+          ELECTIONS_TABLE: !Ref ElectionsTable
+          UPLOADS_BUCKET: !Ref UploadsBucket
+          SUPABASE_URL: !Ref SupabaseUrl
+          SUPABASE_SERVICE_KEY: !Ref SupabaseServiceKey
+          SES_SENDER_EMAIL: !Ref SesFromEmail
+          SES_RECIPIENT_EMAIL: !Ref SesRecipientEmail
+      Policies:
+        - Statement:
+            Effect: Allow
+            Action:
+              - dynamodb:Query
+            Resource: !Sub "${JobsTable.Arn}/index/BatchIdIndex"
+        - Statement:
+            Effect: Allow
+            Action:
+              - dynamodb:UpdateItem
+            Resource: !GetAtt JobsTable.Arn
+        - Statement:
+            Effect: Allow
+            Action:
+              - dynamodb:GetItem
+            Resource: !GetAtt ElectionsTable.Arn
+        - Statement:
+            Effect: Allow
+            Action:
+              - s3:GetObject
+              - s3:PutObject
+            Resource: !Sub "${UploadsBucket.Arn}/outputs/*"
+        - Statement:
+            Effect: Allow
+            Action:
+              - ses:SendEmail
+            Resource: "*"
+
+  ProcessRegisterFunctionErrorsAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmDescription: Lambda errors for marked register OCR processor.
+      Namespace: AWS/Lambda
+      MetricName: Errors
+      Dimensions:
+        - Name: FunctionName
+          Value: !Ref ProcessRegisterFunction
+      Statistic: Sum
+      Period: 300
+      EvaluationPeriods: 1
+      Threshold: 1
+      ComparisonOperator: GreaterThanOrEqualToThreshold
+      TreatMissingData: notBreaching
+      AlarmActions: !If
+        - AlarmActionsEnabled
+        - - !Ref AlarmTopicArn
+        - !Ref AWS::NoValue
+
+  CombineRegisterFunctionErrorsAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmDescription: Lambda errors for marked register batch combiner.
+      Namespace: AWS/Lambda
+      MetricName: Errors
+      Dimensions:
+        - Name: FunctionName
+          Value: !Ref CombineRegisterFunction
+      Statistic: Sum
+      Period: 300
+      EvaluationPeriods: 1
+      Threshold: 1
+      ComparisonOperator: GreaterThanOrEqualToThreshold
+      TreatMissingData: notBreaching
+      AlarmActions: !If
+        - AlarmActionsEnabled
+        - - !Ref AlarmTopicArn
+        - !Ref AWS::NoValue
+
 Outputs:
   ApiBaseUrl:
     Description: Base URL for the upload API (set as VITE_UPLOAD_API_URL in Amplify).
@@ -1130,3 +1310,9 @@ Outputs:
     Condition: WafEnabledCondition
     Description: ARN of the WAF Web ACL protecting the upload API.
     Value: !GetAtt UploadWebAcl.Arn
+  ProcessRegisterFunctionArn:
+    Description: ARN of the marked register OCR processor Lambda.
+    Value: !GetAtt ProcessRegisterFunction.Arn
+  CombineRegisterFunctionArn:
+    Description: ARN of the marked register batch combiner Lambda.
+    Value: !GetAtt CombineRegisterFunction.Arn
