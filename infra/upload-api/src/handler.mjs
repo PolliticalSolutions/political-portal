@@ -610,6 +610,7 @@ function isValidSignupPassword(value) {
 }
 
 async function associationHasActiveAccount(associationId) {
+  console.log("[onboarding] duplicate association check: associationId", associationId);
   const rows = await supabaseRest("user_permissions", {
     params: {
       select: "id,cognito_sub",
@@ -617,20 +618,32 @@ async function associationHasActiveAccount(associationId) {
       is_active: "eq.true",
     },
   });
-  if (!Array.isArray(rows) || rows.length === 0) return false;
+  console.log("[onboarding] duplicate association check: user_permissions rows", JSON.stringify(rows || []));
+  if (!Array.isArray(rows) || rows.length === 0) {
+    console.log("[onboarding] duplicate association check: result", false);
+    return false;
+  }
 
   const userSubs = [...new Set(rows.map((row) => row?.cognito_sub).filter(Boolean))];
-  if (userSubs.length === 0) return true;
+  if (userSubs.length === 0) {
+    console.log("[onboarding] duplicate association check: admin_users rows", JSON.stringify([]));
+    console.log("[onboarding] duplicate association check: result", true);
+    return true;
+  }
 
   // ASSUMPTION: admin access is determined by the separate admin_users table, matching src/lib/subscriptionApi.js.
+  const adminSubFilter = `in.(${userSubs.map((sub) => sub.replace(/[(),"]/g, "")).join(",")})`;
   const adminRows = await supabaseRest("admin_users", {
     params: {
       select: "cognito_sub",
-      cognito_sub: `in.(${userSubs.map((sub) => `"${sub.replaceAll('"', '\\"')}"`).join(",")})`,
+      cognito_sub: adminSubFilter,
     },
   });
+  console.log("[onboarding] duplicate association check: admin_users rows", JSON.stringify(adminRows || []));
   const adminSubs = new Set((adminRows || []).map((row) => row?.cognito_sub).filter(Boolean));
-  return rows.some((row) => !row?.cognito_sub || !adminSubs.has(row.cognito_sub));
+  const hasActiveNonAdminAccount = rows.some((row) => !row?.cognito_sub || !adminSubs.has(row.cognito_sub));
+  console.log("[onboarding] duplicate association check: result", hasActiveNonAdminAccount);
+  return hasActiveNonAdminAccount;
 }
 
 async function grantDemoAssociationAccess({ cognitoSub, email, associationId }) {
