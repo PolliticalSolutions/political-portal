@@ -49,7 +49,6 @@ docker run --rm --platform linux/amd64 \
     # Install tesseract, poppler-utils, and required libs
     yum install -y \
       tesseract \
-      tesseract-langpack-eng \
       poppler-utils \
       libjpeg-turbo \
       libpng \
@@ -57,32 +56,20 @@ docker run --rm --platform linux/amd64 \
       libwebp \
       zlib \
       leptonica \
+      curl \
       2>/dev/null
 
     LAYER_DIR=/tmp/layer
     mkdir -p "$LAYER_DIR/bin" "$LAYER_DIR/lib" "$LAYER_DIR/tessdata"
 
-    # Copy binaries
-    cp "$(which tesseract)" "$LAYER_DIR/bin/tesseract"
-    cp "$(which pdftoppm)"  "$LAYER_DIR/bin/pdftoppm"
+    # Copy binaries (explicit paths — `which` is not available in minimal AL2 containers)
+    cp /usr/bin/tesseract "$LAYER_DIR/bin/tesseract"
+    cp /usr/bin/pdftoppm  "$LAYER_DIR/bin/pdftoppm"
 
-    # Copy tessdata (English only to keep layer small)
-    TESSDATA_DIRS=(
-      /usr/share/tesseract/tessdata
-      /usr/share/tesseract4/tessdata
-      /usr/share/tessdata
-    )
-    for d in "${TESSDATA_DIRS[@]}"; do
-      if [ -f "$d/eng.traineddata" ]; then
-        cp "$d/eng.traineddata" "$LAYER_DIR/tessdata/eng.traineddata"
-        break
-      fi
-    done
-
-    if [ ! -f "$LAYER_DIR/tessdata/eng.traineddata" ]; then
-      echo "ERROR: eng.traineddata not found" >&2
-      exit 1
-    fi
+    # Download eng.traineddata directly (tesseract-langpack-eng not in EPEL for AL2)
+    curl -fsSL \
+      https://github.com/tesseract-ocr/tessdata/raw/main/eng.traineddata \
+      -o "$LAYER_DIR/tessdata/eng.traineddata"
 
     # Collect shared libraries needed by tesseract and pdftoppm
     collect_libs() {
@@ -91,8 +78,8 @@ docker run --rm --platform linux/amd64 \
         [ -f "$lib" ] && cp -n "$lib" /tmp/layer/lib/ 2>/dev/null || true
       done
     }
-    collect_libs "$(which tesseract)"
-    collect_libs "$(which pdftoppm)"
+    collect_libs /usr/bin/tesseract
+    collect_libs /usr/bin/pdftoppm
 
     # Make binaries executable
     chmod +x "$LAYER_DIR/bin/tesseract" "$LAYER_DIR/bin/pdftoppm"
