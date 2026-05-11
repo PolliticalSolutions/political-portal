@@ -11,7 +11,7 @@ import brandLogo from "../../assets/brand/political-solutions-logo.webp";
 
 function hasAuthTokens() {
   try {
-    const raw = sessionStorage.getItem("cognito_tokens");
+    const raw = localStorage.getItem("cognito_tokens") ?? sessionStorage.getItem("cognito_tokens");
     if (!raw) return false;
     const parsed = JSON.parse(raw);
     return Boolean(parsed?.access_token || parsed?.id_token);
@@ -570,6 +570,9 @@ export default function PortalLayout() {
 
             <div className="portal-nav-group">
               <span className="portal-nav-group__label">Admin</span>
+              <NavLink className={navClass} to="/portal/admin/crm" onClick={() => setSidebarOpen(false)}>
+                CRM
+              </NavLink>
               <NavLink className={navClass} to="/portal/ops/quotes" onClick={() => setSidebarOpen(false)}>
                 Quotes
               </NavLink>

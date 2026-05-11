@@ -55,46 +55,68 @@ function resolveSessionStorage(sessionStorageLike) {
   return window.sessionStorage;
 }
 
+function checkTokensValid(tokens, nowMs) {
+  if (!tokens) return false;
+  const accessToken = tokens.access_token;
+  const idToken = tokens.id_token;
+  if (!accessToken && !idToken) return false;
+  const accessValid = accessToken ? !isTokenExpired(accessToken, nowMs) : false;
+  const idValid = idToken ? !isTokenExpired(idToken, nowMs) : false;
+  return accessValid || idValid;
+}
+
+// Checks localStorage first (persists across browser restarts), then falls back
+// to the passed sessionStorage for backward compatibility.
 export function isSessionValid(sessionStorageLike, nowMs = Date.now()) {
+  if (hasWindow) {
+    const localRaw = localStorage.getItem(tokensKey);
+    if (localRaw) {
+      const localTokens = safeJsonParse(localRaw);
+      if (checkTokensValid(localTokens, nowMs)) return true;
+    }
+  }
+
   const storage = resolveSessionStorage(sessionStorageLike);
   if (!storage) return false;
   const raw = storage.getItem(tokensKey);
   if (!raw) return false;
-  const tokens = safeJsonParse(raw);
-  const accessToken = tokens?.access_token;
-  const idToken = tokens?.id_token;
-  if (!accessToken && !idToken) return false;
-
-  const accessValid = accessToken ? !isTokenExpired(accessToken, nowMs) : false;
-  const idValid = idToken ? !isTokenExpired(idToken, nowMs) : false;
-  return accessValid || idValid;
+  return checkTokensValid(safeJsonParse(raw), nowMs);
 }
 
 export function isTokenValid(token, nowMs = Date.now(), skewSec = 60) {
   return !isTokenExpired(token, nowMs, skewSec);
 }
 
+// Reads from localStorage first so tokens survive browser close/reopen.
 export function getStoredTokens() {
   if (!hasWindow) return null;
-  const raw = sessionStorage.getItem(tokensKey);
+  const raw = localStorage.getItem(tokensKey) ?? sessionStorage.getItem(tokensKey);
   if (!raw) return null;
   return safeJsonParse(raw);
 }
 
+// Writes to localStorage (persistent) and sessionStorage (keeps existing code working).
 export function storeTokens(tokens) {
   if (!hasWindow) return;
-  sessionStorage.setItem(tokensKey, JSON.stringify(tokens));
+  const value = JSON.stringify(tokens);
+  try { localStorage.setItem(tokensKey, value); } catch { /* quota exceeded */ }
+  try { sessionStorage.setItem(tokensKey, value); } catch { /* quota exceeded */ }
 }
 
+// Clears from both storages so logout is complete.
 export function clearSession(
   sessionStorageLike,
   { preserveRedirect = false } = {}
 ) {
   const storage = resolveSessionStorage(sessionStorageLike);
-  if (!storage) return;
-  storage.removeItem(tokensKey);
-  if (!preserveRedirect) {
-    storage.removeItem(redirectKey);
+  if (storage) {
+    storage.removeItem(tokensKey);
+    if (!preserveRedirect) {
+      storage.removeItem(redirectKey);
+    }
+  }
+  if (hasWindow) {
+    try { localStorage.removeItem(tokensKey); } catch { /* ignore */ }
   }
 }
 

@@ -1,5 +1,5 @@
 import { cognitoConfig } from "../cognitoConfig.js";
-import { clearSession, storeTokens } from "../auth/session.js";
+import { clearSession, getStoredTokens, storeTokens, tokensKey } from "../auth/session.js";
 import { isSafeInternalPath } from "../utils/postAuthRedirect.js";
 export { decodeJwtPayload, getSession, getStoredTokens, isTokenValid } from "../auth/session.js";
 
@@ -219,12 +219,42 @@ function persistRedirectPath(path) {
 
 export function clearStoredSession({ preserveRedirect = false } = {}) {
   if (!hasWindow) return;
+  // clearSession now clears both sessionStorage and localStorage for tokensKey
   clearSession(window.sessionStorage, { preserveRedirect });
   clearPkceByPrefix(sessionStorage);
   clearPkceByPrefix(localStorage);
   sessionStorage.removeItem(verifierKey);
   if (!preserveRedirect) {
     sessionStorage.removeItem(redirectKey);
+  }
+}
+
+// Uses Cognito's refresh_token grant to silently get new access/id tokens.
+// Returns merged tokens on success, null on failure.
+export async function refreshTokens() {
+  if (!hasWindow || !cognitoConfig.domain || !cognitoConfig.clientId) return null;
+  const tokens = getStoredTokens();
+  if (!tokens?.refresh_token) return null;
+
+  try {
+    const body = new URLSearchParams({
+      grant_type: "refresh_token",
+      client_id: cognitoConfig.clientId,
+      refresh_token: tokens.refresh_token,
+    });
+    const res = await fetch(new URL("/oauth2/token", cognitoConfig.domain).toString(), {
+      method: "POST",
+      headers: { "Content-Type": "application/x-www-form-urlencoded" },
+      body,
+    });
+    if (!res.ok) return null;
+    const fresh = await res.json();
+    // Cognito doesn't return a new refresh_token in the refresh flow — preserve the existing one
+    const merged = { ...tokens, ...fresh };
+    persistTokens(merged);
+    return merged;
+  } catch {
+    return null;
   }
 }
 

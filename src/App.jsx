@@ -1,7 +1,7 @@
 import { lazy, Suspense, useCallback, useEffect, useRef, useState } from "react";
 import { Link, NavLink, Navigate, Route, Routes } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { clearStoredSession, startLogout } from "./lib/cognito.js";
+import { clearStoredSession, getStoredTokens, refreshTokens, startLogout } from "./lib/cognito.js";
 import { clearMeCache } from "./lib/uploadApi.js";
 import { useCart } from "./cart/cartStore.jsx";
 import { getSession } from "./auth/session.js";
@@ -38,6 +38,7 @@ const ManualReviewPage = lazy(() => import("./pages/portal/admin/ManualReviewPag
 const PermissionsPage = lazy(() => import("./pages/portal/admin/PermissionsPage.jsx"));
 const AssociationsPage = lazy(() => import("./pages/portal/admin/AssociationsPage.jsx"));
 const ElectionsPage = lazy(() => import("./pages/portal/admin/ElectionsPage.jsx"));
+const CRMApp = lazy(() => import("./pages/portal/crm/CRMApp.jsx"));
 const DataSourcesPage = lazy(() => import("./pages/portal/DataSourcesPage.jsx"));
 const ConstituencyIndex = lazy(() => import("./pages/portal/constituency/ConstituencyIndex.jsx"));
 const ConstituencyDetail = lazy(() => import("./pages/portal/constituency/ConstituencyDetail.jsx"));
@@ -90,7 +91,7 @@ function GaDebugBadge() {
   );
 }
 
-const WARNING_DELAY_MS = 4 * 60 * 1000; // 4 minutes before showing the warning
+const WARNING_DELAY_MS = 8 * 60 * 60 * 1000; // 8 hours before showing the warning
 const WARNING_WINDOW_MS = 60 * 1000; // 1 minute countdown before auto-logout
 const WARNING_SECONDS = WARNING_WINDOW_MS / 1000;
 
@@ -206,9 +207,26 @@ export default function App() {
   const authed = session.isAuthed;
   const tokens = authed ? session.tokens : null;
 
-  // Hydrate session from sessionStorage after the initial render matches the server.
+  // Hydrate session from localStorage after the initial render matches the server.
+  // If tokens are expired but a refresh_token exists, silently refresh before giving up.
   useEffect(() => {
-    setSession(getSession());
+    async function hydrate() {
+      const s = getSession();
+      if (s.isAuthed) {
+        setSession(s);
+        return;
+      }
+      const stored = getStoredTokens();
+      if (stored?.refresh_token) {
+        const refreshed = await refreshTokens();
+        if (refreshed) {
+          setSession(getSession());
+          return;
+        }
+      }
+      setSession(s);
+    }
+    hydrate();
   }, []);
 
   const refreshSession = useCallback(() => {
@@ -370,6 +388,7 @@ export default function App() {
                 <Route path="admin/permissions" element={<Navigate to="/portal/admin/users" replace />} />
                 <Route path="admin/associations" element={<Suspense fallback={<div className="page stack"><p className="muted">Loading…</p></div>}><AssociationsPage /></Suspense>} />
                 <Route path="admin/elections" element={<Suspense fallback={<div className="page stack"><p className="muted">Loading…</p></div>}><ElectionsPage /></Suspense>} />
+                <Route path="admin/crm/*" element={<Suspense fallback={<div className="page stack"><p className="muted">Loading…</p></div>}><CRMApp /></Suspense>} />
                 <Route path="data-sources" element={<Suspense fallback={<div className="page stack"><p className="muted">Loading…</p></div>}><DataSourcesPage /></Suspense>} />
                 <Route
                   path="constituency"
