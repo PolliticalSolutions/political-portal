@@ -115,39 +115,53 @@ Gold is not used. It reads as aspirational-tacky, not authoritative. If somethin
 
 The platform uses **Proxima Nova** throughout. This is a licensed typeface — files must be self-hosted via `@font-face` in the CSS. Do not use Google Fonts fallbacks in production.
 
+**Font files available (licensed to Political Solutions):**
+- `Mark_Simonson_-_Proxima_Nova.otf` — Regular 400
+- `Mark_Simonson_-_Proxima_Nova_Semibold.otf` — Semibold 600
+- `Mark_Simonson_-_Proxima_Nova_Bold.otf` — Bold 700
+- `Mark_Simonson_-_Proxima_Nova_It.otf` — Italic 400
+
+**Before deploying:** Convert all four `.otf` files to `.woff2` using [Transfonter](https://transfonter.org) (free, upload all four at once, tick "woff2", download). Place the resulting `.woff2` files in `/public/fonts/`. The filenames after conversion should match those in the `@font-face` declarations below exactly — rename if needed.
+
 ```css
-/* Self-hosted — files to be added to /public/fonts/ */
+/* Self-hosted — /public/fonts/ */
 @font-face {
   font-family: 'Proxima Nova';
-  src: url('/fonts/ProximaNova-Regular.woff2') format('woff2');
+  src: url('/fonts/Mark_Simonson_-_Proxima_Nova.woff2') format('woff2');
   font-weight: 400;
   font-style: normal;
   font-display: swap;
 }
 @font-face {
   font-family: 'Proxima Nova';
-  src: url('/fonts/ProximaNova-Semibold.woff2') format('woff2');
+  src: url('/fonts/Mark_Simonson_-_Proxima_Nova_Semibold.woff2') format('woff2');
   font-weight: 600;
   font-style: normal;
   font-display: swap;
 }
 @font-face {
   font-family: 'Proxima Nova';
-  src: url('/fonts/ProximaNova-Bold.woff2') format('woff2');
+  src: url('/fonts/Mark_Simonson_-_Proxima_Nova_Bold.woff2') format('woff2');
   font-weight: 700;
   font-style: normal;
   font-display: swap;
 }
 @font-face {
   font-family: 'Proxima Nova';
-  src: url('/fonts/ProximaNova-Light.woff2') format('woff2');
-  font-weight: 300;
-  font-style: normal;
+  src: url('/fonts/Mark_Simonson_-_Proxima_Nova_It.woff2') format('woff2');
+  font-weight: 400;
+  font-style: italic;
   font-display: swap;
 }
 ```
 
-**System fallback stack (until fonts load):**
+**Preload the two most-used weights in `index.html` `<head>` for performance:**
+```html
+<link rel="preload" href="/fonts/Mark_Simonson_-_Proxima_Nova.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="preload" href="/fonts/Mark_Simonson_-_Proxima_Nova_Semibold.woff2" as="font" type="font/woff2" crossorigin>
+```
+
+**System fallback stack (renders until fonts load):**
 ```css
 font-family: 'Proxima Nova', 'Gill Sans', 'Gill Sans MT', Calibri, 'Trebuchet MS', sans-serif;
 ```

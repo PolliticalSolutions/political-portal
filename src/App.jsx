@@ -122,12 +122,12 @@ function TopNav({ authed, onLogout, cartCount }) {
             className="brand-logo"
             src={brandLogo}
             alt="Political Solutions"
-            width={96}
-            height={96}
+            width={48}
+            height={48}
             loading="eager"
           />
           <div>
-            <div style={{ fontWeight: 800 }}>Political Solutions</div>
+            <div style={{ fontWeight: 700 }}>Political Solutions</div>
             <div className="muted" style={{ fontSize: 13 }}>
               UK Political Operations Platform
             </div>
