@@ -82,6 +82,29 @@ See `.env.example`. Key variables:
 
 ---
 
+## Available design skills
+
+Installed via [skills.sh](https://skills.sh). Skill files live in `.agents/skills/`; symlinked into `.claude/skills/` for Claude Code. The `skills-lock.json` at the project root tracks installed skills and their content hashes.
+
+### emil-design-eng
+
+Emil Kowalski's philosophy on UI polish, component design, animation decisions, and the invisible details that make software feel great. Source: [emilkowalski/skill](https://github.com/emilkowalski/skill).
+
+**Invoke as:** `emil-design-eng` skill
+
+| Topic | What it covers |
+|---|---|
+| Animation decision framework | When to animate, easing curves, duration tables, perceived performance |
+| Spring animations | When to use springs, configuration, interruptibility advantage |
+| Component principles | Button feedback, scale-from rules, origin-aware popovers, tooltip behaviour |
+| CSS techniques | `clip-path`, `@starting-style`, `translateY` percentages, 3D transforms |
+| Gesture interactions | Momentum-based dismissal, boundary damping, pointer capture, multi-touch |
+| Performance | GPU-only properties, CSS vs JS animations, WAAPI, Framer Motion caveats |
+| Accessibility | `prefers-reduced-motion`, touch device hover states |
+| Review checklist | Before/After table of the most common UI animation mistakes |
+
+---
+
 ## Available legal skills
 
 151 skills from [anthropics/claude-for-legal](https://github.com/anthropics/claude-for-legal) are installed under `.claude/skills/`. Skills require per-plugin setup via each plugin's `cold-start-interview` skill before use. Run setup once; it writes a practice profile that every other skill in the plugin reads.
