@@ -86,11 +86,9 @@ See `.env.example`. Key variables:
 
 Installed via [skills.sh](https://skills.sh). Skill files live in `.agents/skills/`; symlinked into `.claude/skills/` for Claude Code. The `skills-lock.json` at the project root tracks installed skills and their content hashes.
 
-### emil-design-eng
+### emilkowalski/skill — `emil-design-eng`
 
 Emil Kowalski's philosophy on UI polish, component design, animation decisions, and the invisible details that make software feel great. Source: [emilkowalski/skill](https://github.com/emilkowalski/skill).
-
-**Invoke as:** `emil-design-eng` skill
 
 | Topic | What it covers |
 |---|---|
@@ -102,6 +100,47 @@ Emil Kowalski's philosophy on UI polish, component design, animation decisions, 
 | Performance | GPU-only properties, CSS vs JS animations, WAAPI, Framer Motion caveats |
 | Accessibility | `prefers-reduced-motion`, touch device hover states |
 | Review checklist | Before/After table of the most common UI animation mistakes |
+
+### pbakaus/impeccable — `impeccable`
+
+Full-featured frontend design system with context-aware sub-commands covering the entire design-to-ship workflow. Source: [pbakaus/impeccable](https://github.com/pbakaus/impeccable).
+
+Requires `PRODUCT.md` (product context) and optionally `DESIGN.md` (tokens/components). Run `impeccable teach` to create them. Enforces OKLCH color, origin-aware transforms, and hard bans on gradient text, glassmorphism defaults, side-stripe borders, and identical card grids.
+
+| Command | Category | What it does |
+|---|---|---|
+| `craft [feature]` | Build | Shape then build a feature end-to-end |
+| `shape [feature]` | Build | Plan UX/UI before writing any code |
+| `teach` | Build | Create/update PRODUCT.md and DESIGN.md |
+| `document` | Build | Generate DESIGN.md from existing code |
+| `extract [target]` | Build | Pull reusable tokens and components |
+| `critique [target]` | Evaluate | UX review with heuristic scoring |
+| `audit [target]` | Evaluate | Accessibility, perf, responsive checks |
+| `polish [target]` | Refine | Final quality pass before shipping |
+| `bolder / quieter / distill` | Refine | Amplify, calm, or strip to essence |
+| `harden [target]` | Refine | Errors, i18n, edge cases |
+| `animate / colorize / typeset / layout / delight / overdrive` | Enhance | Add motion, colour, type, rhythm, personality |
+| `clarify / adapt / optimize` | Fix | Copy, responsiveness, UI performance |
+| `live` | Iterate | Browser element picker — generate visual variants inline |
+
+### Leonxlnx/taste-skill — 12 skills
+
+Source: [Leonxlnx/taste-skill](https://github.com/Leonxlnx/taste-skill). All skills focus on premium, anti-generic UI — they explicitly ban Inter, thick Lucide icons, gradient text, and identical card grids.
+
+| Skill | What it does |
+|---|---|
+| `high-end-visual-design` | Agency-level ($150k+) design language. Bans cheap fonts/icons/shadows. Enforces haptic depth, spatial rhythm, and micro-interactions. |
+| `design-taste-frontend` | Metric-driven UI engineering (design variance 8/10, motion 6/10, density 4/10). Checks `package.json` before importing any library. |
+| `minimalist-ui` | Editorial interfaces: warm monochrome, typographic contrast, flat bento grids. Bans gradients, heavy shadows, pill buttons. |
+| `industrial-brutalist-ui` | Swiss typographic print or military CRT terminal aesthetic. Pick one mode per project. Rigid grids, extreme scale contrast, analog degradation. |
+| `gpt-taste` | GSAP ScrollTrigger motion engineering. Python-simulated randomisation to break layout repetition. AIDA structure, wide editorial type, gapless bento grids. |
+| `redesign-existing-projects` | Audits and upgrades existing sites to premium quality without rewriting from scratch. Works with any CSS framework. |
+| `brandkit` | Brand-kit image generation: logo systems, identity decks, visual-world presentations. Minimalist, cinematic, editorial, and dark-tech aesthetics. |
+| `imagegen-frontend-web` | Generates one horizontal design-reference image per page section. Use to produce comps a developer can accurately recreate. |
+| `imagegen-frontend-mobile` | Premium mobile app screen concepts for iOS/Android. Shows screens inside phone mockups. Image generation only — no code. |
+| `image-to-code` | Generates design images first, analyses them deeply, then implements matching code. Avoids cards-inside-cards nesting. |
+| `stitch-design-taste` | Generates `DESIGN.md` files for Google Stitch. Encodes visual atmosphere, colour calibration, and anti-generic rules in Stitch's semantic language. |
+| `full-output-enforcement` | Bans all truncation patterns (`// ...`, `// rest of code`, "for brevity"). Forces complete file output every time. Apply to any task needing exhaustive code generation. |
 
 ---
 
