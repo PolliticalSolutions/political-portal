@@ -7,7 +7,7 @@ tags:
   - operations
   - field
 draft: false
-canonical: "https://example.com/original-post"
+canonical: ""
 ---
 # Improve campaign handoffs from planning to field delivery
 

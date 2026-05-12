@@ -42,7 +42,7 @@ export default function Seo({
       <meta property="og:type" content="website" />
       <meta property="og:image" content={socialImageUrl} />
       <meta property="og:image:alt" content={socialImageAlt} />
-      <meta name="twitter:card" content="summary" />
+      <meta name="twitter:card" content="summary_large_image" />
       <meta name="twitter:title" content={finalTitle} />
       <meta name="twitter:description" content={description} />
       <meta name="twitter:image" content={socialImageUrl} />

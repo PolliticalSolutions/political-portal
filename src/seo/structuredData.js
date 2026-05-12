@@ -42,6 +42,19 @@ export const buildServicesSchema = () => ({
   ],
 });
 
+export const buildFaqSchema = (faqs) => ({
+  "@context": "https://schema.org",
+  "@type": "FAQPage",
+  mainEntity: faqs.map(({ question, answer }) => ({
+    "@type": "Question",
+    name: question,
+    acceptedAnswer: {
+      "@type": "Answer",
+      text: answer,
+    },
+  })),
+});
+
 export const buildElectionSupportSchema = () => ({
   "@context": "https://schema.org",
   "@type": "Service",

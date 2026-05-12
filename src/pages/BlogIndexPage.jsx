@@ -13,7 +13,7 @@ export default function BlogIndexPage() {
       <section className="section">
         <div className="container stack">
           <div className="blog-index-hero">
-            <h1>Blog</h1>
+            <h1>UK Campaign Operations Blog</h1>
             <p className="blog-index-intro">
               Operational guidance for UK campaign professionals who need practical answers on data handling,
               marked registers, constituency research, and delivery discipline rather than generic political

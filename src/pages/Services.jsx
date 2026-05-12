@@ -1,14 +1,41 @@
+import { Helmet } from "react-helmet-async";
 import { Link } from "react-router-dom";
 import Button from "../components/Button.jsx";
 import Card from "../components/Card.jsx";
 import Footer from "../components/Footer.jsx";
+import { buildFaqSchema, buildServicesSchema } from "../seo/structuredData.js";
 import servicesCampaignDataImage from "../assets/services-campaign-data.png";
 import servicesCampaignDataWebp from "../assets/services-campaign-data.webp";
 import servicesCampaignDataMobileWebp from "../assets/services-campaign-data-mobile.webp";
 
+const SERVICE_FAQS = [
+  {
+    question: "Do subscriptions include election delivery?",
+    answer:
+      "No. Subscriptions focus on capability, readiness, and operational tooling. Election and by-election support is a separate, chargeable service.",
+  },
+  {
+    question: "What data do you use?",
+    answer:
+      "We work with lawful, client-provided data sources such as marked registers and agreed inputs, with validation and audit-ready processing.",
+  },
+  {
+    question: "Is the service UK-wide?",
+    answer:
+      "Yes. Political Solutions provides UK-wide services and support, with delivery tailored to your operational requirements.",
+  },
+];
+
 export default function Services() {
   return (
     <div className="page">
+      <Helmet>
+        {[buildServicesSchema(), buildFaqSchema(SERVICE_FAQS)].map((schema) => (
+          <script key={schema["@type"]} type="application/ld+json">
+            {JSON.stringify(schema)}
+          </script>
+        ))}
+      </Helmet>
       <section className="section">
         <div className="container hero">
           <div>
