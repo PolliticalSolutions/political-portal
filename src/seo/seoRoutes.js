@@ -6,57 +6,57 @@ export const siteUrl = SITE_URL;
 export const seoRoutes = [
   {
     path: "/",
-    title: "UK political operations platform",
+    title: "Marked register processing & campaign data for UK political teams",
     description:
-      "UK political operations platform for marked register processing, data insights, and compliant campaign operations support. Secure portal subscriptions.",
+      "Political Solutions gives UK campaign teams fast marked register processing, constituency intelligence, and compliant data workflows — all in one secure portal.",
     changefreq: "weekly",
     priority: 1.0,
   },
   {
     path: "/services",
-    title: "Political operations services",
+    title: "Campaign data services — marked registers, intelligence & operations support",
     description:
-      "UK-wide political operations services: marked register processing, data insights, subscription platform access, training, and support. Election support available separately.",
+      "Marked register processing, constituency data insights, and campaign operations support for UK associations. Subscription platform access included. Get started today.",
     changefreq: "monthly",
     priority: 0.8,
   },
   {
     path: "/constituency-intelligence",
-    title: "Constituency Intelligence",
+    title: "Constituency intelligence — council, by-election & electoral data for UK seats",
     description:
-      "Current data on every Conservative-held and target seat — council composition, by-election tracking, and full electoral history for UK associations and campaign managers.",
+      "Current data on every Conservative-held and target seat: council composition, by-election results, and full electoral history. Built for UK associations and campaign managers.",
     changefreq: "monthly",
     priority: 0.8,
   },
   {
     path: "/services/election-support",
-    title: "Campaigning, Training & Election Support",
+    title: "Campaigning, training & election support for UK associations",
     description:
-      "UK-wide Campaigning, Training & Election Support for campaign operations, data coordination, and delivery planning. Separate chargeable service with clear scope.",
+      "Hands-on election support for campaign operations, data coordination, and delivery planning. UK-wide coverage, clear scope, and a separate chargeable engagement.",
     changefreq: "monthly",
     priority: 0.7,
   },
   {
     path: "/subscriptions",
-    title: "Portal subscriptions",
+    title: "Portal subscription plans — campaign data platform access",
     description:
-      "Subscriptions are managed through the secure Political Solutions Portal. Log in to view tiers and manage your account.",
+      "Choose a subscription tier that fits your association or regional team. Includes marked register processing, constituency intelligence, and secure portal access.",
     changefreq: "monthly",
     priority: 0.7,
   },
   {
     path: "/enquire",
-    title: "Enquire about services",
+    title: "Enquire about campaign data services — get a response within one working day",
     description:
-      "Ask a question, request a demo, or clarify pricing for Political Solutions services.",
+      "Tell us what you need and which service you want to discuss. We review every enquiry and confirm the next step within one working day. No sales calls, no pressure.",
     changefreq: "monthly",
     priority: 0.6,
   },
   {
     path: "/blog",
-    title: "Blog",
+    title: "UK campaign operations blog — marked registers, data & delivery",
     description:
-      "Practical guidance on political campaign operations, data workflows, and delivery planning for UK teams.",
+      "Practical guidance on marked register processing, constituency data workflows, and campaign delivery for UK political professionals. No generic commentary — just operational answers.",
     changefreq: "weekly",
     priority: 0.6,
   },
@@ -68,22 +68,25 @@ export const seoRoutes = [
   },
   {
     path: "/privacy",
-    title: "Privacy policy",
-    description: "Read how Political Solutions Ltd handles data, privacy, and contact details.",
+    title: "Privacy policy — how Political Solutions handles your data",
+    description:
+      "How Political Solutions Ltd collects, stores, and protects personal data. Includes contact details for data queries and your rights under UK GDPR.",
     changefreq: "yearly",
     priority: 0.3,
   },
   {
     path: "/terms",
-    title: "Terms of use",
-    description: "Terms of use for the Political Solutions Portal and related services.",
+    title: "Terms of use — Political Solutions portal & services",
+    description:
+      "Terms governing use of the Political Solutions Portal, subscription services, and associated tools. Read before accessing the platform.",
     changefreq: "yearly",
     priority: 0.3,
   },
   {
     path: "/cookies",
-    title: "Cookie notice",
-    description: "Cookie notice for the Political Solutions Portal, including essential storage information.",
+    title: "Cookie notice — Political Solutions portal",
+    description:
+      "What cookies Political Solutions sets, why, and how to manage them. Covers essential storage used by the secure portal and authentication flow.",
     changefreq: "yearly",
     priority: 0.3,
   },

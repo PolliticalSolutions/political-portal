@@ -2,7 +2,7 @@ import { useLocation } from "react-router-dom";
 import Seo from "./Seo.jsx";
 import { getSeoForPath } from "./seoRoutes.js";
 
-const formatTitle = (title) => `Political Solutions | ${title}`;
+const formatTitle = (title) => `${title} | Political Solutions`;
 
 export default function RouteSeo() {
   const { pathname } = useLocation();
