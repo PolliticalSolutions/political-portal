@@ -12,7 +12,7 @@ const STALE_DAYS = 30;
 const STEPS = [
   "Searching Parliament records…",
   "Fetching Hansard contributions (pages 1–10)…",
-  "Fetching Wikipedia biography…",
+  "Researching public records…",
   "Checking press releases…",
   "Compiling source corpus…",
   "Analysing writing style with AI…",
@@ -222,7 +222,7 @@ export default function MPPersona() {
             <h1 className="portal-page-header__title">MP Persona Generator</h1>
             <p className="portal-page-header__subtitle">
               Build a deployable AI writing persona from an MP's Hansard contributions,
-              Wikipedia biography, and press releases.
+              public records, and press releases.
             </p>
           </div>
         </div>
