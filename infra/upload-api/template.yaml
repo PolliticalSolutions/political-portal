@@ -970,6 +970,8 @@ Resources:
       Environment:
         Variables:
           ALLOWED_ORIGINS: !Join [",", !Ref AllowedOrigins]
+          COGNITO_ISSUER: !Ref CognitoIssuer
+          COGNITO_AUDIENCE: !Ref CognitoAudience
           ANTHROPIC_API_KEY: ""  # Set manually in Lambda console after deploy
 
   PersonaFunctionUrl:

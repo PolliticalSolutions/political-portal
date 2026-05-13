@@ -20,7 +20,6 @@ const STEPS = [
   "Finalising…",
 ];
 
-// Step advance delays in ms (simulate pipeline timing)
 const STEP_DELAYS = [2500, 7000, 13000, 18000, 22000, 28000, 95000, 160000];
 
 function readPersonas() {
@@ -48,8 +47,6 @@ function formatDate(iso) {
   if (!iso) return "Unknown";
   return new Intl.DateTimeFormat("en-GB", { day: "numeric", month: "short", year: "numeric" }).format(new Date(iso));
 }
-
-// ── Password gate ─────────────────────────────────────────────────────────────
 
 function PasswordGate({ onUnlock }) {
   const [value, setValue] = useState("");
@@ -100,8 +97,6 @@ function PasswordGate({ onUnlock }) {
   );
 }
 
-// ── Main page ─────────────────────────────────────────────────────────────────
-
 export default function MPPersona() {
   const [unlocked, setUnlocked] = useState(() => {
     try { return sessionStorage.getItem(AUTH_STORAGE_KEY) === "1"; } catch { return false; }
@@ -120,7 +115,6 @@ export default function MPPersona() {
   const stalePersonas = Object.values(personas).filter((p) => isStale(p.generatedAt));
   const staleCount = stalePersonas.length;
 
-  // Advance step counter during loading
   useEffect(() => {
     if (!loading) return;
     setStepIndex(0);
@@ -221,7 +215,6 @@ export default function MPPersona() {
     <div className="page stack">
       <Helmet><title>MP Persona Generator | Political Solutions</title></Helmet>
 
-      {/* Header card */}
       <Card>
         <div className="portal-page-header">
           <div className="portal-page-header__content">
@@ -235,17 +228,16 @@ export default function MPPersona() {
         </div>
       </Card>
 
-      {/* Stale banner */}
       {staleCount > 0 && (
         <div
           role="alert"
           style={{
-            background: "#fefce8",
-            border: "1px solid #ca8a04",
+            background: "var(--accent-soft)",
+            border: "1px solid var(--accent)",
             borderRadius: "var(--radius)",
             padding: "10px 14px",
             fontSize: 13,
-            color: "#713f12",
+            color: "var(--primary)",
             display: "flex",
             alignItems: "center",
             gap: 8,
@@ -258,10 +250,7 @@ export default function MPPersona() {
         </div>
       )}
 
-      {/* Two-column layout: sidebar personas + main */}
       <div style={{ display: "grid", gridTemplateColumns: "220px 1fr", gap: "var(--space-4)", alignItems: "start" }}>
-
-        {/* Saved personas sidebar */}
         <Card title="Saved personas">
           {sortedPersonas.length === 0 && (
             <p className="muted" style={{ margin: 0, fontSize: 13 }}>
@@ -308,9 +297,9 @@ export default function MPPersona() {
                       style={{
                         display: "inline-block",
                         marginTop: 4,
-                        background: "#fef9c3",
-                        color: "#713f12",
-                        border: "1px solid #ca8a04",
+                        background: "var(--accent-soft)",
+                        color: "var(--primary)",
+                        border: "1px solid var(--accent)",
                         borderRadius: 3,
                         padding: "1px 6px",
                         fontSize: 11,
@@ -348,9 +337,7 @@ export default function MPPersona() {
           </div>
         </Card>
 
-        {/* Main content */}
         <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-4)" }}>
-          {/* Build form */}
           <Card title="Generate persona">
             <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
               <label className="field" htmlFor="mp-name-input">
@@ -377,28 +364,27 @@ export default function MPPersona() {
               </div>
             </div>
 
-            {/* Progress indicator */}
             {loading && (
               <div
                 style={{
                   marginTop: 16,
                   padding: "10px 14px",
-                  background: "#eff6ff",
+                  background: "var(--accent-soft)",
                   borderRadius: "var(--radius-sm)",
-                  border: "1px solid #bfdbfe",
+                  border: "1px solid var(--accent)",
                 }}
               >
-                <div style={{ fontSize: 12, fontWeight: 600, color: "#1d4ed8", marginBottom: 6 }}>
+                <div style={{ fontSize: 12, fontWeight: 600, color: "var(--primary)", marginBottom: 6 }}>
                   Step {Math.min(stepIndex + 1, STEPS.length)} of {STEPS.length}
                 </div>
-                <div style={{ fontSize: 13, color: "#1e40af" }}>
+                <div style={{ fontSize: 13, color: "var(--accent)" }}>
                   {STEPS[Math.min(stepIndex, STEPS.length - 1)]}
                 </div>
                 <div
                   style={{
                     marginTop: 8,
                     height: 4,
-                    background: "#dbeafe",
+                    background: "var(--color-slate-light)",
                     borderRadius: 2,
                     overflow: "hidden",
                   }}
@@ -407,7 +393,7 @@ export default function MPPersona() {
                     style={{
                       height: "100%",
                       width: `${Math.round(((stepIndex + 1) / STEPS.length) * 100)}%`,
-                      background: "#2563eb",
+                      background: "var(--accent)",
                       transition: "width 0.5s ease",
                     }}
                   />
@@ -426,7 +412,6 @@ export default function MPPersona() {
             )}
           </Card>
 
-          {/* Output */}
           {output && (
             <Card
               title={`System prompt — ${currentMp}`}
@@ -464,7 +449,7 @@ export default function MPPersona() {
                   padding: 12,
                   border: "1px solid var(--border)",
                   borderRadius: "var(--radius-sm)",
-                  background: "#f8fafc",
+                  background: "var(--surface-muted)",
                   color: "var(--text)",
                   resize: "vertical",
                   boxSizing: "border-box",

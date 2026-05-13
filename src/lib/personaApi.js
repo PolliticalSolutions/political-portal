@@ -1,7 +1,14 @@
 import { getRuntimeConfig } from "../config/runtimeConfig.js";
+import { getStoredTokens } from "../auth/session.js";
 
 const resolvePersonaApiUrl = () => {
   return getRuntimeConfig().personaApiUrl || "";
+};
+
+const getAuthHeaders = () => {
+  const tokens = getStoredTokens();
+  const token = tokens?.access_token || tokens?.id_token;
+  return token ? { Authorization: `Bearer ${token}` } : {};
 };
 
 export async function buildPersona(mpName) {
@@ -11,7 +18,7 @@ export async function buildPersona(mpName) {
   try {
     res = await fetch(url, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: { "Content-Type": "application/json", ...getAuthHeaders() },
       body: JSON.stringify({ mpName }),
     });
   } catch (err) {
