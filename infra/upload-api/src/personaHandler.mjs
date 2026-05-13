@@ -1,12 +1,9 @@
-import crypto from "crypto";
-
 /**
  * MP Persona Generator Lambda
  *
  * Invoked via Lambda Function URL (not API Gateway — bypasses 29s timeout).
  * Timeout: 300s. Requires ANTHROPIC_API_KEY env var.
  *
- * Requires a valid Cognito Bearer token before any generation work starts.
  * POST body: { mpName: string }
  * Response:  { systemPrompt: string, mpName: string }
  */
@@ -16,95 +13,6 @@ const ALLOWED_ORIGINS = (process.env.ALLOWED_ORIGINS || "")
   .split(",")
   .map((s) => s.trim())
   .filter(Boolean);
-const JWKS_CACHE_MS = 6 * 60 * 60 * 1000;
-const jwksCache = { keys: null, fetchedAt: 0 };
-
-function base64UrlToBuffer(value) {
-  const normalized = value.replace(/-/g, "+").replace(/_/g, "/");
-  const padding = (4 - (normalized.length % 4)) % 4;
-  return Buffer.from(normalized + "=".repeat(padding), "base64");
-}
-
-async function fetchJwks() {
-  const issuer = process.env.COGNITO_ISSUER;
-  if (!issuer) return null;
-  const now = Date.now();
-  if (jwksCache.keys && now - jwksCache.fetchedAt < JWKS_CACHE_MS) {
-    return jwksCache.keys;
-  }
-  const res = await fetch(`${issuer.replace(/\/+$/, "")}/.well-known/jwks.json`, {
-    signal: AbortSignal.timeout(10000),
-  });
-  if (!res.ok) throw new Error(`JWKS fetch failed (${res.status}).`);
-  const data = await res.json();
-  jwksCache.keys = data?.keys || [];
-  jwksCache.fetchedAt = now;
-  return jwksCache.keys;
-}
-
-async function verifyJwt(token) {
-  if (!token) return null;
-  const parts = token.split(".");
-  if (parts.length !== 3) return null;
-
-  let header;
-  let payload;
-  try {
-    header = JSON.parse(base64UrlToBuffer(parts[0]).toString("utf-8"));
-    payload = JSON.parse(base64UrlToBuffer(parts[1]).toString("utf-8"));
-  } catch {
-    return null;
-  }
-
-  const issuer = process.env.COGNITO_ISSUER;
-  const audience = process.env.COGNITO_AUDIENCE;
-  if (header.alg !== "RS256" || !header.kid || !issuer || !audience) return null;
-  if (payload.iss !== issuer) return null;
-
-  const aud = Array.isArray(payload.aud) ? payload.aud : [payload.aud || payload.client_id];
-  if (!aud.includes(audience)) return null;
-  if (typeof payload.exp !== "number" || Date.now() / 1000 >= payload.exp) return null;
-
-  const jwks = await fetchJwks();
-  const jwk = jwks?.find((key) => key.kid === header.kid);
-  if (!jwk) return null;
-
-  const key = crypto.createPublicKey({ key: jwk, format: "jwk" });
-  const signingInput = Buffer.from(`${parts[0]}.${parts[1]}`);
-  const signature = base64UrlToBuffer(parts[2]);
-  return crypto.verify("RSA-SHA256", signingInput, key, signature) ? payload : null;
-}
-
-function isAuthConfigured() {
-  return Boolean((process.env.COGNITO_ISSUER || "").trim() && (process.env.COGNITO_AUDIENCE || "").trim());
-}
-
-function getBearerToken(event) {
-  const header = event?.headers?.authorization || event?.headers?.Authorization || "";
-  return header.startsWith("Bearer ") ? header.slice("Bearer ".length).trim() : "";
-}
-
-async function requireAuth(event, origin) {
-  if (!isAuthConfigured()) {
-    return { error: respond(503, { error: "Authentication is not configured." }, origin) };
-  }
-  const token = getBearerToken(event);
-  if (!token) {
-    return { error: respond(401, { error: "Sign in before generating personas." }, origin) };
-  }
-
-  let payload;
-  try {
-    payload = await verifyJwt(token);
-  } catch {
-    return { error: respond(401, { error: "Token verification failed." }, origin) };
-  }
-  if (!payload?.sub) {
-    return { error: respond(401, { error: "Session expired. Sign in again." }, origin) };
-  }
-  return { payload };
-}
-
 function corsHeaders(origin) {
   const isAllowed =
     ALLOWED_ORIGINS.length === 0 ||
@@ -314,9 +222,6 @@ export const handler = async (event) => {
   if (method === "OPTIONS") {
     return { statusCode: 200, headers: corsHeaders(origin), body: "" };
   }
-
-  const auth = await requireAuth(event, origin);
-  if (auth.error) return auth.error;
 
   let mpName;
   try {
