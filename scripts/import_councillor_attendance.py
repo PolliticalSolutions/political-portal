@@ -175,7 +175,7 @@ with open(file_arg, newline="", encoding="utf-8-sig") as fh:
             skipped.append(f"  Row {i}: authority not found '{auth_name}'")
             continue
 
-        name = row.get("councillor_name", "").strip()
+        name = row.get("councillor_name", "").strip().title()
         if not name:
             skipped.append(f"  Row {i}: councillor_name is blank")
             continue

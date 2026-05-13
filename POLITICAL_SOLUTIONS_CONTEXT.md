@@ -1,6 +1,6 @@
 # Political Solutions — Project Context
 
-Last updated: 12 May 2026
+Last updated: 13 May 2026
 
 ---
 
@@ -13,6 +13,7 @@ A SaaS platform for UK Conservative campaign operations. It provides:
 3. **Local Government tracker** — LGR (Local Government Reorganisation) data covering Surrey, DPP, Wave 2 areas; councillor attendance; council data.
 4. **MP Persona Generator** — AI-powered tool that generates an MP writing style guide and system prompt from Hansard, Wikipedia, and press releases.
 5. **By-Election Monitor** — automated daily alert system that detects recently departed Commons members and creates `political_alerts` rows.
+6. **By-Election Early Warning (Section 85)** — alert system and dashboard identifying councillors at risk of automatic disqualification under Section 85, Local Government Act 1972 (6 months non-attendance). Alerts are seeded via `import_section85_flags.py` and rescored weekly by `AttendanceRiskRefreshFunction`. The dashboard at `/portal/alerts/by-election-risk` shows all national alerts (admin) or constituency-scoped alerts (standard user), with Status/Region/Party filters. Each council detail page (`LocalGovDetail`) shows an Early Warning panel listing flagged councillors for that authority.
 6. **Quote/enquiry system** — service quote requests, Xero invoice integration (enquiry-api stack).
 7. **Subscription management** — Stripe-backed subscriptions per association, with admin override capability.
 8. **CRM** — contact relationship management at `/portal/admin/crm`, Supabase-backed, with persistent sessions.
@@ -151,6 +152,7 @@ POLITICAL_SOLUTIONS_DESIGN_SYSTEM.md  # Full brand + design spec
 | `ScanResultHandlerFunction` | `scanResultHandler.mjs` | EventBridge (GuardDuty) | 30s |
 | `PersonaFunction` | `personaHandler.mjs` | Lambda Function URL | 300s |
 | `ByElectionMonitorFunction` | `byElectionMonitor.mjs` | EventBridge schedule (daily 06:00 UTC) | 120s |
+| `AttendanceRiskRefreshFunction` | `attendanceRiskRefresh.mjs` | EventBridge schedule (Mon 07:00 UTC) | 120s |
 
 **PersonaFunction** is exposed via a Lambda Function URL (not API Gateway) to bypass the 29s API Gateway integration timeout. `ANTHROPIC_API_KEY` must be set manually in the Lambda console after deploy — it is not set in the SAM template.
 
@@ -218,7 +220,7 @@ All constituency intelligence, permissions, subscriptions, and alerts live in Su
 | `council_elections` | Council election records |
 | `council_results` | Council ward-level results |
 | `council_wards` | Ward definitions |
-| `councillor_attendance` | Councillor attendance records |
+| `councillor_attendance` | Councillor attendance records — **12,163 rows across ~130 councils** (deduped May 2026; prior total was 59,388 due to committee membership rows with null eligible/attended counts being imported alongside real attendance rows). Dedup key: `(local_authority_id, councillor_name, ward)`. |
 | `constituency_council_lookup` | Maps constituencies to relevant councils |
 | `political_alerts` | Active political alerts (by-election risks, other events); `is_active` flag |
 | `alert_subscriptions` | User subscriptions to alert types |
@@ -313,6 +315,9 @@ SEO: `noindexPrefixes = ["/portal"]` in `seoRoutes.js` covers all portal subrout
 - **Cognito JWT `aud` vs `client_id`** — Cognito access tokens use `client_id` not `aud`. The handler verifies against `payload.aud || payload.client_id`.
 - **Local listener not deployed to Lambda** — `WorkerProcessQueueMapping` is set `Enabled: false`. The sole SQS consumer is `scripts/listener/listener.py` running locally.
 - **LGR milestone dates are hardcoded** — Wave 2 consultation close (26 March 2026) and Surrey shadow election (7 May 2026) are hardcoded in `lgrUrgency.js`. They will show as 0 days / past after those dates.
+- **Lambda runtime deprecation** — all pre-existing Lambda functions in `ps-upload-api-prod` run on `nodejs20.x`, which AWS deprecates for new deployments before 1 July 2026. All functions must be migrated to `nodejs22.x` before that date. Only `AttendanceRiskRefreshFunction` (added May 2026) is affected by this as a newly-added function; the others were deployed before the deprecation notice.
+- **`infra/upload-api/packaged-template.yaml` not in `.gitignore`** — this file is an ephemeral SAM build artifact and must not be committed. It was excluded manually from the May 2026 commit (435f2fb). Add it to `.gitignore` to prevent accidental future commits.
+- **232 councils with placeholder GSS codes** — councils imported as `OCD-NNN` rather than real ONS GSS codes (`E0xxxxxxx`). These are valid internal IDs but cannot be cross-referenced against ONS datasets. Not yet addressed.
 - **MPPersona password gate** — the MP Persona Generator is gated by a hardcoded password (`"persona2026"`) stored in `localStorage`. This is a simple friction gate, not real auth.
 - **Prerender fails in worktrees** — `VITE_SUPABASE_URL` is not set in worktree build contexts; prerender step errors. The client + SSR JS builds succeed. Not a code issue.
 
@@ -330,3 +335,6 @@ SEO: `noindexPrefixes = ["/portal"]` in `seoRoutes.js` covers all portal subrout
 - Blog is live with automation scripts for drafting and publishing posts
 - Full design system applied (Proxima Nova, navy/slate/green tokens, no gradients, portal dark sidebar)
 - SEO layer overhauled: keyword-first titles, optimised meta descriptions, FAQ + Service JSON-LD on Services page
+- **By-Election Early Warning system live (May 2026):** Section 85 LGA 1972 risk alerts seeded for critical/vacant councillors via `import_section85_flags.py`; weekly Monday Lambda (`AttendanceRiskRefreshFunction`) rescores ongoing; dashboard at `/portal/alerts/by-election-risk`; Early Warning panel on every council detail page
+- **Councillor attendance table deduped (May 2026):** reduced from 59,388 to 12,163 rows by removing committee membership rows (null eligible/attended); import script now skips these at source
+- **Council composition import script ready** (`scripts/import_council_composition.py`) — requires migration `supabase/migrations/20260512_add_council_composition_columns.sql` to be applied in Supabase first; not yet run against OCD UK data

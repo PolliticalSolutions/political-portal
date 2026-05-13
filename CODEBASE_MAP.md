@@ -1,6 +1,6 @@
 # Codebase Map
 
-Last updated: 12 May 2026
+Last updated: 13 May 2026
 
 ---
 
@@ -61,6 +61,8 @@ Last updated: 12 May 2026
 | File | Route | What it does |
 |------|-------|--------------|
 | `portal/alerts/AlertsPage.jsx` | `/portal/alerts` | Lists all active rows from Supabase `political_alerts` table |
+| `portal/alerts/ByElectionRiskDashboard.jsx` | `/portal/alerts/by-election-risk` | Section 85 early warning dashboard. Admin sees all national `by_election_risk` alerts; standard user sees constituency-scoped alerts (resolved via `constituency_council_lookup`). Three filter dropdowns: Status (Elevated/Critical/Vacant), Region, Party. Table sorted by months elapsed descending. Status badges: vacant → dark red `#7f1d1d`, critical → `error` class, elevated → `warning` class. |
+| `portal/alerts/byElectionRiskApi.js` | — | `getAllByElectionAlerts()` (admin), `getByElectionAlertsForConstituencies(ids)` (standard user), `parseAlerts()` (parses `detail` JSON, enriches with `local_authorities` join). |
 
 ### Portal / analytics
 
@@ -92,9 +94,9 @@ Last updated: 12 May 2026
 | File | Route | What it does |
 |------|-------|--------------|
 | `portal/local-government/LocalGovIndex.jsx` | `/portal/local-government` | Browse local authorities; council political composition |
-| `portal/local-government/LocalGovDetail.jsx` | `/portal/local-government/:gssCode` | Council detail: composition, wards, election results, councillors |
+| `portal/local-government/LocalGovDetail.jsx` | `/portal/local-government/:gssCode` | Council detail: composition, wards, election results, councillors. Contains `ByElectionEarlyWarningSection` component (rendered below the tabs Card, above `DataProvenancePanel`) — shows a table of flagged councillors from `political_alerts` for this authority, or "No current early warning flags" empty state. |
 | `portal/local-government/LGRTrackerPage.jsx` | `/portal/local-government/lgr` | LGR tracker: countdown to key dates, status by wave (Surrey/DPP/Wave 2) |
-| `portal/local-government/localGovApi.js` | — | Supabase query functions for local government data |
+| `portal/local-government/localGovApi.js` | — | Supabase query functions for local government data. Includes `getByElectionAttendanceAlerts(authorityId)` — fetches active `by_election_risk` alerts for a given authority, filters to rows where `detail.councillorName` is truthy. |
 | `portal/local-government/localGovQuality.js` | — | Data quality helpers for local government records |
 
 ---
@@ -192,6 +194,7 @@ Last updated: 12 May 2026
 | `scanResultHandler.mjs` | `ScanResultHandlerFunction` | EventBridge (GuardDuty malware scan results) | Processes scan results; enqueues clean files on ProcessQueue |
 | `personaHandler.mjs` | `PersonaFunction` | Lambda Function URL | MP Persona Generator: fetches Parliament Members API, Hansard (10 pages), Wikipedia, press releases → Anthropic Claude → returns `{ systemPrompt, mpName }`. Requires `ANTHROPIC_API_KEY` set manually. |
 | `byElectionMonitor.mjs` | `ByElectionMonitorFunction` | EventBridge schedule (daily 06:00 UTC) | Polls Parliament Members API for recently departed Commons members; inserts `political_alerts` rows; resolves alerts where seat is now filled |
+| `attendanceRiskRefresh.mjs` | `AttendanceRiskRefreshFunction` | EventBridge schedule (Mon 07:00 UTC) | Re-scores all councillor attendance against Section 85 LGA 1972 thresholds (critical ≥5 months, vacant ≥6 months); inserts `political_alerts` rows; deduplicates by `title + local_authority_id + is_active`. Skips authorities with no attendance data or data older than 365 days. |
 | `electionsRepo.mjs` | — | — | DynamoDB access for elections table; always uses full `LastEvaluatedKey` pagination |
 | `usersRepo.mjs` | — | — | DynamoDB user records; `putUserIfAbsent` defaults `status: "APPROVED"` |
 | `submissionsRepo.mjs` | — | — | DynamoDB upload job records |
@@ -239,6 +242,7 @@ Every resource in the SAM template:
 | `PersonaFunctionUrl` | Lambda Function URL | Public HTTPS endpoint for PersonaFunction (bypasses 29s API Gateway limit) |
 | `PersonaFunctionUrlPermission` | Lambda Permission | Allows public invocation of PersonaFunctionUrl |
 | `ByElectionMonitorFunction` | Lambda | Daily Parliament API poller; writes `political_alerts` rows |
+| `AttendanceRiskRefreshFunction` | Lambda | Weekly Monday Section 85 attendance scorer; inserts/deduplicates `political_alerts` for critical/vacant councillors |
 | `UploadFunctionErrorsAlarm` | CloudWatch Alarm | Alerts on any Lambda error for UploadFunction |
 | `WorkerFunctionErrorsAlarm` | CloudWatch Alarm | Alerts on any Lambda error for WorkerFunction |
 | `UploadCompleteFunctionErrorsAlarm` | CloudWatch Alarm | Alerts on any Lambda error for UploadCompleteFunction |
@@ -272,6 +276,11 @@ Every resource in the SAM template:
 | `sync_elections_from_democracy_club.py` | Syncs elections from Democracy Club into Supabase | Occasional |
 | `calculate_*.py` | Python scripts for computing threat indices, swings, targets, vulnerability scores | Yes — run when recomputing model data |
 | `import_*.py` | Python scripts for importing data from external sources | Yes — run when importing fresh data |
+| `constituency_data_audit.py` | Audits completeness of all 21 Supabase tables; writes UTF-8-BOM CSV to `scripts/constituency_data_audit_YYYY-MM-DD.csv` | Occasional — run before major import cycles |
+| `import_council_composition.py` | Imports council political composition from OCD UK CSV into `council_data`; pre-flight checks: schema columns present, LGR new councils, dataset freshness vs May 2025 elections | Requires migration `20260512_add_council_composition_columns.sql` first |
+| `import_section85_flags.py` | Imports manually-curated Section 85 priority flags into `political_alerts` as `by_election_risk` alerts. Risk thresholds: ≥6 months (or 99=never) → vacant/critical; ≥5 → critical/critical; ≥4 → elevated/high; <4 → skip. Deduplicates on `title + local_authority_id + is_active`. | Run with `--file <path_to_csv>` |
+| `extend_by_election_risk_attendance.py` | One-shot script: scores `councillor_attendance` table against Section 85 thresholds and inserts `political_alerts`; safe to re-run (same dedup as above) | Superseded by weekly Lambda `attendanceRiskRefresh.mjs` for ongoing rescoring |
+| `dedup_councillor_attendance.py` | Removes duplicate rows from `councillor_attendance` — groups by `(local_authority_id, councillor_name, ward)`, keeps row with highest `meetings_eligible` (tiebreak: latest `period_end`), deletes the rest via batched REST DELETE. Includes post-delete verification pass. Supports `--dry-run`. | Run when data sources are re-concatenated; applied May 2026 (59,388 → 12,163 rows) |
 | `backtest_*.py` | Python model backtesting scripts | Yes — model validation |
 | `export_runtime_validation_summaries.py` | Exports validation data to Supabase for ModelPerformancePage | Yes |
 | `add_intelligence_quality_fields.sql` | SQL to add quality metadata columns to Supabase tables | Applied — may not need re-running |

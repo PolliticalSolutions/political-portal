@@ -262,8 +262,7 @@ def main():
             stats["unmatched"] += 1
             continue
 
-        # Normalise councillor name to title case for display
-        display_name = " ".join(w.capitalize() for w in councillor_name.split())
+        display_name = councillor_name.title()
 
         title = f"By-election Risk: {display_name}"
         if ward:
