@@ -225,6 +225,24 @@ Resources:
         AttributeName: expiresAt
         Enabled: true
 
+
+  PersonaJobsTable:
+    Type: AWS::DynamoDB::Table
+    DeletionPolicy: Retain
+    UpdateReplacePolicy: Retain
+    Properties:
+      TableName: !Sub "${AWS::StackName}-persona-jobs"
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - AttributeName: jobId
+          AttributeType: S
+      KeySchema:
+        - AttributeName: jobId
+          KeyType: HASH
+      TimeToLiveSpecification:
+        AttributeName: ttl
+        Enabled: true
+
   UsersTable:
     Type: AWS::DynamoDB::Table
     DeletionPolicy: Retain
@@ -956,8 +974,8 @@ Resources:
           Status: ENABLED
 
   # ── MP Persona Generator ─────────────────────────────────────────────────────
-  # Long-running Lambda (up to 300s) exposed via a Function URL, not API Gateway,
-  # to bypass the 29s HTTP API integration timeout. CORS is handled here.
+  # API Gateway starts/polls short-lived jobs; this Lambda self-invokes
+  # asynchronously for the long-running scraping + Claude pipeline.
 
   PersonaFunction:
     Type: AWS::Serverless::Function
@@ -971,28 +989,42 @@ Resources:
         Variables:
           ALLOWED_ORIGINS: !Join [",", !Ref AllowedOrigins]
           ANTHROPIC_API_KEY: ""  # Set manually in Lambda console after deploy
+          PERSONA_JOBS_TABLE: !Ref PersonaJobsTable
+          PERSONA_JOB_TTL_SECONDS: "86400"
+          PERSONA_MAX_SYSTEM_PROMPT_CHARS: "120000"
+      Policies:
+        - Statement:
+            - Effect: Allow
+              Action:
+                - dynamodb:PutItem
+                - dynamodb:GetItem
+                - dynamodb:UpdateItem
+              Resource: !GetAtt PersonaJobsTable.Arn
+            - Effect: Allow
+              Action:
+                - lambda:InvokeFunction
+              Resource: !Sub "arn:${AWS::Partition}:lambda:${AWS::Region}:${AWS::AccountId}:function:${AWS::StackName}-*"
+      Events:
+        PersonaStart:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref UploadApi
+            Path: /persona
+            Method: POST
+        PersonaGet:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref UploadApi
+            Path: /persona/{jobId}
+            Method: GET
 
-  PersonaFunctionUrl:
-    Type: AWS::Lambda::Url
+  PersonaFunctionAsyncInvokeConfig:
+    Type: AWS::Lambda::EventInvokeConfig
     Properties:
-      TargetFunctionArn: !Ref PersonaFunction
-      AuthType: NONE
-      Cors:
-        AllowOrigins: !Ref AllowedOrigins
-        AllowMethods:
-          - "*"
-        AllowHeaders:
-          - content-type
-          - authorization
-        MaxAge: 3600
-
-  PersonaFunctionUrlPermission:
-    Type: AWS::Lambda::Permission
-    Properties:
-      Action: lambda:InvokeFunctionUrl
       FunctionName: !Ref PersonaFunction
-      Principal: "*"
-      FunctionUrlAuthType: NONE
+      Qualifier: "$LATEST"
+      MaximumRetryAttempts: 0
+      MaximumEventAgeInSeconds: 3600
 
   # ── By-Election Monitor ──────────────────────────────────────────────────────
   # Scheduled Lambda that polls the Parliament Members API daily at 06:00 UTC,
@@ -1325,8 +1357,8 @@ Outputs:
     Description: ARN of the processing dead-letter queue.
     Value: !GetAtt ProcessDLQ.Arn
   PersonaApiUrl:
-    Description: Lambda Function URL for the MP Persona Generator (set as VITE_PERSONA_API_URL).
-    Value: !GetAtt PersonaFunctionUrl.FunctionUrl
+    Description: API Gateway base URL for MP Persona routes. Frontend uses VITE_UPLOAD_API_URL; do not use VITE_PERSONA_API_URL.
+    Value: !Sub "https://${UploadApi}.execute-api.${AWS::Region}.amazonaws.com"
   ScanResultsRuleName:
     Condition: GuardDutyScanEnabled
     Description: EventBridge rule name for GuardDuty malware scan results.

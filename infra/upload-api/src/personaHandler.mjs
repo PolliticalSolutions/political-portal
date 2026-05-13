@@ -1,18 +1,34 @@
 /**
  * MP Persona Generator Lambda
  *
- * Invoked via Lambda Function URL (not API Gateway — bypasses 29s timeout).
- * Timeout: 300s. Requires ANTHROPIC_API_KEY env var.
+ * Modes:
+ * A. API Gateway POST /persona: create a DynamoDB job and invoke this function asynchronously.
+ * B. API Gateway GET /persona/{jobId}: return the DynamoDB job item for polling.
+ * C. Internal async event: run the scraping + Claude pipeline and update the job item.
  *
- * POST body: { mpName: string }
- * Response:  { systemPrompt: string, mpName: string }
+ * Timeout: 300s. Requires ANTHROPIC_API_KEY env var.
  */
+
+import { randomUUID } from "node:crypto";
+import { DynamoDBClient } from "@aws-sdk/client-dynamodb";
+import { LambdaClient, InvokeCommand } from "@aws-sdk/client-lambda";
+import { DynamoDBDocumentClient, GetCommand, PutCommand, UpdateCommand } from "@aws-sdk/lib-dynamodb";
 
 const ANTHROPIC_API_KEY = process.env.ANTHROPIC_API_KEY || "";
 const ALLOWED_ORIGINS = (process.env.ALLOWED_ORIGINS || "")
   .split(",")
   .map((s) => s.trim())
   .filter(Boolean);
+const REGION = process.env.AWS_REGION || "eu-west-2";
+const PERSONA_JOBS_TABLE = process.env.PERSONA_JOBS_TABLE || "";
+const PERSONA_JOB_TTL_SECONDS = Number(process.env.PERSONA_JOB_TTL_SECONDS || 86400);
+const PERSONA_MAX_SYSTEM_PROMPT_CHARS = Number(
+  process.env.PERSONA_MAX_SYSTEM_PROMPT_CHARS || 120000
+);
+
+const lambda = new LambdaClient({ region: REGION });
+const dynamo = DynamoDBDocumentClient.from(new DynamoDBClient({ region: REGION }));
+
 function corsHeaders(origin) {
   const isAllowed =
     ALLOWED_ORIGINS.length === 0 ||
@@ -20,8 +36,9 @@ function corsHeaders(origin) {
     ALLOWED_ORIGINS.includes(origin);
   return {
     "Access-Control-Allow-Origin": isAllowed ? origin || "*" : ALLOWED_ORIGINS[0] || "*",
-    "Access-Control-Allow-Methods": "POST, OPTIONS",
+    "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
     "Access-Control-Allow-Headers": "Content-Type, Authorization",
+    "Cache-Control": "no-store",
   };
 }
 
@@ -31,6 +48,56 @@ function respond(statusCode, body, origin) {
     headers: { "Content-Type": "application/json", ...corsHeaders(origin) },
     body: JSON.stringify(body),
   };
+}
+
+function getOrigin(event) {
+  return event?.headers?.origin || event?.headers?.Origin || "";
+}
+
+function getHttpMethod(event) {
+  return event?.requestContext?.http?.method || event?.httpMethod || "";
+}
+
+function getPath(event) {
+  return event?.rawPath || event?.path || event?.requestContext?.http?.path || "";
+}
+
+function parseJsonBody(event) {
+  const raw = event?.isBase64Encoded
+    ? Buffer.from(event.body || "", "base64").toString("utf8")
+    : event?.body || "{}";
+  try {
+    return JSON.parse(raw);
+  } catch {
+    const err = new Error("Invalid JSON body.");
+    err.statusCode = 400;
+    throw err;
+  }
+}
+
+function requireJobsTable() {
+  if (!PERSONA_JOBS_TABLE) {
+    throw new Error("PERSONA_JOBS_TABLE environment variable is not set.");
+  }
+}
+
+function nowIso() {
+  return new Date().toISOString();
+}
+
+function validateMpName(value) {
+  const mpName = typeof value === "string" ? value.trim() : "";
+  if (!mpName) {
+    const err = new Error("mpName is required.");
+    err.statusCode = 400;
+    throw err;
+  }
+  if (mpName.length > 120) {
+    const err = new Error("mpName must be 120 characters or fewer.");
+    err.statusCode = 400;
+    throw err;
+  }
+  return mpName;
 }
 
 function htmlToText(html) {
@@ -213,66 +280,229 @@ ${styleGuide}`,
   );
 }
 
+async function runPersonaPipeline(mpName) {
+  console.log(`[persona] Starting pipeline for: ${mpName}`);
+
+  const memberId = await getMemberId(mpName);
+
+  const hansardText = await scrapeHansard(memberId);
+  console.log(`[persona] Hansard: ${hansardText.length} chars`);
+
+  const wikiText = await fetchWikipedia(mpName);
+  console.log(`[persona] Wikipedia: ${wikiText.length} chars`);
+
+  const pressText = await fetchPressReleases(mpName);
+  console.log(`[persona] Press: ${pressText.length} chars`);
+
+  const corpus = [
+    hansardText ? `=== HANSARD CONTRIBUTIONS ===\n${hansardText}` : "",
+    wikiText ? `=== WIKIPEDIA BIOGRAPHY ===\n${wikiText}` : "",
+    pressText ? `=== PRESS RELEASES ===\n${pressText}` : "",
+  ]
+    .filter(Boolean)
+    .join("\n\n---\n\n");
+
+  if (corpus.length < 500) {
+    throw new Error(
+      "Insufficient source material found. The MP name may not match Parliament records exactly."
+    );
+  }
+  console.log(`[persona] Corpus: ${corpus.length} chars`);
+
+  const styleGuide = await buildStyleGuide(corpus, mpName);
+  console.log(`[persona] Style guide: ${styleGuide.length} chars`);
+
+  const rawSystemPrompt = await buildSystemPrompt(styleGuide, mpName);
+  const systemPrompt = rawSystemPrompt.slice(0, PERSONA_MAX_SYSTEM_PROMPT_CHARS);
+  console.log(`[persona] Done. System prompt: ${systemPrompt.length} chars`);
+
+  return {
+    systemPrompt,
+    mpName,
+    truncated: rawSystemPrompt.length > systemPrompt.length,
+  };
+}
+
+async function putPendingJob({ jobId, mpName }) {
+  requireJobsTable();
+  const createdAt = nowIso();
+  const ttl = Math.floor(Date.now() / 1000) + PERSONA_JOB_TTL_SECONDS;
+  await dynamo.send(
+    new PutCommand({
+      TableName: PERSONA_JOBS_TABLE,
+      Item: {
+        jobId,
+        status: "pending",
+        mpName,
+        createdAt,
+        updatedAt: createdAt,
+        ttl,
+      },
+      ConditionExpression: "attribute_not_exists(jobId)",
+    })
+  );
+}
+
+async function getJobItem(jobId) {
+  requireJobsTable();
+  const result = await dynamo.send(
+    new GetCommand({
+      TableName: PERSONA_JOBS_TABLE,
+      Key: { jobId },
+    })
+  );
+  return result.Item || null;
+}
+
+async function updateJob(jobId, status, attributes = {}) {
+  requireJobsTable();
+  const names = { "#status": "status", "#updatedAt": "updatedAt" };
+  const values = { ":status": status, ":updatedAt": nowIso() };
+  const sets = ["#status = :status", "#updatedAt = :updatedAt"];
+
+  for (const [key, value] of Object.entries(attributes)) {
+    if (value === undefined) continue;
+    const nameKey = `#${key}`;
+    const valueKey = `:${key}`;
+    names[nameKey] = key;
+    values[valueKey] = value;
+    sets.push(`${nameKey} = ${valueKey}`);
+  }
+
+  await dynamo.send(
+    new UpdateCommand({
+      TableName: PERSONA_JOBS_TABLE,
+      Key: { jobId },
+      UpdateExpression: `SET ${sets.join(", ")}`,
+      ExpressionAttributeNames: names,
+      ExpressionAttributeValues: values,
+    })
+  );
+}
+
+async function markJobRunning(jobId) {
+  await updateJob(jobId, "running", { startedAt: nowIso() });
+}
+
+async function markJobError(jobId, error) {
+  await updateJob(jobId, "error", {
+    error: String(error || "Persona generation failed.").slice(0, 2000),
+    failedAt: nowIso(),
+  });
+}
+
+async function startJob(event, origin) {
+  let jobId = "";
+  try {
+    const body = parseJsonBody(event);
+    const mpName = validateMpName(body.mpName);
+    jobId = randomUUID();
+
+    await putPendingJob({ jobId, mpName });
+
+    await lambda.send(
+      new InvokeCommand({
+        FunctionName: process.env.AWS_LAMBDA_FUNCTION_NAME,
+        InvocationType: "Event",
+        Payload: Buffer.from(JSON.stringify({ __asyncPersonaJob: true, jobId, mpName })),
+      })
+    );
+
+    return respond(202, { jobId }, origin);
+  } catch (err) {
+    console.error(`[persona] Failed to start job: ${err.message}`);
+    if (jobId) {
+      await markJobError(jobId, `Failed to start async job: ${err.message}`).catch((updateErr) => {
+        console.error(`[persona] Failed to mark start failure for ${jobId}: ${updateErr.message}`);
+      });
+    }
+    return respond(err.statusCode || 500, { error: err.message || "Failed to start persona job." }, origin);
+  }
+}
+
+async function pollJob(event, origin) {
+  const jobId = event?.pathParameters?.jobId || getPath(event).split("/").filter(Boolean).at(-1) || "";
+  if (!jobId) return respond(400, { error: "jobId is required." }, origin);
+
+  try {
+    const item = await getJobItem(jobId);
+    if (!item) return respond(404, { error: "Persona job not found." }, origin);
+    return respond(200, item, origin);
+  } catch (err) {
+    console.error(`[persona] Failed to read job ${jobId}: ${err.message}`);
+    return respond(500, { error: err.message || "Failed to read persona job." }, origin);
+  }
+}
+
+async function runAsyncJob(event) {
+  const jobId = event?.jobId || "";
+  const mpName = event?.mpName || "";
+
+  if (!jobId || !mpName) {
+    console.error("[persona] Async event missing jobId or mpName");
+    return { ok: false };
+  }
+
+  try {
+    const existing = await getJobItem(jobId);
+    if (!existing) {
+      console.error(`[persona] Async job ${jobId} not found`);
+      return { ok: false };
+    }
+    if (existing.status === "complete") {
+      console.log(`[persona] Async job ${jobId} already complete; skipping duplicate event`);
+      return { ok: true, skipped: true };
+    }
+    if (existing.status === "running") {
+      console.log(`[persona] Async job ${jobId} already running; skipping duplicate event`);
+      return { ok: true, skipped: true };
+    }
+
+    await markJobRunning(jobId);
+
+    const result = await runPersonaPipeline(mpName);
+    await updateJob(jobId, "complete", {
+      systemPrompt: result.systemPrompt,
+      mpName: result.mpName,
+      completedAt: nowIso(),
+      truncated: result.truncated,
+    });
+    return { ok: true };
+  } catch (err) {
+    console.error(`[persona] Async job ${jobId} failed: ${err.message}`);
+    await markJobError(jobId, err.message).catch((updateErr) => {
+      console.error(`[persona] Failed to mark async job ${jobId} error: ${updateErr.message}`);
+    });
+    return { ok: false };
+  }
+}
+
 // ── Handler ───────────────────────────────────────────────────────────────────
 
-export const handler = async (event) => {
-  const origin = event.headers?.origin || event.headers?.Origin || "";
-  const method = event.requestContext?.http?.method || event.httpMethod || "";
+export const handler = async (event = {}) => {
+  if (event.__asyncPersonaJob === true) {
+    return runAsyncJob(event);
+  }
+
+  const origin = getOrigin(event);
+  const method = getHttpMethod(event);
+  const path = getPath(event);
+  const routeKey = event?.routeKey || "";
 
   if (method === "OPTIONS") {
     return { statusCode: 200, headers: corsHeaders(origin), body: "" };
   }
 
-  let mpName;
-  try {
-    const body = JSON.parse(event.body || "{}");
-    mpName = (body.mpName || "").trim();
-  } catch {
-    return respond(400, { error: "Invalid JSON body." }, origin);
+  if (method === "POST" && (path.endsWith("/persona") || routeKey === "POST /persona")) {
+    return startJob(event, origin);
   }
 
-  if (!mpName) {
-    return respond(400, { error: "mpName is required." }, origin);
+  if (
+    method === "GET" &&
+    (event?.pathParameters?.jobId || routeKey === "GET /persona/{jobId}" || path.includes("/persona/"))
+  ) {
+    return pollJob(event, origin);
   }
 
-  console.log(`[persona] Starting pipeline for: ${mpName}`);
-
-  try {
-    const memberId = await getMemberId(mpName);
-
-    const hansardText = await scrapeHansard(memberId);
-    console.log(`[persona] Hansard: ${hansardText.length} chars`);
-
-    const wikiText = await fetchWikipedia(mpName);
-    console.log(`[persona] Wikipedia: ${wikiText.length} chars`);
-
-    const pressText = await fetchPressReleases(mpName);
-    console.log(`[persona] Press: ${pressText.length} chars`);
-
-    const corpus = [
-      hansardText ? `=== HANSARD CONTRIBUTIONS ===\n${hansardText}` : "",
-      wikiText ? `=== WIKIPEDIA BIOGRAPHY ===\n${wikiText}` : "",
-      pressText ? `=== PRESS RELEASES ===\n${pressText}` : "",
-    ]
-      .filter(Boolean)
-      .join("\n\n---\n\n");
-
-    if (corpus.length < 500) {
-      throw new Error(
-        "Insufficient source material found. The MP name may not match Parliament records exactly."
-      );
-    }
-    console.log(`[persona] Corpus: ${corpus.length} chars`);
-
-    const styleGuide = await buildStyleGuide(corpus, mpName);
-    console.log(`[persona] Style guide: ${styleGuide.length} chars`);
-
-    const systemPrompt = await buildSystemPrompt(styleGuide, mpName);
-    console.log(`[persona] Done. System prompt: ${systemPrompt.length} chars`);
-
-    return respond(200, { systemPrompt, mpName }, origin);
-  } catch (err) {
-    console.error(`[persona] Error: ${err.message}`);
-    return respond(500, { error: err.message }, origin);
-  }
+  return respond(404, { error: "Unsupported persona route." }, origin);
 };
