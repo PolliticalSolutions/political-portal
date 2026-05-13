@@ -1018,6 +1018,31 @@ Resources:
             Description: Daily by-election trigger check at 06:00 UTC
             Enabled: true
 
+  # ── Attendance Risk Refresh ──────────────────────────────────────────────────
+  # Runs every Monday at 07:00 UTC. Re-scores councillor attendance against the
+  # Section 85 LGA 1972 thresholds and inserts political_alerts for critical/vacant.
+  # Safe to re-run — deduplicates by title + local_authority_id + is_active.
+
+  AttendanceRiskRefreshFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: src/
+      Handler: attendanceRiskRefresh.handler
+      Runtime: nodejs22.x
+      Timeout: 120
+      MemorySize: 256
+      Environment:
+        Variables:
+          SUPABASE_URL: !Ref SupabaseUrl
+          SUPABASE_SERVICE_KEY: !Ref SupabaseServiceKey
+      Events:
+        WeeklyMonday:
+          Type: Schedule
+          Properties:
+            Schedule: cron(0 7 ? * MON *)
+            Description: Weekly attendance risk refresh every Monday at 07:00 UTC
+            Enabled: true
+
   # ── CloudWatch Alarms ──────────────────────────────────────────────────────
 
   UploadFunctionErrorsAlarm:

@@ -542,6 +542,9 @@ export default function PortalLayout() {
               <NavLink className={navClass} to="/portal/settings/integrations" onClick={() => setSidebarOpen(false)}>
                 Integrations
               </NavLink>
+              <NavLink className={navClass} to="/portal/alerts/by-election-risk" onClick={() => setSidebarOpen(false)}>
+                By-Election Risk
+              </NavLink>
               <NavLink className={navClass} to="/portal/alerts" onClick={() => setSidebarOpen(false)}>
                 My Alerts
                 {alertCount > 0 && (

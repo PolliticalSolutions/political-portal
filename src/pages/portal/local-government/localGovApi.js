@@ -135,6 +135,20 @@ export async function getCouncillorAttendance(authorityId) {
   return data ?? [];
 }
 
+export async function getByElectionAttendanceAlerts(authorityId) {
+  const { data, error } = await supabase
+    .from("political_alerts")
+    .select("id, title, summary, detail, risk_level, created_at")
+    .eq("local_authority_id", authorityId)
+    .eq("alert_type", "by_election_risk")
+    .eq("is_active", true)
+    .order("risk_level");
+  if (error) return [];
+  return (data ?? []).filter(row => {
+    try { return !!JSON.parse(row.detail)?.councillorName; } catch { return false; }
+  });
+}
+
 export async function getLinkedAuthorities(constituencyId) {
   const { data, error } = await supabase
     .from("constituency_council_lookup")

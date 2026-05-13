@@ -45,6 +45,7 @@ const ConstituencyDetail = lazy(() => import("./pages/portal/constituency/Consti
 const VulnerabilityDashboard = lazy(() => import("./pages/portal/constituency/VulnerabilityDashboard.jsx"));
 const ReformThreatIndex = lazy(() => import("./pages/portal/constituency/ReformThreatIndex.jsx"));
 const AlertsPage = lazy(() => import("./pages/portal/alerts/AlertsPage.jsx"));
+const ByElectionRiskDashboard = lazy(() => import("./pages/portal/alerts/ByElectionRiskDashboard.jsx"));
 const LocalGovIndex = lazy(() => import("./pages/portal/local-government/LocalGovIndex.jsx"));
 const LocalGovDetail = lazy(() => import("./pages/portal/local-government/LocalGovDetail.jsx"));
 const LGRTrackerPage = lazy(() => import("./pages/portal/local-government/LGRTrackerPage.jsx"));
@@ -451,6 +452,14 @@ export default function App() {
                   element={
                     <Suspense fallback={<div className="page stack"><p className="muted">Loading…</p></div>}>
                       <AlertsPage />
+                    </Suspense>
+                  }
+                />
+                <Route
+                  path="alerts/by-election-risk"
+                  element={
+                    <Suspense fallback={<div className="page stack"><p className="muted">Loading…</p></div>}>
+                      <ByElectionRiskDashboard />
                     </Suspense>
                   }
                 />
