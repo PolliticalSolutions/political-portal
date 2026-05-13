@@ -13,7 +13,6 @@ const ALLOWED_ORIGINS = (process.env.ALLOWED_ORIGINS || "")
   .split(",")
   .map((s) => s.trim())
   .filter(Boolean);
-
 function corsHeaders(origin) {
   const isAllowed =
     ALLOWED_ORIGINS.length === 0 ||

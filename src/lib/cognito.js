@@ -84,6 +84,10 @@ export function resolveCanonicalOrigin({
 }
 
 export function getRedirectUri() {
+  const configuredRedirectUri = normalizeOrigin(cognitoConfig.redirectUri);
+  if (configuredRedirectUri && !isProductionBuild()) {
+    return configuredRedirectUri;
+  }
   const canonicalOrigin = resolveCanonicalOrigin();
   return `${canonicalOrigin}/callback`;
 }

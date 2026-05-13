@@ -33,11 +33,19 @@ describe("cognito helpers", () => {
 
     expect(url.pathname).toBe("/signup");
     expect(url.searchParams.get("client_id")).toBe("client-id");
-    expect(url.searchParams.get("redirect_uri")).toBe(`${window.location.origin}/callback`);
+    expect(url.searchParams.get("redirect_uri")).toBe("https://example.test/callback");
     expect(url.searchParams.get("code_challenge_method")).toBe("S256");
     expect(url.searchParams.get("code_challenge")).toBe("challenge");
     expect(url.searchParams.get("state")).toBe("state-1");
     expect(url.searchParams.get("screen_hint")).toBe("signup");
+  });
+
+  it("falls back to the current origin callback when no redirect URI is configured", async () => {
+    vi.stubEnv("VITE_COGNITO_REDIRECT_URI", "");
+    vi.resetModules();
+    const { buildAuthorizeUrl } = await import("./cognito.js");
+    const url = new URL(buildAuthorizeUrl("challenge"));
+    expect(url.searchParams.get("redirect_uri")).toBe(`${window.location.origin}/callback`);
   });
 
   it("resolves production non-www to canonical www origin", async () => {

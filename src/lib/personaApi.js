@@ -11,7 +11,7 @@ export async function buildPersona(mpName) {
   try {
     res = await fetch(url, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: { "Content-Type": "text/plain" },
       body: JSON.stringify({ mpName }),
     });
   } catch (err) {
