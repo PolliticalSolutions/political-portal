@@ -66,6 +66,9 @@ const SessionAttendancePage = lazy(() => import("./pages/portal/campaigns/Sessio
 const CandidateActivityPage = lazy(() => import("./pages/portal/campaigns/CandidateActivityPage.jsx"));
 const VolunteerListPage = lazy(() => import("./pages/portal/campaigns/VolunteerListPage.jsx"));
 const VolunteerDetailPage = lazy(() => import("./pages/portal/campaigns/VolunteerDetailPage.jsx"));
+const VolunteerSignUpPage = lazy(() => import("./pages/VolunteerSignUpPage.jsx"));
+const VolunteerRsvpPage = lazy(() => import("./pages/VolunteerRsvpPage.jsx"));
+const VolunteerUnsubscribePage = lazy(() => import("./pages/VolunteerUnsubscribePage.jsx"));
 import Session from "./pages/Session.jsx";
 import SignUp from "./pages/SignUp.jsx";
 import Verify from "./pages/Verify.jsx";
@@ -373,6 +376,9 @@ export default function App() {
             <Route path="/privacy" element={<Suspense fallback={null}><PrivacyPage /></Suspense>} />
             <Route path="/terms" element={<Suspense fallback={null}><TermsPage /></Suspense>} />
             <Route path="/cookies" element={<Suspense fallback={null}><CookiesPage /></Suspense>} />
+            <Route path="/campaign/volunteer" element={<Suspense fallback={null}><VolunteerSignUpPage /></Suspense>} />
+            <Route path="/campaign/rsvp" element={<Suspense fallback={null}><VolunteerRsvpPage /></Suspense>} />
+            <Route path="/campaign/unsubscribe" element={<Suspense fallback={null}><VolunteerUnsubscribePage /></Suspense>} />
             <Route element={<ProtectedRoute authed={authed} session={session} />}>
               <Route path="/portal" element={<Suspense fallback={<div className="app-shell"><p className="muted" style={{padding:"2rem"}}>Loading…</p></div>}><PortalLayout /></Suspense>}>
                 <Route index element={<Suspense fallback={<div className="page stack"><p className="muted">Loading…</p></div>}><Dashboard /></Suspense>} />
