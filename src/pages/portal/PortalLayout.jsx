@@ -493,6 +493,9 @@ export default function PortalLayout() {
               <NavLink className={navClass} to="/portal/campaigns" end onClick={() => setSidebarOpen(false)}>
                 Sessions
               </NavLink>
+              <NavLink className={navClass} to="/portal/campaigns/volunteers" onClick={() => setSidebarOpen(false)}>
+                Volunteers
+              </NavLink>
               {isAdmin && (
                 <NavLink className={navClass} to="/portal/campaigns/activity" onClick={() => setSidebarOpen(false)}>
                   Activity

@@ -64,6 +64,8 @@ const SessionEditPage = lazy(() => import("./pages/portal/campaigns/SessionEditP
 const BulkUploadPage = lazy(() => import("./pages/portal/campaigns/BulkUploadPage.jsx"));
 const SessionAttendancePage = lazy(() => import("./pages/portal/campaigns/SessionAttendancePage.jsx"));
 const CandidateActivityPage = lazy(() => import("./pages/portal/campaigns/CandidateActivityPage.jsx"));
+const VolunteerListPage = lazy(() => import("./pages/portal/campaigns/VolunteerListPage.jsx"));
+const VolunteerDetailPage = lazy(() => import("./pages/portal/campaigns/VolunteerDetailPage.jsx"));
 import Session from "./pages/Session.jsx";
 import SignUp from "./pages/SignUp.jsx";
 import Verify from "./pages/Verify.jsx";
@@ -587,6 +589,22 @@ export default function App() {
                   element={
                     <Suspense fallback={<div className="page stack"><p className="muted">Loading…</p></div>}>
                       <CandidateActivityPage />
+                    </Suspense>
+                  }
+                />
+                <Route
+                  path="campaigns/volunteers"
+                  element={
+                    <Suspense fallback={<div className="page stack"><p className="muted">Loading…</p></div>}>
+                      <VolunteerListPage />
+                    </Suspense>
+                  }
+                />
+                <Route
+                  path="campaigns/volunteers/:volunteerId"
+                  element={
+                    <Suspense fallback={<div className="page stack"><p className="muted">Loading…</p></div>}>
+                      <VolunteerDetailPage />
                     </Suspense>
                   }
                 />
