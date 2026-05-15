@@ -489,6 +489,13 @@ export default function PortalLayout() {
             </div>
 
             <div className="portal-nav-group">
+              <span className="portal-nav-group__label">Campaigns</span>
+              <NavLink className={navClass} to="/portal/campaigns" onClick={() => setSidebarOpen(false)}>
+                Sessions
+              </NavLink>
+            </div>
+
+            <div className="portal-nav-group">
               <span className="portal-nav-group__label">Analytics</span>
               <NavLink className={navClass} to="/portal/constituency/reform-threat" onClick={() => setSidebarOpen(false)}>
                 Reform Threat

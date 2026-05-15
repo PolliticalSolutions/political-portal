@@ -57,6 +57,8 @@ const LibDemThreatPage = lazy(() => import("./pages/portal/constituency/LibDemTh
 const GreenThreatPage = lazy(() => import("./pages/portal/constituency/GreenThreatPage.jsx"));
 const ScenarioPage = lazy(() => import("./pages/portal/analytics/ScenarioPage.jsx"));
 const MPPersona = lazy(() => import("./pages/portal/MPPersona.jsx"));
+const CampaignSessionsPage = lazy(() => import("./pages/portal/campaigns/CampaignSessionsPage.jsx"));
+const SessionDetailPage = lazy(() => import("./pages/portal/campaigns/SessionDetailPage.jsx"));
 import Session from "./pages/Session.jsx";
 import SignUp from "./pages/SignUp.jsx";
 import Verify from "./pages/Verify.jsx";
@@ -524,6 +526,22 @@ export default function App() {
                   element={
                     <Suspense fallback={<div className="page stack"><p className="muted">Loading…</p></div>}>
                       <MPPersona />
+                    </Suspense>
+                  }
+                />
+                <Route
+                  path="campaigns"
+                  element={
+                    <Suspense fallback={<div className="page stack"><p className="muted">Loading…</p></div>}>
+                      <CampaignSessionsPage />
+                    </Suspense>
+                  }
+                />
+                <Route
+                  path="campaigns/:sessionId"
+                  element={
+                    <Suspense fallback={<div className="page stack"><p className="muted">Loading…</p></div>}>
+                      <SessionDetailPage />
                     </Suspense>
                   }
                 />
