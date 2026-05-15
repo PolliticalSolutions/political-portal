@@ -62,6 +62,8 @@ const SessionDetailPage = lazy(() => import("./pages/portal/campaigns/SessionDet
 const SessionCreatePage = lazy(() => import("./pages/portal/campaigns/SessionCreatePage.jsx"));
 const SessionEditPage = lazy(() => import("./pages/portal/campaigns/SessionEditPage.jsx"));
 const BulkUploadPage = lazy(() => import("./pages/portal/campaigns/BulkUploadPage.jsx"));
+const SessionAttendancePage = lazy(() => import("./pages/portal/campaigns/SessionAttendancePage.jsx"));
+const CandidateActivityPage = lazy(() => import("./pages/portal/campaigns/CandidateActivityPage.jsx"));
 import Session from "./pages/Session.jsx";
 import SignUp from "./pages/SignUp.jsx";
 import Verify from "./pages/Verify.jsx";
@@ -569,6 +571,22 @@ export default function App() {
                   element={
                     <Suspense fallback={<div className="page stack"><p className="muted">Loading…</p></div>}>
                       <SessionEditPage />
+                    </Suspense>
+                  }
+                />
+                <Route
+                  path="campaigns/:sessionId/attendance"
+                  element={
+                    <Suspense fallback={<div className="page stack"><p className="muted">Loading…</p></div>}>
+                      <SessionAttendancePage />
+                    </Suspense>
+                  }
+                />
+                <Route
+                  path="campaigns/activity"
+                  element={
+                    <Suspense fallback={<div className="page stack"><p className="muted">Loading…</p></div>}>
+                      <CandidateActivityPage />
                     </Suspense>
                   }
                 />

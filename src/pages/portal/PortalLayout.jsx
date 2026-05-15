@@ -490,9 +490,14 @@ export default function PortalLayout() {
 
             <div className="portal-nav-group">
               <span className="portal-nav-group__label">Campaigns</span>
-              <NavLink className={navClass} to="/portal/campaigns" onClick={() => setSidebarOpen(false)}>
+              <NavLink className={navClass} to="/portal/campaigns" end onClick={() => setSidebarOpen(false)}>
                 Sessions
               </NavLink>
+              {isAdmin && (
+                <NavLink className={navClass} to="/portal/campaigns/activity" onClick={() => setSidebarOpen(false)}>
+                  Activity
+                </NavLink>
+              )}
             </div>
 
             <div className="portal-nav-group">
