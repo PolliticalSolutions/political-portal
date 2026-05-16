@@ -31,31 +31,95 @@
   padding: var(--space-4);
 }
 
-.campaigns-view-toggle {
-  display: inline-flex;
-  border: 1px solid var(--portal-border);
-  border-radius: 3px;
+.campaigns-map-wrap {
+  height: 480px;
   overflow: hidden;
-  background: var(--portal-surface);
-  width: fit-content;
+  border-radius: 4px;
 }
 
-.campaigns-view-toggle button {
-  border: none;
-  background: transparent;
-  padding: var(--space-2) var(--space-4);
+@media (max-width: 768px) {
+  .campaigns-map-wrap {
+    height: 360px;
+  }
+}
+
+.campaigns-map-wrap > div {
+  height: 100% !important;
+}
+
+.campaigns-map-wrap svg {
+  height: 100% !important;
+  width: 100% !important;
+}
+
+/* Live register page — mobile-first, larger touch targets. */
+.campaigns-register-section {
+  background: var(--portal-surface);
+  border: 1px solid var(--portal-border);
+  border-radius: 4px;
+  margin-bottom: var(--space-4);
+}
+
+.campaigns-register-section__heading {
+  padding: var(--space-3) var(--space-4);
+  border-bottom: 1px solid var(--portal-border);
+  font-size: var(--text-xs);
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--portal-text-secondary);
+}
+
+.campaigns-register-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--space-3) var(--space-4);
+  border-bottom: 1px solid var(--portal-border);
+  min-height: 56px;
+  gap: var(--space-3);
+}
+
+.campaigns-register-row:last-child {
+  border-bottom: none;
+}
+
+.campaigns-register-row__present {
+  min-width: 96px;
+  min-height: 44px;
   font-size: var(--text-sm);
   font-weight: 600;
   letter-spacing: 0.04em;
   text-transform: uppercase;
+  border-radius: 3px;
+  border: 1.5px solid var(--portal-border-strong);
+  background: var(--portal-bg);
   color: var(--portal-text-secondary);
   cursor: pointer;
-  transition: background 0.15s ease, color 0.15s ease;
 }
 
-.campaigns-view-toggle button.is-active {
-  background: var(--portal-navy);
+.campaigns-register-row__present.is-present {
+  background: var(--portal-cta);
+  border-color: var(--portal-cta);
   color: #FFFFFF;
+}
+
+.campaigns-register-add {
+  padding: var(--space-4);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.campaigns-register-add input {
+  background: var(--portal-bg);
+  border: 1px solid var(--portal-border-strong);
+  border-radius: 3px;
+  padding: var(--space-3);
+  font-size: var(--text-base);
+  font-family: inherit;
+  color: var(--portal-text-primary);
+  min-height: 44px;
 }
 
 .campaigns-grid {

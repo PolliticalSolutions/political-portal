@@ -4,6 +4,12 @@ import { Link, useNavigate } from "react-router-dom";
 import SessionForm from "../../../components/campaigns/SessionForm.jsx";
 import { useCampaignAccess } from "../../../hooks/useCampaignAccess.js";
 import { createSession, listManagedAssociations } from "../../../lib/campaignApi.js";
+import {
+  SESSION_CSV_TEMPLATE_HEADERS,
+  SESSION_CSV_TEMPLATE_SAMPLE,
+  SESSION_CSV_TEMPLATE_FILENAME,
+} from "../../../lib/campaignConfig.js";
+import { buildCsv, downloadCsv } from "../../../lib/csvUtils.js";
 import "./campaigns.css";
 
 export default function SessionCreatePage() {
@@ -61,9 +67,23 @@ export default function SessionCreatePage() {
           ← All sessions
         </Link>
       </p>
-      <h1 style={{ margin: 0, fontSize: "var(--text-2xl)", fontWeight: 700, color: "var(--portal-text-primary)", letterSpacing: "-0.01em" }}>
-        Create session
-      </h1>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end", gap: "var(--space-3)", flexWrap: "wrap" }}>
+        <h1 style={{ margin: 0, fontSize: "var(--text-2xl)", fontWeight: 700, color: "var(--portal-text-primary)", letterSpacing: "-0.01em" }}>
+          Create session
+        </h1>
+        <div style={{ display: "flex", gap: "var(--space-4)", alignItems: "center", fontSize: "var(--text-sm)" }}>
+          <button
+            type="button"
+            onClick={() => downloadCsv(SESSION_CSV_TEMPLATE_FILENAME, buildCsv(SESSION_CSV_TEMPLATE_HEADERS, SESSION_CSV_TEMPLATE_SAMPLE))}
+            style={{ background: "transparent", border: "none", color: "var(--portal-text-secondary)", textDecoration: "underline", cursor: "pointer", padding: 0, font: "inherit" }}
+          >
+            Download CSV template
+          </button>
+          <Link to="/portal/campaigns/bulk-upload" style={{ color: "var(--portal-text-secondary)" }}>
+            Bulk upload →
+          </Link>
+        </div>
+      </div>
       <SessionForm associations={associations} onSubmit={handleSubmit} submitting={submitting} submitLabel="Create session" />
     </div>
   );

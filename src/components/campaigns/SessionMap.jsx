@@ -96,12 +96,21 @@ export default function SessionMap({ sessions = [], onPinClick }) {
           </Geographies>
 
           {sessions.map((session) => {
-            const code = constituencyById.get(session.id);
-            const centroid = code ? centroids.get(code) : null;
-            if (!centroid) return null;
-            const colour = SESSION_TYPE_COLOURS[session.session_type] || "var(--portal-text-muted)";
+            // Prefer geocoded meeting-place coords; fall back to the constituency
+            // centroid if the meeting place has no usable postcode.
+            let coords = null;
+            if (typeof session.longitude === "number" && typeof session.latitude === "number") {
+              coords = [session.longitude, session.latitude];
+            } else {
+              const code = constituencyById.get(session.id);
+              coords = code ? centroids.get(code) : null;
+            }
+            if (!coords) return null;
+
+            const primaryType = (Array.isArray(session.session_types) && session.session_types[0]) || session.session_type;
+            const colour = SESSION_TYPE_COLOURS[primaryType] || "var(--portal-text-muted)";
             return (
-              <Marker key={session.id} coordinates={centroid} onClick={() => onPinClick && onPinClick(session)}>
+              <Marker key={session.id} coordinates={coords} onClick={() => onPinClick && onPinClick(session)}>
                 <circle r={5} fill={colour} stroke="#FFFFFF" strokeWidth={1.5} style={{ cursor: "pointer" }} />
               </Marker>
             );
