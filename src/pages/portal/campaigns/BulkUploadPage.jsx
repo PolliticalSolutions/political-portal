@@ -227,6 +227,9 @@ export default function BulkUploadPage() {
         or leave it blank and pick a default from the dropdown below.
       </p>
 
+      <CsvInstructions />
+
+
       <div className="campaigns-form-row" style={{ maxWidth: 480 }}>
         <label htmlFor="association">Default association (used when a row has no <code>association_name</code>)</label>
         <select id="association" value={defaultAssociation} onChange={(e) => setDefaultAssociation(e.target.value)}>
@@ -290,5 +293,63 @@ export default function BulkUploadPage() {
         </section>
       )}
     </div>
+  );
+}
+
+const CSV_FIELD_GUIDE = [
+  { col: "title",            req: "Required", fmt: "Free text. Short enough to scan in a list — e.g. \"Saturday morning canvass\"." },
+  { col: "session_types",    req: "Required", fmt: "One or more types separated by | (pipe). Valid values: canvass, leaflet, phone_bank, committee_room, gotv, gotpv, other. Example: canvass|gotv" },
+  { col: "association_name", req: "Required*", fmt: "The exact name of your association (case-insensitive). Skip this column on a row only if you've picked a default association from the dropdown above." },
+  { col: "constituency_name",req: "Required", fmt: "The exact constituency name. Must be linked to the association on the same row." },
+  { col: "venue_name",       req: "Optional", fmt: "Name of the meeting place — e.g. \"Volunteer HQ\". Renders as bold in emails and on the detail page." },
+  { col: "street_address",   req: "Required", fmt: "House number, street, town. Used in the \"Get directions\" Google Maps link." },
+  { col: "postcode",         req: "Required", fmt: "UK postcode. Validated against postcodes.io — invalid postcodes are rejected before insert." },
+  { col: "session_date",     req: "Required", fmt: "YYYY-MM-DD (ISO format). Example: 2026-06-07" },
+  { col: "start_time",       req: "Required", fmt: "HH:MM (24-hour). Example: 10:00" },
+  { col: "duration_minutes", req: "Required", fmt: "Positive integer. Example: 180 (three hours)" },
+  { col: "contact_name",     req: "Required", fmt: "Person attendees should contact about this session." },
+  { col: "contact_phone",    req: "Required", fmt: "Free text — typical UK formats accepted." },
+  { col: "contact_email",    req: "Required", fmt: "Must look like an email address." },
+  { col: "max_capacity",     req: "Optional", fmt: "Leave blank for unlimited. Positive integer otherwise. RSVPs are blocked once capacity is reached." },
+  { col: "notes",            req: "Optional", fmt: "Anything else attendees should know — kit to bring, parking, briefing time, etc." },
+];
+
+function CsvInstructions() {
+  return (
+    <details style={{ background: "var(--portal-surface)", border: "1px solid var(--portal-border)", borderRadius: 4, padding: "var(--space-4)" }}>
+      <summary style={{ cursor: "pointer", fontWeight: 600, color: "var(--portal-text-primary)", fontSize: "var(--text-md)", padding: "var(--space-1) 0" }}>
+        How to fill in the template
+      </summary>
+      <div style={{ marginTop: "var(--space-3)" }}>
+        <p style={{ margin: 0, color: "var(--portal-text-secondary)", fontSize: "var(--text-sm)" }}>
+          The CSV template has the same fields as the manual Create-session form. Each row becomes one Published session.
+          Invalid rows are skipped and listed in an error report you can download.
+        </p>
+        <p style={{ margin: "var(--space-3) 0 0 0", fontSize: "var(--text-sm)", color: "var(--portal-text-secondary)" }}>
+          <strong style={{ color: "var(--portal-text-primary)" }}>Tip</strong>: open the downloaded template in Excel or Google Sheets, paste your data, then save / export as CSV (UTF-8). The parser handles quoted fields with commas and Windows line endings.
+        </p>
+        <table className="data-table" style={{ width: "100%", marginTop: "var(--space-4)", borderCollapse: "collapse" }}>
+          <thead>
+            <tr>
+              <th align="left" style={{ minWidth: 140 }}>Column</th>
+              <th align="left" style={{ minWidth: 80 }}>Required?</th>
+              <th align="left">Format &amp; notes</th>
+            </tr>
+          </thead>
+          <tbody>
+            {CSV_FIELD_GUIDE.map((row) => (
+              <tr key={row.col}>
+                <td><code style={{ fontFamily: "monospace", color: "var(--portal-text-primary)" }}>{row.col}</code></td>
+                <td style={{ color: row.req.startsWith("Required") ? "var(--portal-text-primary)" : "var(--portal-text-muted)" }}>{row.req}</td>
+                <td style={{ fontSize: "var(--text-sm)", color: "var(--portal-text-secondary)" }}>{row.fmt}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+        <p style={{ margin: "var(--space-3) 0 0 0", fontSize: "var(--text-xs)", color: "var(--portal-text-muted)" }}>
+          * <code>association_name</code> can be left blank on a row if you've selected a default association from the dropdown above. Otherwise it's required per row — this is what lets a single CSV cover multiple associations.
+        </p>
+      </div>
+    </details>
   );
 }
