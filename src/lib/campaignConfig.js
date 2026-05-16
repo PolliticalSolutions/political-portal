@@ -15,6 +15,8 @@ export const SESSION_TYPE_LABELS = {
   leaflet: "Leaflet",
   phone_bank: "Phone Bank",
   committee_room: "Committee Room",
+  gotv: "GOTV",
+  gotpv: "GOTPV",
   other: "Other",
 };
 
@@ -23,10 +25,15 @@ export const SESSION_TYPE_COLOURS = {
   leaflet: "#64B5A0",
   phone_bank: "var(--portal-slate)",
   committee_room: "var(--portal-navy)",
+  gotv: "#E67E22",      // warm amber — signals urgency
+  gotpv: "#5D7DB5",     // steel blue — brand-safe (avoids purple)
   other: "var(--portal-text-muted)",
 };
 
-export const SESSION_TYPE_ORDER = ["canvass", "leaflet", "phone_bank", "committee_room", "other"];
+export const SESSION_TYPE_ORDER = [
+  "canvass", "leaflet", "phone_bank", "committee_room",
+  "gotv", "gotpv", "other",
+];
 
 export const STATUS_LABELS = {
   draft: "Draft",
