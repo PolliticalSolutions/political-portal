@@ -4,11 +4,11 @@
 import { useEffect, useState } from "react";
 import Button from "../Button.jsx";
 import { supabase } from "../../lib/supabaseClient.js";
-import { SESSION_TYPE_LABELS, SESSION_TYPE_ORDER, SESSION_TYPE_COLOURS } from "../../lib/campaignConfig.js";
+import { SESSION_TYPE_LABELS, SESSION_TYPE_ORDER, SESSION_TYPE_COLOURS, CAMPAIGN_CONTEXT_LABELS, CAMPAIGN_CONTEXT_ORDER } from "../../lib/campaignConfig.js";
 import { validateAndGeocodePostcode } from "../../lib/postcodeGeocoding.js";
 
 const REQUIRED_TEXT_KEYS = [
-  "title", "constituency_id", "association_id",
+  "title", "constituency_id", "association_id", "campaign_context",
   "street_address", "postcode",
   "session_date", "start_time", "duration_minutes",
   "contact_name", "contact_phone", "contact_email",
@@ -133,12 +133,23 @@ export default function SessionForm({ initial, associations, onSubmit, submittin
         {touched.session_types && errors.session_types && <FieldError msg={errors.session_types} />}
       </fieldset>
 
-      <div className="campaigns-form-row">
-        <label htmlFor="status">Status</label>
-        <select id="status" value={form.status} onChange={(e) => setField("status", e.target.value)} style={{ maxWidth: 240 }}>
-          <option value="draft">Draft</option>
-          <option value="published">Published</option>
-        </select>
+      <div className="campaigns-form-grid">
+        <div className="campaigns-form-row">
+          <label htmlFor="campaign_context">Campaign context</label>
+          <select id="campaign_context" value={form.campaign_context} onChange={(e) => setField("campaign_context", e.target.value)} onBlur={blur("campaign_context")} required>
+            <option value="">What's this session for?</option>
+            {CAMPAIGN_CONTEXT_ORDER.map((c) => <option key={c} value={c}>{CAMPAIGN_CONTEXT_LABELS[c]}</option>)}
+          </select>
+          {touched.campaign_context && errors.campaign_context && <FieldError msg={errors.campaign_context} />}
+        </div>
+
+        <div className="campaigns-form-row">
+          <label htmlFor="status">Status</label>
+          <select id="status" value={form.status} onChange={(e) => setField("status", e.target.value)}>
+            <option value="draft">Draft</option>
+            <option value="published">Published</option>
+          </select>
+        </div>
       </div>
 
       <div className="campaigns-form-grid">
@@ -258,6 +269,7 @@ function normalise(initial) {
   return {
     title: "",
     session_types: [],
+    campaign_context: "",
     constituency_id: "",
     association_id: "",
     venue_name: "",

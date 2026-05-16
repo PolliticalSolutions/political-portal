@@ -112,7 +112,7 @@ function visibleRegions(access) {
 // Sessions
 // ===========================================================================
 
-const SESSION_COLUMNS = "id, title, session_types, constituency_id, association_id, region, venue_name, street_address, postcode, latitude, longitude, session_date, start_time, duration_minutes, contact_name, contact_phone, contact_email, max_capacity, notes, status, created_by_sub, created_at, updated_at";
+const SESSION_COLUMNS = "id, title, session_types, campaign_context, constituency_id, association_id, region, venue_name, street_address, postcode, latitude, longitude, session_date, start_time, duration_minutes, contact_name, contact_phone, contact_email, max_capacity, notes, status, created_by_sub, created_at, updated_at";
 
 export async function listSessionsForUser(access) {
   let q = supabase
@@ -161,6 +161,7 @@ export async function createSession(input, createdBySub) {
     session_types: Array.isArray(input.session_types) && input.session_types.length > 0
       ? input.session_types
       : (input.session_type ? [input.session_type] : []),
+    campaign_context: input.campaign_context || "general_campaigning",
     constituency_id: input.constituency_id,
     association_id: assoc.id,
     region: assoc.region || "South East",

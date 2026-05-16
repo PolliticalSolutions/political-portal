@@ -221,7 +221,7 @@ async function handleRsvp(event, origin) {
 
   // Look up session + volunteer for snapshot + capacity check.
   const sessions = await supabaseSelect("campaign_sessions", {
-    select: "id,title,session_types,session_date,start_time,venue_name,street_address,postcode,contact_name,max_capacity,status",
+    select: "id,title,session_types,campaign_context,session_date,start_time,venue_name,street_address,postcode,contact_name,max_capacity,status",
     id: `eq.${payload.session_id}`,
     limit: 1,
   });
