@@ -52,7 +52,7 @@ const SESSION_TEMPLATES = [
 // Realistic UK addresses with valid postcodes — postcodes.io will geocode them.
 const ADDRESSES = [
   { venue: "Association office",   street: "14 High Street, London",       postcode: "SW1A 1AA" },
-  { venue: "Conservative Club",    street: "5 Market Square, Birmingham",  postcode: "B2 5BB"   },
+  { venue: "Conservative Club",    street: "5 University Road, Birmingham", postcode: "B15 2TT" },
   { venue: "Town Hall car park",   street: "Manchester Town Hall, Albert Square", postcode: "M2 5DB" },
   { venue: "Volunteer HQ",         street: "22 Church Lane, Leeds",        postcode: "LS1 5BQ"  },
   { venue: "Memorial Hall",        street: "Mill Road, Bristol",           postcode: "BS1 5TR"  },
