@@ -26,12 +26,24 @@ BEGIN;
 ALTER TABLE campaign_sessions
   ADD COLUMN IF NOT EXISTS session_types TEXT[] NOT NULL DEFAULT '{}';
 
-UPDATE campaign_sessions
-  SET session_types = ARRAY[session_type]
-  WHERE array_length(session_types, 1) IS NULL
-    AND session_type IS NOT NULL;
-
-ALTER TABLE campaign_sessions DROP COLUMN IF EXISTS session_type;
+-- Backfill from session_type only if that column still exists. Wrapped in
+-- a DO block so the migration is idempotent — re-runs after the column
+-- has been dropped are no-ops here.
+DO $$
+BEGIN
+  IF EXISTS (
+    SELECT 1 FROM information_schema.columns
+    WHERE table_name = 'campaign_sessions' AND column_name = 'session_type'
+  ) THEN
+    EXECUTE $sql$
+      UPDATE campaign_sessions
+        SET session_types = ARRAY[session_type]
+        WHERE array_length(session_types, 1) IS NULL
+          AND session_type IS NOT NULL
+    $sql$;
+    EXECUTE 'ALTER TABLE campaign_sessions DROP COLUMN session_type';
+  END IF;
+END$$;
 
 -- Drop any prior version of the constraint before recreating so this
 -- migration stays idempotent across reruns.
