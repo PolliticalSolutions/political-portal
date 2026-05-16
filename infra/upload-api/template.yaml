@@ -102,6 +102,19 @@ Parameters:
     Type: String
     Default: "markedregisters@politicalsolutions.uk"
     Description: Recipient email for processed marked register CSV notifications.
+  VolunteerTokenSecret:
+    Type: String
+    Default: ""
+    NoEcho: true
+    Description: HMAC-SHA256 secret for volunteer RSVP and unsubscribe JWT tokens.
+  PlatformBaseUrl:
+    Type: String
+    Default: "https://politicalsolutions.uk"
+    Description: Base URL for volunteer RSVP and unsubscribe links in emails.
+  CampaignsFromEmail:
+    Type: String
+    Default: "campaigns@politicalsolutions.uk"
+    Description: SES sender for weekly volunteer campaign emails.
 
 Conditions:
   WafEnabledCondition: !Equals [!Ref WafEnabled, "true"]
@@ -1026,6 +1039,52 @@ Resources:
       MaximumRetryAttempts: 0
       MaximumEventAgeInSeconds: 3600
 
+  # ── Volunteer public ops (signup, membership-check, rsvp, unsubscribe) ─────
+  # Four public HTTP routes for the Campaign Sessions & Volunteer module.
+  # Reads/writes the volunteers and volunteer_rsvps tables via Supabase
+  # service-role REST. RSVP/unsubscribe routes verify HMAC-SHA256 JWTs.
+
+  VolunteerOpsFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: src/
+      Handler: volunteerOps.handler
+      Runtime: nodejs20.x
+      Timeout: 29
+      MemorySize: 256
+      Environment:
+        Variables:
+          ALLOWED_ORIGINS: !Join [",", !Ref AllowedOrigins]
+          SUPABASE_URL: !Ref SupabaseUrl
+          SUPABASE_SERVICE_KEY: !Ref SupabaseServiceKey
+          VOLUNTEER_TOKEN_SECRET: !Ref VolunteerTokenSecret
+          PLATFORM_BASE_URL: !Ref PlatformBaseUrl
+      Events:
+        VolunteerSignup:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref UploadApi
+            Path: /volunteer/signup
+            Method: POST
+        VolunteerMembershipCheck:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref UploadApi
+            Path: /volunteer/membership-check
+            Method: POST
+        VolunteerRsvp:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref UploadApi
+            Path: /volunteer/rsvp
+            Method: POST
+        VolunteerUnsubscribe:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref UploadApi
+            Path: /volunteer/unsubscribe
+            Method: GET
+
   # ── By-Election Monitor ──────────────────────────────────────────────────────
   # Scheduled Lambda that polls the Parliament Members API daily at 06:00 UTC,
   # detects recently departed Commons members, and writes political_alerts rows.
@@ -1073,6 +1132,41 @@ Resources:
           Properties:
             Schedule: cron(0 7 ? * MON *)
             Description: Weekly attendance risk refresh every Monday at 07:00 UTC
+            Enabled: true
+
+  # ── Volunteer Email — scheduled weekly campaign-session digest ──────────
+  # Runs every Monday at 08:00 UTC. Sends a personalised email to every
+  # approved+opted-in volunteer listing published sessions in their region
+  # for the next 7 days, with tokenised RSVP and unsubscribe links.
+
+  VolunteerEmailFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: src/
+      Handler: volunteerEmail.handler
+      Runtime: nodejs20.x
+      Timeout: 300
+      MemorySize: 512
+      Environment:
+        Variables:
+          SUPABASE_URL: !Ref SupabaseUrl
+          SUPABASE_SERVICE_KEY: !Ref SupabaseServiceKey
+          VOLUNTEER_TOKEN_SECRET: !Ref VolunteerTokenSecret
+          PLATFORM_BASE_URL: !Ref PlatformBaseUrl
+          CAMPAIGNS_FROM_EMAIL: !Ref CampaignsFromEmail
+      Policies:
+        - Statement:
+            Effect: Allow
+            Action:
+              - ses:SendEmail
+              - ses:SendRawEmail
+            Resource: "*"
+      Events:
+        WeeklyMonday:
+          Type: Schedule
+          Properties:
+            Schedule: cron(0 8 ? * MON *)
+            Description: Weekly volunteer campaign email send every Monday at 08:00 UTC
             Enabled: true
 
   # ── CloudWatch Alarms ──────────────────────────────────────────────────────

@@ -53,6 +53,14 @@ export const seoRoutes = [
     priority: 0.6,
   },
   {
+    path: "/campaign/volunteer",
+    title: "Become a Conservative campaign volunteer — canvassing, leafleting & phone banks",
+    description:
+      "Sign up to be invited to Conservative campaign sessions in your area. Canvassing, leafleting, phone banks, and committee-room shifts — no commitment, just an email when help is needed.",
+    changefreq: "monthly",
+    priority: 0.6,
+  },
+  {
     path: "/blog",
     title: "UK campaign operations blog — marked registers, data & delivery",
     description:
@@ -108,6 +116,8 @@ const noindexRoutes = new Set([
   "/cart",
   "/checkout",
   "/checkout/confirmation",
+  "/campaign/rsvp",
+  "/campaign/unsubscribe",
 ]);
 
 export const getSeoForPath = (pathname) => {
