@@ -4,18 +4,23 @@
 import { useEffect, useState } from "react";
 import Button from "../Button.jsx";
 import { supabase } from "../../lib/supabaseClient.js";
-import { SESSION_TYPE_LABELS, SESSION_TYPE_ORDER } from "../../lib/campaignConfig.js";
+import { SESSION_TYPE_LABELS, SESSION_TYPE_ORDER, SESSION_TYPE_COLOURS } from "../../lib/campaignConfig.js";
+import { validateAndGeocodePostcode } from "../../lib/postcodeGeocoding.js";
 
-const REQUIRED_KEYS = [
-  "title", "session_type", "constituency_id", "association_id",
-  "meeting_place", "session_date", "start_time", "duration_minutes",
+const REQUIRED_TEXT_KEYS = [
+  "title", "constituency_id", "association_id",
+  "street_address", "postcode",
+  "session_date", "start_time", "duration_minutes",
   "contact_name", "contact_phone", "contact_email",
 ];
 
 function validate(form) {
   const errors = {};
-  for (const key of REQUIRED_KEYS) {
+  for (const key of REQUIRED_TEXT_KEYS) {
     if (form[key] === "" || form[key] == null) errors[key] = "Required";
+  }
+  if (!Array.isArray(form.session_types) || form.session_types.length === 0) {
+    errors.session_types = "Tick at least one session type";
   }
   if (form.contact_email && !/.+@.+\..+/.test(form.contact_email)) {
     errors.contact_email = "Enter a valid email address";
@@ -36,6 +41,7 @@ export default function SessionForm({ initial, associations, onSubmit, submittin
   const [constituencies, setConstituencies] = useState([]);
   const [errors, setErrors] = useState({});
   const [submitError, setSubmitError] = useState("");
+  const [postcodeStatus, setPostcodeStatus] = useState(null); // null | "checking" | "valid" | "invalid"
 
   useEffect(() => {
     if (!form.association_id) {
@@ -56,14 +62,35 @@ export default function SessionForm({ initial, associations, onSubmit, submittin
 
   const setField = (key, value) => {
     setForm((prev) => ({ ...prev, [key]: value }));
-    if (touched[key]) {
-      setErrors(validate({ ...form, [key]: value }));
-    }
+    if (touched[key]) setErrors(validate({ ...form, [key]: value }));
+  };
+
+  const toggleType = (t) => {
+    setForm((prev) => {
+      const has = prev.session_types.includes(t);
+      const next = has ? prev.session_types.filter((x) => x !== t) : [...prev.session_types, t];
+      return { ...prev, session_types: next };
+    });
+    setTouched((prev) => ({ ...prev, session_types: true }));
   };
 
   const blur = (key) => () => {
     setTouched((prev) => ({ ...prev, [key]: true }));
     setErrors(validate(form));
+  };
+
+  const handlePostcodeBlur = async () => {
+    blur("postcode")();
+    if (!form.postcode || !form.postcode.trim()) { setPostcodeStatus(null); return; }
+    setPostcodeStatus("checking");
+    const result = await validateAndGeocodePostcode(form.postcode);
+    if (result.valid) {
+      setForm((prev) => ({ ...prev, latitude: result.lat, longitude: result.lon }));
+      setPostcodeStatus("valid");
+    } else {
+      setForm((prev) => ({ ...prev, latitude: null, longitude: null }));
+      setPostcodeStatus("invalid");
+    }
   };
 
   const handleSubmit = async (event) => {
@@ -72,7 +99,7 @@ export default function SessionForm({ initial, associations, onSubmit, submittin
     const validation = validate(form);
     setErrors(validation);
     if (Object.keys(validation).length > 0) {
-      setTouched(Object.fromEntries(REQUIRED_KEYS.map((k) => [k, true])));
+      setTouched(Object.fromEntries([...REQUIRED_TEXT_KEYS, "session_types"].map((k) => [k, true])));
       return;
     }
     try {
@@ -90,23 +117,28 @@ export default function SessionForm({ initial, associations, onSubmit, submittin
         {touched.title && errors.title && <FieldError msg={errors.title} />}
       </div>
 
-      <div className="campaigns-form-grid">
-        <div className="campaigns-form-row">
-          <label htmlFor="session_type">Session type</label>
-          <select id="session_type" value={form.session_type} onChange={(e) => setField("session_type", e.target.value)} onBlur={blur("session_type")} required>
-            <option value="">Choose a type</option>
-            {SESSION_TYPE_ORDER.map((t) => <option key={t} value={t}>{SESSION_TYPE_LABELS[t]}</option>)}
-          </select>
-          {touched.session_type && errors.session_type && <FieldError msg={errors.session_type} />}
+      <fieldset className="campaigns-form-row" style={{ border: 0, padding: 0, margin: 0 }}>
+        <legend style={{ fontSize: "var(--text-xs)", fontWeight: 600, letterSpacing: "0.06em", textTransform: "uppercase", color: "var(--portal-text-secondary)", padding: 0 }}>
+          Session type(s) — tick all that apply
+        </legend>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(170px, 1fr))", gap: "var(--space-2)", marginTop: 4 }}>
+          {SESSION_TYPE_ORDER.map((t) => (
+            <label key={t} style={{ display: "flex", gap: 8, alignItems: "center", cursor: "pointer", padding: "var(--space-2)", border: "1px solid var(--portal-border)", borderRadius: 3, background: form.session_types.includes(t) ? "var(--portal-surface-raised)" : "transparent" }}>
+              <input type="checkbox" checked={form.session_types.includes(t)} onChange={() => toggleType(t)} />
+              <span style={{ display: "inline-block", width: 10, height: 10, borderRadius: 2, background: SESSION_TYPE_COLOURS[t], flexShrink: 0 }} />
+              <span style={{ fontSize: "var(--text-sm)" }}>{SESSION_TYPE_LABELS[t]}</span>
+            </label>
+          ))}
         </div>
+        {touched.session_types && errors.session_types && <FieldError msg={errors.session_types} />}
+      </fieldset>
 
-        <div className="campaigns-form-row">
-          <label htmlFor="status">Status</label>
-          <select id="status" value={form.status} onChange={(e) => setField("status", e.target.value)}>
-            <option value="draft">Draft</option>
-            <option value="published">Published</option>
-          </select>
-        </div>
+      <div className="campaigns-form-row">
+        <label htmlFor="status">Status</label>
+        <select id="status" value={form.status} onChange={(e) => setField("status", e.target.value)} style={{ maxWidth: 240 }}>
+          <option value="draft">Draft</option>
+          <option value="published">Published</option>
+        </select>
       </div>
 
       <div className="campaigns-form-grid">
@@ -130,18 +162,43 @@ export default function SessionForm({ initial, associations, onSubmit, submittin
       </div>
 
       <div className="campaigns-form-row">
-        <label htmlFor="meeting_place">Meeting place</label>
-        <input id="meeting_place" type="text" value={form.meeting_place} onChange={(e) => setField("meeting_place", e.target.value)} onBlur={blur("meeting_place")} required />
-        {touched.meeting_place && errors.meeting_place && <FieldError msg={errors.meeting_place} />}
+        <label htmlFor="venue_name">Venue name (optional)</label>
+        <input id="venue_name" type="text" value={form.venue_name} onChange={(e) => setField("venue_name", e.target.value)} placeholder="e.g. Volunteer HQ" />
+      </div>
+
+      <div className="campaigns-form-row">
+        <label htmlFor="street_address">Street address</label>
+        <textarea id="street_address" rows={2} value={form.street_address} onChange={(e) => setField("street_address", e.target.value)} onBlur={blur("street_address")} placeholder="House number, street, town" required />
+        {touched.street_address && errors.street_address && <FieldError msg={errors.street_address} />}
       </div>
 
       <div className="campaigns-form-grid">
+        <div className="campaigns-form-row">
+          <label htmlFor="postcode">Postcode</label>
+          <input
+            id="postcode"
+            type="text"
+            value={form.postcode}
+            onChange={(e) => { setField("postcode", e.target.value.toUpperCase()); setPostcodeStatus(null); }}
+            onBlur={handlePostcodeBlur}
+            placeholder="e.g. SW1A 1AA"
+            required
+            style={{ maxWidth: 200, textTransform: "uppercase" }}
+          />
+          {postcodeStatus === "checking" && <span style={{ fontSize: "var(--text-xs)", color: "var(--portal-text-muted)" }}>Checking…</span>}
+          {postcodeStatus === "valid" && <span style={{ fontSize: "var(--text-xs)", color: "var(--portal-success)" }}>✓ Postcode verified</span>}
+          {postcodeStatus === "invalid" && <span style={{ fontSize: "var(--text-xs)", color: "var(--portal-danger)" }}>We couldn't verify that postcode</span>}
+          {touched.postcode && errors.postcode && <FieldError msg={errors.postcode} />}
+        </div>
+
         <div className="campaigns-form-row">
           <label htmlFor="session_date">Date</label>
           <input id="session_date" type="date" value={form.session_date} onChange={(e) => setField("session_date", e.target.value)} onBlur={blur("session_date")} required />
           {touched.session_date && errors.session_date && <FieldError msg={errors.session_date} />}
         </div>
+      </div>
 
+      <div className="campaigns-form-grid">
         <div className="campaigns-form-row">
           <label htmlFor="start_time">Start time</label>
           <input id="start_time" type="time" value={form.start_time} onChange={(e) => setField("start_time", e.target.value)} onBlur={blur("start_time")} required />
@@ -156,7 +213,7 @@ export default function SessionForm({ initial, associations, onSubmit, submittin
 
         <div className="campaigns-form-row">
           <label htmlFor="max_capacity">Capacity (optional)</label>
-          <input id="max_capacity" type="number" min="1" placeholder="Leave blank for unlimited" value={form.max_capacity ?? ""} onChange={(e) => setField("max_capacity", e.target.value)} />
+          <input id="max_capacity" type="number" min="1" placeholder="Blank = unlimited" value={form.max_capacity ?? ""} onChange={(e) => setField("max_capacity", e.target.value)} />
           {touched.max_capacity && errors.max_capacity && <FieldError msg={errors.max_capacity} />}
         </div>
       </div>
@@ -200,10 +257,14 @@ function FieldError({ msg }) {
 function normalise(initial) {
   return {
     title: "",
-    session_type: "",
+    session_types: [],
     constituency_id: "",
     association_id: "",
-    meeting_place: "",
+    venue_name: "",
+    street_address: "",
+    postcode: "",
+    latitude: null,
+    longitude: null,
     session_date: "",
     start_time: "",
     duration_minutes: "",
@@ -214,6 +275,10 @@ function normalise(initial) {
     notes: "",
     status: "draft",
     ...(initial || {}),
+    // Ensure session_types is always an array even if initial passes a string.
+    session_types: Array.isArray(initial?.session_types)
+      ? initial.session_types
+      : (initial?.session_type ? [initial.session_type] : []),
   };
 }
 
@@ -223,5 +288,7 @@ function serialise(form) {
     duration_minutes: Number(form.duration_minutes),
     max_capacity: form.max_capacity === "" || form.max_capacity == null ? null : Number(form.max_capacity),
     notes: form.notes && form.notes.trim() !== "" ? form.notes : null,
+    venue_name: form.venue_name && form.venue_name.trim() !== "" ? form.venue_name.trim() : null,
+    postcode: form.postcode ? form.postcode.toUpperCase().trim() : null,
   };
 }

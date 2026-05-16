@@ -92,7 +92,7 @@ export default function SessionDetailPage() {
       <header style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: "var(--space-5)", flexWrap: "wrap" }}>
         <div style={{ flex: 1, minWidth: 280 }}>
           <div style={{ display: "flex", gap: "var(--space-3)", alignItems: "center", marginBottom: "var(--space-3)" }}>
-            <SessionTypeBadge type={session.session_type} />
+            <SessionTypeBadge types={session.session_types} />
             {session.status !== "published" && (
               <span style={{ fontSize: "var(--text-xs)", fontWeight: 600, letterSpacing: "0.06em", textTransform: "uppercase", color: "var(--portal-text-muted)" }}>
                 {STATUS_LABELS[session.status]}
@@ -105,9 +105,10 @@ export default function SessionDetailPage() {
         </div>
         {canEdit && (
           <div style={{ display: "flex", gap: "var(--space-2)", flexWrap: "wrap" }}>
+            <Button as={Link} to={`/portal/campaigns/${session.id}/register`}>Take register</Button>
             <Button as={Link} to={`/portal/campaigns/${session.id}/edit`} variant="secondary">Edit</Button>
             {sessionPassed && (
-              <Button as={Link} to={`/portal/campaigns/${session.id}/attendance`}>
+              <Button as={Link} to={`/portal/campaigns/${session.id}/attendance`} variant="secondary">
                 Confirm attendance
               </Button>
             )}
@@ -124,7 +125,24 @@ export default function SessionDetailPage() {
         <div style={{ background: "var(--portal-surface)", border: "1px solid var(--portal-border)", borderRadius: 4, padding: "var(--space-5)" }}>
           <DetailRow label="Date">{formatDateLong(session.session_date)}</DetailRow>
           <DetailRow label="Time">{formatTime(session.start_time)} · {session.duration_minutes} minutes</DetailRow>
-          <DetailRow label="Meeting place">{session.meeting_place}</DetailRow>
+          <DetailRow label="Meeting place">
+            {session.venue_name && <><strong>{session.venue_name}</strong><br /></>}
+            {session.street_address}
+            {session.postcode && <><br />{session.postcode}</>}
+            {(session.street_address || session.postcode) && (
+              <>
+                <br />
+                <a
+                  href={`https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent([session.street_address, session.postcode].filter(Boolean).join(", "))}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  style={{ color: "var(--portal-cta)", fontSize: "var(--text-sm)", fontWeight: 600 }}
+                >
+                  Get directions →
+                </a>
+              </>
+            )}
+          </DetailRow>
           <DetailRow label="Region">{session.region}</DetailRow>
           <DetailRow label="Contact">
             {session.contact_name} · <a href={`mailto:${session.contact_email}`} style={{ color: "var(--portal-text-primary)" }}>{session.contact_email}</a> · {session.contact_phone}

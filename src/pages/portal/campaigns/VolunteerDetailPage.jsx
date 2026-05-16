@@ -26,7 +26,7 @@ export default function VolunteerDetailPage() {
       if (v) {
         const { data } = await supabase
           .from("volunteer_rsvps")
-          .select("id, session_id, attendance_status, rsvp_at, campaign_sessions(title, session_date, session_type)")
+          .select("id, session_id, attendance_status, rsvp_at, campaign_sessions(title, session_date, session_types)")
           .eq("volunteer_id", volunteerId)
           .order("rsvp_at", { ascending: false });
         setRsvps(data || []);

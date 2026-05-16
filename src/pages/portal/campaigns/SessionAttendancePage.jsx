@@ -51,9 +51,12 @@ export default function SessionAttendancePage() {
   return (
     <div className="page stack campaigns-page">
       <Helmet><title>Confirm attendance — {session.title}</title></Helmet>
-      <p style={{ margin: 0 }}>
+      <p style={{ margin: 0, display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "var(--space-3)" }}>
         <Link to={`/portal/campaigns/${sessionId}`} style={{ color: "var(--portal-text-secondary)", fontSize: "var(--text-sm)" }}>
           ← Back to session
+        </Link>
+        <Link to={`/portal/campaigns/${sessionId}/register`} style={{ color: "var(--portal-cta)", fontSize: "var(--text-sm)", fontWeight: 600 }}>
+          Take live register →
         </Link>
       </p>
 

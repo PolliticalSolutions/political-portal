@@ -10,6 +10,7 @@
 //   node scripts/seed_campaign_sessions.mjs
 
 import { createClient } from "@supabase/supabase-js";
+import { bulkGeocodePostcodes } from "../src/lib/postcodeGeocoding.js";
 
 const SUPABASE_URL = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL;
 const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_KEY || process.env.VITE_SUPABASE_SERVICE_KEY;
@@ -26,37 +27,38 @@ const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY, {
 const SESSION_TYPES = ["canvass", "leaflet", "phone_bank", "committee_room", "other"];
 
 const SESSION_TEMPLATES = [
-  { title: "Saturday morning canvass", type: "canvass", duration: 180, capacity: 20 },
-  { title: "Evening leaflet drop", type: "leaflet", duration: 120, capacity: null },
-  { title: "Sunday afternoon canvass", type: "canvass", duration: 180, capacity: 25 },
-  { title: "Phone bank session", type: "phone_bank", duration: 120, capacity: 15 },
-  { title: "Committee room open day", type: "committee_room", duration: 360, capacity: null },
-  { title: "Weekday lunchtime canvass", type: "canvass", duration: 90, capacity: 10 },
-  { title: "Targeted swing-voter canvass", type: "canvass", duration: 180, capacity: 30 },
-  { title: "Get out the vote — leaflets", type: "leaflet", duration: 150, capacity: null },
-  { title: "Coffee morning and street stall", type: "other", duration: 120, capacity: null },
-  { title: "Town centre leafleting", type: "leaflet", duration: 90, capacity: 12 },
-  { title: "Doorknock — priority wards", type: "canvass", duration: 180, capacity: 20 },
-  { title: "Phone bank — pledge confirmation", type: "phone_bank", duration: 120, capacity: 10 },
-  { title: "Saturday volunteer training", type: "other", duration: 90, capacity: 30 },
-  { title: "Evening committee meeting", type: "committee_room", duration: 120, capacity: null },
-  { title: "Weekend canvass — student wards", type: "canvass", duration: 240, capacity: 25 },
-  { title: "Leaflet run — rural villages", type: "leaflet", duration: 180, capacity: null },
-  { title: "Phone bank — postal vote chase", type: "phone_bank", duration: 120, capacity: 15 },
-  { title: "Wednesday morning canvass", type: "canvass", duration: 120, capacity: 15 },
-  { title: "Sunday afternoon leaflet", type: "leaflet", duration: 120, capacity: null },
-  { title: "Committee room open evening", type: "committee_room", duration: 180, capacity: null },
+  { title: "Saturday morning canvass",          types: ["canvass"],                  duration: 180, capacity: 20  },
+  { title: "Evening leaflet drop",              types: ["leaflet"],                  duration: 120, capacity: null },
+  { title: "GOTV door-knock — final push",      types: ["canvass", "gotv"],          duration: 180, capacity: 30  },
+  { title: "Phone bank session",                types: ["phone_bank"],               duration: 120, capacity: 15  },
+  { title: "Committee room open day",           types: ["committee_room"],           duration: 360, capacity: null },
+  { title: "Weekday lunchtime canvass",         types: ["canvass"],                  duration: 90,  capacity: 10  },
+  { title: "Targeted swing-voter canvass",      types: ["canvass"],                  duration: 180, capacity: 30  },
+  { title: "GOTPV postal-vote phone bank",      types: ["phone_bank", "gotpv"],      duration: 120, capacity: 15  },
+  { title: "Coffee morning and street stall",   types: ["other"],                    duration: 120, capacity: null },
+  { title: "Town centre leafleting",            types: ["leaflet"],                  duration: 90,  capacity: 12  },
+  { title: "Doorknock — priority wards",        types: ["canvass"],                  duration: 180, capacity: 20  },
+  { title: "GOTV phone bank — pledge chase",    types: ["phone_bank", "gotv"],       duration: 120, capacity: 10  },
+  { title: "Saturday volunteer training",       types: ["other"],                    duration: 90,  capacity: 30  },
+  { title: "Evening committee meeting",         types: ["committee_room"],           duration: 120, capacity: null },
+  { title: "Weekend canvass — student wards",   types: ["canvass"],                  duration: 240, capacity: 25  },
+  { title: "Leaflet + canvass — rural villages", types: ["canvass", "leaflet"],      duration: 180, capacity: null },
+  { title: "Phone bank — postal vote chase",    types: ["phone_bank", "gotpv"],      duration: 120, capacity: 15  },
+  { title: "Wednesday morning canvass",         types: ["canvass"],                  duration: 120, capacity: 15  },
+  { title: "Sunday afternoon leaflet",          types: ["leaflet"],                  duration: 120, capacity: null },
+  { title: "Committee room open evening",       types: ["committee_room"],           duration: 180, capacity: null },
 ];
 
+// Realistic UK addresses with valid postcodes — postcodes.io will geocode them.
 const ADDRESSES = [
-  "Association office, 14 High Street",
-  "Conservative Club, Market Square",
-  "Town Hall car park",
-  "Volunteer HQ, 22 Church Lane",
-  "Memorial Hall, Mill Road",
-  "Community Centre, Park Avenue",
-  "Library car park",
-  "Village Hall, The Green",
+  { venue: "Association office",   street: "14 High Street, London",       postcode: "SW1A 1AA" },
+  { venue: "Conservative Club",    street: "5 University Road, Birmingham", postcode: "B15 2TT" },
+  { venue: "Town Hall car park",   street: "Manchester Town Hall, Albert Square", postcode: "M2 5DB" },
+  { venue: "Volunteer HQ",         street: "22 Church Lane, Leeds",        postcode: "LS1 5BQ"  },
+  { venue: "Memorial Hall",        street: "Mill Road, Bristol",           postcode: "BS1 5TR"  },
+  { venue: "Community Centre",     street: "Park Avenue, Edinburgh",       postcode: "EH1 2NG"  },
+  { venue: "Library car park",     street: "George Street, Newcastle upon Tyne", postcode: "NE1 7RU" },
+  { venue: "Village Hall",         street: "The Green, Sheffield",         postcode: "S1 2HH"   },
 ];
 
 const CONTACT_NAMES = [
@@ -105,14 +107,19 @@ async function main() {
     const date = new Date(today);
     date.setDate(today.getDate() + daysAhead);
     const startHour = 9 + ((i * 3) % 9);
+    const addr = ADDRESSES[i % ADDRESSES.length];
 
     rows.push({
       title: tmpl.title,
-      session_type: tmpl.type,
+      session_types: tmpl.types,
       constituency_id: constituencyId,
       association_id: assoc.id,
       region: assoc.region || "South East",
-      meeting_place: ADDRESSES[i % ADDRESSES.length],
+      venue_name: addr.venue,
+      street_address: addr.street,
+      postcode: addr.postcode,
+      latitude: null,   // filled in below by bulk geocoding
+      longitude: null,
       session_date: isoDate(date),
       start_time: `${pad2(startHour)}:00:00`,
       duration_minutes: tmpl.duration,
@@ -143,6 +150,17 @@ async function main() {
     console.log(`campaign_sessions: all ${rows.length} seed rows already present, nothing to insert.`);
     return;
   }
+
+  // Bulk-geocode the postcodes via postcodes.io before insert so each row
+  // lands with latitude/longitude already populated. Failures are tolerated
+  // (row inserts with null coords; backfill script can fix later).
+  const postcodes = toInsert.map((r) => r.postcode).filter(Boolean);
+  const coords = await bulkGeocodePostcodes(postcodes);
+  for (const r of toInsert) {
+    const c = coords.get(r.postcode);
+    if (c) { r.latitude = c.lat; r.longitude = c.lon; }
+  }
+  console.log(`Geocoded ${coords.size} of ${postcodes.length} postcodes.`);
 
   const { data, error } = await supabase
     .from("campaign_sessions")

@@ -15,6 +15,8 @@ export const SESSION_TYPE_LABELS = {
   leaflet: "Leaflet",
   phone_bank: "Phone Bank",
   committee_room: "Committee Room",
+  gotv: "GOTV",
+  gotpv: "GOTPV",
   other: "Other",
 };
 
@@ -23,10 +25,15 @@ export const SESSION_TYPE_COLOURS = {
   leaflet: "#64B5A0",
   phone_bank: "var(--portal-slate)",
   committee_room: "var(--portal-navy)",
+  gotv: "#E67E22",      // warm amber — signals urgency
+  gotpv: "#5D7DB5",     // steel blue — brand-safe (avoids purple)
   other: "var(--portal-text-muted)",
 };
 
-export const SESSION_TYPE_ORDER = ["canvass", "leaflet", "phone_bank", "committee_room", "other"];
+export const SESSION_TYPE_ORDER = [
+  "canvass", "leaflet", "phone_bank", "committee_room",
+  "gotv", "gotpv", "other",
+];
 
 export const STATUS_LABELS = {
   draft: "Draft",
@@ -47,3 +54,45 @@ export const HEARD_VIA_LABELS = {
   email: "Email",
   other: "Other",
 };
+
+// CSV bulk-upload template — single source of truth shared by the
+// Bulk Upload page and the "Download template" link on the Create page.
+export const SESSION_CSV_TEMPLATE_HEADERS = [
+  "title",
+  "session_types",          // pipe-delimited, e.g. canvass|gotv
+  "association_name",       // optional — falls back to selected default
+  "constituency_name",
+  "venue_name",
+  "street_address",
+  "postcode",
+  "session_date",           // YYYY-MM-DD
+  "start_time",             // HH:MM
+  "duration_minutes",
+  "contact_name",
+  "contact_phone",
+  "contact_email",
+  "max_capacity",           // blank for unlimited
+  "notes",
+];
+
+export const SESSION_CSV_TEMPLATE_SAMPLE = [
+  [
+    "Saturday morning canvass",
+    "canvass|gotv",
+    "Camberwell and Peckham Conservatives",
+    "Camberwell and Peckham",
+    "Volunteer HQ",
+    "14 High Street, London",
+    "SW1A 1AA",
+    "2026-06-07",
+    "10:00",
+    "180",
+    "Sarah Henderson",
+    "020 7123 4567",
+    "sarah@example.org",
+    "20",
+    "Bring waterproofs",
+  ],
+];
+
+export const SESSION_CSV_TEMPLATE_FILENAME = "campaign-sessions-template.csv";

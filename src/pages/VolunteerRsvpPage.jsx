@@ -59,13 +59,16 @@ function SuccessRsvp({ session }) {
         You're in. See you there.
       </h1>
       <p style={{ marginTop: "var(--space-4)", color: "var(--color-text-secondary)", lineHeight: 1.6 }}>
-        We've confirmed your RSVP for the {(SESSION_TYPE_LABELS[session.session_type] || "campaign").toLowerCase()} session below.
+        We've confirmed your RSVP for the {((Array.isArray(session.session_types) && SESSION_TYPE_LABELS[session.session_types[0]]) || "campaign").toLowerCase()} session below.
       </p>
       <div style={{ marginTop: "var(--space-5)", padding: "var(--space-4)", border: "1px solid var(--color-border)", borderRadius: 4 }}>
         <div style={{ fontSize: "var(--text-lg)", fontWeight: 600, color: "var(--color-navy)" }}>{session.title}</div>
         <div style={{ marginTop: 6, color: "var(--color-text-secondary)", lineHeight: 1.6, fontSize: "var(--text-sm)" }}>
           {formatDateLong(session.session_date)} at {formatTime(session.start_time)}<br />
-          {session.meeting_place}<br />
+          {session.venue_name && <><strong>{session.venue_name}</strong><br /></>}
+          {session.street_address}
+          {session.postcode && <><br />{session.postcode}</>}
+          <br />
           Contact: {session.contact_name}
         </div>
       </div>

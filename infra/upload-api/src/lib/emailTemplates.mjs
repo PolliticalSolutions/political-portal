@@ -15,8 +15,29 @@ const SESSION_TYPE_LABEL = {
   leaflet: "Leaflet",
   phone_bank: "Phone Bank",
   committee_room: "Committee Room",
+  gotv: "GOTV",
+  gotpv: "GOTPV",
   other: "Activity",
 };
+
+function primaryTypeLabel(s) {
+  const types = Array.isArray(s.session_types) ? s.session_types : (s.session_type ? [s.session_type] : []);
+  return SESSION_TYPE_LABEL[types[0]] || "Activity";
+}
+
+function addressLines(s) {
+  const lines = [];
+  if (s.venue_name) lines.push(`<strong>${esc(s.venue_name)}</strong>`);
+  if (s.street_address) lines.push(esc(s.street_address));
+  if (s.postcode) lines.push(esc(s.postcode));
+  return lines.join("<br/>");
+}
+
+function directionsHref(s) {
+  const dest = [s.street_address, s.postcode].filter(Boolean).join(", ");
+  if (!dest) return null;
+  return `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(dest)}`;
+}
 
 function esc(s) {
   return String(s == null ? "" : s)
@@ -50,18 +71,22 @@ function formatTime(time) {
  * @returns {string}
  */
 export function volunteerWeeklyHtml({ firstName, region, sessions, unsubscribeUrl, weekOfDateLabel }) {
-  const sessionBlocks = sessions.map((s) => `
+  const sessionBlocks = sessions.map((s) => {
+    const dirHref = directionsHref(s);
+    return `
     <tr>
       <td style="padding: 16px 0; border-bottom: 1px solid ${BORDER};">
         <div style="font-size: 11px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; color: ${SLATE}; margin-bottom: 6px;">
-          ${esc(SESSION_TYPE_LABEL[s.session_type] || "Activity")}
+          ${esc(primaryTypeLabel(s))}
         </div>
         <div style="font-size: 18px; font-weight: 600; color: ${NAVY}; margin-bottom: 6px;">
           ${esc(s.title)}
         </div>
         <div style="font-size: 14px; color: ${SLATE}; line-height: 1.5;">
           ${esc(formatDate(s.session_date))} at ${esc(formatTime(s.start_time))}<br/>
-          ${esc(s.meeting_place)}<br/>
+          ${addressLines(s)}
+          ${dirHref ? `<br/><a href="${esc(dirHref)}" style="color: ${CTA}; font-weight: 600; text-decoration: none;">Get directions →</a>` : ""}
+          <br/>
           Contact: ${esc(s.contact_name)}
         </div>
         <div style="margin-top: 12px;">
@@ -70,7 +95,8 @@ export function volunteerWeeklyHtml({ firstName, region, sessions, unsubscribeUr
           </a>
         </div>
       </td>
-    </tr>`).join("\n");
+    </tr>`;
+  }).join("\n");
 
   return `<!DOCTYPE html>
 <html lang="en-GB">
@@ -129,9 +155,13 @@ export function volunteerWeeklyText({ firstName, region, sessions, unsubscribeUr
     "",
   ];
   for (const s of sessions) {
-    lines.push(`• ${SESSION_TYPE_LABEL[s.session_type] || "Activity"} — ${s.title}`);
+    lines.push(`• ${primaryTypeLabel(s)} — ${s.title}`);
     lines.push(`  ${formatDate(s.session_date)} at ${formatTime(s.start_time)}`);
-    lines.push(`  ${s.meeting_place}`);
+    if (s.venue_name) lines.push(`  ${s.venue_name}`);
+    if (s.street_address) lines.push(`  ${s.street_address}`);
+    if (s.postcode) lines.push(`  ${s.postcode}`);
+    const dir = directionsHref(s);
+    if (dir) lines.push(`  Directions: ${dir}`);
     lines.push(`  Contact: ${s.contact_name}`);
     lines.push(`  RSVP: ${s.rsvpUrl}`);
     lines.push("");

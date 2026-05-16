@@ -17,7 +17,6 @@ export default function CampaignSessionsPage() {
   const [onsCodeBySession, setOnsCodeBySession] = useState({});
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
-  const [view, setView] = useState("map"); // "map" | "list"
 
   useEffect(() => {
     if (access.loading) return;
@@ -97,19 +96,6 @@ export default function CampaignSessionsPage() {
         <SummaryCard label="Your access" value={accessSummary(access.access)} />
       </section>
 
-      <div className="campaigns-view-toggle">
-        <button
-          type="button"
-          className={view === "map" ? "is-active" : ""}
-          onClick={() => setView("map")}
-        >Map</button>
-        <button
-          type="button"
-          className={view === "list" ? "is-active" : ""}
-          onClick={() => setView("list")}
-        >List</button>
-      </div>
-
       {error && <p role="alert" style={{ color: "var(--portal-danger)" }}>{error}</p>}
       {loading && <p style={{ color: "var(--portal-text-muted)" }}>Loading…</p>}
 
@@ -117,21 +103,26 @@ export default function CampaignSessionsPage() {
         <EmptyState canCreate={canCreate} />
       )}
 
-      {!loading && sessions.length > 0 && view === "map" && (
-        <Suspense fallback={<p style={{ color: "var(--portal-text-muted)" }}>Loading map…</p>}>
-          <SessionMap
-            sessions={sessionsWithOns}
-            onPinClick={(s) => { window.location.href = `/portal/campaigns/${s.id}`; }}
-          />
-        </Suspense>
-      )}
+      {!loading && sessions.length > 0 && (
+        <>
+          <div className="campaigns-map-wrap">
+            <Suspense fallback={<p style={{ color: "var(--portal-text-muted)" }}>Loading map…</p>}>
+              <SessionMap
+                sessions={sessionsWithOns}
+                onPinClick={(s) => { window.location.href = `/portal/campaigns/${s.id}`; }}
+              />
+            </Suspense>
+          </div>
 
-      {!loading && sessions.length > 0 && view === "list" && (
-        <div className="campaigns-grid">
-          {sessions.map((s) => (
-            <SessionCard key={s.id} session={s} rsvpCount={rsvpCounts[s.id] || 0} />
-          ))}
-        </div>
+          <h2 style={{ margin: 0, fontSize: "var(--text-xl)", fontWeight: 600, color: "var(--portal-text-primary)" }}>
+            All sessions
+          </h2>
+          <div className="campaigns-grid">
+            {sessions.map((s) => (
+              <SessionCard key={s.id} session={s} rsvpCount={rsvpCounts[s.id] || 0} />
+            ))}
+          </div>
+        </>
       )}
     </div>
   );

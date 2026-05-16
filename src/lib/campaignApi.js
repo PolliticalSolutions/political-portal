@@ -8,6 +8,7 @@
 // regardless of campaign_roles or admin_users contents.
 
 import { supabase } from "./supabaseClient.js";
+import { getSupabaseServiceClient } from "./supabaseServiceClient.js";
 import { isAdmin } from "./subscriptionApi.js";
 import { ADMIN_EMAIL_OVERRIDE } from "./campaignConfig.js";
 
@@ -111,7 +112,7 @@ function visibleRegions(access) {
 // Sessions
 // ===========================================================================
 
-const SESSION_COLUMNS = "id, title, session_type, constituency_id, association_id, region, meeting_place, session_date, start_time, duration_minutes, contact_name, contact_phone, contact_email, max_capacity, notes, status, created_by_sub, created_at, updated_at";
+const SESSION_COLUMNS = "id, title, session_types, constituency_id, association_id, region, venue_name, street_address, postcode, latitude, longitude, session_date, start_time, duration_minutes, contact_name, contact_phone, contact_email, max_capacity, notes, status, created_by_sub, created_at, updated_at";
 
 export async function listSessionsForUser(access) {
   let q = supabase
@@ -157,11 +158,17 @@ export async function createSession(input, createdBySub) {
 
   const row = {
     title: input.title,
-    session_type: input.session_type,
+    session_types: Array.isArray(input.session_types) && input.session_types.length > 0
+      ? input.session_types
+      : (input.session_type ? [input.session_type] : []),
     constituency_id: input.constituency_id,
     association_id: assoc.id,
     region: assoc.region || "South East",
-    meeting_place: input.meeting_place,
+    venue_name: input.venue_name || null,
+    street_address: input.street_address,
+    postcode: input.postcode,
+    latitude: input.latitude ?? null,
+    longitude: input.longitude ?? null,
     session_date: input.session_date,
     start_time: input.start_time,
     duration_minutes: input.duration_minutes,
@@ -325,7 +332,7 @@ export async function getCandidateActivity(cognitoSub) {
   // Attendances joined to sessions for type/region/association.
   const { data: rsvps, error: rsvpsError } = await supabase
     .from("session_rsvps")
-    .select("id, attendance_status, attendance_set_at, association_id, campaign_sessions(session_type, region)")
+    .select("id, attendance_status, attendance_set_at, association_id, campaign_sessions(session_types, region)")
     .eq("cognito_sub", cognitoSub)
     .eq("attendance_status", "attended");
   if (rsvpsError) throw new Error(rsvpsError.message);
@@ -336,8 +343,9 @@ export async function getCandidateActivity(cognitoSub) {
   let firstAt = null;
   let lastAt = null;
   for (const r of rsvps || []) {
-    const type = r.campaign_sessions && r.campaign_sessions.session_type;
-    if (type) byType[type] = (byType[type] || 0) + 1;
+    // Sessions now carry an array of types — count toward each.
+    const types = (r.campaign_sessions && r.campaign_sessions.session_types) || [];
+    for (const t of types) byType[t] = (byType[t] || 0) + 1;
     if (r.campaign_sessions && r.campaign_sessions.region) regions.add(r.campaign_sessions.region);
     if (r.association_id) associations.add(r.association_id);
     if (r.attendance_set_at) {
@@ -407,13 +415,20 @@ export async function revokeCampaignRole(id) {
 }
 
 // ===========================================================================
-// Volunteers (read-only from the portal — writes happen via Lambda)
+// Volunteers — RLS-locked tables, accessed via the service-role client.
+// Same precedent as subscriptionApi.isAdmin. App-level auth gates these
+// (the pages calling them are admin / coordinator only).
 // ===========================================================================
 
 const VOLUNTEER_COLUMNS = "id, first_name, last_name, email, phone, postcode, region, status, membership_number, membership_verified, association_preference, heard_via, email_opt_out, created_at, approved_at";
 
+function serviceOrAnon() {
+  return getSupabaseServiceClient() || supabase;
+}
+
 export async function listVolunteersForAssociation(associationId, status) {
-  let q = supabase
+  const db = serviceOrAnon();
+  let q = db
     .from("volunteers")
     .select(VOLUNTEER_COLUMNS)
     .eq("association_preference", associationId)
@@ -425,7 +440,8 @@ export async function listVolunteersForAssociation(associationId, status) {
 }
 
 export async function listVolunteersForRegion(region, status) {
-  let q = supabase
+  const db = serviceOrAnon();
+  let q = db
     .from("volunteers")
     .select(VOLUNTEER_COLUMNS)
     .eq("region", region)
@@ -437,7 +453,8 @@ export async function listVolunteersForRegion(region, status) {
 }
 
 export async function getVolunteerById(id) {
-  const { data, error } = await supabase
+  const db = serviceOrAnon();
+  const { data, error } = await db
     .from("volunteers")
     .select(VOLUNTEER_COLUMNS)
     .eq("id", id)
@@ -447,7 +464,8 @@ export async function getVolunteerById(id) {
 }
 
 export async function approveVolunteer(id, approvedBySub, note) {
-  const { error } = await supabase
+  const db = serviceOrAnon();
+  const { error } = await db
     .from("volunteers")
     .update({
       status: "approved",
@@ -460,7 +478,8 @@ export async function approveVolunteer(id, approvedBySub, note) {
 }
 
 export async function rejectVolunteer(id, approvedBySub, note) {
-  const { error } = await supabase
+  const db = serviceOrAnon();
+  const { error } = await db
     .from("volunteers")
     .update({
       status: "rejected",
@@ -470,6 +489,114 @@ export async function rejectVolunteer(id, approvedBySub, note) {
     })
     .eq("id", id);
   if (error) throw new Error(error.message);
+}
+
+// ===========================================================================
+// Walk-in attendees — captured during the live register
+// ===========================================================================
+
+const WALK_IN_COLUMNS = "id, session_id, first_name, last_name, email, phone, notes, checked_in_at, checked_in_by_sub";
+
+export async function listWalkInsForSession(sessionId) {
+  const { data, error } = await supabase
+    .from("walk_in_attendees")
+    .select(WALK_IN_COLUMNS)
+    .eq("session_id", sessionId)
+    .order("checked_in_at", { ascending: true });
+  if (error) throw new Error(error.message);
+  return data || [];
+}
+
+export async function addWalkIn(sessionId, input, checkedInBySub) {
+  const row = {
+    session_id: sessionId,
+    first_name: input.first_name,
+    last_name: input.last_name,
+    email: input.email || null,
+    phone: input.phone || null,
+    notes: input.notes || null,
+    checked_in_by_sub: checkedInBySub,
+  };
+  const { data, error } = await supabase
+    .from("walk_in_attendees")
+    .insert(row)
+    .select(WALK_IN_COLUMNS)
+    .single();
+  if (error) throw new Error(error.message);
+  return data;
+}
+
+export async function removeWalkIn(walkInId) {
+  const { error } = await supabase
+    .from("walk_in_attendees")
+    .delete()
+    .eq("id", walkInId);
+  if (error) throw new Error(error.message);
+}
+
+// ===========================================================================
+// Volunteer RSVPs — RLS-locked, accessed via service-role client
+// (only the register page reads these from the portal)
+// ===========================================================================
+
+export async function listVolunteerRsvpsForSession(sessionId) {
+  const db = serviceOrAnon();
+  const { data, error } = await db
+    .from("volunteer_rsvps")
+    .select("id, session_id, volunteer_id, first_name, last_name, email, attendance_status, rsvp_at, attendance_set_at")
+    .eq("session_id", sessionId)
+    .order("rsvp_at", { ascending: true });
+  if (error) throw new Error(error.message);
+  return data || [];
+}
+
+export async function setVolunteerRsvpAttendance(volunteerRsvpId, status) {
+  if (!["pending", "attended", "did_not_attend"].includes(status)) {
+    throw new Error(`Invalid attendance status: ${status}`);
+  }
+  const db = serviceOrAnon();
+  const { error } = await db
+    .from("volunteer_rsvps")
+    .update({ attendance_status: status, attendance_set_at: new Date().toISOString() })
+    .eq("id", volunteerRsvpId);
+  if (error) throw new Error(error.message);
+}
+
+// ===========================================================================
+// Aggregate attendance summary for the register page header
+// ===========================================================================
+
+export async function getSessionAttendanceSummary(sessionId) {
+  const [portal, volunteer, walkIns] = await Promise.all([
+    supabase
+      .from("session_rsvps")
+      .select("attendance_status")
+      .eq("session_id", sessionId),
+    serviceOrAnon()
+      .from("volunteer_rsvps")
+      .select("attendance_status")
+      .eq("session_id", sessionId),
+    supabase
+      .from("walk_in_attendees")
+      .select("id", { count: "exact", head: true })
+      .eq("session_id", sessionId),
+  ]);
+
+  if (portal.error)    throw new Error(portal.error.message);
+  if (volunteer.error) throw new Error(volunteer.error.message);
+  if (walkIns.error)   throw new Error(walkIns.error.message);
+
+  const countAttended = (rows) => (rows || []).filter((r) => r.attendance_status === "attended").length;
+  const portalRows    = portal.data || [];
+  const volunteerRows = volunteer.data || [];
+
+  const walkInCount = walkIns.count || 0;
+  return {
+    portalUserRsvps: { total: portalRows.length,    attended: countAttended(portalRows) },
+    volunteerRsvps:  { total: volunteerRows.length, attended: countAttended(volunteerRows) },
+    walkIns:         walkInCount,
+    totalAttended:   countAttended(portalRows) + countAttended(volunteerRows) + walkInCount,
+  };
 }
 
 // ===========================================================================

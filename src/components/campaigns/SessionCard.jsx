@@ -25,7 +25,7 @@ export default function SessionCard({ session, rsvpCount = 0, compact = false })
       gap: "var(--space-3)",
     }}>
       <div style={{ display: "flex", alignItems: "center", gap: "var(--space-3)" }}>
-        <SessionTypeBadge type={session.session_type} />
+        <SessionTypeBadge types={session.session_types} />
         {session.status === "draft" && (
           <span style={{
             fontSize: "var(--text-xs)",
@@ -60,7 +60,11 @@ export default function SessionCard({ session, rsvpCount = 0, compact = false })
         lineHeight: 1.5,
       }}>
         <div>{formatDate(session.session_date)} · {formatTime(session.start_time)} · {session.duration_minutes} min</div>
-        <div>{session.meeting_place}</div>
+        <div>
+          {session.venue_name && <><strong style={{ color: "var(--portal-text-primary)" }}>{session.venue_name}</strong><br /></>}
+          {session.street_address}
+          {session.postcode && <><br />{session.postcode}</>}
+        </div>
         {session.region && <div style={{ color: "var(--portal-text-muted)", fontSize: "var(--text-xs)" }}>{session.region}</div>}
       </div>
 
