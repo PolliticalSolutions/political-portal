@@ -6,7 +6,7 @@ import SessionTypeBadge from "../../../components/campaigns/SessionTypeBadge.jsx
 import CapacityBar from "../../../components/campaigns/CapacityBar.jsx";
 import RsvpButton from "../../../components/campaigns/RsvpButton.jsx";
 import { useCampaignAccess } from "../../../hooks/useCampaignAccess.js";
-import { getSessionById, countRsvpsForSession, getMyRsvp, cancelSession, listRsvpsForSession } from "../../../lib/campaignApi.js";
+import { getSessionById, countRsvpsForSession, getMyRsvp, cancelSession, listRsvpsForSession, listWalkInsForSession } from "../../../lib/campaignApi.js";
 import { STATUS_LABELS } from "../../../lib/campaignConfig.js";
 import "./campaigns.css";
 
@@ -25,6 +25,7 @@ export default function SessionDetailPage() {
   const [rsvpCount, setRsvpCount] = useState(0);
   const [myRsvp, setMyRsvp] = useState(null);
   const [rsvps, setRsvps] = useState(null);
+  const [walkIns, setWalkIns] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [cancelling, setCancelling] = useState(false);
@@ -47,8 +48,13 @@ export default function SessionDetailPage() {
         const isOwner = s && access.cognitoSub && s.created_by_sub === access.cognitoSub;
         const canSeeFullList = isOwner || (access.access && access.access.isAdmin);
         if (canSeeFullList) {
-          return listRsvpsForSession(sessionId).then((list) => {
-            if (!cancelled) setRsvps(list);
+          return Promise.all([
+            listRsvpsForSession(sessionId),
+            listWalkInsForSession(sessionId),
+          ]).then(([list, walks]) => {
+            if (cancelled) return;
+            setRsvps(list);
+            setWalkIns(walks);
           });
         }
       })
@@ -177,19 +183,50 @@ export default function SessionDetailPage() {
       {rsvps && (
         <section style={{ background: "var(--portal-surface)", border: "1px solid var(--portal-border)", borderRadius: 4, padding: "var(--space-5)" }}>
           <h2 style={{ margin: 0, fontSize: "var(--text-lg)", fontWeight: 600, color: "var(--portal-text-primary)" }}>
-            Attendees ({rsvps.length})
+            RSVPs ({rsvps.length})
           </h2>
           {rsvps.length === 0 ? (
             <p style={{ marginTop: "var(--space-3)", color: "var(--portal-text-muted)" }}>No RSVPs yet.</p>
           ) : (
             <table className="data-table" style={{ width: "100%", marginTop: "var(--space-3)", borderCollapse: "collapse" }}>
-              <thead><tr><th align="left">Name</th><th align="left">Email</th><th align="left">RSVP at</th></tr></thead>
+              <thead><tr><th align="left">Name</th><th align="left">Email</th><th align="left">RSVP at</th><th align="left">Attendance</th></tr></thead>
               <tbody>
                 {rsvps.map((r) => (
                   <tr key={r.id}>
                     <td>{r.display_name}</td>
                     <td>{r.user_email}</td>
                     <td>{new Date(r.rsvp_at).toLocaleString("en-GB")}</td>
+                    <td style={{ color: r.attendance_status === "attended" ? "var(--portal-success)" : "var(--portal-text-muted)" }}>
+                      {r.attendance_status === "attended" ? "✓ Attended" : r.attendance_status === "did_not_attend" ? "Did not attend" : "—"}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
+        </section>
+      )}
+
+      {walkIns && (
+        <section style={{ background: "var(--portal-surface)", border: "1px solid var(--portal-border)", borderRadius: 4, padding: "var(--space-5)" }}>
+          <h2 style={{ margin: 0, fontSize: "var(--text-lg)", fontWeight: 600, color: "var(--portal-text-primary)" }}>
+            Walk-ins ({walkIns.length})
+          </h2>
+          <p style={{ marginTop: "var(--space-2)", marginBottom: 0, fontSize: "var(--text-sm)", color: "var(--portal-text-muted)" }}>
+            People who turned up without RSVPing, captured during the live register.
+          </p>
+          {walkIns.length === 0 ? (
+            <p style={{ marginTop: "var(--space-3)", color: "var(--portal-text-muted)" }}>None yet.</p>
+          ) : (
+            <table className="data-table" style={{ width: "100%", marginTop: "var(--space-3)", borderCollapse: "collapse" }}>
+              <thead><tr><th align="left">Name</th><th align="left">Email</th><th align="left">Phone</th><th align="left">Checked in</th></tr></thead>
+              <tbody>
+                {walkIns.map((w) => (
+                  <tr key={w.id}>
+                    <td>{w.first_name} {w.last_name}</td>
+                    <td>{w.email || <span style={{ color: "var(--portal-text-muted)" }}>—</span>}</td>
+                    <td>{w.phone || <span style={{ color: "var(--portal-text-muted)" }}>—</span>}</td>
+                    <td>{new Date(w.checked_in_at).toLocaleString("en-GB")}</td>
                   </tr>
                 ))}
               </tbody>

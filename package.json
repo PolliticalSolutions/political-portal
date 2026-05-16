@@ -22,6 +22,7 @@
     "seed:volunteers": "node scripts/seed_volunteers.mjs",
     "seed:campaigns:all": "node scripts/seed_party_membership.mjs; node scripts/seed_campaign_sessions.mjs; node scripts/seed_volunteers.mjs",
     "backfill:session-coords": "node scripts/backfill_session_coords.mjs",
+    "seed:demo-activity": "node scripts/seed_demo_activity.mjs",
     "data:build": "node scripts/generateAssociationsJson.mjs",
     "blog:automate": "node scripts/run-blog-automation.mjs",
     "blog:approve": "node scripts/approve-blog-post.mjs",
