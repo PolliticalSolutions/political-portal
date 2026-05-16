@@ -1,14 +1,16 @@
 import { lazy, Suspense, useEffect, useMemo, useState } from "react";
 import { Helmet } from "react-helmet-async";
-import { Link } from "react-router-dom";
+import { Link, useSearchParams } from "react-router-dom";
 import Button from "../../../components/Button.jsx";
 import SessionCard from "../../../components/campaigns/SessionCard.jsx";
+import SessionFilterBar, { readFiltersFromParams } from "../../../components/campaigns/SessionFilterBar.jsx";
 import { useCampaignAccess } from "../../../hooks/useCampaignAccess.js";
 import { listSessionsForUser } from "../../../lib/campaignApi.js";
 import { supabase } from "../../../lib/supabaseClient.js";
 import "./campaigns.css";
 
 const SessionMap = lazy(() => import("../../../components/campaigns/SessionMap.jsx"));
+const SessionCalendar = lazy(() => import("../../../components/campaigns/SessionCalendar.jsx"));
 
 export default function CampaignSessionsPage() {
   const access = useCampaignAccess();
@@ -17,6 +19,8 @@ export default function CampaignSessionsPage() {
   const [onsCodeBySession, setOnsCodeBySession] = useState({});
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [listView, setListView] = useState("list"); // "list" | "calendar"
+  const [searchParams] = useSearchParams();
 
   useEffect(() => {
     if (access.loading) return;
@@ -55,11 +59,41 @@ export default function CampaignSessionsPage() {
     [sessions, onsCodeBySession]
   );
 
+  // Apply URL-param-driven filters before handing off to map / list / calendar.
+  const filteredSessions = useMemo(() => {
+    const f = readFiltersFromParams(searchParams);
+    const constituencySet = new Set(f.constituency.map((c) => c.toUpperCase()));
+    const typeSet = new Set(f.type);
+    const contextSet = new Set(f.context);
+
+    return sessionsWithOns.filter((s) => {
+      if (constituencySet.size > 0) {
+        const code = (s.constituency_ons_code || "").toUpperCase();
+        if (!constituencySet.has(code)) return false;
+      }
+      if (typeSet.size > 0) {
+        const types = Array.isArray(s.session_types) ? s.session_types : [];
+        if (!types.some((t) => typeSet.has(t))) return false;
+      }
+      if (contextSet.size > 0) {
+        if (!contextSet.has(s.campaign_context)) return false;
+      }
+      return true;
+    });
+  }, [sessionsWithOns, searchParams]);
+
   const totals = useMemo(() => {
     const upcoming = sessions.filter((s) => s.session_date >= new Date().toISOString().slice(0, 10) && s.status === "published").length;
     const totalRsvps = Object.values(rsvpCounts).reduce((a, b) => a + b, 0);
     return { upcoming, totalRsvps };
   }, [sessions, rsvpCounts]);
+
+  // Regions for the constituency filter dropdown (admin → all; others → their accessible regions).
+  const filterRegions = useMemo(() => {
+    if (!access.access) return [];
+    if (access.access.isAdmin) return undefined; // undefined → no region filter (all 650)
+    return Array.from(access.access.userRegions);
+  }, [access.access]);
 
   const canCreate = access.access && (access.access.isAdmin || access.access.isCampaignManagerFor.size > 0);
 
@@ -105,23 +139,44 @@ export default function CampaignSessionsPage() {
 
       {!loading && sessions.length > 0 && (
         <>
+          <SessionFilterBar regions={filterRegions} />
+
           <div className="campaigns-map-wrap">
             <Suspense fallback={<p style={{ color: "var(--portal-text-muted)" }}>Loading map…</p>}>
               <SessionMap
-                sessions={sessionsWithOns}
+                sessions={filteredSessions}
                 onPinClick={(s) => { window.location.href = `/portal/campaigns/${s.id}`; }}
               />
             </Suspense>
           </div>
 
-          <h2 style={{ margin: 0, fontSize: "var(--text-xl)", fontWeight: 600, color: "var(--portal-text-primary)" }}>
-            All sessions
-          </h2>
-          <div className="campaigns-grid">
-            {sessions.map((s) => (
-              <SessionCard key={s.id} session={s} rsvpCount={rsvpCounts[s.id] || 0} />
-            ))}
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "var(--space-3)" }}>
+            <h2 style={{ margin: 0, fontSize: "var(--text-xl)", fontWeight: 600, color: "var(--portal-text-primary)" }}>
+              {filteredSessions.length === sessions.length
+                ? `All sessions (${sessions.length})`
+                : `${filteredSessions.length} of ${sessions.length} sessions`}
+            </h2>
+            <div className="campaigns-view-toggle">
+              <button type="button" className={listView === "list" ? "is-active" : ""} onClick={() => setListView("list")}>List</button>
+              <button type="button" className={listView === "calendar" ? "is-active" : ""} onClick={() => setListView("calendar")}>Calendar</button>
+            </div>
           </div>
+
+          {filteredSessions.length === 0 ? (
+            <div style={{ padding: "var(--space-8)", textAlign: "center", color: "var(--portal-text-muted)", background: "var(--portal-surface)", border: "1px solid var(--portal-border)", borderRadius: 4 }}>
+              No sessions match your current filters.
+            </div>
+          ) : listView === "calendar" ? (
+            <Suspense fallback={<p style={{ color: "var(--portal-text-muted)" }}>Loading calendar…</p>}>
+              <SessionCalendar sessions={filteredSessions} />
+            </Suspense>
+          ) : (
+            <div className="campaigns-grid">
+              {filteredSessions.map((s) => (
+                <SessionCard key={s.id} session={s} rsvpCount={rsvpCounts[s.id] || 0} />
+              ))}
+            </div>
+          )}
         </>
       )}
     </div>

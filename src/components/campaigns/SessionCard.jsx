@@ -1,6 +1,7 @@
 import { Link } from "react-router-dom";
 import SessionTypeBadge from "./SessionTypeBadge.jsx";
 import CapacityBar from "./CapacityBar.jsx";
+import { CAMPAIGN_CONTEXT_LABELS } from "../../lib/campaignConfig.js";
 
 function formatDate(iso) {
   if (!iso) return "";
@@ -24,8 +25,22 @@ export default function SessionCard({ session, rsvpCount = 0, compact = false })
       flexDirection: "column",
       gap: "var(--space-3)",
     }}>
-      <div style={{ display: "flex", alignItems: "center", gap: "var(--space-3)" }}>
+      <div style={{ display: "flex", alignItems: "center", gap: "var(--space-3)", flexWrap: "wrap" }}>
         <SessionTypeBadge types={session.session_types} />
+        {session.campaign_context && session.campaign_context !== "general_campaigning" && (
+          <span style={{
+            fontSize: "var(--text-xs)",
+            fontWeight: 600,
+            letterSpacing: "0.06em",
+            textTransform: "uppercase",
+            color: "var(--portal-text-secondary)",
+            border: "1px solid var(--portal-border-strong)",
+            borderRadius: 2,
+            padding: "0.2em 0.6em",
+          }}>
+            {CAMPAIGN_CONTEXT_LABELS[session.campaign_context] || session.campaign_context}
+          </span>
+        )}
         {session.status === "draft" && (
           <span style={{
             fontSize: "var(--text-xs)",

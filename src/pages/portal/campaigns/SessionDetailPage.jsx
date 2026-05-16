@@ -7,7 +7,7 @@ import CapacityBar from "../../../components/campaigns/CapacityBar.jsx";
 import RsvpButton from "../../../components/campaigns/RsvpButton.jsx";
 import { useCampaignAccess } from "../../../hooks/useCampaignAccess.js";
 import { getSessionById, countRsvpsForSession, getMyRsvp, cancelSession, listRsvpsForSession, listWalkInsForSession } from "../../../lib/campaignApi.js";
-import { STATUS_LABELS } from "../../../lib/campaignConfig.js";
+import { STATUS_LABELS, CAMPAIGN_CONTEXT_LABELS } from "../../../lib/campaignConfig.js";
 import "./campaigns.css";
 
 function formatDateLong(iso) {
@@ -150,6 +150,9 @@ export default function SessionDetailPage() {
             )}
           </DetailRow>
           <DetailRow label="Region">{session.region}</DetailRow>
+          <DetailRow label="Campaign context">
+            {CAMPAIGN_CONTEXT_LABELS[session.campaign_context] || session.campaign_context}
+          </DetailRow>
           <DetailRow label="Contact">
             {session.contact_name} · <a href={`mailto:${session.contact_email}`} style={{ color: "var(--portal-text-primary)" }}>{session.contact_email}</a> · {session.contact_phone}
           </DetailRow>

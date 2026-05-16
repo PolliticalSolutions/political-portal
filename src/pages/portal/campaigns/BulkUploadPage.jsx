@@ -8,6 +8,7 @@ import { createSession, listManagedAssociations } from "../../../lib/campaignApi
 import { supabase } from "../../../lib/supabaseClient.js";
 import {
   SESSION_TYPE_ORDER,
+  CAMPAIGN_CONTEXT_ORDER,
   SESSION_CSV_TEMPLATE_HEADERS,
   SESSION_CSV_TEMPLATE_SAMPLE,
   SESSION_CSV_TEMPLATE_FILENAME,
@@ -32,7 +33,7 @@ function validateRow(row, index, constituencyByName, associationByName, defaultA
   }
 
   // Required
-  for (const key of ["title", "session_types", "constituency_name", "street_address", "postcode",
+  for (const key of ["title", "session_types", "campaign_context", "constituency_name", "street_address", "postcode",
                       "session_date", "start_time", "duration_minutes",
                       "contact_name", "contact_phone", "contact_email"]) {
     if (!r[key]) errs.push({ row: rowNum, field: key, reason: "Required" });
@@ -47,6 +48,11 @@ function validateRow(row, index, constituencyByName, associationByName, defaultA
     if (!SESSION_TYPE_ORDER.includes(t)) {
       errs.push({ row: rowNum, field: "session_types", reason: `Unknown type "${t}". Use: ${SESSION_TYPE_ORDER.join(", ")}` });
     }
+  }
+
+  // campaign_context
+  if (r.campaign_context && !CAMPAIGN_CONTEXT_ORDER.includes(r.campaign_context)) {
+    errs.push({ row: rowNum, field: "campaign_context", reason: `Unknown context "${r.campaign_context}". Use one of: ${CAMPAIGN_CONTEXT_ORDER.join(", ")}` });
   }
 
   // Association lookup — column wins, falls back to default selection
@@ -94,6 +100,7 @@ function validateRow(row, index, constituencyByName, associationByName, defaultA
     record: {
       title: r.title,
       session_types: types,
+      campaign_context: r.campaign_context,
       constituency_id: constituencyId,
       association_id: associationId,
       venue_name: r.venue_name || null,
@@ -299,6 +306,7 @@ export default function BulkUploadPage() {
 const CSV_FIELD_GUIDE = [
   { col: "title",            req: "Required", fmt: "Free text. Short enough to scan in a list — e.g. \"Saturday morning canvass\"." },
   { col: "session_types",    req: "Required", fmt: "One or more types separated by | (pipe). Valid values: canvass, leaflet, phone_bank, committee_room, gotv, gotpv, other. Example: canvass|gotv" },
+  { col: "campaign_context", req: "Required", fmt: "What this session is for. One of: general_campaigning, by_election, local_election, general_election, mayoral_election, pcc_election, selection_contest, membership_drive, referendum." },
   { col: "association_name", req: "Required*", fmt: "The exact name of your association (case-insensitive). Skip this column on a row only if you've picked a default association from the dropdown above." },
   { col: "constituency_name",req: "Required", fmt: "The exact constituency name. Must be linked to the association on the same row." },
   { col: "venue_name",       req: "Optional", fmt: "Name of the meeting place — e.g. \"Volunteer HQ\". Renders as bold in emails and on the detail page." },

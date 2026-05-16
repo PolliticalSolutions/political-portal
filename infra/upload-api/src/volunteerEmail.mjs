@@ -57,7 +57,7 @@ async function loadActiveVolunteers() {
 
 async function loadSessionsForRegion(region, fromDate, toDate) {
   return supabaseSelect("campaign_sessions", {
-    select: "id,title,session_types,session_date,start_time,venue_name,street_address,postcode,contact_name",
+    select: "id,title,session_types,campaign_context,session_date,start_time,venue_name,street_address,postcode,contact_name",
     region: `eq.${region}`,
     status: "eq.published",
     session_date: `gte.${fromDate}`,
@@ -69,7 +69,7 @@ async function loadSessionsForRegion(region, fromDate, toDate) {
 async function loadSessionsForRegionRange(region, fromDate, toDate) {
   // Two filters on same column require PostgREST 'and' syntax.
   return supabaseSelect("campaign_sessions", {
-    select: "id,title,session_types,session_date,start_time,venue_name,street_address,postcode,contact_name",
+    select: "id,title,session_types,campaign_context,session_date,start_time,venue_name,street_address,postcode,contact_name",
     region: `eq.${region}`,
     status: "eq.published",
     and: `(session_date.gte.${fromDate},session_date.lte.${toDate})`,

@@ -47,6 +47,32 @@ export const ATTENDANCE_LABELS = {
   did_not_attend: "Did not attend",
 };
 
+// Campaign context — the WHY of a session (vs session_types which are the WHAT).
+// Required field on every session. Backs the new filter on the homepage.
+export const CAMPAIGN_CONTEXT_LABELS = {
+  general_campaigning: "General campaigning",
+  by_election:         "By-election",
+  local_election:      "Local election",
+  general_election:    "General election",
+  mayoral_election:    "Mayoral election",
+  pcc_election:        "PCC election",
+  selection_contest:   "Selection contest",
+  membership_drive:    "Membership drive",
+  referendum:          "Referendum",
+};
+
+export const CAMPAIGN_CONTEXT_ORDER = [
+  "general_campaigning",
+  "by_election",
+  "local_election",
+  "general_election",
+  "mayoral_election",
+  "pcc_election",
+  "selection_contest",
+  "membership_drive",
+  "referendum",
+];
+
 export const HEARD_VIA_LABELS = {
   association: "Through my association",
   social_media: "Social media",
@@ -60,6 +86,7 @@ export const HEARD_VIA_LABELS = {
 export const SESSION_CSV_TEMPLATE_HEADERS = [
   "title",
   "session_types",          // pipe-delimited, e.g. canvass|gotv
+  "campaign_context",       // one of CAMPAIGN_CONTEXT_ORDER values
   "association_name",       // optional — falls back to selected default
   "constituency_name",
   "venue_name",
@@ -79,6 +106,7 @@ export const SESSION_CSV_TEMPLATE_SAMPLE = [
   [
     "Saturday morning canvass",
     "canvass|gotv",
+    "general_campaigning",
     "Camberwell and Peckham Conservatives",
     "Camberwell and Peckham",
     "Volunteer HQ",
