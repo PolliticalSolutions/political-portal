@@ -17,6 +17,9 @@ vi.mock("./auth/session.js", () => ({
 vi.mock("./lib/cognito.js", () => ({
   clearStoredSession: vi.fn(),
   startLogout: vi.fn(),
+  getStoredTokens: vi.fn(() => null),
+  refreshTokens: vi.fn(async () => null),
+  ensureCanonicalHost: vi.fn(() => false),
 }));
 
 import { getSession } from "./auth/session.js";

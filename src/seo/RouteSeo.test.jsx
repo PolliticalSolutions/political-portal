@@ -36,7 +36,7 @@ describe("RouteSeo", () => {
     renderRouteSeo("/subscriptions");
     await waitFor(() => {
       expect(document.querySelector("meta[name='robots']")?.content).toBe("index,follow");
-      expect(document.title).toBe("Political Solutions | Portal subscriptions");
+      expect(document.title).toBe("Portal subscription plans — campaign data platform access | Political Solutions");
     });
   });
 
