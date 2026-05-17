@@ -33,6 +33,7 @@ const cloudwatch = new AWS.CloudWatch({ region: REGION });
 const sqs = new AWS.SQS({ region: REGION });
 const dynamo = new AWS.DynamoDB.DocumentClient({ region: REGION });
 const ses = new AWS.SES({ region: REGION });
+const lambdaClient = new AWS.Lambda({ region: REGION });
 
 const STACK_NAME = (process.env.STACK_NAME || "ps-upload-api-prod").trim();
 const JOBS_TABLE = (process.env.JOBS_TABLE || "").trim();
@@ -61,9 +62,10 @@ const BY_ELECTION_INVOCATION_WINDOW_HOURS = 25;
 const PROCESS_QUEUE_AGE_WARN_SECONDS = 300;
 const SUPABASE_PING_TIMEOUT_MS = 5000;
 
-// Logical function names within the stack. The fully-qualified function name
-// is "${StackName}-${LogicalId}" — the same convention SAM uses when a
-// FunctionName isn't explicitly set.
+// Logical function names we want to monitor. CloudFormation appends a unique
+// suffix to the physical function name (e.g. UploadFunction →
+// ps-upload-api-prod-UploadFunction-jCpdeALbGNCB), so we resolve logical →
+// physical at runtime via lambda:ListFunctions and cache for 5 min.
 const LAMBDA_ERROR_CHECKS = [
   "UploadFunction",
   "WorkerFunction",
@@ -71,6 +73,76 @@ const LAMBDA_ERROR_CHECKS = [
   "ScanResultHandlerFunction",
   "PersonaFunction",
 ];
+
+const FUNCTION_NAME_CACHE_MS = 5 * 60 * 1000;
+let functionNameCache = null;
+let functionNameCacheAt = 0;
+
+async function buildFunctionNameMap() {
+  const map = new Map();
+  const prefix = `${STACK_NAME}-`;
+  let marker;
+  do {
+    const res = await lambdaClient.listFunctions({ Marker: marker, MaxItems: 50 }).promise();
+    for (const fn of res.Functions || []) {
+      const name = fn.FunctionName;
+      if (!name.startsWith(prefix)) continue;
+      // ps-upload-api-prod-UploadFunction-jCpdeALbGNCB → logical = UploadFunction
+      const remainder = name.slice(prefix.length);
+      const lastDash = remainder.lastIndexOf("-");
+      // CloudFormation suffix is 12+ chars of alnum; anything shorter is part of the logical name
+      const suffixLooksValid =
+        lastDash > 0 && /^[A-Za-z0-9]{8,}$/.test(remainder.slice(lastDash + 1));
+      const logical = suffixLooksValid ? remainder.slice(0, lastDash) : remainder;
+      map.set(logical, name);
+    }
+    marker = res.NextMarker;
+  } while (marker);
+  return map;
+}
+
+async function resolveFunctionName(logicalName) {
+  const now = Date.now();
+  if (!functionNameCache || now - functionNameCacheAt > FUNCTION_NAME_CACHE_MS) {
+    try {
+      functionNameCache = await buildFunctionNameMap();
+      functionNameCacheAt = now;
+    } catch (err) {
+      console.error(`[health-check] lambda:ListFunctions failed: ${err.message}`);
+      // Fall back to the no-suffix guess so the check still returns *something*.
+      return `${STACK_NAME}-${logicalName}`;
+    }
+  }
+  return functionNameCache.get(logicalName) || `${STACK_NAME}-${logicalName}`;
+}
+
+function queueNameFromUrl(url) {
+  if (!url) return "";
+  const parts = url.split("/");
+  return parts[parts.length - 1] || "";
+}
+
+async function fetchSqsAgeMetricSeconds(queueUrl) {
+  const queueName = queueNameFromUrl(queueUrl);
+  if (!queueName) return null;
+  const endTime = new Date();
+  const startTime = new Date(endTime.getTime() - 10 * 60 * 1000);
+  const res = await cloudwatch
+    .getMetricStatistics({
+      Namespace: "AWS/SQS",
+      MetricName: "ApproximateAgeOfOldestMessage",
+      Dimensions: [{ Name: "QueueName", Value: queueName }],
+      StartTime: startTime,
+      EndTime: endTime,
+      Period: 60,
+      Statistics: ["Maximum"],
+    })
+    .promise();
+  const datapoints = res?.Datapoints || [];
+  if (datapoints.length === 0) return 0; // no data in the last 10 min → no backlog
+  const latest = datapoints.sort((a, b) => a.Timestamp - b.Timestamp).at(-1);
+  return Math.round(latest?.Maximum || 0);
+}
 
 // ── JWT auth (replicated from handler.mjs so we don't share state) ───────────
 
@@ -168,7 +240,7 @@ function critical(name, detail) {
 }
 
 async function checkLambdaErrors(logicalName) {
-  const functionName = `${STACK_NAME}-${logicalName}`;
+  const functionName = await resolveFunctionName(logicalName);
   const endTime = new Date();
   const startTime = new Date(endTime.getTime() - LAMBDA_ERROR_WINDOW_MINUTES * 60 * 1000);
   const res = await cloudwatch
@@ -190,7 +262,7 @@ async function checkLambdaErrors(logicalName) {
 }
 
 async function checkLambdaLastInvocation(logicalName, windowHours) {
-  const functionName = `${STACK_NAME}-${logicalName}`;
+  const functionName = await resolveFunctionName(logicalName);
   const endTime = new Date();
   const startTime = new Date(endTime.getTime() - windowHours * 60 * 60 * 1000);
   const res = await cloudwatch
@@ -213,27 +285,28 @@ async function checkLambdaLastInvocation(logicalName, windowHours) {
 
 async function checkProcessQueue() {
   if (!PROCESS_QUEUE_URL) return critical("ProcessQueue", "PROCESS_QUEUE_URL env var not set");
-  const res = await sqs
-    .getQueueAttributes({
-      QueueUrl: PROCESS_QUEUE_URL,
-      AttributeNames: [
-        "ApproximateNumberOfMessagesNotVisible",
-        "ApproximateNumberOfMessages",
-        "ApproximateAgeOfOldestMessage",
-      ],
-    })
-    .promise();
-  const attrs = res?.Attributes || {};
+  // ApproximateAgeOfOldestMessage is a CloudWatch metric, NOT a valid
+  // GetQueueAttributes attribute — fetch it separately.
+  const [attrsRes, age] = await Promise.all([
+    sqs
+      .getQueueAttributes({
+        QueueUrl: PROCESS_QUEUE_URL,
+        AttributeNames: ["ApproximateNumberOfMessages", "ApproximateNumberOfMessagesNotVisible"],
+      })
+      .promise(),
+    fetchSqsAgeMetricSeconds(PROCESS_QUEUE_URL),
+  ]);
+  const attrs = attrsRes?.Attributes || {};
   const inflight = Number(attrs.ApproximateNumberOfMessagesNotVisible || 0);
   const visible = Number(attrs.ApproximateNumberOfMessages || 0);
-  const age = Number(attrs.ApproximateAgeOfOldestMessage || 0);
-  if (age > PROCESS_QUEUE_AGE_WARN_SECONDS) {
+  const ageValue = age == null ? 0 : age;
+  if (ageValue > PROCESS_QUEUE_AGE_WARN_SECONDS) {
     return warning(
       "ProcessQueue",
-      `oldest message age ${age}s exceeds ${PROCESS_QUEUE_AGE_WARN_SECONDS}s (visible=${visible}, inflight=${inflight})`
+      `oldest message age ${ageValue}s exceeds ${PROCESS_QUEUE_AGE_WARN_SECONDS}s (visible=${visible}, inflight=${inflight})`
     );
   }
-  return ok("ProcessQueue", `visible=${visible}, inflight=${inflight}, oldest age=${age}s`);
+  return ok("ProcessQueue", `visible=${visible}, inflight=${inflight}, oldest age=${ageValue}s`);
 }
 
 async function checkProcessDlq() {
