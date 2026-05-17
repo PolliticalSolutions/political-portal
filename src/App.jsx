@@ -38,6 +38,7 @@ const ManualReviewPage = lazy(() => import("./pages/portal/admin/ManualReviewPag
 const PermissionsPage = lazy(() => import("./pages/portal/admin/PermissionsPage.jsx"));
 const AssociationsPage = lazy(() => import("./pages/portal/admin/AssociationsPage.jsx"));
 const ElectionsPage = lazy(() => import("./pages/portal/admin/ElectionsPage.jsx"));
+const SystemHealthPage = lazy(() => import("./pages/portal/admin/SystemHealthPage.jsx"));
 const CRMApp = lazy(() => import("./pages/portal/crm/CRMApp.jsx"));
 const DataSourcesPage = lazy(() => import("./pages/portal/DataSourcesPage.jsx"));
 const ConstituencyIndex = lazy(() => import("./pages/portal/constituency/ConstituencyIndex.jsx"));
@@ -405,6 +406,7 @@ export default function App() {
                 <Route path="admin/permissions" element={<Navigate to="/portal/admin/users" replace />} />
                 <Route path="admin/associations" element={<Suspense fallback={<div className="page stack"><p className="muted">Loading…</p></div>}><AssociationsPage /></Suspense>} />
                 <Route path="admin/elections" element={<Suspense fallback={<div className="page stack"><p className="muted">Loading…</p></div>}><ElectionsPage /></Suspense>} />
+                <Route path="admin/system-health" element={<Suspense fallback={<div className="page stack"><p className="muted">Loading…</p></div>}><SystemHealthPage /></Suspense>} />
                 <Route path="admin/crm/*" element={<Suspense fallback={<div className="page stack"><p className="muted">Loading…</p></div>}><CRMApp /></Suspense>} />
                 <Route path="data-sources" element={<Suspense fallback={<div className="page stack"><p className="muted">Loading…</p></div>}><DataSourcesPage /></Suspense>} />
                 <Route

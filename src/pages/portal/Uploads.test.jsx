@@ -1,5 +1,8 @@
-import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { act, fireEvent, render as rtlRender, screen, waitFor } from "@testing-library/react";
+import { HelmetProvider } from "react-helmet-async";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+
+const render = (ui, options) => rtlRender(ui, { wrapper: HelmetProvider, ...options });
 
 vi.mock("../../lib/uploadApi.js", () => ({
   createJob: vi.fn(),
@@ -92,8 +95,25 @@ async function stageFileAndSelectConstituency(name, onsCode, expectedElectionId 
   });
 
   if (expectedElectionId !== undefined) {
-    expect(screen.getByLabelText(/^Election$/i)).toHaveValue(expectedElectionId);
+    expect(screen.getByLabelText(/select election/i)).toHaveValue(expectedElectionId);
   }
+}
+
+/**
+ * Clicks the "Review and upload N file" button and then confirms in the modal.
+ * Flushes two microtask rounds between clicks so the modal mounts.
+ */
+async function reviewAndConfirmUpload() {
+  fireEvent.click(screen.getByText(/Review and upload \d+ files?/));
+  await act(async () => {
+    await Promise.resolve();
+    await Promise.resolve();
+  });
+  fireEvent.click(screen.getByRole("button", { name: /Confirm and Upload/i }));
+  await act(async () => {
+    await Promise.resolve();
+    await Promise.resolve();
+  });
 }
 
 beforeEach(() => {
@@ -205,21 +225,19 @@ describe("Uploads – upload flow", () => {
       target: { value: "Urgent batch" },
     });
 
-    fireEvent.click(screen.getByText(/Upload 1 file/));
+    await reviewAndConfirmUpload();
 
-    await act(async () => {
-      await Promise.resolve();
-      await Promise.resolve();
-    });
-
-    expect(uploadApi.createJob).toHaveBeenCalledWith({
-      filename: "report.pdf",
-      pconCode: "E14000637",
-      electionId: "ge2024-uuid",
-      fileType: "pdf",
-      size: 1024,
-      metadata: { clientName: "Greenfield Association", notes: "Urgent batch" },
-    });
+    expect(uploadApi.createJob).toHaveBeenCalledWith(
+      expect.objectContaining({
+        filename: "report.pdf",
+        pconCode: "E14000637",
+        electionId: "ge2024-uuid",
+        fileType: "pdf",
+        size: 1024,
+        constituencyOnsCode: "E14000637",
+        metadata: { clientName: "Greenfield Association", notes: "Urgent batch" },
+      }),
+    );
   });
 
   it("POSTs FormData to the presigned S3 URL returned by createJob", async () => {
@@ -267,14 +285,9 @@ describe("Uploads – upload flow", () => {
       await Promise.resolve();
       await Promise.resolve();
     });
-    expect(screen.getByLabelText(/^Election$/i)).toHaveValue("ge2024-uuid");
+    expect(screen.getByLabelText(/select election/i)).toHaveValue("ge2024-uuid");
 
-    fireEvent.click(screen.getByText(/Upload 1 file/));
-
-    await act(async () => {
-      await Promise.resolve();
-      await Promise.resolve();
-    });
+    await reviewAndConfirmUpload();
 
     expect(fetchMock).toHaveBeenCalledWith(
       "https://bucket.s3.amazonaws.com",
@@ -296,14 +309,14 @@ describe("Uploads – upload flow", () => {
       await Promise.resolve();
     });
 
-    expect(uploadApi.listElections).toHaveBeenCalledWith(["OPEN", "UPCOMING", "CLOSED", "ARCHIVED"], [
-      "E14000637",
-      "E14001234",
-    ]);
-
     await stageFileAndSelectConstituency("Exeter", "E14000637");
 
-    expect(screen.getByLabelText("Election")).toHaveValue("ge2024-uuid");
+    // Elections are fetched per selected constituency (single-code), not on mount.
+    expect(uploadApi.listElections).toHaveBeenCalledWith(
+      ["OPEN", "UPCOMING", "CLOSED", "ARCHIVED"],
+      ["E14000637"],
+    );
+    expect(screen.getByLabelText(/select election/i)).toHaveValue("ge2024-uuid");
   });
 
   it("shows the success message and new job in the table after a successful upload", async () => {
@@ -323,13 +336,11 @@ describe("Uploads – upload flow", () => {
     await act(async () => { await Promise.resolve(); await Promise.resolve(); });
 
     await stageFileAndSelectConstituency("Exeter", "E14000637");
-    fireEvent.click(screen.getByText(/Upload 1 file/));
-
-    await act(async () => { await Promise.resolve(); await Promise.resolve(); });
+    await reviewAndConfirmUpload();
 
     expect(
       screen.getByText(
-        "Your file has been submitted successfully. You will receive an email when processing is complete."
+        "1 file submitted. You will receive an email when processing is complete."
       )
     ).toBeInTheDocument();
     expect(screen.getByText("report.pdf")).toBeInTheDocument();
@@ -352,9 +363,7 @@ describe("Uploads – upload flow", () => {
     await act(async () => { await Promise.resolve(); await Promise.resolve(); });
 
     await stageFileAndSelectConstituency("Exeter", "E14000637");
-    fireEvent.click(screen.getByText(/Upload 1 file/));
-
-    await act(async () => { await Promise.resolve(); await Promise.resolve(); });
+    await reviewAndConfirmUpload();
 
     expect(screen.getByText(/S3 upload failed/)).toBeInTheDocument();
   });
@@ -366,12 +375,13 @@ describe("Uploads – upload flow", () => {
     const input = document.querySelector('input[type="file"]');
     setInputFiles(input, [makeFile("report.pdf", "application/pdf")]);
 
-    await waitFor(() => screen.getByText(/Upload 1 file/));
-    fireEvent.click(screen.getByText(/Upload 1 file/));
-
-    await waitFor(() => {
-      expect(screen.getByText(/Constituency is required/)).toBeInTheDocument();
+    // Button exists when a file is staged but is disabled until constituency
+    // + election are selected; clicking it is a no-op.
+    const reviewButton = await screen.findByRole("button", {
+      name: /Review and upload 1 file/,
     });
+    expect(reviewButton).toBeDisabled();
+    fireEvent.click(reviewButton);
     expect(uploadApi.createJob).not.toHaveBeenCalled();
   });
 });
@@ -457,7 +467,7 @@ describe("Uploads – elections", () => {
 
     await stageFileAndSelectConstituency("Exeter", "E14000637");
 
-    const select = screen.getByLabelText(/^Election$/i);
+    const select = screen.getByLabelText(/select election/i);
     expect(select.value).toBe("ge2024-uuid");
   });
 
@@ -485,13 +495,15 @@ describe("Uploads – elections", () => {
     render(<Uploads />);
     await act(async () => { await Promise.resolve(); await Promise.resolve(); });
 
-    const input = document.querySelector('input[type="file"]');
-    setInputFiles(input, [makeFile("report.pdf", "application/pdf")]);
-    await act(async () => { await Promise.resolve(); });
+    // The elections <select> only renders after a constituency is picked, which
+    // triggers the per-constituency listElections fetch. Use the standard helper
+    // and skip the default-election assertion (the mock returns BY-ELECTION /
+    // LOCAL only — no GENERAL — so auto-select picks the first available).
+    await stageFileAndSelectConstituency("Exeter", "E14000637", "local-uuid");
 
-    const select = screen.getByLabelText(/^Election$/i);
-    expect(select).toHaveTextContent("Hereford By-Election — March 2025");
-    expect(select).toHaveTextContent("Staffordshire County Council Elections — May 2025");
+    const select = screen.getByLabelText(/select election/i);
+    expect(select).toHaveTextContent("Exeter — Hereford By-Election — 13 March 2025");
+    expect(select).toHaveTextContent("Exeter — Staffordshire County Council Elections — 1 May 2025");
   });
 
   it("requires election selection when no elections loaded", async () => {
@@ -502,10 +514,14 @@ describe("Uploads – elections", () => {
     await act(async () => { await Promise.resolve(); await Promise.resolve(); });
 
     await stageFileAndSelectConstituency("Exeter", "E14000637", "");
-    fireEvent.click(screen.getByText(/Upload 1 file/));
-    await act(async () => { await Promise.resolve(); });
 
-    expect(screen.getByText(/Election selection is required/)).toBeInTheDocument();
+    // With no elections available, selectedElectionId stays empty so canUpload
+    // is false and the review button is disabled — createJob is never called.
+    const reviewButton = screen.getByRole("button", {
+      name: /Review and upload 1 file/,
+    });
+    expect(reviewButton).toBeDisabled();
+    fireEvent.click(reviewButton);
     expect(uploadApi.createJob).not.toHaveBeenCalled();
   });
 
