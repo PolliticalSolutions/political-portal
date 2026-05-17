@@ -115,6 +115,14 @@ Parameters:
     Type: String
     Default: "campaigns@politicalsolutions.uk"
     Description: SES sender for weekly volunteer campaign emails.
+  HealthAlertSenderEmail:
+    Type: String
+    Default: "paul@politicalsolutions.uk"
+    Description: SES verified sender address for System Health alert emails.
+  HealthAlertRecipientEmail:
+    Type: String
+    Default: "paul@politicalsolutions.uk"
+    Description: Recipient address for System Health alert emails.
 
 Conditions:
   WafEnabledCondition: !Equals [!Ref WafEnabled, "true"]
@@ -1169,6 +1177,74 @@ Resources:
             Description: Weekly volunteer campaign email send every Monday at 08:00 UTC
             Enabled: true
 
+  # ── System Health Check ─────────────────────────────────────────────────────
+  # Polls CloudWatch (Lambda errors/invocations + DynamoDB SystemErrors),
+  # SQS queue depth/age, and Supabase REST every 15 minutes. Sends an SES
+  # alert email when overall status is not "ok" with a 30-minute cooldown
+  # backed by a sentinel item in JobsTable. Also exposes GET /admin/health
+  # on UploadApi for the portal dashboard (auth handled in code).
+
+  HealthCheckFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: src/
+      Handler: healthCheckHandler.handler
+      Runtime: nodejs22.x
+      Timeout: 60
+      MemorySize: 256
+      Environment:
+        Variables:
+          STACK_NAME: !Ref AWS::StackName
+          JOBS_TABLE: !Ref JobsTable
+          PROCESS_QUEUE_URL: !Ref ProcessQueue
+          PROCESS_DLQ_URL: !Ref ProcessDLQ
+          SUPABASE_URL: !Ref SupabaseUrl
+          SUPABASE_SERVICE_KEY: !Ref SupabaseServiceKey
+          SES_SENDER_EMAIL: !Ref HealthAlertSenderEmail
+          HEALTH_ALERT_EMAIL: !Ref HealthAlertRecipientEmail
+          COGNITO_ISSUER: !Ref CognitoIssuer
+          COGNITO_AUDIENCE: !Ref CognitoAudience
+          ADMIN_SUB_ALLOWLIST: !Ref AdminSubAllowlist
+          ALLOWED_ORIGINS: !Join [",", !Ref AllowedOrigins]
+      Policies:
+        - Statement:
+            Effect: Allow
+            Action:
+              - cloudwatch:GetMetricStatistics
+            Resource: "*"
+        - Statement:
+            Effect: Allow
+            Action:
+              - sqs:GetQueueAttributes
+            Resource:
+              - !GetAtt ProcessQueue.Arn
+              - !GetAtt ProcessDLQ.Arn
+        - Statement:
+            Effect: Allow
+            Action:
+              - dynamodb:GetItem
+              - dynamodb:PutItem
+            Resource: !GetAtt JobsTable.Arn
+        - Statement:
+            Effect: Allow
+            Action:
+              - ses:SendEmail
+              - ses:SendRawEmail
+            Resource: "*"
+      Events:
+        HealthCheckSchedule:
+          Type: Schedule
+          Properties:
+            Schedule: rate(15 minutes)
+            Description: System health poll every 15 minutes
+            Enabled: true
+        AdminHealth:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref UploadApi
+            Path: /admin/health
+            Method: GET
+
   # ── CloudWatch Alarms ──────────────────────────────────────────────────────
 
   UploadFunctionErrorsAlarm:
@@ -1240,6 +1316,26 @@ Resources:
       Dimensions:
         - Name: FunctionName
           Value: !Ref ScanResultHandlerFunction
+      Statistic: Sum
+      Period: 300
+      EvaluationPeriods: 1
+      Threshold: 1
+      ComparisonOperator: GreaterThanOrEqualToThreshold
+      TreatMissingData: notBreaching
+      AlarmActions: !If
+        - AlarmActionsEnabled
+        - - !Ref AlarmTopicArn
+        - !Ref AWS::NoValue
+
+  HealthCheckFunctionErrorsAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmDescription: Lambda errors for system health check.
+      Namespace: AWS/Lambda
+      MetricName: Errors
+      Dimensions:
+        - Name: FunctionName
+          Value: !Ref HealthCheckFunction
       Statistic: Sum
       Period: 300
       EvaluationPeriods: 1

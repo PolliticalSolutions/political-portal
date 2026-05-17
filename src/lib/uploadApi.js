@@ -82,6 +82,15 @@ export const getAdminMe = async () => {
   });
 };
 
+export const getSystemHealth = async () => {
+  const base = resolveUploadApiBaseUrl();
+  if (!base) throw new Error("Missing Upload API URL. Set VITE_UPLOAD_API_URL.");
+  return fetchJson(`${base}/admin/health`, {
+    method: "GET",
+    headers: getAuthHeaders(),
+  });
+};
+
 export const listAdminUsers = async ({ status = "APPROVED", limit = 50 } = {}) => {
   const base = resolveUploadApiBaseUrl();
   if (!base) throw new Error("Missing Upload API URL. Set VITE_UPLOAD_API_URL.");

@@ -617,6 +617,11 @@ export default function PortalLayout() {
                   Elections
                 </NavLink>
               )}
+              {isAdmin && (
+                <NavLink className={navClass} to="/portal/admin/system-health" onClick={() => setSidebarOpen(false)}>
+                  System Health
+                </NavLink>
+              )}
             </div>
           </nav>
         </aside>
