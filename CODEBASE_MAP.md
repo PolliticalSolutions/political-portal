@@ -289,6 +289,30 @@ Every resource in the SAM template:
 
 ---
 
+## AI Skills (`.agents/skills/`)
+
+Shared AI assistant skills tracked in version control. Installed via `npx skills` (lock file: `skills-lock.json`) or `uipro-cli`. Available to all agents that read `.agents/skills/`.
+
+| Skill | Source | Purpose |
+|-------|--------|---------|
+| `emil-design-eng` | `emilkowalski/skill` | Emil Kowalski's UI polish philosophy: animation, component design, invisible details |
+| `impeccable` | `pbakaus/impeccable` | Full-spectrum UI/UX work: audit, polish, animate, redesign, live browser iteration |
+| `ui-ux-pro-max` | `uipro-cli` | UI/UX Pro Max: design patterns, colour, typography, stack-specific guidance (React, Next.js, etc.) |
+| `brandkit` | `Leonxlnx/taste-skill` | Brand identity and kit guidance |
+| `design-taste-frontend` | `Leonxlnx/taste-skill` | General frontend design taste |
+| `full-output-enforcement` | `Leonxlnx/taste-skill` | Enforces complete, untruncated code output |
+| `gpt-taste` | `Leonxlnx/taste-skill` | GPT-style aesthetic taste layer |
+| `high-end-visual-design` | `Leonxlnx/taste-skill` | Elevated visual design standards |
+| `image-to-code` | `Leonxlnx/taste-skill` | Convert design images/screenshots to code |
+| `imagegen-frontend-mobile` | `Leonxlnx/taste-skill` | Mobile UI image generation guidance |
+| `imagegen-frontend-web` | `Leonxlnx/taste-skill` | Web UI image generation guidance |
+| `industrial-brutalist-ui` | `Leonxlnx/taste-skill` | Industrial/brutalist UI aesthetic |
+| `minimalist-ui` | `Leonxlnx/taste-skill` | Minimalist UI aesthetic |
+| `redesign-existing-projects` | `Leonxlnx/taste-skill` | Approach for redesigning existing UIs |
+| `stitch-design-taste` | `Leonxlnx/taste-skill` | Stitch-style design taste |
+
+---
+
 ## Key Patterns
 
 ### How to add a new Lambda function
