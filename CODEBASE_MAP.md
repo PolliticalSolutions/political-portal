@@ -1,6 +1,6 @@
 # Codebase Map
 
-Last updated: 13 May 2026
+Last updated: 18 May 2026
 
 ---
 
@@ -30,6 +30,9 @@ Last updated: 13 May 2026
 | `legal/PrivacyPage.jsx` | `/privacy` | Privacy policy |
 | `legal/TermsPage.jsx` | `/terms` | Terms of service |
 | `legal/CookiesPage.jsx` | `/cookies` | Cookie policy |
+| `VolunteerSignUpPage.jsx` | `/campaign/volunteer` | Public volunteer sign-up form. Inserts into Supabase `volunteers` table; triggers welcome email via `volunteerEmail` Lambda. |
+| `VolunteerRsvpPage.jsx` | `/campaign/rsvp` | Token-gated RSVP page for volunteers (no Cognito needed). HMAC-SHA256 token verified by `volunteerOps` Lambda. |
+| `VolunteerUnsubscribePage.jsx` | `/campaign/unsubscribe` | Token-gated unsubscribe page. Updates `volunteers.email_opt_in = false`. |
 
 ### Portal pages (all under `/portal`, auth-gated via `ProtectedRoute`)
 
@@ -89,6 +92,24 @@ Last updated: 13 May 2026
 | `portal/constituency/constituencyApi.js` | — | All Supabase query functions for constituency/analytics data |
 | `portal/constituency/constituencyPresentation.js` | — | Display formatting helpers for constituency data |
 
+### Portal / campaigns
+
+Campaign sessions & volunteer coordination module (shipped May 2026, PRs #20–#25). All routes under `/portal/campaigns`.
+
+| File | Route | What it does |
+|------|-------|--------------|
+| `portal/campaigns/CampaignSessionsPage.jsx` | `/portal/campaigns` | Sessions index with always-visible map (Leaflet-free, react-simple-maps), `SessionFilterBar` (constituency / activity / context), and List or Calendar view toggle. Pulls sessions via `listSessionsForUser`. |
+| `portal/campaigns/SessionCreatePage.jsx` | `/portal/campaigns/create` | Create a campaign session. Wraps `SessionForm`. |
+| `portal/campaigns/SessionEditPage.jsx` | `/portal/campaigns/:sessionId/edit` | Edit existing session. Owner + admin only. |
+| `portal/campaigns/SessionDetailPage.jsx` | `/portal/campaigns/:sessionId` | Session detail: structured address with "Get directions" link, RSVP CTA, RSVP list, walk-ins list. Owner + admin see "Take register" CTA. |
+| `portal/campaigns/SessionRegisterPage.jsx` | `/portal/campaigns/:sessionId/register` | Mobile-first live register. One-tap Present toggles for RSVPs + volunteers, inline walk-in capture. Owner + admin only. |
+| `portal/campaigns/SessionAttendancePage.jsx` | `/portal/campaigns/:sessionId/attendance` | Post-session tidy-up view for confirming attendance. Owner + admin only. |
+| `portal/campaigns/BulkUploadPage.jsx` | `/portal/campaigns/bulk-upload` | CSV bulk upload. 16-column template (downloads from this page or `SessionCreatePage`). Geocodes postcodes via postcodes.io bulk endpoint before insert. |
+| `portal/campaigns/CandidateActivityPage.jsx` | `/portal/campaigns/activity` | Per-member attendance report. Columns auto-expand for each entry in `SESSION_TYPE_ORDER` (incl. GOTV / GOTPV). |
+| `portal/campaigns/VolunteerListPage.jsx` | `/portal/campaigns/volunteers` | Volunteer database list (Supabase `volunteers` table). |
+| `portal/campaigns/VolunteerDetailPage.jsx` | `/portal/campaigns/volunteers/:id` | Individual volunteer record: contact info, RSVP history, email log. |
+| `portal/campaigns/campaigns.css` | — | Pure-CSS module for the campaigns surface (filter bar, calendar grid, register, map wrap). |
+
 ### Portal / local-government
 
 | File | Route | What it does |
@@ -126,6 +147,21 @@ Last updated: 13 May 2026
 | `ThreatMethodologyDisclosure.jsx` | Collapsible methodology note shown on threat index pages |
 | `UpgradePrompt.jsx` | Shown when a feature requires a subscription; links to `/subscribe` |
 
+### Campaigns sub-components (`src/components/campaigns/`)
+
+| File | What it does |
+|------|--------------|
+| `SessionCard.jsx` | Tile for a single campaign session in the index grid. Multi-type badges, structured address, RSVP count. |
+| `SessionForm.jsx` | Create/edit form. Checkbox group for `session_types`, required `campaign_context` dropdown (9 values), structured address (venue + street + postcode), live postcode verification via postcodes.io. |
+| `SessionTypeBadge.jsx` | Renders one badge per type from `session.session_types` array. Back-compat: also accepts a single `type` prop. |
+| `SessionFilterBar.jsx` | Three URL-driven multi-select dropdowns (Constituency, Activity, Campaign context). Filters propagate via `?constituency=&type=&context=` params. |
+| `SessionMap.jsx` | UK map with per-session pins. Pin coordinates prefer `session.latitude/longitude` (postcodes.io geocoded); falls back to constituency centroid. Pin colour = first session type. |
+| `SessionCalendar.jsx` | Hand-rolled Mon-first 7×6 month grid. Up to 3 pills per day, "+N more" overflow, today highlighted. No new packages. |
+| `CapacityBar.jsx` | Horizontal bar showing filled / max. Renders "X people attending" if no max. |
+| `RsvpButton.jsx` | One-tap RSVP / Cancel button. Optimistic update + autosave ✓. |
+| `AttendanceToggle.jsx` | Present / Did-not-attend toggle. Used on `SessionAttendancePage` + `SessionRegisterPage`. Same autosave + 500ms ✓ pattern. |
+| `CsvDropZone.jsx` | Drag-and-drop CSV input for bulk upload page. |
+
 ---
 
 ## SEO Layer (`src/seo/`)
@@ -149,6 +185,9 @@ Last updated: 13 May 2026
 | `adminElectionsApi.js` | Admin CRUD for Supabase `elections` table; maps DynamoDB-style row shapes |
 | `analytics.js` | GA4 page tracking via `usePageTracking()` hook; dev badge helper |
 | `calibrationRecommendations.js` | Generates human-readable calibration recommendations from model specs |
+| `campaignApi.js` | All Supabase queries for the campaigns module: `listSessionsForUser`, `getSessionById`, `createSession`, `updateSession`, `cancelSession`, `getMyRsvp`, `setRsvp`, `cancelRsvp`, `listRsvpsForSession`, `listWalkInsForSession`, `addWalkIn`, `removeWalkIn`, `listVolunteerRsvpsForSession` (service client), `setVolunteerRsvpAttendance` (service client), `getCandidateActivity`, `getSessionAttendanceSummary`. `SESSION_COLUMNS` is the single source of truth for fields selected. |
+| `campaignConfig.js` | Static config for the campaigns module: `SESSION_TYPE_LABELS / COLOURS / ORDER` (canvass, leaflet, phone_bank, committee_room, gotv, gotpv, other), `STATUS_LABELS`, `CAMPAIGN_CONTEXT_LABELS / ORDER` (9 values: general_campaigning, by_election, local_election, general_election, mayoral_election, pcc_election, selection_contest, membership_drive, referendum), `SESSION_CSV_TEMPLATE_HEADERS` (16 columns). |
+| `postcodeGeocoding.js` | UK postcode helpers via postcodes.io (no API key): `extractPostcode(text)`, `normalisePostcode(pc)`, `validateAndGeocodePostcode(pc)` → `{ valid, lat, lon }`. 5s timeout. |
 | `cognito.js` | PKCE helpers: `startLogout`, `clearStoredSession` |
 | `enquiriesApi.js` | `insertEnquiry()` — inserts a row into Supabase `enquiries` table |
 | `enquiryApi.js` | HTTP client for the enquiry/quote API (enquiry-api stack) |
@@ -195,6 +234,8 @@ Last updated: 13 May 2026
 | `personaHandler.mjs` | `PersonaFunction` | Lambda Function URL | MP Persona Generator: fetches Parliament Members API, Hansard (10 pages), Wikipedia, press releases → Anthropic Claude → returns `{ systemPrompt, mpName }`. Requires `ANTHROPIC_API_KEY` set manually. |
 | `byElectionMonitor.mjs` | `ByElectionMonitorFunction` | EventBridge schedule (daily 06:00 UTC) | Polls Parliament Members API for recently departed Commons members; inserts `political_alerts` rows; resolves alerts where seat is now filled |
 | `attendanceRiskRefresh.mjs` | `AttendanceRiskRefreshFunction` | EventBridge schedule (Mon 07:00 UTC) | Re-scores all councillor attendance against Section 85 LGA 1972 thresholds (critical ≥5 months, vacant ≥6 months); inserts `political_alerts` rows; deduplicates by `title + local_authority_id + is_active`. Skips authorities with no attendance data or data older than 365 days. |
+| `volunteerEmail.mjs` | `VolunteerEmailFunction` | EventBridge schedule (weekly) | Sends per-volunteer digest of upcoming sessions in their region. HTML rendered via `lib/emailTemplates.mjs`; includes "Get directions" links and HMAC RSVP tokens. Sent via SES. Logs to `volunteer_email_log` table. |
+| `volunteerOps.mjs` | `VolunteerOpsFunction` | Lambda Function URL | Token-gated endpoints used by the public `/campaign/rsvp` and `/campaign/unsubscribe` pages. Verifies HMAC-SHA256 tokens; writes to `volunteer_rsvps` and toggles `volunteers.email_opt_in`. |
 | `electionsRepo.mjs` | — | — | DynamoDB access for elections table; always uses full `LastEvaluatedKey` pagination |
 | `usersRepo.mjs` | — | — | DynamoDB user records; `putUserIfAbsent` defaults `status: "APPROVED"` |
 | `submissionsRepo.mjs` | — | — | DynamoDB upload job records |
@@ -267,6 +308,9 @@ Every resource in the SAM template:
 | `prerender-routes.mjs` | Defines which routes to prerender | Yes — consumed by prerender.mjs |
 | `seed-elections.mjs` | Seeds elections into DynamoDB from `elections.seed.json` | Occasional |
 | `seed-organisations.mjs` | Seeds organisations into DynamoDB from `organisations.seed.json` | Occasional |
+| `seed_campaign_sessions.mjs` | Seeds ~20 demo campaign sessions across associations; mixes session types and `campaign_context` values; geocodes postcodes via postcodes.io at seed time | Occasional — demo refresh |
+| `seed_demo_activity.mjs` | Seeds attendance demo data for the Candidate Activity page (6 demo members × sessions) | Occasional — demo refresh |
+| `backfill_session_coords.mjs` | One-shot batch-geocoder. For any `campaign_sessions` row with `latitude IS NULL AND postcode IS NOT NULL`, calls postcodes.io bulk endpoint (100 at a time) and updates lat/lon. Idempotent. | Run after migration `20260516000000_*` and any time postcodes are imported without coordinates. `npm run backfill:session-coords` |
 | `verify-prerender-output.ps1` | Checks prerender output for `<title>` tags — **always fails** (looks for `<title>`, gets `<title data-rh="true">`) | Unreliable — do not rely on |
 | `verify-prod-headers.ps1` | Checks security headers on the production site | Yes — pre-deploy check |
 | `verify-prod-seo-html.ps1` | Checks SEO HTML on production | Yes — pre-deploy check |
@@ -362,6 +406,18 @@ const { data } = await db.from("user_permissions").select("*").eq("cognito_sub",
 
 All constituency intelligence queries go through `src/pages/portal/constituency/constituencyApi.js`. Add new query functions there rather than querying Supabase inline in page components.
 
+### How to add a Supabase migration
+
+All schema changes go through `supabase/migrations/*.sql`. A GitHub Actions workflow ([`.github/workflows/supabase-migrate.yml`](.github/workflows/supabase-migrate.yml)) watches the folder and runs `supabase db push` against production whenever a `.sql` file lands on `main`. **Full playbook:** [supabase/migrations/README.md](supabase/migrations/README.md).
+
+Filename convention (strict — the Supabase CLI orders deterministically against existing tracked migrations):
+```
+YYYYMMDDHHMMSS_short_description.sql      ← 14 digits, UTC
+```
+Get the timestamp in PowerShell with `Get-Date -Format "yyyyMMddHHmmss"`. Legacy 8-digit prefixes (`20260329_*` etc.) have all been renamed to `20260329000000_*` so the CLI accepts them.
+
+Every migration must wrap in `BEGIN; ... COMMIT;` and use `IF NOT EXISTS` / `IF EXISTS` where possible to stay idempotent. The Supabase project has force-RLS-by-default, so any new table that the portal writes to needs an explicit `ENABLE ROW LEVEL SECURITY` + `CREATE POLICY ... FOR ALL TO anon USING (true) WITH CHECK (true)` block (Cognito is the auth perimeter; role gates enforced in JS — same pattern as the original CRM precedent).
+
 ### How to query Supabase from a Lambda function
 
 `byElectionMonitor.mjs` is the reference implementation. It uses raw `fetch` against the Supabase REST API:
@@ -401,3 +457,5 @@ Pass `SUPABASE_URL` and `SUPABASE_SERVICE_KEY` as Lambda environment variables v
 - **`ANTHROPIC_API_KEY` is not in CloudFormation** — it must be set manually in the Lambda console on `PersonaFunction` after every SAM deploy. It is intentionally left blank in `template.yaml`.
 - **Never import `ConstituencyMapClient.jsx` or `AnalyticsChoroplethMapClient.jsx` statically** — they use browser-only SVG/ResizeObserver APIs and will crash SSR/prerender. Always load via `React.lazy()`.
 - **DynamoDB elections table: always paginate** — use `LastEvaluatedKey` loop; a single Scan page may not return all record types when the table is large.
+- **Supabase migrations must use 14-digit `YYYYMMDDHHMMSS` filenames** — the Supabase CLI rejects mixed 8/14-digit ordering and the auto-migrate workflow will fail with "Remote migration versions not found in local migrations directory". Generate via `Get-Date -Format "yyyyMMddHHmmss"`. Full guide in [supabase/migrations/README.md](supabase/migrations/README.md).
+- **Force-RLS-by-default on Supabase project** — every new portal-writable table must enable RLS + add an explicit `FOR ALL TO anon` policy. Disabled RLS is not an option; the project's lint rejects it. See migration `20260516000000_campaign_module_amendment_1.sql` for the established pattern.
