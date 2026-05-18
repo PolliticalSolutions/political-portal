@@ -43,19 +43,19 @@ function getStatusPresentation(status) {
     return {
       label: "Processing",
       description: "Processing now — large batches may take several hours. You will receive an email when complete.",
-      style: { background: "#dbeafe", color: "#1d4ed8" },
+      style: { background: "#dbeafe", color: "var(--color-navy-mid)" },
     };
   }
 
   if (COMPLETE_JOB_STATUSES.has(normalized)) {
-    return { label: "Complete", description: null, style: { background: "#dcfce7", color: "#15803d" } };
+    return { label: "Complete", description: null, style: { background: "#dcfce7", color: "var(--color-cta)" } };
   }
 
   if (FAILED_JOB_STATUSES.has(normalized)) {
     return {
       label: "Failed",
       description: "Processing encountered an issue. Our team has been notified.",
-      style: { background: "#fee2e2", color: "#b91c1c" },
+      style: { background: "#fee2e2", color: "var(--color-danger)" },
     };
   }
 
@@ -65,8 +65,8 @@ function getStatusPresentation(status) {
       ? "Queued for processing — you will receive an email when complete. Large batches may take several hours."
       : null,
     style: PENDING_JOB_STATUSES.has(normalized)
-      ? { background: "#e2e8f0", color: "#475569" }
-      : { background: "#f1f5f9", color: "#64748b" },
+      ? { background: "var(--color-border)", color: "var(--color-text-secondary)" }
+      : { background: "#f1f5f9", color: "var(--color-text-muted)" },
   };
 }
 
@@ -191,11 +191,11 @@ function ConstituencySearch({ value, onChange, allowedConstituencies = [], assoc
             aria-label="Clear constituency"
             style={{
               background: "none",
-              border: "1px solid #e2e8f0",
+              border: "1px solid var(--color-border)",
               borderRadius: 6,
               padding: "0 10px",
               cursor: "pointer",
-              color: "#64748b",
+              color: "var(--color-text-muted)",
               fontSize: 14,
             }}
           >
@@ -203,7 +203,7 @@ function ConstituencySearch({ value, onChange, allowedConstituencies = [], assoc
           </button>
         )}
       </div>
-      {searching && <p style={{ fontSize: 12, color: "#64748b", margin: "4px 0 0" }}>Searching…</p>}
+      {searching && <p style={{ fontSize: 12, color: "var(--color-text-muted)", margin: "4px 0 0" }}>Searching…</p>}
       {open && results.length > 0 && (
         <ul
           role="listbox"
@@ -213,7 +213,7 @@ function ConstituencySearch({ value, onChange, allowedConstituencies = [], assoc
             left: 0,
             right: 0,
             background: "white",
-            border: "1px solid #e2e8f0",
+            border: "1px solid var(--color-border)",
             borderRadius: 6,
             margin: 0,
             padding: 0,
@@ -243,7 +243,7 @@ function ConstituencySearch({ value, onChange, allowedConstituencies = [], assoc
             >
               <span>{c.name}</span>
               {assocByConstituencyId[c.id] && (
-                <span style={{ display: "block", fontSize: 12, color: "#64748b" }}>
+                <span style={{ display: "block", fontSize: 12, color: "var(--color-text-muted)" }}>
                   {assocByConstituencyId[c.id]}
                 </span>
               )}
@@ -265,7 +265,7 @@ function StatusBadge({ status }) {
         {p.label}
       </span>
       {p.description && (
-        <div style={{ fontSize: 12, color: "#64748b", marginTop: 4, maxWidth: 320 }}>{p.description}</div>
+        <div style={{ fontSize: 12, color: "var(--color-text-muted)", marginTop: 4, maxWidth: 320 }}>{p.description}</div>
       )}
     </div>
   );
@@ -316,16 +316,16 @@ function ConfirmUploadModal({ constituency, electionLabel, files, onConfirm, onB
         </h2>
 
         <dl style={{ margin: "0 0 16px", display: "grid", gridTemplateColumns: "auto 1fr", gap: "8px 16px" }}>
-          <dt style={{ fontWeight: 600, color: "#475569", fontSize: 14 }}>Constituency</dt>
+          <dt style={{ fontWeight: 600, color: "var(--color-text-secondary)", fontSize: 14 }}>Constituency</dt>
           <dd style={{ margin: 0, fontSize: 14 }}>
             {constituency.name}
             {constituency.code && (
-              <span style={{ marginLeft: 6, color: "#64748b", fontSize: 12 }}>({constituency.code})</span>
+              <span style={{ marginLeft: 6, color: "var(--color-text-muted)", fontSize: 12 }}>({constituency.code})</span>
             )}
           </dd>
-          <dt style={{ fontWeight: 600, color: "#475569", fontSize: 14 }}>Election</dt>
+          <dt style={{ fontWeight: 600, color: "var(--color-text-secondary)", fontSize: 14 }}>Election</dt>
           <dd style={{ margin: 0, fontSize: 14 }}>{electionLabel}</dd>
-          <dt style={{ fontWeight: 600, color: "#475569", fontSize: 14 }}>Files</dt>
+          <dt style={{ fontWeight: 600, color: "var(--color-text-secondary)", fontSize: 14 }}>Files</dt>
           <dd style={{ margin: 0, fontSize: 14 }}>{files.length} file{files.length !== 1 ? "s" : ""}</dd>
         </dl>
 
@@ -343,17 +343,17 @@ function ConfirmUploadModal({ constituency, electionLabel, files, onConfirm, onB
           {files.map((f) => (
             <li
               key={f.name}
-              style={{ fontSize: 13, padding: "2px 0", color: "#1e293b", borderBottom: "1px solid #e2e8f0" }}
+              style={{ fontSize: 13, padding: "2px 0", color: "var(--color-text-primary)", borderBottom: "1px solid var(--color-border)" }}
             >
               {f.name}
-              <span style={{ marginLeft: 8, color: "#94a3b8", fontSize: 11 }}>
+              <span style={{ marginLeft: 8, color: "var(--color-text-muted)", fontSize: 11 }}>
                 ({(f.size / 1024 / 1024).toFixed(1)} MB)
               </span>
             </li>
           ))}
         </ul>
 
-        <p style={{ margin: "0 0 20px", fontSize: 13, color: "#64748b" }}>
+        <p style={{ margin: "0 0 20px", fontSize: 13, color: "var(--color-text-muted)" }}>
           Once confirmed, this batch is sealed — no further files can be added. Proceed?
         </p>
 
@@ -662,7 +662,7 @@ export default function Uploads() {
                 assocByConstituencyId={assocByConstituencyId}
               />
               {constituency.code && (
-                <p style={{ margin: "4px 0 0", fontSize: 12, color: "#64748b" }}>
+                <p style={{ margin: "4px 0 0", fontSize: 12, color: "var(--color-text-muted)" }}>
                   Code: {constituency.code}
                 </p>
               )}
@@ -674,7 +674,7 @@ export default function Uploads() {
                 <strong>Step 2:</strong> Select election
               </label>
               {!constituency.code ? (
-                <p style={{ margin: 0, fontSize: 13, color: "#94a3b8" }}>
+                <p style={{ margin: 0, fontSize: 13, color: "var(--color-text-muted)" }}>
                   Select a constituency above to load available elections.
                 </p>
               ) : (
@@ -696,7 +696,7 @@ export default function Uploads() {
                     ))}
                   </select>
                   {electionsError && (
-                    <p style={{ margin: "6px 0 0", fontSize: 12, color: "#b91c1c" }}>{electionsError}</p>
+                    <p style={{ margin: "6px 0 0", fontSize: 12, color: "var(--color-danger)" }}>{electionsError}</p>
                   )}
                 </>
               )}
@@ -720,7 +720,7 @@ export default function Uploads() {
               >
                 <p className="portal-dropzone__title">
                   Drag &amp; drop PDF or CSV files here, or{" "}
-                  <strong style={{ color: "#2563eb" }}>click to browse</strong>
+                  <strong style={{ color: "var(--color-navy-mid)" }}>click to browse</strong>
                 </p>
                 <p className="portal-dropzone__meta">Accepted: .pdf, .csv — max 200 MB per file</p>
                 <input
@@ -743,7 +743,7 @@ export default function Uploads() {
                     <li
                       key={`${file.name}-${i}`}
                       className="portal-file-list__item"
-                      style={{ color: error ? "#b91c1c" : "inherit" }}
+                      style={{ color: error ? "var(--color-danger)" : "inherit" }}
                     >
                       <span style={{ flex: 1 }}>
                         {file.name}{" "}
@@ -751,7 +751,7 @@ export default function Uploads() {
                           ({(file.size / 1024 / 1024).toFixed(1)} MB)
                         </span>
                         {error && (
-                          <span style={{ display: "block", fontSize: 12, color: "#b91c1c" }}>{error}</span>
+                          <span style={{ display: "block", fontSize: 12, color: "var(--color-danger)" }}>{error}</span>
                         )}
                       </span>
                       <Button
@@ -766,7 +766,7 @@ export default function Uploads() {
                   ))}
                 </ul>
                 {invalidStaged.length > 0 && (
-                  <p style={{ margin: 0, fontSize: 13, color: "#b91c1c" }}>
+                  <p style={{ margin: 0, fontSize: 13, color: "var(--color-danger)" }}>
                     {invalidStaged.length} file(s) with errors will not be uploaded.
                   </p>
                 )}
@@ -809,7 +809,7 @@ export default function Uploads() {
                       border: "none",
                       padding: 0,
                       cursor: "pointer",
-                      color: "#2563eb",
+                      color: "var(--color-navy-mid)",
                       fontSize: 13,
                       fontWeight: 600,
                       display: "flex",
@@ -869,7 +869,7 @@ export default function Uploads() {
           </Button>
         }
       >
-        {loadError && <p style={{ color: "#b91c1c", margin: 0 }}>{loadError}</p>}
+        {loadError && <p style={{ color: "var(--color-danger)", margin: 0 }}>{loadError}</p>}
         {jobs.length === 0 && !loadError && (
           <p className="muted" style={{ margin: 0 }}>No jobs yet. Upload files above to get started.</p>
         )}

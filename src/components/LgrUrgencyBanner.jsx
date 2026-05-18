@@ -12,37 +12,23 @@ export default function LgrUrgencyBanner() {
   if (surreyDays === 0 && wave2Days === 0) return null;
 
   const isCritical = wave2Days <= 7 || surreyDays <= 14;
+  const className = `lgr-urgency-banner${isCritical ? " lgr-urgency-banner--critical" : ""}`;
 
   return (
-    <div
-      role="alert"
-      style={{
-        background: isCritical ? "#7f1d1d" : "#991b1b",
-        color: "#fef2f2",
-        padding: "10px 16px",
-        borderRadius: 6,
-        display: "flex",
-        flexWrap: "wrap",
-        gap: 16,
-        alignItems: "center",
-        justifyContent: "space-between",
-        fontSize: 13,
-        fontWeight: 600,
-      }}
-    >
-      <span style={{ fontWeight: 800, fontSize: 14 }}>LGR — Immediate action required</span>
-      <div style={{ display: "flex", gap: 20, flexWrap: "wrap" }}>
+    <div role="alert" className={className}>
+      <span className="lgr-urgency-banner__title">LGR — Immediate action required</span>
+      <div className="lgr-urgency-banner__items">
         {wave2Days > 0 && (
           <span>
             Wave 2 consultation closes in{" "}
-            <strong style={{ fontWeight: 800 }}>{wave2Days} days</strong>
+            <strong>{wave2Days} days</strong>
             {" "}(26 Mar 2026)
           </span>
         )}
         {surreyDays > 0 && (
           <span>
             Surrey shadow elections in{" "}
-            <strong style={{ fontWeight: 800 }}>{surreyDays} days</strong>
+            <strong>{surreyDays} days</strong>
             {" "}(7 May 2026)
           </span>
         )}

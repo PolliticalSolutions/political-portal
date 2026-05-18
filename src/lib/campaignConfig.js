@@ -25,8 +25,8 @@ export const SESSION_TYPE_COLOURS = {
   leaflet: "#64B5A0",
   phone_bank: "var(--portal-slate)",
   committee_room: "var(--portal-navy)",
-  gotv: "#E67E22",      // warm amber — signals urgency
-  gotpv: "#5D7DB5",     // steel blue — brand-safe (avoids purple)
+  gotv: "#C0670A",      // brand warning orange — signals urgency
+  gotpv: "#2B4C7E",     // mid navy — brand-safe accent
   other: "var(--portal-text-muted)",
 };
 

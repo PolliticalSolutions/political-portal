@@ -127,10 +127,18 @@ function NavLinkButton({ to, onClick, variant = "ghost", children, end = false }
 
 function TopNav({ authed, onLogout, cartCount }) {
   const [menuOpen, setMenuOpen] = useState(false);
+  const [scrolled, setScrolled] = useState(false);
   const closeMenu = () => setMenuOpen(false);
 
+  useEffect(() => {
+    const onScroll = () => setScrolled(window.scrollY > 4);
+    onScroll();
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => window.removeEventListener("scroll", onScroll);
+  }, []);
+
   return (
-    <header className="topbar">
+    <header className={`topbar${scrolled ? " topbar--scrolled" : ""}`}>
       <div className="container topbar-inner">
         <Link className="brand" to="/" onClick={closeMenu}>
           <img
@@ -141,9 +149,9 @@ function TopNav({ authed, onLogout, cartCount }) {
             height={48}
             loading="eager"
           />
-          <div>
-            <div style={{ fontWeight: 700 }}>Political Solutions</div>
-            <div className="muted" style={{ fontSize: 13 }}>
+          <div className="brand-text">
+            <div className="brand-name">Political Solutions</div>
+            <div className="muted brand-tagline">
               UK Political Operations Platform
             </div>
           </div>

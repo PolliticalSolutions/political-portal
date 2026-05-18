@@ -5,8 +5,8 @@ export default function PageLayout({ title, description, actions, children, clas
         <div className="card">
           <div className="card-header">
             <div>
-              {title && <h1 className="card-title" style={{ fontSize: 22, margin: 0 }}>{title}</h1>}
-              {description && <p style={{ margin: "6px 0 0", color: "var(--text-muted)" }}>{description}</p>}
+              {title && <h1 className="card-title page-layout__title">{title}</h1>}
+              {description && <p className="page-layout__description">{description}</p>}
             </div>
             {actions}
           </div>

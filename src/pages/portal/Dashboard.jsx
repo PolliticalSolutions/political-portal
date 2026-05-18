@@ -19,23 +19,6 @@ function parseSignupContext(rawValue) {
   }
 }
 
-const dashboardCardStyle = {
-  display: "flex",
-  flexDirection: "column",
-  height: "100%",
-  background: "white",
-  borderRadius: "12px",
-  border: "1px solid #d7dde7",
-  padding: "24px",
-  boxShadow: "0 1px 3px rgba(0,0,0,0.1)",
-};
-
-const dashboardCtaStyle = {
-  marginTop: "auto",
-  alignSelf: "stretch",
-  paddingTop: "24px",
-};
-
 export default function Dashboard() {
   const { isAdmin } = usePermissions();
   const [signupContext, setSignupContext] = useState(null);
@@ -101,7 +84,6 @@ export default function Dashboard() {
         <div
           className="portal-dashboard-card"
           data-testid="dashboard-card-marked-register"
-          style={dashboardCardStyle}
         >
           <div className="portal-dashboard-card__header">
             <h2 className="portal-dashboard-card__title">Marked Register Processing</h2>
@@ -111,7 +93,7 @@ export default function Dashboard() {
               Upload marked register files, track processing, and download structured outputs for campaign use.
             </p>
           </div>
-          <div className="portal-dashboard-card__cta" style={dashboardCtaStyle}>
+          <div className="portal-dashboard-card__cta">
             <div className="portal-section-actions portal-section-actions--stack">
               <Button as={Link} to="/portal/uploads" variant="primary">
                 Open uploads
@@ -123,7 +105,6 @@ export default function Dashboard() {
         <div
           className="portal-dashboard-card"
           data-testid="dashboard-card-constituency"
-          style={dashboardCardStyle}
         >
           <div className="portal-dashboard-card__header">
             <h2 className="portal-dashboard-card__title">Constituency Intelligence</h2>
@@ -134,7 +115,7 @@ export default function Dashboard() {
               intelligence workspace.
             </p>
           </div>
-          <div className="portal-dashboard-card__cta" style={dashboardCtaStyle}>
+          <div className="portal-dashboard-card__cta">
             <div className="portal-section-actions portal-section-actions--stack">
               <Button as={Link} to="/portal/constituency" variant="primary">
                 Open constituency intelligence
@@ -146,7 +127,6 @@ export default function Dashboard() {
         <div
           className="portal-dashboard-card"
           data-testid="dashboard-card-support"
-          style={dashboardCardStyle}
         >
           <div className="portal-dashboard-card__header">
             <h2 className="portal-dashboard-card__title">Campaigning, Training & Election Support</h2>
@@ -157,7 +137,7 @@ export default function Dashboard() {
               your team needs a scoped operational brief.
             </p>
           </div>
-          <div className="portal-dashboard-card__cta" style={dashboardCtaStyle}>
+          <div className="portal-dashboard-card__cta">
             <div className="portal-section-actions portal-section-actions--stack">
               <Button as={Link} to="/enquire" variant="primary">
                 Request support
@@ -169,7 +149,6 @@ export default function Dashboard() {
         <div
           className="portal-dashboard-card"
           data-testid="dashboard-card-account"
-          style={dashboardCardStyle}
         >
           <div className="portal-dashboard-card__header">
             <h2 className="portal-dashboard-card__title">Account and subscriptions</h2>
@@ -188,7 +167,7 @@ export default function Dashboard() {
               </div>
             )}
           </div>
-          <div className="portal-dashboard-card__cta" style={dashboardCtaStyle}>
+          <div className="portal-dashboard-card__cta">
             <div className="portal-section-actions portal-section-actions--stack">
               <Button as={Link} to={pricingLink} variant="primary">
                 Review account pricing

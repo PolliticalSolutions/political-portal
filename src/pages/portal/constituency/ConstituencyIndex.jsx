@@ -83,77 +83,33 @@ function AlertsFeed({ alerts }) {
   if (active.length === 0) return null;
 
   return (
-    <div style={{
-      background: "#fef2f2",
-      border: "1px solid #fecaca",
-      borderLeft: "4px solid #dc2626",
-      borderRadius: 8,
-      overflow: "hidden",
-    }}>
-      <div style={{
-        background: "#dc2626",
-        padding: "10px 16px",
-        display: "flex",
-        alignItems: "center",
-        gap: 8,
-      }}>
-        <span style={{ fontSize: 13, fontWeight: 700, color: "#fff", letterSpacing: "0.03em" }}>
-          INTELLIGENCE ALERTS
-        </span>
-        <span style={{
-          background: "rgba(255,255,255,0.25)",
-          color: "#fff",
-          fontSize: 11,
-          fontWeight: 700,
-          padding: "1px 7px",
-          borderRadius: 10,
-        }}>
-          {active.length} active
-        </span>
+    <div className="alerts-feed">
+      <div className="alerts-feed__header">
+        <span className="alerts-feed__title">INTELLIGENCE ALERTS</span>
+        <span className="alerts-feed__count">{active.length} active</span>
       </div>
-      <div style={{ padding: "4px 0" }}>
+      <div className="alerts-feed__list">
         {active.map((alert, i) => (
           <div
             key={i}
-            style={{
-              padding: "12px 16px",
-              borderBottom: i < active.length - 1 ? "1px solid #fecaca" : "none",
-            }}
+            className={`alerts-feed__item${i === active.length - 1 ? " alerts-feed__item--last" : ""}`}
           >
-            <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 6, flexWrap: "wrap" }}>
-              <span style={{
-                fontSize: 10,
-                fontWeight: 700,
-                letterSpacing: "0.08em",
-                textTransform: "uppercase",
-                color: "#dc2626",
-              }}>
+            <div className="alerts-feed__meta">
+              <span className="alerts-feed__type">
                 {ALERT_TYPE_LABELS[alert.alertType] ?? alert.alertType}
               </span>
-              <span style={{
-                background: alert.riskLevel === "high" ? "#dc2626" : "#d97706",
-                color: "#fff",
-                fontSize: 10,
-                fontWeight: 700,
-                padding: "1px 6px",
-                borderRadius: 4,
-                textTransform: "uppercase",
-              }}>
+              <span className={`alerts-feed__risk alerts-feed__risk--${alert.riskLevel}`}>
                 {alert.riskLevel} risk
               </span>
               {alert.councilName && (
-                <span style={{ fontSize: 12, color: "#6b7280" }}>{alert.councilName}</span>
+                <span className="alerts-feed__source">{alert.councilName}</span>
               )}
               {alert.constituencyName && (
-                <span style={{ fontSize: 12, color: "#6b7280" }}>{alert.constituencyName}</span>
+                <span className="alerts-feed__source">{alert.constituencyName}</span>
               )}
             </div>
-            <p style={{ margin: 0, fontSize: 13, color: "#1e293b", lineHeight: 1.55 }}>
-              {alert.summary}
-            </p>
-            <p style={{ margin: "4px 0 0", fontSize: 11, color: "#9ca3af" }}>
-              Updated {formatDate(alert.lastUpdated)}
-            </p>
+            <p className="alerts-feed__summary">{alert.summary}</p>
+            <p className="alerts-feed__updated">Updated {formatDate(alert.lastUpdated)}</p>
           </div>
         ))}
       </div>
