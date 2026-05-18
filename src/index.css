@@ -83,6 +83,20 @@
   --space-6: 48px;
   --space-7: 64px;
 
+  /* ── Design-system canonical spacing scale — use for all new CSS ─ */
+  --ds-space-1:  0.25rem;   /*  4px */
+  --ds-space-2:  0.5rem;    /*  8px */
+  --ds-space-3:  0.75rem;   /* 12px */
+  --ds-space-4:  1rem;      /* 16px */
+  --ds-space-5:  1.25rem;   /* 20px */
+  --ds-space-6:  1.5rem;    /* 24px */
+  --ds-space-8:  2rem;      /* 32px */
+  --ds-space-10: 2.5rem;    /* 40px */
+  --ds-space-12: 3rem;      /* 48px */
+  --ds-space-16: 4rem;      /* 64px */
+  --ds-space-20: 5rem;      /* 80px */
+  --ds-space-24: 6rem;      /* 96px */
+
   /* ── Type scale ─────────────────────────────────────────── */
   --text-xs:   0.75rem;
   --text-sm:   0.875rem;
@@ -96,6 +110,35 @@
 
   --container: 1200px;
   --topbar-h:  80px;
+
+  /* ── Portal dark theme tokens (sidebar today, future dark surfaces) ─ */
+  --portal-bg:              #0D1117;
+  --portal-surface:         #161B22;
+  --portal-surface-raised:  #1F2733;
+  --portal-border:          #2A3441;
+  --portal-border-strong:   #3A4D61;
+  --portal-text-primary:    #E8EAF0;
+  --portal-text-secondary:  #8A9BB0;
+  --portal-text-muted:      #526070;
+  --portal-navy:            #1E3A5F;
+  --portal-slate:           #3A5068;
+  --portal-cta:             #2ECC71;
+  --portal-cta-hover:       #27AE60;
+  --portal-danger:          #E74C3C;
+  --portal-warning:         #E67E22;
+  --portal-success:         #2ECC71;
+  --portal-chart-1:         #4A90D9;
+  --portal-chart-2:         #64B5A0;
+  --portal-chart-3:         #2ECC71;
+  --portal-chart-4:         #E74C3C;
+  --portal-chart-5:         #7F8FA6;
+
+  /* ── Marginality colour set (data-encoding, fixed semantics) ─ */
+  --marginality-ultra:    #dc2626;
+  --marginality-high:     #ea580c;
+  --marginality-marginal: #d97706;
+  --marginality-likely:   #1d4ed8;
+  --marginality-safe:     #15803d;
 }
 
 *,
@@ -126,6 +169,39 @@ textarea:focus-visible {
   outline: none;
   box-shadow: var(--focus-ring);
   border-radius: 6px;
+}
+
+/* Global interactive-element transition. Component-level rules override
+   on the specific properties they target (e.g. .navLink, .input). */
+a,
+button,
+.button,
+[role="button"],
+input,
+select,
+textarea,
+.navLink,
+.card,
+.badge {
+  transition: color 0.15s ease, background-color 0.15s ease,
+              border-color 0.15s ease, opacity 0.15s ease,
+              box-shadow 0.15s ease, transform 0.15s ease;
+}
+
+/* Body-copy hyperlinks: navy with underline, never browser-default blue. */
+.section p a,
+.card p a,
+.card li a,
+.blog-content a {
+  color: var(--color-navy);
+  text-decoration: underline;
+  text-underline-offset: 0.2em;
+}
+.section p a:hover,
+.card p a:hover,
+.card li a:hover,
+.blog-content a:hover {
+  color: var(--color-navy-mid);
 }
 
 img {
@@ -200,8 +276,15 @@ p {
   position: sticky;
   top: 0;
   z-index: 20;
-  background: #FFFFFF;
-  border-bottom: 1px solid var(--border);
+  background: var(--color-surface);
+  border-bottom: 1px solid transparent;
+  transition: box-shadow 0.2s ease, border-color 0.2s ease;
+}
+
+/* Scroll-shadow: applied once vertical scroll exceeds 4px (see TopNav useEffect). */
+.topbar--scrolled {
+  border-bottom-color: rgba(0, 0, 0, 0.08);
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.06);
 }
 
 .topbar-inner {
@@ -229,6 +312,17 @@ p {
   object-fit: contain;
 }
 
+.brand-text {
+  display: flex;
+  flex-direction: column;
+}
+.brand-name {
+  font-weight: 700;
+}
+.brand-tagline {
+  font-size: 13px;
+}
+
 .nav {
   display: flex;
   align-items: center;
@@ -239,7 +333,7 @@ p {
   padding: 8px 12px;
   border-radius: var(--radius-sm);
   border: 1px solid transparent;
-  color: var(--text-muted);
+  color: var(--color-navy);
   background: transparent;
   font-size: var(--text-sm);
   font-weight: 600;
@@ -247,14 +341,15 @@ p {
   display: inline-flex;
   align-items: center;
   gap: 8px;
+  text-decoration: none;
 }
 
 .navLink:hover {
-  color: var(--primary);
+  color: var(--color-navy-mid);
 }
 
 .navLink.active {
-  color: var(--primary);
+  color: var(--color-navy);
 }
 
 .navLink--emphasis {
@@ -363,6 +458,33 @@ p {
   margin-top: var(--space-3);
 }
 
+/* Hero staggered fade-in — single moment of motion on the marketing site. */
+@keyframes ps-fadeUp {
+  from { opacity: 0; transform: translateY(12px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.hero h1,
+.hero > div > p,
+.hero p.hero__lead,
+.hero .hero-actions {
+  animation: ps-fadeUp 0.5s ease forwards;
+  opacity: 0;
+}
+.hero h1            { animation-delay: 0.05s; }
+.hero > div > p,
+.hero p.hero__lead  { animation-delay: 0.15s; }
+.hero .hero-actions { animation-delay: 0.25s; }
+@media (prefers-reduced-motion: reduce) {
+  .hero h1,
+  .hero > div > p,
+  .hero p.hero__lead,
+  .hero .hero-actions {
+    animation: none;
+    opacity: 1;
+    transform: none;
+  }
+}
+
 .hero-visual {
   border-radius: var(--radius-lg);
   border: 1px solid var(--border);
@@ -375,6 +497,20 @@ p {
 
 .services-hero-visual {
   align-items: center;
+}
+
+/* ServiceSupport hero panel — flat navy background, centred logo */
+.service-support-hero-visual {
+  background: var(--color-navy);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius-md);
+  min-height: 180px;
+}
+.service-support-hero-visual__logo {
+  max-width: 160px;
+  opacity: 0.9;
 }
 
 .hero-visual-image {
@@ -426,7 +562,7 @@ p {
 
 .hero-visual-chart {
   flex: 1;
-  border-radius: 16px;
+  border-radius: var(--radius-lg);
   background: rgba(11, 46, 77, 0.08);
   position: relative;
   overflow: hidden;
@@ -567,10 +703,10 @@ p {
 }
 
 .card {
-  border-radius: var(--radius-lg);
+  border-radius: var(--radius-md);
   border: 1px solid var(--border);
   background: var(--surface);
-  padding: var(--space-4);
+  padding: var(--ds-space-6);
   box-shadow: var(--shadow-soft);
 }
 
@@ -616,11 +752,20 @@ p {
   color: #4A5C6E;
 }
 
-.badge.active   { background: #D4EDDA; color: #1A6B3C; }
-.badge.warning  { background: #FDECD5; color: #7D3D00; }
-.badge.danger   { background: #FDEDEC; color: #922B21; }
-.badge.info     { background: #D6E4F0; color: #0F2744; }
-.badge.accent   { background: #D6E4F0; color: #0F2744; }
+.badge.active,
+.badge.success   { background: #D4EDDA; color: #1A6B3C; }
+.badge.warning   { background: #FDECD5; color: #7D3D00; }
+.badge.danger    { background: #FDEDEC; color: #922B21; }
+.badge.info      { background: #D6E4F0; color: #0F2744; }
+.badge.accent    { background: #D6E4F0; color: #0F2744; }
+.badge.neutral   { background: #E2E8ED; color: #4A5C6E; }
+
+/* Portal-context badge variants — read against the dark sidebar / dark surfaces */
+.badge.badge-portal-active   { background: rgba(46, 204, 113, 0.18); color: var(--portal-cta); }
+.badge.badge-portal-warning  { background: rgba(230, 126, 34, 0.18); color: var(--portal-warning); }
+.badge.badge-portal-danger   { background: rgba(231, 76, 60, 0.18);  color: var(--portal-danger); }
+.badge.badge-portal-info     { background: rgba(74, 144, 217, 0.18); color: var(--portal-chart-1); }
+.badge.badge-portal-neutral  { background: var(--portal-surface-raised); color: var(--portal-text-secondary); }
 
 .button {
   display: inline-flex;
@@ -649,6 +794,7 @@ p {
 
 .button.primary:hover {
   background: var(--primary-hover);
+  transform: translateY(-1px);
 }
 
 .button.secondary {
@@ -660,6 +806,7 @@ p {
 .button.secondary:hover {
   background: var(--primary);
   color: #ffffff;
+  transform: translateY(-1px);
 }
 
 .button.cta {
@@ -670,7 +817,10 @@ p {
 
 .button.cta:hover {
   background: var(--color-cta-hover);
+  transform: translateY(-1px);
 }
+
+/* Deprecated: .ghost variant retained for back-compat only. Do not use in new code. */
 
 .button.ghost {
   background: transparent;
@@ -683,9 +833,11 @@ p {
   color: var(--primary);
 }
 
-.button:disabled {
+.button:disabled,
+.button:disabled:hover {
   opacity: 0.5;
   cursor: not-allowed;
+  transform: none;
 }
 
 .button.button--small {
@@ -791,7 +943,7 @@ p {
   justify-content: center;
   width: 36px;
   height: 36px;
-  border-radius: 12px;
+  border-radius: var(--radius-lg);
   background: rgba(11, 46, 77, 0.08);
   color: var(--primary);
   font-weight: 700;
@@ -838,6 +990,22 @@ p {
 .footer-links {
   display: grid;
   gap: 6px;
+  margin-top: var(--ds-space-2);
+}
+
+.footer-panel__lead {
+  margin-top: var(--ds-space-2);
+  max-width: 42ch;
+}
+
+/* PageLayout component subtitle */
+.page-layout__title {
+  font-size: 22px;
+  margin: 0;
+}
+.page-layout__description {
+  margin: 6px 0 0;
+  color: var(--text-muted);
 }
 
 .footer-legal {
@@ -1052,14 +1220,14 @@ p {
   height: calc(100vh - var(--topbar-h));
   overflow-y: auto;
   overscroll-behavior: contain;
-  background: #0D1117;
-  border-right: 1px solid #2A3441;
+  background: var(--portal-bg);
+  border-right: 1px solid var(--portal-border);
   display: flex;
   flex-direction: column;
   gap: var(--space-3);
   padding: var(--space-3);
   scrollbar-width: thin;
-  scrollbar-color: #2A3441 transparent;
+  scrollbar-color: var(--portal-border) transparent;
   z-index: 10;
 }
 
@@ -1068,9 +1236,9 @@ p {
   align-items: center;
   gap: var(--space-2);
   padding-bottom: var(--space-3);
-  border-bottom: 1px solid #2A3441;
+  border-bottom: 1px solid var(--portal-border);
   text-decoration: none;
-  color: #E8EAF0;
+  color: var(--portal-text-primary);
   flex-shrink: 0;
 }
 
@@ -1085,7 +1253,7 @@ p {
 .portal-sidebar__brand-name {
   font-size: 13px;
   font-weight: 700;
-  color: #E8EAF0;
+  color: var(--portal-text-primary);
   line-height: 1.3;
 }
 
@@ -1099,7 +1267,7 @@ p {
   border: none;
   background: transparent;
   box-shadow: none;
-  border-bottom: 1px solid #2A3441;
+  border-bottom: 1px solid var(--portal-border);
 }
 
 .portal-sidebar .portal-nav-group:last-child {
@@ -1108,7 +1276,10 @@ p {
 }
 
 .portal-sidebar .portal-nav-group__label {
-  color: #526070;
+  color: var(--portal-text-muted);
+  font-size: var(--text-xs);
+  font-weight: 600;
+  letter-spacing: 0.08em;
 }
 
 .portal-sidebar .navLink {
@@ -1116,28 +1287,29 @@ p {
   padding: 8px 10px;
   font-size: 13px;
   border-color: transparent;
-  color: #8A9BB0;
+  color: var(--portal-text-secondary);
+  transition: background 0.12s ease, color 0.12s ease, box-shadow 0.12s ease;
 }
 
 .portal-sidebar .navLink:hover {
   border-color: transparent;
   background: rgba(255, 255, 255, 0.04);
-  color: #E8EAF0;
+  color: var(--portal-text-primary);
 }
 
 .portal-sidebar .navLink.active {
-  background: rgba(30, 58, 95, 0.6);
+  background: var(--portal-navy);
   border-color: transparent;
-  color: #E8EAF0;
-  box-shadow: inset 3px 0 0 #2ECC71;
+  color: var(--portal-text-primary);
+  box-shadow: inset 3px 0 0 var(--portal-cta);
 }
 
 .portal-sidebar .portal-nav-toggle {
-  color: #8A9BB0;
+  color: var(--portal-text-secondary);
 }
 
 .portal-sidebar .portal-nav-toggle:hover {
-  color: #E8EAF0;
+  color: var(--portal-text-primary);
 }
 
 /* Content area next to sidebar */
@@ -1390,7 +1562,7 @@ p {
   width: 36px;
   height: 36px;
   border: 1px solid rgba(11, 46, 77, 0.28);
-  border-radius: 10px;
+  border-radius: var(--radius-md);
   background: var(--primary);
   color: #ffffff;
   font-size: 20px;
@@ -2028,13 +2200,13 @@ p {
 .portal-skeleton-line--title {
   width: min(320px, 72%);
   height: 28px;
-  border-radius: 10px;
+  border-radius: var(--radius-md);
 }
 
 .portal-skeleton-line--card-title {
   width: 70%;
   height: 22px;
-  border-radius: 10px;
+  border-radius: var(--radius-md);
 }
 
 .portal-skeleton-line--body {
@@ -2402,7 +2574,7 @@ p {
 
 .validation-metric {
   border: 1px solid #e5e7eb;
-  border-radius: 10px;
+  border-radius: var(--radius-md);
   background: #f8fafc;
   padding: 0.85rem;
 }
@@ -2724,7 +2896,7 @@ p {
 .lgr-countdown-card__label {
   display: block;
   font-size: 28px;
-  font-weight: 800;
+  font-weight: 700;
   color: #1e293b;
   line-height: 1;
   margin-bottom: 6px;
@@ -2773,7 +2945,7 @@ p {
 .lgr-feature-panel__title {
   margin: 0 0 8px;
   font-size: 20px;
-  font-weight: 800;
+  font-weight: 700;
   color: #7f1d1d;
 }
 
@@ -2826,3 +2998,119 @@ p {
 }
 
 .portal-bullet-list li:last-child { margin-bottom: 0; }
+
+/* ── LGR urgency banner (extracted from LgrUrgencyBanner.jsx inline styles) ── */
+.lgr-urgency-banner {
+  background: #991b1b;
+  color: #fef2f2;
+  padding: 10px 16px;
+  border-radius: var(--radius-lg);
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 13px;
+  font-weight: 600;
+}
+.lgr-urgency-banner--critical {
+  background: #7f1d1d;
+}
+.lgr-urgency-banner__title {
+  font-weight: 700;
+  font-size: 14px;
+}
+.lgr-urgency-banner__items {
+  display: flex;
+  gap: 20px;
+  flex-wrap: wrap;
+}
+.lgr-urgency-banner strong {
+  font-weight: 700;
+}
+
+/* ── IdleWarning dialog header (extracted from inline style) ── */
+.idle-title {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+/* ── Intelligence Alerts feed (ConstituencyIndex) ── */
+.alerts-feed {
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+  border-left: 4px solid var(--color-danger);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+}
+.alerts-feed__header {
+  background: var(--color-danger);
+  padding: 10px 16px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.alerts-feed__title {
+  font-size: 13px;
+  font-weight: 700;
+  color: #fff;
+  letter-spacing: 0.03em;
+}
+.alerts-feed__count {
+  background: rgba(255, 255, 255, 0.25);
+  color: #fff;
+  font-size: 11px;
+  font-weight: 700;
+  padding: 1px 7px;
+  border-radius: 999px;
+}
+.alerts-feed__list {
+  padding: 4px 0;
+}
+.alerts-feed__item {
+  padding: 12px 16px;
+  border-bottom: 1px solid #fecaca;
+}
+.alerts-feed__item--last {
+  border-bottom: none;
+}
+.alerts-feed__meta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 6px;
+  flex-wrap: wrap;
+}
+.alerts-feed__type {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--color-danger);
+}
+.alerts-feed__risk {
+  color: #fff;
+  font-size: 10px;
+  font-weight: 700;
+  padding: 1px 6px;
+  border-radius: 4px;
+  text-transform: uppercase;
+}
+.alerts-feed__risk--high   { background: var(--color-danger); }
+.alerts-feed__risk--medium { background: var(--marginality-marginal); }
+.alerts-feed__source {
+  font-size: 12px;
+  color: var(--color-text-muted);
+}
+.alerts-feed__summary {
+  margin: 0;
+  font-size: 13px;
+  color: var(--color-text-primary);
+  line-height: 1.55;
+}
+.alerts-feed__updated {
+  margin: 4px 0 0;
+  font-size: 11px;
+  color: var(--color-text-muted);
+}

@@ -90,11 +90,10 @@ export default function ServiceSupport() {
             </div>
           </div>
           <div
-            className="hero-visual"
+            className="hero-visual service-support-hero-visual"
             aria-hidden="true"
-            style={{ background: "#0a3b7c", display: "flex", alignItems: "center", justifyContent: "center", borderRadius: 8, minHeight: 180 }}
           >
-            <img src={logo} alt="" style={{ maxWidth: 160, opacity: 0.9 }} />
+            <img src={logo} alt="" className="service-support-hero-visual__logo" />
           </div>
         </div>
       </section>

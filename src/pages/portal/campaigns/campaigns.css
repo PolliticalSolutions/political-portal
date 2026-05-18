@@ -370,7 +370,7 @@
   justify-content: center;
   width: 24px;
   height: 24px;
-  border-radius: 12px;
+  border-radius: 50%;
   font-size: var(--text-xs);
   font-weight: 600;
   color: var(--portal-text-primary);

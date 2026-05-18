@@ -45,6 +45,14 @@ export const seoRoutes = [
     priority: 0.7,
   },
   {
+    path: "/subscribe",
+    title: "Subscribe to the campaign data platform — Stripe checkout",
+    description:
+      "Select your association, choose card or invoice payment, and activate access to marked register processing, constituency intelligence, and the secure portal.",
+    changefreq: "monthly",
+    priority: 0.7,
+  },
+  {
     path: "/enquire",
     title: "Enquire about campaign data services — get a response within one working day",
     description:
