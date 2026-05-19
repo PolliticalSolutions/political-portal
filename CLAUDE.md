@@ -1,49 +1,383 @@
-# Political Portal — Claude Code Context
+# Political Portal — Claude Code Reference
 
-## Key documentation
+UK political intelligence portal built for campaign teams, party organisations, and political consultancies. Data on constituencies, elections, local government, and candidates; subscription access via Stripe; hosted on AWS Amplify.
 
-| File | What it covers |
-|------|---------------|
-| `CODEBASE_MAP.md` | Full file inventory, key patterns, critical rules |
-| `POLITICAL_SOLUTIONS_CONTEXT.md` | Product context, users, business rules |
-| `POLITICAL_SOLUTIONS_DESIGN_SYSTEM.md` | Design tokens, colour palette, typography |
-| `UI_UX_AUDIT.md` | UX audit findings and improvement backlog |
+---
 
 ## Tech stack
 
-- **Frontend**: Vite + React, react-router-dom, react-helmet-async, react-query
-- **Auth**: AWS Cognito PKCE (no Amplify SDK); tokens in `sessionStorage`
-- **Database**: Supabase (Postgres); anon client in `src/lib/supabaseClient.js`
-- **Hosting**: AWS Amplify; prerendered static HTML for public routes
-- **Backend**: AWS SAM Lambdas (`infra/upload-api/`) + Supabase edge functions
-- **Styling**: Pure CSS only — all tokens in `src/index.css`
+| Layer | Technology |
+|---|---|
+| Frontend | React 19, Vite 7, React Router 7 |
+| Data fetching | TanStack Query v5 |
+| Database / auth | Supabase (PostgreSQL + Row Level Security) |
+| Auth (SSO) | AWS Cognito Hosted UI + PKCE |
+| Payments | Stripe (subscriptions + one-off invoices) |
+| Hosting | AWS Amplify (SPA rewrite: `/<*>` → `/index.html`) |
+| Maps | react-simple-maps (choropleth, lazy-loaded) |
+| Blog | Markdown files in `content/blog/`; prerendered at build |
+| Tests | Vitest + Testing Library |
+| Elections data | Democracy Club sync (`scripts/sync_elections_from_democracy_club.py`) |
 
-## Critical rules (abridged — full list in `CODEBASE_MAP.md`)
+---
 
-- **Pure CSS only** — no Tailwind, no CSS-in-JS. Dynamic values only as inline styles.
-- **Design tokens only** — `var(--color-navy)`, never raw hex. No gold (`#c89b4a`), no gradients, `border-radius` max 6px.
-- **Supabase client** — always import from `src/lib/supabaseClient.js`; never create a new instance.
-- **Permissions chain** — never modify `PermissionsContext.jsx` or `permissionsApi.js` without reading the full chain.
-- **API target** — always `ps-upload-api-prod` (ID `77i4hpcez8`), never the legacy `upload-api` stack.
-- **Lazy-load maps** — `ConstituencyMapClient.jsx` and `AnalyticsChoroplethMapClient.jsx` must use `React.lazy()`.
-- **SEO titles** — keyword-first, no brand suffix; `RouteSeo.jsx` appends `| Political Solutions` automatically.
-- **DynamoDB scans** — always paginate with `LastEvaluatedKey`.
+## Project structure
 
-## AI skills
-
-Design and UI skills are in `.agents/skills/` (see `CODEBASE_MAP.md` for full list). Notable:
-
-- **`impeccable`** — full UI/UX work including live browser iteration
-- **`emil-design-eng`** — UI polish, animation, component design taste
-- **`ui-ux-pro-max`** — stack-specific design patterns and guidance
-
-## Running locally
-
-```bash
-npm install
-npm run dev          # http://localhost:5173
-npm run build        # production build → dist/
-npm run test:run     # vitest unit tests
+```
+src/
+  pages/           # Route-level components (public + portal + admin)
+  components/      # Shared UI components
+  hooks/           # Custom React hooks
+  utils/           # Pure helpers
+  cognitoConfig.js # Cognito PKCE config
+content/
+  blog/            # Markdown blog posts
+scripts/           # Build, seed, and sync scripts
+infra/             # AWS / Supabase infrastructure config
+supabase/          # Supabase migrations and seed SQL
 ```
 
-Required env vars: `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY` (see `.env.example`).
+Key files:
+- `src/pages/portal/` — auth-gated portal pages
+- `src/pages/portal/constituency/constituencyApi.js` — all Supabase constituency queries
+- `src/pages/portal/admin/` — admin-only pages (shown when `isAdmin` is true)
+- `CODEBASE_MAP.md` — full route-by-route map of every page
+- `POLITICAL_SOLUTIONS_CONTEXT.md` — product and business context
+
+---
+
+## Dev commands
+
+```bash
+npm install           # Install dependencies
+npm run dev           # Dev server at http://localhost:5173
+npm run build         # Full production build (client + SSR + prerender)
+npm run test          # Vitest unit tests
+npm run test:run      # Tests without watch mode
+npm run test:api      # API integration tests
+```
+
+---
+
+## Auth flow
+
+1. `/login` — generates PKCE verifier/challenge, redirects to Cognito Hosted UI
+2. `/callback` — receives auth code, exchanges for JWT, stores in `sessionStorage`
+3. `ProtectedRoute` — wraps all `/portal/*` routes; reads session from `sessionStorage`
+4. `isAdmin` flag — controls visibility of `/portal/admin/*` nav items
+
+---
+
+## Environment variables
+
+See `.env.example`. Key variables:
+
+| Variable | Purpose |
+|---|---|
+| `VITE_SUPABASE_URL` | Supabase project URL |
+| `VITE_SUPABASE_ANON_KEY` | Supabase anon key |
+| `VITE_COGNITO_*` | Cognito Hosted UI config |
+| `VITE_STRIPE_PUBLISHABLE_KEY` | Stripe public key |
+| `VITE_GISCUS_*` | Blog comment config (Giscus / GitHub Discussions) |
+
+---
+
+## Available design skills
+
+Installed via [skills.sh](https://skills.sh). Skill files live in `.agents/skills/`; symlinked into `.claude/skills/` for Claude Code. The `skills-lock.json` at the project root tracks installed skills and their content hashes.
+
+### emilkowalski/skill — `emil-design-eng`
+
+Emil Kowalski's philosophy on UI polish, component design, animation decisions, and the invisible details that make software feel great. Source: [emilkowalski/skill](https://github.com/emilkowalski/skill).
+
+| Topic | What it covers |
+|---|---|
+| Animation decision framework | When to animate, easing curves, duration tables, perceived performance |
+| Spring animations | When to use springs, configuration, interruptibility advantage |
+| Component principles | Button feedback, scale-from rules, origin-aware popovers, tooltip behaviour |
+| CSS techniques | `clip-path`, `@starting-style`, `translateY` percentages, 3D transforms |
+| Gesture interactions | Momentum-based dismissal, boundary damping, pointer capture, multi-touch |
+| Performance | GPU-only properties, CSS vs JS animations, WAAPI, Framer Motion caveats |
+| Accessibility | `prefers-reduced-motion`, touch device hover states |
+| Review checklist | Before/After table of the most common UI animation mistakes |
+
+### pbakaus/impeccable — `impeccable`
+
+Full-featured frontend design system with context-aware sub-commands covering the entire design-to-ship workflow. Source: [pbakaus/impeccable](https://github.com/pbakaus/impeccable).
+
+Requires `PRODUCT.md` (product context) and optionally `DESIGN.md` (tokens/components). Run `impeccable teach` to create them. Enforces OKLCH color, origin-aware transforms, and hard bans on gradient text, glassmorphism defaults, side-stripe borders, and identical card grids.
+
+| Command | Category | What it does |
+|---|---|---|
+| `craft [feature]` | Build | Shape then build a feature end-to-end |
+| `shape [feature]` | Build | Plan UX/UI before writing any code |
+| `teach` | Build | Create/update PRODUCT.md and DESIGN.md |
+| `document` | Build | Generate DESIGN.md from existing code |
+| `extract [target]` | Build | Pull reusable tokens and components |
+| `critique [target]` | Evaluate | UX review with heuristic scoring |
+| `audit [target]` | Evaluate | Accessibility, perf, responsive checks |
+| `polish [target]` | Refine | Final quality pass before shipping |
+| `bolder / quieter / distill` | Refine | Amplify, calm, or strip to essence |
+| `harden [target]` | Refine | Errors, i18n, edge cases |
+| `animate / colorize / typeset / layout / delight / overdrive` | Enhance | Add motion, colour, type, rhythm, personality |
+| `clarify / adapt / optimize` | Fix | Copy, responsiveness, UI performance |
+| `live` | Iterate | Browser element picker — generate visual variants inline |
+
+### Leonxlnx/taste-skill — 12 skills
+
+Source: [Leonxlnx/taste-skill](https://github.com/Leonxlnx/taste-skill). All skills focus on premium, anti-generic UI — they explicitly ban Inter, thick Lucide icons, gradient text, and identical card grids.
+
+| Skill | What it does |
+|---|---|
+| `high-end-visual-design` | Agency-level ($150k+) design language. Bans cheap fonts/icons/shadows. Enforces haptic depth, spatial rhythm, and micro-interactions. |
+| `design-taste-frontend` | Metric-driven UI engineering (design variance 8/10, motion 6/10, density 4/10). Checks `package.json` before importing any library. |
+| `minimalist-ui` | Editorial interfaces: warm monochrome, typographic contrast, flat bento grids. Bans gradients, heavy shadows, pill buttons. |
+| `industrial-brutalist-ui` | Swiss typographic print or military CRT terminal aesthetic. Pick one mode per project. Rigid grids, extreme scale contrast, analog degradation. |
+| `gpt-taste` | GSAP ScrollTrigger motion engineering. Python-simulated randomisation to break layout repetition. AIDA structure, wide editorial type, gapless bento grids. |
+| `redesign-existing-projects` | Audits and upgrades existing sites to premium quality without rewriting from scratch. Works with any CSS framework. |
+| `brandkit` | Brand-kit image generation: logo systems, identity decks, visual-world presentations. Minimalist, cinematic, editorial, and dark-tech aesthetics. |
+| `imagegen-frontend-web` | Generates one horizontal design-reference image per page section. Use to produce comps a developer can accurately recreate. |
+| `imagegen-frontend-mobile` | Premium mobile app screen concepts for iOS/Android. Shows screens inside phone mockups. Image generation only — no code. |
+| `image-to-code` | Generates design images first, analyses them deeply, then implements matching code. Avoids cards-inside-cards nesting. |
+| `stitch-design-taste` | Generates `DESIGN.md` files for Google Stitch. Encodes visual atmosphere, colour calibration, and anti-generic rules in Stitch's semantic language. |
+| `full-output-enforcement` | Bans all truncation patterns (`// ...`, `// rest of code`, "for brevity"). Forces complete file output every time. Apply to any task needing exhaustive code generation. |
+
+---
+
+## Available legal skills
+
+151 skills from [anthropics/claude-for-legal](https://github.com/anthropics/claude-for-legal) are installed under `.claude/skills/`. Skills require per-plugin setup via each plugin's `cold-start-interview` skill before use. Run setup once; it writes a practice profile that every other skill in the plugin reads.
+
+Each skill is invoked as `/<plugin-name>:<skill-name>` — for example `/privacy-legal:use-case-triage`.
+
+### privacy-legal
+GDPR, UK GDPR, and global privacy. Relevant for this project given voter/contact data handling.
+
+| Skill | Purpose |
+|---|---|
+| `cold-start-interview` | Setup — run this first |
+| `use-case-triage` | Triage a new data processing activity |
+| `pia-generation` | Generate a Privacy Impact Assessment |
+| `dpa-review` | Review a Data Processing Agreement (controller or processor) |
+| `dsar-response` | Draft a DSAR response within statutory timelines |
+| `reg-gap-analysis` | Gap analysis against applicable privacy regulations |
+| `policy-monitor` | Monitor privacy policy drift against practice |
+| `customize` | Update the practice profile |
+
+### commercial-legal
+Vendor agreements, NDAs, SaaS subscriptions, and contract renewals.
+
+| Skill | Purpose |
+|---|---|
+| `cold-start-interview` | Setup — run this first |
+| `review` | Review any inbound agreement; auto-routes to the right sub-skill |
+| `nda-review` | NDA review against your playbook |
+| `vendor-agreement-review` | MSA / PSA / SOW review |
+| `saas-msa-review` | SaaS / cloud subscription review |
+| `renewal-tracker` | Track contract renewals and cancel-by deadlines |
+| `escalation-flagger` | Route issues that exceed your sign-off authority |
+| `stakeholder-summary` | Business-readable summary of a contract review |
+| `amendment-history` | Track and compare contract amendments |
+| `customize` | Update the practice profile |
+
+### product-legal
+Product launches, feature risk, and marketing claims.
+
+| Skill | Purpose |
+|---|---|
+| `cold-start-interview` | Setup — run this first |
+| `is-this-a-problem` | Fast same-minute triage for "can we do X?" Slack questions |
+| `launch-review` | Full legal review of a product launch or feature |
+| `feature-risk-assessment` | Risk assessment for a specific feature |
+| `marketing-claims-review` | Review marketing copy for claims needing substantiation |
+| `customize` | Update the practice profile |
+
+### ip-legal
+Trademark clearance, FTO, patent intake, open-source compliance, and enforcement.
+
+| Skill | Purpose |
+|---|---|
+| `cold-start-interview` | Setup — run this first |
+| `clearance` | First-pass trademark clearance |
+| `fto-triage` | Freedom-to-operate triage |
+| `invention-intake` | Intake an invention disclosure |
+| `oss-review` | Open-source licence compliance review |
+| `ip-clause-review` | Review IP clauses in contracts |
+| `portfolio` | Track registrations and renewal deadlines |
+| `cease-desist` | Draft or triage cease-and-desist letters |
+| `takedown` | DMCA takedown (send and respond) |
+| `infringement-triage` | Triage an inbound infringement claim |
+| `customize` | Update the practice profile |
+
+### employment-legal
+UK and international employment: hiring, terminations, leave, investigations, and policy.
+
+| Skill | Purpose |
+|---|---|
+| `cold-start-interview` | Setup — run this first |
+| `hiring-review` | Jurisdiction-specific risk flags on a hire |
+| `termination-review` | Termination risk review |
+| `worker-classification` | Classify workers against the controlling test |
+| `leave-tracker` | Track leave deadlines |
+| `log-leave` | Log a leave event |
+| `internal-investigation` | Run an internal investigation |
+| `investigation-open` / `investigation-add` / `investigation-query` / `investigation-summary` / `investigation-memo` | Investigation lifecycle |
+| `wage-hour-qa` | Wage and hour Q&A |
+| `policy-drafting` | Draft employment policies with state/jurisdiction supplements |
+| `handbook-updates` | Update the employee handbook |
+| `international-expansion` / `expansion-kickoff` / `expansion-update` | International hiring |
+| `customize` | Update the practice profile |
+
+### ai-governance-legal
+AI use-case registry, impact assessments, vendor AI terms, and policy monitoring.
+
+| Skill | Purpose |
+|---|---|
+| `cold-start-interview` | Setup — run this first |
+| `use-case-triage` | Triage a proposed AI use case against the registry |
+| `ai-inventory` | Build or update the AI use-case inventory |
+| `aia-generation` | Generate an AI Impact Assessment |
+| `vendor-ai-review` | Review vendor AI terms for training-on-data and liability gaps |
+| `reg-gap-analysis` | Gap analysis against AI regulations in scope |
+| `policy-monitor` | Monitor AI policy drift against practice |
+| `policy-starter` | Draft an AI governance policy |
+| `customize` | Update the practice profile |
+
+### regulatory-legal
+Regulatory change monitoring, gap analysis, policy drafting, and comment letters.
+
+| Skill | Purpose |
+|---|---|
+| `cold-start-interview` | Setup — run this first |
+| `reg-feed-watcher` | Watch regulatory feeds for relevant changes |
+| `policy-diff` | Diff a new regulation against your policy library |
+| `gaps` / `gap-surfacer` | Surface compliance gaps |
+| `policy-redraft` | Redraft a policy against a new regulation |
+| `comments` | Draft a regulatory comment letter |
+| `customize` | Update the practice profile |
+
+### litigation-legal
+Matter management, demands, holds, discovery, and brief drafting.
+
+| Skill | Purpose |
+|---|---|
+| `cold-start-interview` | Setup — run this first |
+| `matter-intake` | Intake a new matter (uniform questionnaire + conflicts check) |
+| `matter-update` | Update a matter record |
+| `matter-briefing` | Brief a matter for a new reader |
+| `matter-close` | Close a matter |
+| `portfolio-status` | Roll-up status across the full litigation portfolio |
+| `demand-intake` | Intake an inbound demand letter |
+| `demand-received` | Triage a received demand |
+| `demand-draft` | Draft an outbound demand letter |
+| `legal-hold` | Issue, refresh, or release a legal hold |
+| `subpoena-triage` | Triage an inbound subpoena |
+| `chronology` | Build a fact chronology from documents |
+| `claim-chart` | Build a claim chart (patent or civil) |
+| `privilege-log-review` | Review a privilege log |
+| `brief-section-drafter` | Draft a brief section |
+| `deposition-prep` | Prepare for a deposition |
+| `oc-status` | Draft outside-counsel status requests |
+| `customize` | Update the practice profile |
+
+### corporate-legal
+M&A diligence, board minutes, entity compliance, and closing checklists.
+
+| Skill | Purpose |
+|---|---|
+| `cold-start-interview` | Setup — run this first |
+| `diligence-issue-extraction` | Extract issues from diligence documents |
+| `tabular-review` | Tabular contract review at scale |
+| `closing-checklist` | Build and track a closing checklist |
+| `material-contract-schedule` | Build a material contracts schedule |
+| `board-minutes` | Draft board minutes |
+| `written-consent` | Draft a written consent |
+| `deal-team-summary` | Business-readable deal summary |
+| `entity-compliance` | Track entity compliance deadlines |
+| `integration-management` | Post-acquisition integration tracking |
+| `ai-tool-handoff` | Hand off work between AI sessions |
+| `customize` | Update the practice profile |
+
+### legal-builder-hub
+Find, install, and manage community legal skills.
+
+| Skill | Purpose |
+|---|---|
+| `cold-start-interview` | Setup — run this first |
+| `registry-browser` | Browse available skills in the registry |
+| `skill-installer` | Install a skill with a security review gate |
+| `skill-manager` | Manage installed skills |
+| `related-skills-surfacer` | Find skills related to your current task |
+| `auto-updater` | Auto-update installed skills |
+| `skills-qa` | QA a skill before installing |
+| `disable` / `uninstall` | Disable or remove skills |
+
+### law-student
+Socratic drilling, case briefs, bar prep, and study planning.
+
+| Skill | Purpose |
+|---|---|
+| `cold-start-interview` | Setup — run this first |
+| `socratic-drill` | Socratic drilling on a topic |
+| `case-brief` | Brief a case |
+| `outline-builder` | Build a course outline |
+| `study-plan` | Build a study schedule |
+| `bar-prep-questions` | Bar prep Q&A for your jurisdiction |
+| `irac-practice` | IRAC practice with grading |
+| `flashcards` | Generate flashcards |
+| `legal-writing` | Legal writing feedback |
+| `exam-forecast` | Exam issue-spotting forecast |
+| `cold-call-prep` | Cold-call preparation |
+| `session` | Structured study session |
+
+### legal-clinic
+Law school clinic management: intake, deadlines, drafting, and semester handoff.
+
+| Skill | Purpose |
+|---|---|
+| `cold-start-interview` | Setup — run this first |
+| `client-intake` | Structured client intake |
+| `client-letter` | Draft a client letter |
+| `client-comms-log` | Log client communications |
+| `deadlines` | Track deadlines with malpractice-aware caution |
+| `draft` | Draft a legal document |
+| `memo` | Draft a legal memo |
+| `form-generation` | Generate a court form |
+| `plain-language-letters` | Plain-language client letters |
+| `research-start` | Start a research task |
+| `supervisor-review-queue` | Supervisor review queue |
+| `ramp` | Onboard a new student |
+| `status` | Case status summary |
+| `semester-handoff` | Semester-end case handoff |
+| `build-guide` | Build a clinic guide |
+
+### cocounsel-legal (Thomson Reuters)
+Westlaw Deep Research with linked citations.
+
+| Skill | Purpose |
+|---|---|
+| `deep-research` | Comprehensive Westlaw Deep Research reports with inline Westlaw and Practical Law citations |
+
+---
+
+## Getting started with a legal plugin
+
+Every plugin requires a one-time setup interview before any other skill will work:
+
+```
+/privacy-legal:cold-start-interview
+/commercial-legal:cold-start-interview
+/product-legal:cold-start-interview
+```
+
+The interview writes a practice profile to `~/.claude/plugins/config/claude-for-legal/<plugin>/CLAUDE.md`. Every skill in that plugin reads from it. Without setup, skills will stop and prompt you to run the interview first.
+
+**Every output is a draft for attorney review — not legal advice.**
+
+---
+
+## Notes
+
+- Skill files live in `.claude/skills/<plugin>/<skill>/SKILL.md`.
+- Plugin source: [anthropics/claude-for-legal](https://github.com/anthropics/claude-for-legal).
+- To add a research connector (Lexis+, Westlaw, CourtListener), follow the MCP instructions in each plugin's `.mcp.json`.

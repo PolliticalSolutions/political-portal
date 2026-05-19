@@ -61,6 +61,7 @@ Run the bundled deterministic detector, which flags 27 specific patterns (AI slo
 
 **CLI scan**:
 ```bash
+npx impeccable --json [--fast] [target]
 npx impeccable detect --json [--fast] [target]
 ```
 

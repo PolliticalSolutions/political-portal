@@ -35,6 +35,7 @@ Understand the current state and goals before touching anything:
    - Loading and transition smoothness
    - Information architecture and flow drift (does this feature reveal complexity the way neighboring features do?)
 
+4. **Triage cosmetic vs functional**: Classify each issue as **cosmetic** (looks off, doesn't impede the user) or **functional** (breaks, blocks, or confuses the experience). When polish time is tight, functional issues ship first; cosmetic ones can land in a follow-up. Quality should be consistent; never perfect one corner while leaving another rough.
 4. **Pull in any prior critique** (optional signal): If `{{command_prefix}}impeccable critique` has been run on the same target, its priority issues are a useful prior for what to address first. Resolve the target to a file path or URL, then:
    ```bash
    slug=$(node {{scripts_path}}/critique-storage.mjs slug "<resolved>")
@@ -225,6 +226,11 @@ Sweat the details. Zoom in until the alignment is right and the spacing reads as
 
 Before marking as done:
 
+- **Use it yourself**: Actually interact with the feature
+- **Test on real devices**: Not just browser DevTools
+- **Ask someone else to review**: Fresh eyes catch things
+- **Compare to design**: Match intended design
+- **Check all states**: Don't just test happy path
 - **Use it yourself**: Actually interact with the feature.
 - **Test on real devices**: Not just browser DevTools.
 - **Ask someone else to review**: Fresh eyes catch things.
@@ -240,3 +246,4 @@ After polishing, ensure code quality:
 - **Remove orphaned code**: Delete unused styles, components, or files made obsolete by polish.
 - **Consolidate tokens**: If you introduced new values, check whether they should be tokens.
 - **Verify DRYness**: Look for duplication introduced during polishing and consolidate.
+
