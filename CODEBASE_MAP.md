@@ -30,9 +30,9 @@ Last updated: 18 May 2026
 | `legal/PrivacyPage.jsx` | `/privacy` | Privacy policy |
 | `legal/TermsPage.jsx` | `/terms` | Terms of service |
 | `legal/CookiesPage.jsx` | `/cookies` | Cookie policy |
-| `VolunteerSignUpPage.jsx` | `/campaign/volunteer` | Public volunteer sign-up form. Inserts into Supabase `volunteers` table; triggers welcome email via `volunteerEmail` Lambda. |
-| `VolunteerRsvpPage.jsx` | `/campaign/rsvp` | Token-gated RSVP page for volunteers (no Cognito needed). HMAC-SHA256 token verified by `volunteerOps` Lambda. |
-| `VolunteerUnsubscribePage.jsx` | `/campaign/unsubscribe` | Token-gated unsubscribe page. Updates `volunteers.email_opt_in = false`. |
+| `VolunteerSignUpPage.jsx` | `/campaign/volunteer` | Public volunteer sign-up form. Calls `submitVolunteerSignup()` in `src/lib/volunteerApi.js`, which `POST`s to the `volunteerOps` Lambda `/volunteer/signup` route; the Lambda writes to Supabase `volunteers`. |
+| `VolunteerRsvpPage.jsx` | `/campaign/rsvp` | Token-gated RSVP page for volunteers (no Cognito needed). HMAC-SHA256 token verified by `volunteerOps` Lambda `/volunteer/rsvp` route. |
+| `VolunteerUnsubscribePage.jsx` | `/campaign/unsubscribe` | Token-gated unsubscribe page. `volunteerOps /volunteer/unsubscribe` sets `volunteers.email_opt_out = true`. |
 
 ### Portal pages (all under `/portal`, auth-gated via `ProtectedRoute`)
 
@@ -188,6 +188,7 @@ Campaign sessions & volunteer coordination module (shipped May 2026, PRs #20–#
 | `campaignApi.js` | All Supabase queries for the campaigns module: `listSessionsForUser`, `getSessionById`, `createSession`, `updateSession`, `cancelSession`, `getMyRsvp`, `setRsvp`, `cancelRsvp`, `listRsvpsForSession`, `listWalkInsForSession`, `addWalkIn`, `removeWalkIn`, `listVolunteerRsvpsForSession` (service client), `setVolunteerRsvpAttendance` (service client), `getCandidateActivity`, `getSessionAttendanceSummary`. `SESSION_COLUMNS` is the single source of truth for fields selected. |
 | `campaignConfig.js` | Static config for the campaigns module: `SESSION_TYPE_LABELS / COLOURS / ORDER` (canvass, leaflet, phone_bank, committee_room, gotv, gotpv, other), `STATUS_LABELS`, `CAMPAIGN_CONTEXT_LABELS / ORDER` (9 values: general_campaigning, by_election, local_election, general_election, mayoral_election, pcc_election, selection_contest, membership_drive, referendum), `SESSION_CSV_TEMPLATE_HEADERS` (16 columns). |
 | `postcodeGeocoding.js` | UK postcode helpers via postcodes.io (no API key): `extractPostcode(text)`, `normalisePostcode(pc)`, `validateAndGeocodePostcode(pc)` → `{ valid, lat, lon }`. 5s timeout. |
+| `volunteerApi.js` | Public HTTP client for the `VolunteerOpsFunction` Lambda — `submitVolunteerSignup`, `checkMembership`, `submitVolunteerRsvp`, `submitVolunteerUnsubscribe`. All four routes are PUBLIC (no Cognito headers); token-bearing endpoints pass the JWT in body (POST) or query string (GET) — Lambda verifies HMAC-SHA256 + expiry. |
 | `cognito.js` | PKCE helpers: `startLogout`, `clearStoredSession` |
 | `enquiriesApi.js` | `insertEnquiry()` — inserts a row into Supabase `enquiries` table |
 | `enquiryApi.js` | HTTP client for the enquiry/quote API (enquiry-api stack) |
@@ -235,7 +236,7 @@ Campaign sessions & volunteer coordination module (shipped May 2026, PRs #20–#
 | `byElectionMonitor.mjs` | `ByElectionMonitorFunction` | EventBridge schedule (daily 06:00 UTC) | Polls Parliament Members API for recently departed Commons members; inserts `political_alerts` rows; resolves alerts where seat is now filled |
 | `attendanceRiskRefresh.mjs` | `AttendanceRiskRefreshFunction` | EventBridge schedule (Mon 07:00 UTC) | Re-scores all councillor attendance against Section 85 LGA 1972 thresholds (critical ≥5 months, vacant ≥6 months); inserts `political_alerts` rows; deduplicates by `title + local_authority_id + is_active`. Skips authorities with no attendance data or data older than 365 days. |
 | `volunteerEmail.mjs` | `VolunteerEmailFunction` | EventBridge schedule (weekly) | Sends per-volunteer digest of upcoming sessions in their region. HTML rendered via `lib/emailTemplates.mjs`; includes "Get directions" links and HMAC RSVP tokens. Sent via SES. Logs to `volunteer_email_log` table. |
-| `volunteerOps.mjs` | `VolunteerOpsFunction` | Lambda Function URL | Token-gated endpoints used by the public `/campaign/rsvp` and `/campaign/unsubscribe` pages. Verifies HMAC-SHA256 tokens; writes to `volunteer_rsvps` and toggles `volunteers.email_opt_in`. |
+| `volunteerOps.mjs` | `VolunteerOpsFunction` | Lambda Function URL | Four public routes for the volunteer flows: `POST /volunteer/signup` (creates a `volunteers` row from the public sign-up form), `POST /volunteer/membership-check` (in-form party-membership lookup), `POST /volunteer/rsvp` (HMAC-SHA256 token-gated RSVP from email link → `volunteer_rsvps`), `GET /volunteer/unsubscribe` (token-gated; sets `volunteers.email_opt_out = true`). |
 | `electionsRepo.mjs` | — | — | DynamoDB access for elections table; always uses full `LastEvaluatedKey` pagination |
 | `usersRepo.mjs` | — | — | DynamoDB user records; `putUserIfAbsent` defaults `status: "APPROVED"` |
 | `submissionsRepo.mjs` | — | — | DynamoDB upload job records |

@@ -10,7 +10,11 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const repoRoot = path.resolve(__dirname, "..", "..");
 
-const injectHead = (html, headHtml) => html.replace("</head>", `${headHtml}</head>`);
+const injectHead = (html, headHtml) =>
+  html
+    .replace(/\s*<title\b[^>]*>[\s\S]*?<\/title>/i, "")
+    .replace(/\s*<meta\s+name="description"[^>]*>/i, "")
+    .replace("</head>", `${headHtml}</head>`);
 const injectApp = (html, appHtml) =>
   html.replace(/<div id="root">[\s\S]*?<\/div>/, `<div id="root">${appHtml}</div>`);
 
