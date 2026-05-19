@@ -21,7 +21,15 @@ const normalizeRoute = (routePath) => {
   return routePath.endsWith("/") ? routePath.slice(0, -1) : routePath;
 };
 
-const injectHead = (html, headHtml) => html.replace("</head>", `${headHtml}</head>`);
+// Strip the fallback <title> and <meta name="description"> from index.html so
+// react-helmet-async's per-route tags (in headHtml) don't end up as duplicates
+// alongside the static safety-net tags. The fallbacks in index.html exist for
+// the no-JS / no-SSR case; once we have a real prerendered head, they go.
+const injectHead = (html, headHtml) =>
+  html
+    .replace(/\s*<title\b[^>]*>[\s\S]*?<\/title>/i, "")
+    .replace(/\s*<meta\s+name="description"[^>]*>/i, "")
+    .replace("</head>", `${headHtml}</head>`);
 
 const injectApp = (html, appHtml) => {
   const rootPattern = /<div id="root">[\s\S]*?<\/div>/;

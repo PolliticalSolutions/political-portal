@@ -17,6 +17,7 @@ A SaaS platform for UK Conservative campaign operations. It provides:
 6. **Quote/enquiry system** — service quote requests, Xero invoice integration (enquiry-api stack).
 7. **Subscription management** — Stripe-backed subscriptions per association, with admin override capability.
 8. **CRM** — contact relationship management at `/portal/admin/crm`, Supabase-backed, with persistent sessions.
+9. **Campaign Sessions & Volunteer Coordination** — end-to-end module at `/portal/campaigns`. Create canvassing, leafleting, phone-bank, committee-room, GOTV and GOTPV sessions; multi-type tagging; structured address with postcodes.io geocoding so pins land on real meeting locations; map / list / calendar views with constituency / activity / context filters. Volunteers register publicly at `/campaign/volunteer`, RSVP via HMAC-tokened links from weekly SES digest emails, and a mobile-first live register lets the session lead take attendance on the day (RSVPs + walk-ins). Per-member attendance feeds the Candidate Activity report. Bulk-upload via 16-column CSV.
 
 **Target users:** Conservative associations, campaign managers, MPs' offices.
 
@@ -35,6 +36,8 @@ A SaaS platform for UK Conservative campaign operations. It provides:
 | Hosting | AWS Amplify (SPA, auto-deploys from `main` branch) |
 | Styling | Pure CSS, no Tailwind, no CSS-in-JS. Design tokens in `:root {}` in `src/index.css` |
 | Maps | react-simple-maps + `public/uk-constituencies.geojson` (ONS PCON 2024) |
+| Geocoding | postcodes.io (free, no API key, single + bulk endpoints). Used by campaign sessions to drop map pins on real meeting postcodes. |
+| DB migrations | Supabase CLI (`supabase db push`) via GitHub Actions; auto-applied on merge to `main` whenever `supabase/migrations/**.sql` changes |
 | SSR/prerender | `vite build --ssr` + `scripts/prerender.mjs` (public routes only) |
 
 ---
@@ -230,6 +233,23 @@ All constituency intelligence, permissions, subscriptions, and alerts live in Su
 | `alert_subscriptions` | User subscriptions to alert types |
 | `enquiries` | Contact/enquiry form submissions |
 
+### Campaign module tables (May 2026)
+
+| Table | Purpose |
+|---|---|
+| `campaign_sessions` | A scheduled canvass / leaflet / phone-bank / GOTV session. Multi-type via `session_types TEXT[]`. Structured address (`venue_name`, `street_address`, `postcode`) + `latitude` / `longitude` from postcodes.io. Required `campaign_context` (9-value enum). |
+| `session_rsvps` | Portal-user RSVPs against a session. `attendance_status`: `pending` / `attended` / `did_not_attend`. |
+| `walk_in_attendees` | People who turn up without RSVPing, captured during the live register. |
+| `volunteers` | Public volunteer database (sign up at `/campaign/volunteer`). Email opt-in flag + region. |
+| `volunteer_rsvps` | Volunteer RSVPs against a session (token-gated, no Cognito). |
+| `party_membership` | Optional membership status flag for a volunteer/party member. |
+| `campaign_roles` | Per-association role grants for campaign managers, coordinators, regional viewers. Drives the access matrix in `useCampaignAccess`. |
+| `volunteer_email_log` | Audit log of every weekly digest sent by `VolunteerEmailFunction`. |
+
+### Migration workflow
+
+All schema changes go through `supabase/migrations/*.sql` and auto-apply on merge to `main` via [`.github/workflows/supabase-migrate.yml`](.github/workflows/supabase-migrate.yml). Filename format is strict: `YYYYMMDDHHMMSS_short_description.sql` (14-digit UTC timestamp). Full playbook in [`supabase/migrations/README.md`](supabase/migrations/README.md). The project has force-RLS-by-default, so every new portal-writable table needs an explicit `FOR ALL TO anon` policy in the same migration.
+
 ---
 
 ## Authentication and permissions
@@ -345,4 +365,6 @@ SEO: `noindexPrefixes = ["/portal"]` in `seoRoutes.js` covers all portal subrout
 - SEO layer overhauled: keyword-first titles, optimised meta descriptions, FAQ + Service JSON-LD on Services page
 - **By-Election Early Warning system live (May 2026):** Section 85 LGA 1972 risk alerts seeded for critical/vacant councillors via `import_section85_flags.py`; weekly Monday Lambda (`AttendanceRiskRefreshFunction`) rescores ongoing; dashboard at `/portal/alerts/by-election-risk`; Early Warning panel on every council detail page
 - **Councillor attendance table deduped (May 2026):** reduced from 59,388 to 12,163 rows by removing committee membership rows (null eligible/attended); import script now skips these at source
-- **Council composition import script ready** (`scripts/import_council_composition.py`) — requires migration `supabase/migrations/20260512_add_council_composition_columns.sql` to be applied in Supabase first; not yet run against OCD UK data
+- **Council composition import script ready** (`scripts/import_council_composition.py`) — requires migration `supabase/migrations/20260512000000_add_council_composition_columns.sql` to be applied in Supabase first; not yet run against OCD UK data
+- **Campaign Sessions & Volunteer Coordination shipped (May 2026):** end-to-end module at `/portal/campaigns` (PRs #20–#25). Multi-type sessions with 9-value `campaign_context`, structured addresses geocoded via postcodes.io, always-visible map + list / calendar views with constituency / activity / context filters, mobile-first live register, walk-ins, weekly SES digest to volunteers with HMAC-tokened RSVP links, 16-column bulk-upload CSV
+- **Automated Supabase migrations live (May 2026):** GitHub Actions workflow at `.github/workflows/supabase-migrate.yml` runs `supabase db push` on every merge to `main` that touches `supabase/migrations/**.sql`. All legacy 8-digit prefixes renamed to 14-digit `YYYYMMDDHHMMSS` so the Supabase CLI accepts them. Full playbook in `supabase/migrations/README.md`
