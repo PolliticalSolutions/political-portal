@@ -483,9 +483,28 @@ export default function PortalLayout() {
               <NavLink className={navClass} to="/portal/local-government/lgr" onClick={() => setSidebarOpen(false)}>
                 LGR Tracker
               </NavLink>
+            </div>
+
+            <div className="portal-nav-group">
+              <span className="portal-nav-group__label">Parliamentary Services</span>
               <NavLink className={navClass} to="/portal/mp-persona" onClick={() => setSidebarOpen(false)}>
-                MP Persona Generator
+                Parliamentary Communications
               </NavLink>
+            </div>
+
+            <div className="portal-nav-group">
+              <span className="portal-nav-group__label">Campaigns</span>
+              <NavLink className={navClass} to="/portal/campaigns" end onClick={() => setSidebarOpen(false)}>
+                Sessions
+              </NavLink>
+              <NavLink className={navClass} to="/portal/campaigns/volunteers" onClick={() => setSidebarOpen(false)}>
+                Volunteers
+              </NavLink>
+              {isAdmin && (
+                <NavLink className={navClass} to="/portal/campaigns/activity" onClick={() => setSidebarOpen(false)}>
+                  Activity
+                </NavLink>
+              )}
             </div>
 
             <div className="portal-nav-group">
@@ -542,6 +561,9 @@ export default function PortalLayout() {
               <NavLink className={navClass} to="/portal/settings/integrations" onClick={() => setSidebarOpen(false)}>
                 Integrations
               </NavLink>
+              <NavLink className={navClass} to="/portal/alerts/by-election-risk" onClick={() => setSidebarOpen(false)}>
+                By-Election Risk
+              </NavLink>
               <NavLink className={navClass} to="/portal/alerts" onClick={() => setSidebarOpen(false)}>
                 My Alerts
                 {alertCount > 0 && (
@@ -597,6 +619,11 @@ export default function PortalLayout() {
               {isAdmin && (
                 <NavLink className={navClass} to="/portal/admin/elections" onClick={() => setSidebarOpen(false)}>
                   Elections
+                </NavLink>
+              )}
+              {isAdmin && (
+                <NavLink className={navClass} to="/portal/admin/system-health" onClick={() => setSidebarOpen(false)}>
+                  System Health
                 </NavLink>
               )}
             </div>

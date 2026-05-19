@@ -16,10 +16,34 @@ vi.mock("../../lib/uploadApi.js", async () => {
   };
 });
 
+// Stub the session helpers so the layout treats our fake token as valid and
+// doesn't trip the auto-clear path inside getSession (which would otherwise
+// nuke sessionStorage and bypass the /me fetch entirely).
+vi.mock("../../auth/session.js", () => ({
+  getSession: () => ({
+    isAuthed: true,
+    user: { sub: "test-sub" },
+    expiresAt: Date.now() + 60_000,
+    tokens: { access_token: "token" },
+    reason: null,
+  }),
+  getStoredTokens: () => ({ access_token: "token" }),
+  isSessionValid: () => true,
+  isTokenValid: () => true,
+  decodeJwtPayload: () => ({ sub: "test-sub" }),
+  storeTokens: vi.fn(),
+  clearSession: vi.fn(),
+  tokensKey: "cognito_tokens",
+}));
+
 describe("PortalLayout", () => {
   beforeEach(() => {
     sessionStorage.clear();
     localStorage.clear();
+    uploadApi.getMe.mockReset();
+    uploadApi.getAdminMe.mockReset();
+    uploadApi.applyForApproval.mockReset();
+    uploadApi.listOrganisations.mockReset();
     uploadApi.getMe.mockResolvedValue({ user: { status: "APPROVED" } });
     uploadApi.getAdminMe.mockResolvedValue({ isAdmin: false });
     uploadApi.listOrganisations.mockResolvedValue({ items: [] });

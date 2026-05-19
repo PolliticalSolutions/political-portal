@@ -6,8 +6,25 @@ resolve_s3 = true
 s3_prefix = "upload-api"
 confirm_changeset = true
 capabilities = "CAPABILITY_IAM"
-parameter_overrides = "AllowedOrigins=\"https://www.politicalsolutions.uk,http://localhost:5173\" CognitoIssuer=\"\" CognitoAudience=\"\""
+parameter_overrides = "AllowedOrigins=\"https://www.politicalsolutions.uk,https://politicalsolutions.uk,http://localhost:5173,http://localhost:5174,http://localhost:5175,http://localhost:5176,http://localhost:5177,http://localhost:5178\" CognitoIssuer=\"\" CognitoAudience=\"\""
 image_repositories = []
 
 [default.global.parameters]
+region = "eu-west-2"
+
+# Production profile — deploys to ps-upload-api-prod (API ID 77i4hpcez8).
+# Only AllowedOrigins is overridden; every other parameter keeps its
+# previously-deployed value (CloudFormation default for updates), which
+# preserves secrets such as SupabaseServiceKey and VolunteerTokenSecret.
+# Usage: sam deploy --config-env prod
+[prod.deploy.parameters]
+stack_name = "ps-upload-api-prod"
+resolve_s3 = true
+s3_prefix = "ps-upload-api-prod"
+confirm_changeset = true
+capabilities = "CAPABILITY_IAM"
+parameter_overrides = "AllowedOrigins=\"https://www.politicalsolutions.uk,https://politicalsolutions.uk\""
+image_repositories = []
+
+[prod.global.parameters]
 region = "eu-west-2"

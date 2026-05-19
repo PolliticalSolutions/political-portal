@@ -38,6 +38,7 @@ const ManualReviewPage = lazy(() => import("./pages/portal/admin/ManualReviewPag
 const PermissionsPage = lazy(() => import("./pages/portal/admin/PermissionsPage.jsx"));
 const AssociationsPage = lazy(() => import("./pages/portal/admin/AssociationsPage.jsx"));
 const ElectionsPage = lazy(() => import("./pages/portal/admin/ElectionsPage.jsx"));
+const SystemHealthPage = lazy(() => import("./pages/portal/admin/SystemHealthPage.jsx"));
 const CRMApp = lazy(() => import("./pages/portal/crm/CRMApp.jsx"));
 const DataSourcesPage = lazy(() => import("./pages/portal/DataSourcesPage.jsx"));
 const ConstituencyIndex = lazy(() => import("./pages/portal/constituency/ConstituencyIndex.jsx"));
@@ -45,6 +46,7 @@ const ConstituencyDetail = lazy(() => import("./pages/portal/constituency/Consti
 const VulnerabilityDashboard = lazy(() => import("./pages/portal/constituency/VulnerabilityDashboard.jsx"));
 const ReformThreatIndex = lazy(() => import("./pages/portal/constituency/ReformThreatIndex.jsx"));
 const AlertsPage = lazy(() => import("./pages/portal/alerts/AlertsPage.jsx"));
+const ByElectionRiskDashboard = lazy(() => import("./pages/portal/alerts/ByElectionRiskDashboard.jsx"));
 const LocalGovIndex = lazy(() => import("./pages/portal/local-government/LocalGovIndex.jsx"));
 const LocalGovDetail = lazy(() => import("./pages/portal/local-government/LocalGovDetail.jsx"));
 const LGRTrackerPage = lazy(() => import("./pages/portal/local-government/LGRTrackerPage.jsx"));
@@ -56,6 +58,19 @@ const LibDemThreatPage = lazy(() => import("./pages/portal/constituency/LibDemTh
 const GreenThreatPage = lazy(() => import("./pages/portal/constituency/GreenThreatPage.jsx"));
 const ScenarioPage = lazy(() => import("./pages/portal/analytics/ScenarioPage.jsx"));
 const MPPersona = lazy(() => import("./pages/portal/MPPersona.jsx"));
+const CampaignSessionsPage = lazy(() => import("./pages/portal/campaigns/CampaignSessionsPage.jsx"));
+const SessionDetailPage = lazy(() => import("./pages/portal/campaigns/SessionDetailPage.jsx"));
+const SessionCreatePage = lazy(() => import("./pages/portal/campaigns/SessionCreatePage.jsx"));
+const SessionEditPage = lazy(() => import("./pages/portal/campaigns/SessionEditPage.jsx"));
+const BulkUploadPage = lazy(() => import("./pages/portal/campaigns/BulkUploadPage.jsx"));
+const SessionAttendancePage = lazy(() => import("./pages/portal/campaigns/SessionAttendancePage.jsx"));
+const SessionRegisterPage = lazy(() => import("./pages/portal/campaigns/SessionRegisterPage.jsx"));
+const CandidateActivityPage = lazy(() => import("./pages/portal/campaigns/CandidateActivityPage.jsx"));
+const VolunteerListPage = lazy(() => import("./pages/portal/campaigns/VolunteerListPage.jsx"));
+const VolunteerDetailPage = lazy(() => import("./pages/portal/campaigns/VolunteerDetailPage.jsx"));
+const VolunteerSignUpPage = lazy(() => import("./pages/VolunteerSignUpPage.jsx"));
+const VolunteerRsvpPage = lazy(() => import("./pages/VolunteerRsvpPage.jsx"));
+const VolunteerUnsubscribePage = lazy(() => import("./pages/VolunteerUnsubscribePage.jsx"));
 import Session from "./pages/Session.jsx";
 import SignUp from "./pages/SignUp.jsx";
 import Verify from "./pages/Verify.jsx";
@@ -112,10 +127,18 @@ function NavLinkButton({ to, onClick, variant = "ghost", children, end = false }
 
 function TopNav({ authed, onLogout, cartCount }) {
   const [menuOpen, setMenuOpen] = useState(false);
+  const [scrolled, setScrolled] = useState(false);
   const closeMenu = () => setMenuOpen(false);
 
+  useEffect(() => {
+    const onScroll = () => setScrolled(window.scrollY > 4);
+    onScroll();
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => window.removeEventListener("scroll", onScroll);
+  }, []);
+
   return (
-    <header className="topbar">
+    <header className={`topbar${scrolled ? " topbar--scrolled" : ""}`}>
       <div className="container topbar-inner">
         <Link className="brand" to="/" onClick={closeMenu}>
           <img
@@ -126,9 +149,9 @@ function TopNav({ authed, onLogout, cartCount }) {
             height={48}
             loading="eager"
           />
-          <div>
-            <div style={{ fontWeight: 700 }}>Political Solutions</div>
-            <div className="muted" style={{ fontSize: 13 }}>
+          <div className="brand-text">
+            <div className="brand-name">Political Solutions</div>
+            <div className="muted brand-tagline">
               UK Political Operations Platform
             </div>
           </div>
@@ -363,6 +386,9 @@ export default function App() {
             <Route path="/privacy" element={<Suspense fallback={null}><PrivacyPage /></Suspense>} />
             <Route path="/terms" element={<Suspense fallback={null}><TermsPage /></Suspense>} />
             <Route path="/cookies" element={<Suspense fallback={null}><CookiesPage /></Suspense>} />
+            <Route path="/campaign/volunteer" element={<Suspense fallback={null}><VolunteerSignUpPage /></Suspense>} />
+            <Route path="/campaign/rsvp" element={<Suspense fallback={null}><VolunteerRsvpPage /></Suspense>} />
+            <Route path="/campaign/unsubscribe" element={<Suspense fallback={null}><VolunteerUnsubscribePage /></Suspense>} />
             <Route element={<ProtectedRoute authed={authed} session={session} />}>
               <Route path="/portal" element={<Suspense fallback={<div className="app-shell"><p className="muted" style={{padding:"2rem"}}>Loading…</p></div>}><PortalLayout /></Suspense>}>
                 <Route index element={<Suspense fallback={<div className="page stack"><p className="muted">Loading…</p></div>}><Dashboard /></Suspense>} />
@@ -388,6 +414,7 @@ export default function App() {
                 <Route path="admin/permissions" element={<Navigate to="/portal/admin/users" replace />} />
                 <Route path="admin/associations" element={<Suspense fallback={<div className="page stack"><p className="muted">Loading…</p></div>}><AssociationsPage /></Suspense>} />
                 <Route path="admin/elections" element={<Suspense fallback={<div className="page stack"><p className="muted">Loading…</p></div>}><ElectionsPage /></Suspense>} />
+                <Route path="admin/system-health" element={<Suspense fallback={<div className="page stack"><p className="muted">Loading…</p></div>}><SystemHealthPage /></Suspense>} />
                 <Route path="admin/crm/*" element={<Suspense fallback={<div className="page stack"><p className="muted">Loading…</p></div>}><CRMApp /></Suspense>} />
                 <Route path="data-sources" element={<Suspense fallback={<div className="page stack"><p className="muted">Loading…</p></div>}><DataSourcesPage /></Suspense>} />
                 <Route
@@ -455,6 +482,14 @@ export default function App() {
                   }
                 />
                 <Route
+                  path="alerts/by-election-risk"
+                  element={
+                    <Suspense fallback={<div className="page stack"><p className="muted">Loading…</p></div>}>
+                      <ByElectionRiskDashboard />
+                    </Suspense>
+                  }
+                />
+                <Route
                   path="analytics/by-election-watch"
                   element={
                     <Suspense fallback={<div className="page stack"><p className="muted">Loading…</p></div>}>
@@ -515,6 +550,86 @@ export default function App() {
                   element={
                     <Suspense fallback={<div className="page stack"><p className="muted">Loading…</p></div>}>
                       <MPPersona />
+                    </Suspense>
+                  }
+                />
+                <Route
+                  path="campaigns"
+                  element={
+                    <Suspense fallback={<div className="page stack"><p className="muted">Loading…</p></div>}>
+                      <CampaignSessionsPage />
+                    </Suspense>
+                  }
+                />
+                <Route
+                  path="campaigns/create"
+                  element={
+                    <Suspense fallback={<div className="page stack"><p className="muted">Loading…</p></div>}>
+                      <SessionCreatePage />
+                    </Suspense>
+                  }
+                />
+                <Route
+                  path="campaigns/bulk-upload"
+                  element={
+                    <Suspense fallback={<div className="page stack"><p className="muted">Loading…</p></div>}>
+                      <BulkUploadPage />
+                    </Suspense>
+                  }
+                />
+                <Route
+                  path="campaigns/:sessionId"
+                  element={
+                    <Suspense fallback={<div className="page stack"><p className="muted">Loading…</p></div>}>
+                      <SessionDetailPage />
+                    </Suspense>
+                  }
+                />
+                <Route
+                  path="campaigns/:sessionId/edit"
+                  element={
+                    <Suspense fallback={<div className="page stack"><p className="muted">Loading…</p></div>}>
+                      <SessionEditPage />
+                    </Suspense>
+                  }
+                />
+                <Route
+                  path="campaigns/:sessionId/attendance"
+                  element={
+                    <Suspense fallback={<div className="page stack"><p className="muted">Loading…</p></div>}>
+                      <SessionAttendancePage />
+                    </Suspense>
+                  }
+                />
+                <Route
+                  path="campaigns/:sessionId/register"
+                  element={
+                    <Suspense fallback={<div className="page stack"><p className="muted">Loading…</p></div>}>
+                      <SessionRegisterPage />
+                    </Suspense>
+                  }
+                />
+                <Route
+                  path="campaigns/activity"
+                  element={
+                    <Suspense fallback={<div className="page stack"><p className="muted">Loading…</p></div>}>
+                      <CandidateActivityPage />
+                    </Suspense>
+                  }
+                />
+                <Route
+                  path="campaigns/volunteers"
+                  element={
+                    <Suspense fallback={<div className="page stack"><p className="muted">Loading…</p></div>}>
+                      <VolunteerListPage />
+                    </Suspense>
+                  }
+                />
+                <Route
+                  path="campaigns/volunteers/:volunteerId"
+                  element={
+                    <Suspense fallback={<div className="page stack"><p className="muted">Loading…</p></div>}>
+                      <VolunteerDetailPage />
                     </Suspense>
                   }
                 />

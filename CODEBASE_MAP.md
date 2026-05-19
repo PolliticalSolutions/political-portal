@@ -1,6 +1,6 @@
 # Codebase Map
 
-Last updated: 12 May 2026
+Last updated: 19 May 2026
 
 ---
 
@@ -43,7 +43,7 @@ Last updated: 12 May 2026
 | `portal/QuoteDetail.jsx` | `/portal/ops/quotes/:ref` | Individual quote detail |
 | `portal/Integrations.jsx` | `/portal/settings/integrations` | Xero integration status and test invoice |
 | `portal/DataSourcesPage.jsx` | `/portal/data-sources` | Lists all data sources used by the intelligence models |
-| `portal/MPPersona.jsx` | `/portal/mp-persona` | AI MP Persona Generator; password-gated (`"persona2026"`); caches results in localStorage |
+| `portal/MPPersona.jsx` | `/portal/mp-persona` | Parliamentary Communications Service. Two-tab layout: **MP Style Guide** (auto-resolves the MP name from the user's permitted constituency via `getPermittedMpForUser`, renders it as a locked read-only field, polls `VITE_PERSONA_API_URL` with `mode:"persona"` for 5s/10min, saves the result to `mp_personas`) and **Draft Communications** (disabled until a persona exists; submits `mode:"draft"` jobs with one of 5 output types and a 1000-char context; saves outputs to `mp_persona_outputs` and lists past drafts with expand-in-place). Pings a synthetic `mousemove` every 60s during generation to keep the App.jsx idle timer alive. Renders an access-denied panel if `feature_mp_persona` is not set and the user is not admin. |
 | `portal/PortalNotFound.jsx` | `/portal/*` | 404 fallback for unmatched portal routes |
 
 ### Portal / admin (admin-only, shown in nav only when `isAdmin` is true)
@@ -61,6 +61,8 @@ Last updated: 12 May 2026
 | File | Route | What it does |
 |------|-------|--------------|
 | `portal/alerts/AlertsPage.jsx` | `/portal/alerts` | Lists all active rows from Supabase `political_alerts` table |
+| `portal/alerts/ByElectionRiskDashboard.jsx` | `/portal/alerts/by-election-risk` | Section 85 early warning dashboard. Admin sees all national `by_election_risk` alerts; standard user sees constituency-scoped alerts (resolved via `constituency_council_lookup`). Three filter dropdowns: Status (Elevated/Critical/Vacant), Region, Party. Table sorted by months elapsed descending. Status badges: vacant → dark red `#7f1d1d`, critical → `error` class, elevated → `warning` class. |
+| `portal/alerts/byElectionRiskApi.js` | — | `getAllByElectionAlerts()` (admin), `getByElectionAlertsForConstituencies(ids)` (standard user), `parseAlerts()` (parses `detail` JSON, enriches with `local_authorities` join). |
 
 ### Portal / analytics
 
@@ -92,9 +94,9 @@ Last updated: 12 May 2026
 | File | Route | What it does |
 |------|-------|--------------|
 | `portal/local-government/LocalGovIndex.jsx` | `/portal/local-government` | Browse local authorities; council political composition |
-| `portal/local-government/LocalGovDetail.jsx` | `/portal/local-government/:gssCode` | Council detail: composition, wards, election results, councillors |
+| `portal/local-government/LocalGovDetail.jsx` | `/portal/local-government/:gssCode` | Council detail: composition, wards, election results, councillors. Contains `ByElectionEarlyWarningSection` component (rendered below the tabs Card, above `DataProvenancePanel`) — shows a table of flagged councillors from `political_alerts` for this authority, or "No current early warning flags" empty state. |
 | `portal/local-government/LGRTrackerPage.jsx` | `/portal/local-government/lgr` | LGR tracker: countdown to key dates, status by wave (Surrey/DPP/Wave 2) |
-| `portal/local-government/localGovApi.js` | — | Supabase query functions for local government data |
+| `portal/local-government/localGovApi.js` | — | Supabase query functions for local government data. Includes `getByElectionAttendanceAlerts(authorityId)` — fetches active `by_election_risk` alerts for a given authority, filters to rows where `detail.councillorName` is truthy. |
 | `portal/local-government/localGovQuality.js` | — | Data quality helpers for local government records |
 
 ---
@@ -160,7 +162,7 @@ Last updated: 12 May 2026
 | `modelPresentationState.js` | Derives UI presentation state (badge colour, label) from model status |
 | `modelValidation.js` | Validation spec helpers; wraps `modelValidationSpecs.js` config |
 | `permissionsApi.js` | Full permissions CRUD: `getUserConstituencies`, `getUserPermissions`, `grantPermission`, `revokePermission`, `listAssociations`, `listSubscriptions`, `setSubscriptionStatus` |
-| `personaApi.js` | `buildPersona(mpName)` — POSTs to `VITE_PERSONA_API_URL` (Lambda Function URL) |
+| `personaApi.js` | `buildPersona(mpName, onsCode, cognitoSub)` — checks `feature_mp_persona` on `user_permissions` (admin bypass via `isAdmin`), then POSTs `{mode:"persona", mpName, onsCode}` to `VITE_PERSONA_API_URL`, polls for completion, upserts an `mp_personas` row by `(cognito_sub, constituency_ons_code)`, returns `{systemPrompt, mpName, personaId}`. Also exports `generateDraft({systemPrompt, outputType, context})`, `saveDraft({...})`, `listDrafts(cognitoSub)`, `getPersonaForUser(cognitoSub, onsCode)`, and `getPermittedMpForUser(cognitoSub)` — the last walks `user_permissions → association_constituencies → constituencies` and returns `{mpName, onsCode, constituencyName}` for the first permitted constituency with a non-null `mp_name`. |
 | `quoteApi.js` | HTTP client for enquiry/quote/Xero endpoints on the enquiry-api stack |
 | `runtimeValidationSummaries.js` | Builds structured validation delivery summaries for ModelPerformancePage |
 | `scenarioModeller.js` | `projectNationalScenario()` — applies swing inputs to 2024 GE baseline to project seat outcomes |
@@ -187,11 +189,14 @@ Last updated: 12 May 2026
 | File | AWS function name (logical) | Trigger | What it does |
 |------|---------------------------|---------|--------------|
 | `handler.mjs` | `UploadFunction` | HTTP API Gateway | Routes all HTTP events: POST /jobs (create upload), GET /jobs (list), GET /jobs/{id}, GET /jobs/{id}/download, GET /elections, GET /organisations, GET /me, POST /apply, POST /onboarding/signup, and all /admin/* endpoints |
-| `worker.mjs` | `WorkerFunction` | SQS (`ProcessQueue`) | Processes queued upload jobs: reads file from S3, runs against elections data, writes output back to S3 |
+| `worker.mjs` | `WorkerFunction` | SQS (`ProcessQueue`) — **disabled** | Legacy stub; ACKs messages without processing. `WorkerProcessQueueMapping` is `Enabled: false`. Replaced by `ProcessRegisterFunction` (Python). Do not enable. |
+| `src_python/process_register/handler.py` | `ProcessRegisterFunction` | SQS (`ProcessQueue`); Enabled; BatchSize 1 | OCRs one marked-register PDF per invocation at 600dpi using Tesseract (Lambda layer). Extracts elector entries page-by-page, writes `outputs/{batchId}/{jobId}.json` to S3, updates DynamoDB job to SUCCEEDED/FAILED, then atomically increments a batch tracker and invokes `CombineRegisterFunction` when all files in the batch are done. Requires `TesseractLayerArn` SAM parameter. |
+| `src_python/combine_register/handler.py` | `CombineRegisterFunction` | Lambda invoke (async Event, from `ProcessRegisterFunction`) | Reads all per-job JSON outputs for a batch, merges and sorts elector rows, builds a UTF-8-BOM CSV, uploads to `outputs/{batchId}/`, generates a 24-hour presigned URL, and sends an SES HTML email to `SES_RECIPIENT_EMAIL` (default `markedregisters@politicalsolutions.uk`). |
 | `uploadCompleteHandler.mjs` | `UploadCompleteFunction` | S3 ObjectCreated on `uploads/` prefix | Looks up job by S3 key, enqueues message on ProcessQueue |
 | `scanResultHandler.mjs` | `ScanResultHandlerFunction` | EventBridge (GuardDuty malware scan results) | Processes scan results; enqueues clean files on ProcessQueue |
-| `personaHandler.mjs` | `PersonaFunction` | Lambda Function URL | MP Persona Generator: fetches Parliament Members API, Hansard (10 pages), Wikipedia, press releases → Anthropic Claude → returns `{ systemPrompt, mpName }`. Requires `ANTHROPIC_API_KEY` set manually. |
+| `personaHandler.mjs` | `PersonaFunction` | Lambda Function URL | Dual-mode Parliamentary Communications Lambda. POST kicks off an async DynamoDB-tracked job; GET `/{jobId}` polls. Mode `"persona"` ({mpName, onsCode}) runs the Parliament Members → Hansard (10 pages) → Wikipedia → press releases → Anthropic pipeline and returns `{systemPrompt, mpName}`. Mode `"draft"` ({systemPrompt, outputType, context}) makes a single Anthropic call (max_tokens 1500) and returns `{generatedText}`. Requires `ANTHROPIC_API_KEY` set manually after each deploy. |
 | `byElectionMonitor.mjs` | `ByElectionMonitorFunction` | EventBridge schedule (daily 06:00 UTC) | Polls Parliament Members API for recently departed Commons members; inserts `political_alerts` rows; resolves alerts where seat is now filled |
+| `attendanceRiskRefresh.mjs` | `AttendanceRiskRefreshFunction` | EventBridge schedule (Mon 07:00 UTC) | Re-scores all councillor attendance against Section 85 LGA 1972 thresholds (critical ≥5 months, vacant ≥6 months); inserts `political_alerts` rows; deduplicates by `title + local_authority_id + is_active`. Skips authorities with no attendance data or data older than 365 days. |
 | `electionsRepo.mjs` | — | — | DynamoDB access for elections table; always uses full `LastEvaluatedKey` pagination |
 | `usersRepo.mjs` | — | — | DynamoDB user records; `putUserIfAbsent` defaults `status: "APPROVED"` |
 | `submissionsRepo.mjs` | — | — | DynamoDB upload job records |
@@ -212,7 +217,7 @@ Every resource in the SAM template:
 | Resource | Type | Description |
 |----------|------|-------------|
 | `UploadsBucket` | S3 Bucket | Receives uploaded files (`uploads/` prefix) and processed outputs (`outputs/` prefix); 90-day lifecycle on both; private |
-| `JobsTable` | DynamoDB | Upload job records; GSIs: `UserSubIndex`, `S3KeyIndex`, `ManualReviewIndex`; TTL on `expiresAt` |
+| `JobsTable` | DynamoDB | Upload job records; GSIs: `UserSubIndex`, `S3KeyIndex`, `ManualReviewIndex`, `BatchIdIndex` (on `batchId`); TTL on `expiresAt` |
 | `UsersTable` | DynamoDB | User approval records; GSI: `StatusCreatedAtIndex` |
 | `ElectionsTable` | DynamoDB | Elections; GSI: `StatusPconDateIndex` |
 | `OrganisationsTable` | DynamoDB | Association/federation records; GSI: `ActiveOrgTypeIndex` |
@@ -226,8 +231,11 @@ Every resource in the SAM template:
 | `UploadWafLogGroup` | CloudWatch Logs | WAF access logs |
 | `UploadWafLogging` | WAF Logging Config | Routes WAF logs to CloudWatch |
 | `UploadFunction` | Lambda | Main HTTP API handler |
-| `WorkerFunction` | Lambda | SQS consumer; `Enabled: false` on EventSourceMapping (local listener is sole consumer) |
-| `WorkerProcessQueueMapping` | Lambda Event Source | Wires SQS → WorkerFunction; **disabled** |
+| `WorkerFunction` | Lambda | Legacy stub; `WorkerProcessQueueMapping` is `Enabled: false`; do not enable — `ProcessRegisterFunction` is the real consumer |
+| `WorkerProcessQueueMapping` | Lambda Event Source | Wires SQS → WorkerFunction; **permanently disabled** — `ProcessRegisterFunction.Events.SQSSource` is the active mapping |
+| `ProcessRegisterFunction` | Lambda (Python 3.12) | OCR processor: SQS `ProcessQueue` consumer (`Enabled: true`, BatchSize 1); Tesseract layer required; 900s timeout; 3008 MB RAM; 4096 MB `/tmp` |
+| `CombineRegisterFunction` | Lambda (Python 3.12) | Batch combiner: invoked async by `ProcessRegisterFunction`; 300s timeout; 1024 MB RAM |
+| `ProcessRegisterFunctionErrorsAlarm` | CloudWatch Alarm | Alerts on Lambda errors for `ProcessRegisterFunction` |
 | `UploadCompleteFunction` | Lambda | S3 trigger → DynamoDB lookup → SQS enqueue |
 | `UploadCompleteFunctionS3Permission` | Lambda Permission | Allows S3 to invoke UploadCompleteFunction |
 | `ScanResultHandlerFunction` | Lambda | GuardDuty scan result handler |
@@ -239,6 +247,7 @@ Every resource in the SAM template:
 | `PersonaFunctionUrl` | Lambda Function URL | Public HTTPS endpoint for PersonaFunction (bypasses 29s API Gateway limit) |
 | `PersonaFunctionUrlPermission` | Lambda Permission | Allows public invocation of PersonaFunctionUrl |
 | `ByElectionMonitorFunction` | Lambda | Daily Parliament API poller; writes `political_alerts` rows |
+| `AttendanceRiskRefreshFunction` | Lambda | Weekly Monday Section 85 attendance scorer; inserts/deduplicates `political_alerts` for critical/vacant councillors |
 | `UploadFunctionErrorsAlarm` | CloudWatch Alarm | Alerts on any Lambda error for UploadFunction |
 | `WorkerFunctionErrorsAlarm` | CloudWatch Alarm | Alerts on any Lambda error for WorkerFunction |
 | `UploadCompleteFunctionErrorsAlarm` | CloudWatch Alarm | Alerts on any Lambda error for UploadCompleteFunction |
@@ -272,11 +281,40 @@ Every resource in the SAM template:
 | `sync_elections_from_democracy_club.py` | Syncs elections from Democracy Club into Supabase | Occasional |
 | `calculate_*.py` | Python scripts for computing threat indices, swings, targets, vulnerability scores | Yes — run when recomputing model data |
 | `import_*.py` | Python scripts for importing data from external sources | Yes — run when importing fresh data |
+| `constituency_data_audit.py` | Audits completeness of all 21 Supabase tables; writes UTF-8-BOM CSV to `scripts/constituency_data_audit_YYYY-MM-DD.csv` | Occasional — run before major import cycles |
+| `import_council_composition.py` | Imports council political composition from OCD UK CSV into `council_data`; pre-flight checks: schema columns present, LGR new councils, dataset freshness vs May 2025 elections | Requires migration `20260512_add_council_composition_columns.sql` first |
+| `import_section85_flags.py` | Imports manually-curated Section 85 priority flags into `political_alerts` as `by_election_risk` alerts. Risk thresholds: ≥6 months (or 99=never) → vacant/critical; ≥5 → critical/critical; ≥4 → elevated/high; <4 → skip. Deduplicates on `title + local_authority_id + is_active`. | Run with `--file <path_to_csv>` |
+| `extend_by_election_risk_attendance.py` | One-shot script: scores `councillor_attendance` table against Section 85 thresholds and inserts `political_alerts`; safe to re-run (same dedup as above) | Superseded by weekly Lambda `attendanceRiskRefresh.mjs` for ongoing rescoring |
+| `dedup_councillor_attendance.py` | Removes duplicate rows from `councillor_attendance` — groups by `(local_authority_id, councillor_name, ward)`, keeps row with highest `meetings_eligible` (tiebreak: latest `period_end`), deletes the rest via batched REST DELETE. Includes post-delete verification pass. Supports `--dry-run`. | Run when data sources are re-concatenated; applied May 2026 (59,388 → 12,163 rows) |
 | `backtest_*.py` | Python model backtesting scripts | Yes — model validation |
 | `export_runtime_validation_summaries.py` | Exports validation data to Supabase for ModelPerformancePage | Yes |
 | `add_intelligence_quality_fields.sql` | SQL to add quality metadata columns to Supabase tables | Applied — may not need re-running |
 | `create_subscriptions_table.sql` | DDL for subscriptions table | Applied |
 | `create_scoring_model_versions.sql` | DDL for model version tracking | Applied |
+
+---
+
+## AI Skills (`.agents/skills/`)
+
+Shared AI assistant skills tracked in version control. Installed via `npx skills` (lock file: `skills-lock.json`) or `uipro-cli`. Available to all agents that read `.agents/skills/`.
+
+| Skill | Source | Purpose |
+|-------|--------|---------|
+| `emil-design-eng` | `emilkowalski/skill` | Emil Kowalski's UI polish philosophy: animation, component design, invisible details |
+| `impeccable` | `pbakaus/impeccable` | Full-spectrum UI/UX work: audit, polish, animate, redesign, live browser iteration |
+| `ui-ux-pro-max` | `uipro-cli` | UI/UX Pro Max: design patterns, colour, typography, stack-specific guidance (React, Next.js, etc.) |
+| `brandkit` | `Leonxlnx/taste-skill` | Brand identity and kit guidance |
+| `design-taste-frontend` | `Leonxlnx/taste-skill` | General frontend design taste |
+| `full-output-enforcement` | `Leonxlnx/taste-skill` | Enforces complete, untruncated code output |
+| `gpt-taste` | `Leonxlnx/taste-skill` | GPT-style aesthetic taste layer |
+| `high-end-visual-design` | `Leonxlnx/taste-skill` | Elevated visual design standards |
+| `image-to-code` | `Leonxlnx/taste-skill` | Convert design images/screenshots to code |
+| `imagegen-frontend-mobile` | `Leonxlnx/taste-skill` | Mobile UI image generation guidance |
+| `imagegen-frontend-web` | `Leonxlnx/taste-skill` | Web UI image generation guidance |
+| `industrial-brutalist-ui` | `Leonxlnx/taste-skill` | Industrial/brutalist UI aesthetic |
+| `minimalist-ui` | `Leonxlnx/taste-skill` | Minimalist UI aesthetic |
+| `redesign-existing-projects` | `Leonxlnx/taste-skill` | Approach for redesigning existing UIs |
+| `stitch-design-taste` | `Leonxlnx/taste-skill` | Stitch-style design taste |
 
 ---
 
@@ -376,6 +414,17 @@ async function supabaseRequest(path, { method = "GET", params = {}, body, extraH
 ```
 
 Pass `SUPABASE_URL` and `SUPABASE_SERVICE_KEY` as Lambda environment variables via SAM parameters.
+
+---
+
+## Supabase tables of note
+
+| Table | Purpose |
+|---|---|
+| `mp_personas` | One saved MP Style Guide per `(cognito_sub, constituency_ons_code)`. Columns: `id`, `cognito_sub`, `mp_name`, `constituency_ons_code`, `system_prompt`, `created_at`, `updated_at`. RLS limits read/write to rows where `cognito_sub` matches the caller's JWT sub. Upserted by `personaApi.js → buildPersona()` after each successful persona generation. |
+| `mp_persona_outputs` | Saved drafts generated from a persona. Columns: `id`, `persona_id` (FK → `mp_personas`, `ON DELETE CASCADE`), `cognito_sub`, `output_type` (`email`/`letter`/`social_post`/`speech_notes`/`press_release`), `context_provided`, `generated_text`, `created_at`. RLS limits read/write to the owning `cognito_sub`. Inserted by `personaApi.js → saveDraft()` from the Draft Communications tab. |
+
+The `user_permissions` table also carries a `feature_mp_persona` boolean (default `false`) that gates Parliamentary Communications Service access. Admin toggling lives in the **Permissions** tab on `/portal/admin/users` (MP Persona Access column). `paul@politicalsolutions.uk` is rendered with the toggle locked on as a UI convention; the runtime check in `personaApi.js` bypasses the flag entirely for `isAdmin(cognitoSub)` users.
 
 ---
 

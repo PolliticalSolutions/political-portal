@@ -1,6 +1,7 @@
 import { render, screen } from "@testing-library/react";
 import { HelmetProvider } from "react-helmet-async";
 import { MemoryRouter } from "react-router-dom";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 vi.mock("./constituencyApi.js", () => ({
@@ -53,11 +54,16 @@ describe("ReformThreatIndex", () => {
       ],
     });
 
+    const queryClient = new QueryClient({
+      defaultOptions: { queries: { retry: false } },
+    });
     render(
       <HelmetProvider>
-        <MemoryRouter>
-          <ReformThreatIndex />
-        </MemoryRouter>
+        <QueryClientProvider client={queryClient}>
+          <MemoryRouter>
+            <ReformThreatIndex />
+          </MemoryRouter>
+        </QueryClientProvider>
       </HelmetProvider>
     );
 

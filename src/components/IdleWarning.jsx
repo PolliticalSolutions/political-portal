@@ -9,7 +9,7 @@ export default function IdleWarning({ secondsLeft, onStay, onLogout }) {
         <Card
           className="idle-card"
           title={
-            <div id="idle-title" style={{ display: "flex", alignItems: "center", gap: 10 }}>
+            <div id="idle-title" className="idle-title">
               Still there?
               <Badge tone="accent">Auto log-out</Badge>
             </div>

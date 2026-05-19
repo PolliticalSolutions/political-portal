@@ -42,7 +42,7 @@ describe("Seo", () => {
     expect(document.querySelector("meta[property='og:url']")?.content).toBe(
       "https://politicalsolutions.uk/services",
     );
-    expect(document.querySelector("meta[name='twitter:card']")?.content).toBe("summary");
+    expect(document.querySelector("meta[name='twitter:card']")?.content).toBe("summary_large_image");
     expect(document.querySelector("meta[name='twitter:title']")?.content).toBe(
       "Services | Political Solutions",
     );

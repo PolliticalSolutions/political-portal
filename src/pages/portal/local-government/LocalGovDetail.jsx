@@ -10,6 +10,7 @@ import {
   getAuthorityAlerts,
   getAuthorityElections,
   getAuthorityWards,
+  getByElectionAttendanceAlerts,
   getCouncillorAttendance,
   getElectionResults,
   getLinkedConstituencies,
@@ -661,6 +662,84 @@ function LgrBanner({ lgr }) {
   );
 }
 
+// ── By-Election Early Warning ─────────────────────────────────────────────────
+
+function ByElectionEarlyWarningSection({ authorityId }) {
+  const { data: earlyWarningAlerts = [], isLoading } = useQuery({
+    queryKey: ["byElectionAttendance", authorityId],
+    queryFn: () => getByElectionAttendanceAlerts(authorityId),
+    enabled: Boolean(authorityId),
+    staleTime: Infinity,
+  });
+
+  const parsed = earlyWarningAlerts.map(row => {
+    let detail = {};
+    try { detail = JSON.parse(row.detail) || {}; } catch { /* empty */ }
+    return {
+      id: row.id,
+      councillorName: detail.councillorName ?? "",
+      ward: detail.ward ?? "",
+      party: detail.party ?? "",
+      lastAttendanceDate: detail.lastAttendanceDate ?? null,
+      monthsElapsed: detail.monthsElapsed ?? null,
+      riskStatus: detail.riskStatus ?? "",
+    };
+  });
+
+  function StatusBadge({ status }) {
+    if (status === "vacant") {
+      return <span className="status-pill error" style={{ background: "#7f1d1d", color: "#fff" }}>Vacant</span>;
+    }
+    if (status === "critical") {
+      return <span className="status-pill error">Critical</span>;
+    }
+    return <span className="status-pill warning">Elevated</span>;
+  }
+
+  return (
+    <Card>
+      <h2 className="portal-section-title" style={{ marginBottom: 8 }}>By-Election Early Warning</h2>
+      <p className="portal-data-note" style={{ marginBottom: 16 }}>
+        Under Section 85, Local Government Act 1972, a councillor who fails to attend any qualifying
+        meeting for six consecutive months is automatically disqualified unless the council grants a
+        dispensation.
+      </p>
+      {isLoading ? (
+        <p className="muted">Loading early warning data…</p>
+      ) : parsed.length === 0 ? (
+        <div className="portal-placeholder-panel">No current early warning flags for this authority.</div>
+      ) : (
+        <div style={{ overflowX: "auto" }}>
+          <table className="table table--compact">
+            <thead>
+              <tr>
+                <th>Councillor</th>
+                <th>Ward</th>
+                <th>Party</th>
+                <th>Last attendance</th>
+                <th>Months elapsed</th>
+                <th>Status</th>
+              </tr>
+            </thead>
+            <tbody>
+              {parsed.map(row => (
+                <tr key={row.id}>
+                  <td>{row.councillorName}</td>
+                  <td>{row.ward || "—"}</td>
+                  <td>{row.party || "—"}</td>
+                  <td>{row.lastAttendanceDate ? formatShortDate(row.lastAttendanceDate) : "—"}</td>
+                  <td style={{ textAlign: "center" }}>{row.monthsElapsed ?? "—"}</td>
+                  <td><StatusBadge status={row.riskStatus} /></td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+    </Card>
+  );
+}
+
 // ── Main detail component ─────────────────────────────────────────────────────
 
 export default function LocalGovDetail() {
@@ -817,6 +896,8 @@ export default function LocalGovDetail() {
         {activeTab === "parliament" && <ParliamentaryLinkTab authorityId={authority.id} authority={authority} />}
         {activeTab === "intelligence" && <IntelligenceTab authorityId={authority.id} />}
       </Card>
+
+      <ByElectionEarlyWarningSection authorityId={authority.id} />
 
       <DataProvenancePanel
         metadata={metadata}

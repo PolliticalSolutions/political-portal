@@ -41,7 +41,7 @@
 .circumstance-card {
   border-radius: var(--radius-lg);
   border: 1px solid var(--border);
-  background: linear-gradient(145deg, var(--surface), var(--surface-muted));
+  background: var(--color-surface);
   padding: var(--space-4);
   color: var(--text);
   text-align: left;
@@ -67,8 +67,9 @@
 
 .tier-card {
   border-radius: var(--radius-lg);
-  border: 1px solid var(--border);
-  background: linear-gradient(160deg, rgba(18, 26, 39, 0.95), rgba(12, 17, 26, 0.85));
+  border: 1px solid var(--portal-border);
+  background: var(--color-navy);
+  color: #FFFFFF;
   padding: var(--space-4);
   display: grid;
   gap: var(--space-3);
@@ -140,8 +141,9 @@
 }
 
 .cta-card {
-  background: linear-gradient(145deg, rgba(75, 130, 225, 0.12), rgba(12, 17, 26, 0.8));
-  border-color: rgba(75, 130, 225, 0.4);
+  background: var(--color-navy);
+  color: #FFFFFF;
+  border-color: var(--color-navy);
 }
 
 .cta-row {

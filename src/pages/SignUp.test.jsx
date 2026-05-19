@@ -48,7 +48,7 @@ vi.mock("../lib/supabase.js", () => ({
   },
 }));
 
-import SignUp, { ACCOUNT_EXISTS_MESSAGE } from "./SignUp.jsx";
+import SignUp from "./SignUp.jsx";
 
 describe("SignUp", () => {
   beforeEach(() => {
@@ -73,10 +73,10 @@ describe("SignUp", () => {
     renderSignup();
 
     expect(screen.getByRole("heading", { name: "Create account" })).toBeInTheDocument();
-    expect(screen.getByLabelText("Full name")).toBeInTheDocument();
-    expect(screen.getByLabelText("Email address")).toBeInTheDocument();
-    expect(screen.getByLabelText("Phone number")).toBeInTheDocument();
-    expect(screen.getByLabelText("Job title")).toBeInTheDocument();
+    expect(screen.getByLabelText("Name")).toBeInTheDocument();
+    expect(screen.getByLabelText("Email Address")).toBeInTheDocument();
+    expect(screen.getByLabelText("Phone Number")).toBeInTheDocument();
+    expect(screen.getByLabelText("Association/Federation")).toBeInTheDocument();
     await screen.findByRole("option", { name: "Aldershot" });
   });
 
@@ -84,38 +84,36 @@ describe("SignUp", () => {
     renderSignup();
 
     await screen.findByRole("option", { name: "Aldershot" });
-    fireEvent.change(screen.getByLabelText("Full name"), { target: { value: "Jane Smith" } });
-    fireEvent.change(screen.getByLabelText("Email address"), { target: { value: "jane@example.com" } });
-    fireEvent.change(screen.getByLabelText("Association name"), { target: { value: "assoc-1" } });
-    fireEvent.change(screen.getByLabelText("Phone number"), { target: { value: "+447700900123" } });
-    fireEvent.change(screen.getByLabelText("Job title"), { target: { value: "Agent" } });
+    fireEvent.change(screen.getByLabelText("Name"), { target: { value: "Jane Smith" } });
+    fireEvent.change(screen.getByLabelText("Email Address"), { target: { value: "jane@example.com" } });
+    fireEvent.change(screen.getByLabelText("Association/Federation"), { target: { value: "assoc-1" } });
+    fireEvent.change(screen.getByLabelText("Phone Number"), { target: { value: "07700900123" } });
+    fireEvent.change(document.querySelector('input[name="password"]'), {
+      target: { value: "Sup3rSecret!" },
+    });
+    fireEvent.change(document.querySelector('input[name="confirmPassword"]'), {
+      target: { value: "Sup3rSecret!" },
+    });
     fireEvent.click(screen.getByRole("button", { name: "Create account" }));
 
     await waitFor(() =>
-      expect(mocks.createOnboardingAccount).toHaveBeenCalledWith({
-        fullName: "Jane Smith",
-        email: "jane@example.com",
-        associationId: "assoc-1",
-        associationName: "Aldershot",
-        phone: "+447700900123",
-        jobTitle: "Agent",
-      })
+      expect(mocks.createOnboardingAccount).toHaveBeenCalledWith(
+        expect.objectContaining({
+          name: "Jane Smith",
+          fullName: "Jane Smith",
+          email: "jane@example.com",
+          associationId: "assoc-1",
+          associationName: "Aldershot",
+          phone: "07700900123",
+          password: "Sup3rSecret!",
+        }),
+      )
     );
     expect(await screen.findByText("Login page")).toBeInTheDocument();
   });
 
-  it("blocks self-serve signup when the association already has an active account", async () => {
-    mocks.activeAccount = true;
-    renderSignup();
-
-    await screen.findByRole("option", { name: "Aldershot" });
-    fireEvent.change(screen.getByLabelText("Full name"), { target: { value: "Jane Smith" } });
-    fireEvent.change(screen.getByLabelText("Email address"), { target: { value: "jane@example.com" } });
-    fireEvent.change(screen.getByLabelText("Association name"), { target: { value: "assoc-1" } });
-    fireEvent.change(screen.getByLabelText("Job title"), { target: { value: "Agent" } });
-    fireEvent.click(screen.getByRole("button", { name: "Create account" }));
-
-    expect(await screen.findByText(ACCOUNT_EXISTS_MESSAGE)).toBeInTheDocument();
-    expect(mocks.createOnboardingAccount).not.toHaveBeenCalled();
-  });
+  // The "association already has an active account" pre-check was removed
+  // from SignUp.jsx — the source no longer queries user_permissions or
+  // exports ACCOUNT_EXISTS_MESSAGE. The block-on-duplicate behaviour now
+  // lives downstream in the onboarding API.
 });

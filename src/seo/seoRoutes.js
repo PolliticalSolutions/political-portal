@@ -45,10 +45,26 @@ export const seoRoutes = [
     priority: 0.7,
   },
   {
+    path: "/subscribe",
+    title: "Subscribe to the campaign data platform — Stripe checkout",
+    description:
+      "Select your association, choose card or invoice payment, and activate access to marked register processing, constituency intelligence, and the secure portal.",
+    changefreq: "monthly",
+    priority: 0.7,
+  },
+  {
     path: "/enquire",
     title: "Enquire about campaign data services — get a response within one working day",
     description:
       "Tell us what you need and which service you want to discuss. We review every enquiry and confirm the next step within one working day. No sales calls, no pressure.",
+    changefreq: "monthly",
+    priority: 0.6,
+  },
+  {
+    path: "/campaign/volunteer",
+    title: "Become a Conservative campaign volunteer — canvassing, leafleting & phone banks",
+    description:
+      "Sign up to be invited to Conservative campaign sessions in your area. Canvassing, leafleting, phone banks, and committee-room shifts — no commitment, just an email when help is needed.",
     changefreq: "monthly",
     priority: 0.6,
   },
@@ -108,6 +124,8 @@ const noindexRoutes = new Set([
   "/cart",
   "/checkout",
   "/checkout/confirmation",
+  "/campaign/rsvp",
+  "/campaign/unsubscribe",
 ]);
 
 export const getSeoForPath = (pathname) => {

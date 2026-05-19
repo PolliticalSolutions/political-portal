@@ -127,7 +127,7 @@ export default function ConstituencyMapClient({
           <Geography
             key={geo.rsmKey}
             geography={geo}
-            stroke={hasCurrentDifference ? "#c89b4a" : "#ffffff"}
+            stroke={hasCurrentDifference ? "#4A5C6E" : "#ffffff"}
             strokeWidth={hasCurrentDifference ? 0.7 : 0.3}
             title={geo.properties.PCON24NM ?? onsCode}
             style={{

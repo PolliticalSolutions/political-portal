@@ -350,20 +350,27 @@ def _extract_metadata(image):
     return election_date, polling_district or "Unknown", vote_type
 
 
-def ocr_pdf(pdf_path, constituency_name, election_name):
+def ocr_pdf(pdf_path, constituency_name, election_name, election_date_override=""):
     """
     OCR a PDF page-by-page. Delete each image after processing to stay within /tmp.
     Returns a list of row dicts: {election_date, constituency, polling_district,
     elector_number, voted, postal_vote}.
+
+    If election_date_override is provided (from the form), it takes precedence over
+    OCR-derived dates. constituency_name is used verbatim for the Constituency column.
     """
     logger.info("Converting first page for metadata extraction")
     first_pages = convert_from_path(
         pdf_path, dpi=150, first_page=1, last_page=1, poppler_path=POPPLER_PATH
     )
-    election_date, polling_district, vote_type = (
+    ocr_election_date, polling_district, vote_type = (
         _extract_metadata(first_pages[0]) if first_pages else (None, "Unknown", "In Person")
     )
-    election_date = election_date or datetime.now(timezone.utc).strftime("%d/%m/%Y")
+    election_date = (
+        election_date_override
+        or ocr_election_date
+        or datetime.now(timezone.utc).strftime("%d/%m/%Y")
+    )
 
     # Count total pages
     from pdf2image.pdf2image import pdfinfo_from_path
@@ -529,17 +536,27 @@ def handler(event, context):
             if not job:
                 raise ValueError(f"Job {job_id} not found in DynamoDB")
 
+            user_sub = job.get("userSub") or job.get("userId") or "unknown-user"
             batch_id = job.get("batchId", "")
             total_files = int(job.get("totalFilesInBatch", 1))
+
+            # New free-text metadata fields (mandatory for new uploads).
+            association = (job.get("association") or "").strip()
+            constituency_field = (job.get("constituency") or "").strip()
+            council_area = (job.get("councilArea") or "").strip()
+            election_label = (job.get("election") or "").strip()
+            election_date_field = (job.get("electionDate") or "").strip()
+
+            # Legacy fallback for in-flight jobs created before the schema change.
             constituency_ons = job.get("constituencyOnsCode") or job.get("pconCode", "")
             election_id = job.get("electionId", "")
-
-            # Constituency display name — we store the ONS code; the combiner will look up the name.
-            # For the OCR rows we use the ONS code as a placeholder; combiner replaces it with the real name.
-            constituency_name = job.get("constituencyName") or constituency_ons
-
-            # Election name placeholder — combiner resolves from ElectionsTable
-            election_name = job.get("electionName") or election_id
+            constituency_name = (
+                constituency_field
+                or job.get("constituencyName")
+                or constituency_ons
+                or "Unknown Constituency"
+            )
+            election_name = election_label or job.get("electionName") or election_id
 
             # Download PDF to /tmp
             suffix = Path(s3_key).suffix or ".pdf"
@@ -548,8 +565,13 @@ def handler(event, context):
             s3_client.download_file(bucket, s3_key, tmp_path)
             logger.info("Downloaded to %s (%d bytes)", tmp_path, os.path.getsize(tmp_path))
 
-            # OCR
-            rows, ocr_meta = ocr_pdf(tmp_path, constituency_name, election_name)
+            # OCR — form-provided election date takes precedence over OCR-derived.
+            rows, ocr_meta = ocr_pdf(
+                tmp_path,
+                constituency_name,
+                election_name,
+                election_date_override=election_date_field,
+            )
 
             # Clean up PDF from /tmp
             try:
@@ -557,11 +579,18 @@ def handler(event, context):
             except OSError:
                 pass
 
-            # Write JSON output
-            output_key = f"outputs/{batch_id or job_id}/{job_id}.json"
+            # Write JSON output under per-user/per-batch prefix.
+            output_prefix = f"outputs/{user_sub}/{batch_id or job_id}"
+            output_key = f"{output_prefix}/{job_id}.json"
             output_payload = {
                 "jobId": job_id,
+                "userSub": user_sub,
                 "batchId": batch_id,
+                "association": association,
+                "constituency": constituency_field,
+                "councilArea": council_area,
+                "election": election_label,
+                "electionDate": election_date_field,
                 "constituencyOnsCode": constituency_ons,
                 "electionId": election_id,
                 "rows": rows,
@@ -584,6 +613,12 @@ def handler(event, context):
             if batch_id:
                 combine_payload = {
                     "batchId": batch_id,
+                    "userSub": user_sub,
+                    "association": association,
+                    "constituency": constituency_field,
+                    "councilArea": council_area,
+                    "election": election_label,
+                    "electionDate": election_date_field,
                     "constituencyOnsCode": constituency_ons,
                     "electionId": election_id,
                     "totalFilesInBatch": total_files,
@@ -597,8 +632,8 @@ def handler(event, context):
                     update_job_failed(job_id, str(exc), datetime.now(timezone.utc).isoformat())
                 except Exception:
                     pass
-            failures.append({"itemIdentifier": record["messageId"]})
+            # ACK the message rather than letting SQS retry — the FAILED status
+            # in DynamoDB is the user-visible signal.
+            continue
 
-    if failures:
-        return {"batchItemFailures": failures}
-    return {"batchItemFailures": []}
+    return {"batchItemFailures": failures}
