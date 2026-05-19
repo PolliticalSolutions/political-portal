@@ -1,6 +1,6 @@
 # Codebase Map
 
-Last updated: 13 May 2026
+Last updated: 19 May 2026
 
 ---
 
@@ -189,7 +189,9 @@ Last updated: 13 May 2026
 | File | AWS function name (logical) | Trigger | What it does |
 |------|---------------------------|---------|--------------|
 | `handler.mjs` | `UploadFunction` | HTTP API Gateway | Routes all HTTP events: POST /jobs (create upload), GET /jobs (list), GET /jobs/{id}, GET /jobs/{id}/download, GET /elections, GET /organisations, GET /me, POST /apply, POST /onboarding/signup, and all /admin/* endpoints |
-| `worker.mjs` | `WorkerFunction` | SQS (`ProcessQueue`) | Processes queued upload jobs: reads file from S3, runs against elections data, writes output back to S3 |
+| `worker.mjs` | `WorkerFunction` | SQS (`ProcessQueue`) — **disabled** | Legacy stub; ACKs messages without processing. `WorkerProcessQueueMapping` is `Enabled: false`. Replaced by `ProcessRegisterFunction` (Python). Do not enable. |
+| `src_python/process_register/handler.py` | `ProcessRegisterFunction` | SQS (`ProcessQueue`); Enabled; BatchSize 1 | OCRs one marked-register PDF per invocation at 600dpi using Tesseract (Lambda layer). Extracts elector entries page-by-page, writes `outputs/{batchId}/{jobId}.json` to S3, updates DynamoDB job to SUCCEEDED/FAILED, then atomically increments a batch tracker and invokes `CombineRegisterFunction` when all files in the batch are done. Requires `TesseractLayerArn` SAM parameter. |
+| `src_python/combine_register/handler.py` | `CombineRegisterFunction` | Lambda invoke (async Event, from `ProcessRegisterFunction`) | Reads all per-job JSON outputs for a batch, merges and sorts elector rows, builds a UTF-8-BOM CSV, uploads to `outputs/{batchId}/`, generates a 24-hour presigned URL, and sends an SES HTML email to `SES_RECIPIENT_EMAIL` (default `markedregisters@politicalsolutions.uk`). |
 | `uploadCompleteHandler.mjs` | `UploadCompleteFunction` | S3 ObjectCreated on `uploads/` prefix | Looks up job by S3 key, enqueues message on ProcessQueue |
 | `scanResultHandler.mjs` | `ScanResultHandlerFunction` | EventBridge (GuardDuty malware scan results) | Processes scan results; enqueues clean files on ProcessQueue |
 | `personaHandler.mjs` | `PersonaFunction` | Lambda Function URL | MP Persona Generator: fetches Parliament Members API, Hansard (10 pages), Wikipedia, press releases → Anthropic Claude → returns `{ systemPrompt, mpName }`. Requires `ANTHROPIC_API_KEY` set manually. |
@@ -215,7 +217,7 @@ Every resource in the SAM template:
 | Resource | Type | Description |
 |----------|------|-------------|
 | `UploadsBucket` | S3 Bucket | Receives uploaded files (`uploads/` prefix) and processed outputs (`outputs/` prefix); 90-day lifecycle on both; private |
-| `JobsTable` | DynamoDB | Upload job records; GSIs: `UserSubIndex`, `S3KeyIndex`, `ManualReviewIndex`; TTL on `expiresAt` |
+| `JobsTable` | DynamoDB | Upload job records; GSIs: `UserSubIndex`, `S3KeyIndex`, `ManualReviewIndex`, `BatchIdIndex` (on `batchId`); TTL on `expiresAt` |
 | `UsersTable` | DynamoDB | User approval records; GSI: `StatusCreatedAtIndex` |
 | `ElectionsTable` | DynamoDB | Elections; GSI: `StatusPconDateIndex` |
 | `OrganisationsTable` | DynamoDB | Association/federation records; GSI: `ActiveOrgTypeIndex` |
@@ -229,8 +231,11 @@ Every resource in the SAM template:
 | `UploadWafLogGroup` | CloudWatch Logs | WAF access logs |
 | `UploadWafLogging` | WAF Logging Config | Routes WAF logs to CloudWatch |
 | `UploadFunction` | Lambda | Main HTTP API handler |
-| `WorkerFunction` | Lambda | SQS consumer; `Enabled: false` on EventSourceMapping (local listener is sole consumer) |
-| `WorkerProcessQueueMapping` | Lambda Event Source | Wires SQS → WorkerFunction; **disabled** |
+| `WorkerFunction` | Lambda | Legacy stub; `WorkerProcessQueueMapping` is `Enabled: false`; do not enable — `ProcessRegisterFunction` is the real consumer |
+| `WorkerProcessQueueMapping` | Lambda Event Source | Wires SQS → WorkerFunction; **permanently disabled** — `ProcessRegisterFunction.Events.SQSSource` is the active mapping |
+| `ProcessRegisterFunction` | Lambda (Python 3.12) | OCR processor: SQS `ProcessQueue` consumer (`Enabled: true`, BatchSize 1); Tesseract layer required; 900s timeout; 3008 MB RAM; 4096 MB `/tmp` |
+| `CombineRegisterFunction` | Lambda (Python 3.12) | Batch combiner: invoked async by `ProcessRegisterFunction`; 300s timeout; 1024 MB RAM |
+| `ProcessRegisterFunctionErrorsAlarm` | CloudWatch Alarm | Alerts on Lambda errors for `ProcessRegisterFunction` |
 | `UploadCompleteFunction` | Lambda | S3 trigger → DynamoDB lookup → SQS enqueue |
 | `UploadCompleteFunctionS3Permission` | Lambda Permission | Allows S3 to invoke UploadCompleteFunction |
 | `ScanResultHandlerFunction` | Lambda | GuardDuty scan result handler |
