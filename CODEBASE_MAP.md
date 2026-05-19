@@ -43,7 +43,7 @@ Last updated: 13 May 2026
 | `portal/QuoteDetail.jsx` | `/portal/ops/quotes/:ref` | Individual quote detail |
 | `portal/Integrations.jsx` | `/portal/settings/integrations` | Xero integration status and test invoice |
 | `portal/DataSourcesPage.jsx` | `/portal/data-sources` | Lists all data sources used by the intelligence models |
-| `portal/MPPersona.jsx` | `/portal/mp-persona` | AI MP Persona Generator; password-gated (`"persona2026"`); caches results in localStorage |
+| `portal/MPPersona.jsx` | `/portal/mp-persona` | Parliamentary Communications Service. Two-tab layout: **MP Style Guide** (auto-resolves the MP name from the user's permitted constituency via `getPermittedMpForUser`, renders it as a locked read-only field, polls `VITE_PERSONA_API_URL` with `mode:"persona"` for 5s/10min, saves the result to `mp_personas`) and **Draft Communications** (disabled until a persona exists; submits `mode:"draft"` jobs with one of 5 output types and a 1000-char context; saves outputs to `mp_persona_outputs` and lists past drafts with expand-in-place). Pings a synthetic `mousemove` every 60s during generation to keep the App.jsx idle timer alive. Renders an access-denied panel if `feature_mp_persona` is not set and the user is not admin. |
 | `portal/PortalNotFound.jsx` | `/portal/*` | 404 fallback for unmatched portal routes |
 
 ### Portal / admin (admin-only, shown in nav only when `isAdmin` is true)
@@ -162,7 +162,7 @@ Last updated: 13 May 2026
 | `modelPresentationState.js` | Derives UI presentation state (badge colour, label) from model status |
 | `modelValidation.js` | Validation spec helpers; wraps `modelValidationSpecs.js` config |
 | `permissionsApi.js` | Full permissions CRUD: `getUserConstituencies`, `getUserPermissions`, `grantPermission`, `revokePermission`, `listAssociations`, `listSubscriptions`, `setSubscriptionStatus` |
-| `personaApi.js` | `buildPersona(mpName)` — POSTs to `VITE_PERSONA_API_URL` (Lambda Function URL) |
+| `personaApi.js` | `buildPersona(mpName, onsCode, cognitoSub)` — checks `feature_mp_persona` on `user_permissions` (admin bypass via `isAdmin`), then POSTs `{mode:"persona", mpName, onsCode}` to `VITE_PERSONA_API_URL`, polls for completion, upserts an `mp_personas` row by `(cognito_sub, constituency_ons_code)`, returns `{systemPrompt, mpName, personaId}`. Also exports `generateDraft({systemPrompt, outputType, context})`, `saveDraft({...})`, `listDrafts(cognitoSub)`, `getPersonaForUser(cognitoSub, onsCode)`, and `getPermittedMpForUser(cognitoSub)` — the last walks `user_permissions → association_constituencies → constituencies` and returns `{mpName, onsCode, constituencyName}` for the first permitted constituency with a non-null `mp_name`. |
 | `quoteApi.js` | HTTP client for enquiry/quote/Xero endpoints on the enquiry-api stack |
 | `runtimeValidationSummaries.js` | Builds structured validation delivery summaries for ModelPerformancePage |
 | `scenarioModeller.js` | `projectNationalScenario()` — applies swing inputs to 2024 GE baseline to project seat outcomes |
@@ -192,7 +192,7 @@ Last updated: 13 May 2026
 | `worker.mjs` | `WorkerFunction` | SQS (`ProcessQueue`) | Processes queued upload jobs: reads file from S3, runs against elections data, writes output back to S3 |
 | `uploadCompleteHandler.mjs` | `UploadCompleteFunction` | S3 ObjectCreated on `uploads/` prefix | Looks up job by S3 key, enqueues message on ProcessQueue |
 | `scanResultHandler.mjs` | `ScanResultHandlerFunction` | EventBridge (GuardDuty malware scan results) | Processes scan results; enqueues clean files on ProcessQueue |
-| `personaHandler.mjs` | `PersonaFunction` | Lambda Function URL | MP Persona Generator: fetches Parliament Members API, Hansard (10 pages), Wikipedia, press releases → Anthropic Claude → returns `{ systemPrompt, mpName }`. Requires `ANTHROPIC_API_KEY` set manually. |
+| `personaHandler.mjs` | `PersonaFunction` | Lambda Function URL | Dual-mode Parliamentary Communications Lambda. POST kicks off an async DynamoDB-tracked job; GET `/{jobId}` polls. Mode `"persona"` ({mpName, onsCode}) runs the Parliament Members → Hansard (10 pages) → Wikipedia → press releases → Anthropic pipeline and returns `{systemPrompt, mpName}`. Mode `"draft"` ({systemPrompt, outputType, context}) makes a single Anthropic call (max_tokens 1500) and returns `{generatedText}`. Requires `ANTHROPIC_API_KEY` set manually after each deploy. |
 | `byElectionMonitor.mjs` | `ByElectionMonitorFunction` | EventBridge schedule (daily 06:00 UTC) | Polls Parliament Members API for recently departed Commons members; inserts `political_alerts` rows; resolves alerts where seat is now filled |
 | `attendanceRiskRefresh.mjs` | `AttendanceRiskRefreshFunction` | EventBridge schedule (Mon 07:00 UTC) | Re-scores all councillor attendance against Section 85 LGA 1972 thresholds (critical ≥5 months, vacant ≥6 months); inserts `political_alerts` rows; deduplicates by `title + local_authority_id + is_active`. Skips authorities with no attendance data or data older than 365 days. |
 | `electionsRepo.mjs` | — | — | DynamoDB access for elections table; always uses full `LastEvaluatedKey` pagination |
@@ -385,6 +385,17 @@ async function supabaseRequest(path, { method = "GET", params = {}, body, extraH
 ```
 
 Pass `SUPABASE_URL` and `SUPABASE_SERVICE_KEY` as Lambda environment variables via SAM parameters.
+
+---
+
+## Supabase tables of note
+
+| Table | Purpose |
+|---|---|
+| `mp_personas` | One saved MP Style Guide per `(cognito_sub, constituency_ons_code)`. Columns: `id`, `cognito_sub`, `mp_name`, `constituency_ons_code`, `system_prompt`, `created_at`, `updated_at`. RLS limits read/write to rows where `cognito_sub` matches the caller's JWT sub. Upserted by `personaApi.js → buildPersona()` after each successful persona generation. |
+| `mp_persona_outputs` | Saved drafts generated from a persona. Columns: `id`, `persona_id` (FK → `mp_personas`, `ON DELETE CASCADE`), `cognito_sub`, `output_type` (`email`/`letter`/`social_post`/`speech_notes`/`press_release`), `context_provided`, `generated_text`, `created_at`. RLS limits read/write to the owning `cognito_sub`. Inserted by `personaApi.js → saveDraft()` from the Draft Communications tab. |
+
+The `user_permissions` table also carries a `feature_mp_persona` boolean (default `false`) that gates Parliamentary Communications Service access. Admin toggling lives in the **Permissions** tab on `/portal/admin/users` (MP Persona Access column). `paul@politicalsolutions.uk` is rendered with the toggle locked on as a UI convention; the runtime check in `personaApi.js` bypasses the flag entirely for `isAdmin(cognitoSub)` users.
 
 ---
 

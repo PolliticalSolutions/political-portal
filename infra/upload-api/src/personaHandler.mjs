@@ -1,12 +1,19 @@
 /**
- * MP Persona Generator Lambda
+ * MP Persona Generator Lambda — dual-mode.
  *
  * Modes:
- * A. API Gateway POST /persona: create a DynamoDB job and invoke this function asynchronously.
- * B. API Gateway GET /persona/{jobId}: return the DynamoDB job item for polling.
- * C. Internal async event: run the scraping + Claude pipeline and update the job item.
+ *   "persona" — fetch Parliament + Hansard + Wikipedia + press releases,
+ *               run two Anthropic calls, return { systemPrompt, mpName }.
+ *   "draft"   — single Anthropic call with the saved system prompt and a
+ *               user-provided context, return { generatedText }.
  *
- * Timeout: 300s. Requires ANTHROPIC_API_KEY env var.
+ * Wire-level layout:
+ *   POST <function-url>           → create job for mode, return { jobId }.
+ *   GET  <function-url>/{jobId}   → poll the DynamoDB job item.
+ *   Internal async event          → run the pipeline and update the item.
+ *
+ * Timeout: 300s. Requires ANTHROPIC_API_KEY env var (set manually in the
+ * Lambda console — not managed by CloudFormation).
  */
 
 import { randomUUID } from "node:crypto";
@@ -15,6 +22,7 @@ import { LambdaClient, InvokeCommand } from "@aws-sdk/client-lambda";
 import { DynamoDBDocumentClient, GetCommand, PutCommand, UpdateCommand } from "@aws-sdk/lib-dynamodb";
 
 const ANTHROPIC_API_KEY = process.env.ANTHROPIC_API_KEY || "";
+const ANTHROPIC_MODEL = process.env.ANTHROPIC_MODEL || "claude-sonnet-4-20250514";
 const ALLOWED_ORIGINS = (process.env.ALLOWED_ORIGINS || "")
   .split(",")
   .map((s) => s.trim())
@@ -25,6 +33,24 @@ const PERSONA_JOB_TTL_SECONDS = Number(process.env.PERSONA_JOB_TTL_SECONDS || 86
 const PERSONA_MAX_SYSTEM_PROMPT_CHARS = Number(
   process.env.PERSONA_MAX_SYSTEM_PROMPT_CHARS || 120000
 );
+const DRAFT_MAX_CONTEXT_CHARS = 4000;
+const DRAFT_MAX_OUTPUT_CHARS = 12000;
+
+const VALID_OUTPUT_TYPES = new Set([
+  "email",
+  "letter",
+  "social_post",
+  "speech_notes",
+  "press_release",
+]);
+
+const OUTPUT_TYPE_LABEL = {
+  email: "email",
+  letter: "letter",
+  social_post: "social media post",
+  speech_notes: "set of speech notes",
+  press_release: "press release",
+};
 
 const lambda = new LambdaClient({ region: REGION });
 const dynamo = DynamoDBDocumentClient.from(new DynamoDBClient({ region: REGION }));
@@ -100,6 +126,56 @@ function validateMpName(value) {
   return mpName;
 }
 
+function validateOnsCode(value) {
+  const ons = typeof value === "string" ? value.trim().toUpperCase() : "";
+  if (!ons) {
+    const err = new Error("onsCode is required.");
+    err.statusCode = 400;
+    throw err;
+  }
+  if (!/^[A-Z0-9]{1,16}$/.test(ons)) {
+    const err = new Error("onsCode is not a valid PCON code.");
+    err.statusCode = 400;
+    throw err;
+  }
+  return ons;
+}
+
+function validateOutputType(value) {
+  const outputType = typeof value === "string" ? value.trim().toLowerCase() : "";
+  if (!VALID_OUTPUT_TYPES.has(outputType)) {
+    const err = new Error("outputType must be one of email, letter, social_post, speech_notes, press_release.");
+    err.statusCode = 400;
+    throw err;
+  }
+  return outputType;
+}
+
+function validateSystemPrompt(value) {
+  const prompt = typeof value === "string" ? value : "";
+  if (!prompt.trim()) {
+    const err = new Error("systemPrompt is required.");
+    err.statusCode = 400;
+    throw err;
+  }
+  return prompt.slice(0, PERSONA_MAX_SYSTEM_PROMPT_CHARS);
+}
+
+function validateContext(value) {
+  const context = typeof value === "string" ? value.trim() : "";
+  if (!context) {
+    const err = new Error("context is required.");
+    err.statusCode = 400;
+    throw err;
+  }
+  if (context.length > DRAFT_MAX_CONTEXT_CHARS) {
+    const err = new Error(`context must be ${DRAFT_MAX_CONTEXT_CHARS} characters or fewer.`);
+    err.statusCode = 400;
+    throw err;
+  }
+  return context;
+}
+
 function htmlToText(html) {
   return html
     .replace(/<script[\s\S]*?<\/script>/gi, "")
@@ -134,7 +210,7 @@ async function fetchJson(url, options = {}) {
   return res.json();
 }
 
-// ── Step 1: Parliament Members API ────────────────────────────────────────────
+// ── Persona pipeline — scraping + Anthropic ───────────────────────────────────
 
 async function getMemberId(mpName) {
   const url = `https://members-api.parliament.uk/api/Members/Search?Name=${encodeURIComponent(mpName)}&IsCurrentMember=true`;
@@ -148,8 +224,6 @@ async function getMemberId(mpName) {
   return member.id;
 }
 
-// ── Step 2: Hansard contributions (pages 1–10) ────────────────────────────────
-
 async function scrapeHansard(memberId) {
   const texts = [];
   for (let page = 1; page <= 10; page++) {
@@ -157,7 +231,6 @@ async function scrapeHansard(memberId) {
       const url = `https://hansard.parliament.uk/search/Contributions?memberId=${memberId}&house=Commons&page=${page}`;
       const html = await fetchText(url);
       const text = htmlToText(html);
-      // Take a meaningful chunk from each page, avoiding nav/header boilerplate
       const slice = text.slice(Math.min(text.indexOf("Contribution"), 2000)).slice(0, 6000);
       if (slice.length > 200) texts.push(`[Hansard page ${page}]\n${slice}`);
     } catch (err) {
@@ -168,8 +241,6 @@ async function scrapeHansard(memberId) {
   }
   return texts.join("\n\n");
 }
-
-// ── Step 3: Wikipedia ─────────────────────────────────────────────────────────
 
 async function fetchWikipedia(mpName) {
   try {
@@ -188,8 +259,6 @@ async function fetchWikipedia(mpName) {
     return "";
   }
 }
-
-// ── Step 4: Press releases (best effort, skip on failure) ────────────────────
 
 async function fetchPressReleases(mpName) {
   const namePart = mpName.toLowerCase().replace(/\s+/g, "");
@@ -215,9 +284,7 @@ async function fetchPressReleases(mpName) {
   return "";
 }
 
-// ── Steps 6 & 7: Anthropic API ────────────────────────────────────────────────
-
-async function anthropicCall(userMessage, systemPrompt) {
+async function anthropicCall(userMessage, systemPrompt, { maxTokens = 4096 } = {}) {
   if (!ANTHROPIC_API_KEY) throw new Error("ANTHROPIC_API_KEY environment variable is not set.");
   const res = await fetch("https://api.anthropic.com/v1/messages", {
     method: "POST",
@@ -227,8 +294,8 @@ async function anthropicCall(userMessage, systemPrompt) {
       "anthropic-version": "2023-06-01",
     },
     body: JSON.stringify({
-      model: "claude-sonnet-4-20250514",
-      max_tokens: 4096,
+      model: ANTHROPIC_MODEL,
+      max_tokens: maxTokens,
       system: systemPrompt,
       messages: [{ role: "user", content: userMessage }],
     }),
@@ -323,7 +390,16 @@ async function runPersonaPipeline(mpName) {
   };
 }
 
-async function putPendingJob({ jobId, mpName }) {
+async function runDraftPipeline({ systemPrompt, outputType, context }) {
+  const label = OUTPUT_TYPE_LABEL[outputType] || outputType;
+  const userMessage = `Draft a ${label} for this MP. Context: ${context}. Write in the MP's authentic voice. Output only the final draft text, no preamble.`;
+  const text = await anthropicCall(userMessage, systemPrompt, { maxTokens: 1500 });
+  return { generatedText: text.slice(0, DRAFT_MAX_OUTPUT_CHARS) };
+}
+
+// ── DynamoDB job lifecycle ────────────────────────────────────────────────────
+
+async function putPendingJob({ jobId, mode, attributes = {} }) {
   requireJobsTable();
   const createdAt = nowIso();
   const ttl = Math.floor(Date.now() / 1000) + PERSONA_JOB_TTL_SECONDS;
@@ -333,10 +409,11 @@ async function putPendingJob({ jobId, mpName }) {
       Item: {
         jobId,
         status: "pending",
-        mpName,
+        mode,
         createdAt,
         updatedAt: createdAt,
         ttl,
+        ...attributes,
       },
       ConditionExpression: "attribute_not_exists(jobId)",
     })
@@ -391,20 +468,46 @@ async function markJobError(jobId, error) {
   });
 }
 
+// ── HTTP routing ──────────────────────────────────────────────────────────────
+
 async function startJob(event, origin) {
   let jobId = "";
   try {
     const body = parseJsonBody(event);
-    const mpName = validateMpName(body.mpName);
-    jobId = randomUUID();
+    const mode = (typeof body.mode === "string" && body.mode.trim()) || "persona";
 
-    await putPendingJob({ jobId, mpName });
+    if (mode !== "persona" && mode !== "draft") {
+      return respond(400, { error: "mode must be 'persona' or 'draft'." }, origin);
+    }
+
+    jobId = randomUUID();
+    let asyncPayload;
+
+    if (mode === "persona") {
+      const mpName = validateMpName(body.mpName);
+      const onsCode = validateOnsCode(body.onsCode);
+      await putPendingJob({ jobId, mode, attributes: { mpName, onsCode } });
+      asyncPayload = { __asyncPersonaJob: true, jobId, mode, mpName, onsCode };
+    } else {
+      const systemPrompt = validateSystemPrompt(body.systemPrompt);
+      const outputType = validateOutputType(body.outputType);
+      const context = validateContext(body.context);
+      await putPendingJob({ jobId, mode, attributes: { outputType } });
+      asyncPayload = {
+        __asyncPersonaJob: true,
+        jobId,
+        mode,
+        systemPrompt,
+        outputType,
+        context,
+      };
+    }
 
     await lambda.send(
       new InvokeCommand({
         FunctionName: process.env.AWS_LAMBDA_FUNCTION_NAME,
         InvocationType: "Event",
-        Payload: Buffer.from(JSON.stringify({ __asyncPersonaJob: true, jobId, mpName })),
+        Payload: Buffer.from(JSON.stringify(asyncPayload)),
       })
     );
 
@@ -436,10 +539,9 @@ async function pollJob(event, origin) {
 
 async function runAsyncJob(event) {
   const jobId = event?.jobId || "";
-  const mpName = event?.mpName || "";
-
-  if (!jobId || !mpName) {
-    console.error("[persona] Async event missing jobId or mpName");
+  const mode = event?.mode || "persona";
+  if (!jobId) {
+    console.error("[persona] Async event missing jobId");
     return { ok: false };
   }
 
@@ -460,10 +562,24 @@ async function runAsyncJob(event) {
 
     await markJobRunning(jobId);
 
-    const result = await runPersonaPipeline(mpName);
+    if (mode === "draft") {
+      const result = await runDraftPipeline({
+        systemPrompt: event.systemPrompt,
+        outputType: event.outputType,
+        context: event.context,
+      });
+      await updateJob(jobId, "complete", {
+        generatedText: result.generatedText,
+        completedAt: nowIso(),
+      });
+      return { ok: true };
+    }
+
+    const result = await runPersonaPipeline(event.mpName);
     await updateJob(jobId, "complete", {
       systemPrompt: result.systemPrompt,
       mpName: result.mpName,
+      onsCode: event.onsCode,
       completedAt: nowIso(),
       truncated: result.truncated,
     });
@@ -493,13 +609,13 @@ export const handler = async (event = {}) => {
     return { statusCode: 200, headers: corsHeaders(origin), body: "" };
   }
 
-  if (method === "POST" && (path.endsWith("/persona") || routeKey === "POST /persona")) {
+  if (method === "POST") {
     return startJob(event, origin);
   }
 
   if (
     method === "GET" &&
-    (event?.pathParameters?.jobId || routeKey === "GET /persona/{jobId}" || path.includes("/persona/"))
+    (event?.pathParameters?.jobId || routeKey === "GET /persona/{jobId}" || /\/[A-Za-z0-9-]+$/.test(path))
   ) {
     return pollJob(event, origin);
   }
