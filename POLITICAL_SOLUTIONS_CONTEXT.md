@@ -1,6 +1,6 @@
 # Political Solutions — Project Context
 
-Last updated: 18 May 2026
+Last updated: 19 May 2026
 
 ---
 
@@ -8,10 +8,10 @@ Last updated: 18 May 2026
 
 A SaaS platform for UK Conservative campaign operations. It provides:
 
-1. **Marked register upload tool** — MPs/agents upload marked registers (PDF/CSV) via a portal. Files are queued, processed by a local listener, and results returned.
+1. **Marked register upload tool** — MPs/agents upload marked registers (PDF/CSV) via a portal. Files are queued, processed by Lambda OCR workers (`ProcessRegisterFunction` → `CombineRegisterFunction`), and results emailed as a CSV download link.
 2. **Constituency Intelligence** — analytics dashboard covering all 650 UK constituencies: election results, vulnerability scores, threat indices (Reform, Lib Dem, Green), demographics, swing analysis, target seats.
 3. **Local Government tracker** — LGR (Local Government Reorganisation) data covering Surrey, DPP, Wave 2 areas; councillor attendance; council data.
-4. **MP Persona Generator** — AI-powered tool that generates an MP writing style guide and system prompt from Hansard, Wikipedia, and press releases.
+4. **Parliamentary Communications Service** — AI-powered MP persona product at `/portal/mp-persona`. Permission-gated via the `feature_mp_persona` flag on `user_permissions` (toggled per-row from the admin Permissions page). The MP name is **locked to the user's permitted constituency** — resolved from `user_permissions → association_constituencies → constituencies.mp_name` and rendered as a read-only field. Tab 1 ("MP Style Guide") generates the system prompt from Hansard, Wikipedia, and press releases. Tab 2 ("Draft Communications") uses the saved prompt to draft emails, letters, social posts, speech notes, or press releases; saved drafts persist in `mp_persona_outputs`. The old hardcoded password gate (`"persona2026"`) is fully removed. `paul@politicalsolutions.uk` (admin) always has access regardless of the feature flag.
 5. **By-Election Monitor** — automated daily alert system that detects recently departed Commons members and creates `political_alerts` rows.
 6. **By-Election Early Warning (Section 85)** — alert system and dashboard identifying councillors at risk of automatic disqualification under Section 85, Local Government Act 1972 (6 months non-attendance). Alerts are seeded via `import_section85_flags.py` and rescored weekly by `AttendanceRiskRefreshFunction`. The dashboard at `/portal/alerts/by-election-risk` shows all national alerts (admin) or constituency-scoped alerts (standard user), with Status/Region/Party filters. Each council detail page (`LocalGovDetail`) shows an Early Warning panel listing flagged councillors for that authority.
 6. **Quote/enquiry system** — service quote requests, Xero invoice integration (enquiry-api stack).
@@ -150,7 +150,9 @@ POLITICAL_SOLUTIONS_DESIGN_SYSTEM.md  # Full brand + design spec
 | Lambda | Handler | Trigger | Timeout |
 |---|---|---|---|
 | `UploadFunction` | `handler.mjs` | HTTP API Gateway | 29s |
-| `WorkerFunction` | `worker.mjs` | SQS (`ProcessQueue`) | 300s |
+| `WorkerFunction` | `worker.mjs` | SQS (`ProcessQueue`); **disabled** — legacy stub replaced by `ProcessRegisterFunction` | 300s |
+| `ProcessRegisterFunction` | `src_python/process_register/handler.py` | SQS (`ProcessQueue`); Enabled; BatchSize 1. Requires `TesseractLayerArn` SAM parameter. | 900s |
+| `CombineRegisterFunction` | `src_python/combine_register/handler.py` | Lambda invoke (async, from `ProcessRegisterFunction` when all files in a batch complete) | 300s |
 | `UploadCompleteFunction` | `uploadCompleteHandler.mjs` | S3 ObjectCreated | 30s |
 | `ScanResultHandlerFunction` | `scanResultHandler.mjs` | EventBridge (GuardDuty) | 30s |
 | `PersonaFunction` | `personaHandler.mjs` | Lambda Function URL | 300s |
@@ -192,7 +194,9 @@ All constituency intelligence, permissions, subscriptions, and alerts live in Su
 | `associations` | Conservative associations (name, region, country) |
 | `association_constituencies` | Join: association → constituencies |
 | `constituencies` | All 650 constituencies (id, name, ons_code) |
-| `user_permissions` | cognito_sub → association_id grants, `is_active` flag |
+| `user_permissions` | cognito_sub → association_id grants, `is_active` flag, `feature_mp_persona` flag (gates Parliamentary Communications Service) |
+| `mp_personas` | One saved MP Style Guide per `(cognito_sub, constituency_ons_code)`; stores `system_prompt`, `mp_name`, `constituency_ons_code`, timestamps. RLS-scoped to the owning `cognito_sub`. |
+| `mp_persona_outputs` | Saved drafts generated from an MP persona; FK to `mp_personas`; `output_type ∈ {email, letter, social_post, speech_notes, press_release}`, `context_provided`, `generated_text`. RLS-scoped to the owning `cognito_sub`. |
 | `permission_audit_log` | GRANT/REVOKE/SUBSCRIPTION_ACTIVATE/SUSPEND audit trail |
 | `admin_users` | Cognito subs with admin access |
 | `subscriptions` | Stripe subscription records per user; `admin_override_active` for manual activation |
@@ -308,6 +312,10 @@ All schema changes go through `supabase/migrations/*.sql` and auto-apply on merg
 
 `ANTHROPIC_API_KEY` on `PersonaFunction` must be set **manually** in the Lambda console — it is left blank in the SAM template and excluded from CloudFormation parameters.
 
+`TesseractLayerArn` must be supplied at deploy time for `ProcessRegisterFunction` to have OCR capability. Production value: `arn:aws:lambda:eu-west-2:561375865143:layer:tesseract-layer:5`. Pass via `TESSERACT_LAYER_ARN` env var when running `deploy-upload-api.sh`.
+
+`SesRecipientEmail` (default `markedregisters@politicalsolutions.uk`) controls where `CombineRegisterFunction` sends the batch-complete email. Override at deploy time via `SES_RECIPIENT_EMAIL` env var.
+
 ---
 
 ## Build system
@@ -333,12 +341,12 @@ SEO: `noindexPrefixes = ["/portal"]` in `seoRoutes.js` covers all portal subrout
 - **WAF disabled on both stacks** — can be re-enabled with `WafEnabled=true` at deploy time.
 - **Two upload-api stacks** — `upload-api` (dev) and `ps-upload-api-prod` (production) are entirely separate. Always deploy to `ps-upload-api-prod`.
 - **Cognito JWT `aud` vs `client_id`** — Cognito access tokens use `client_id` not `aud`. The handler verifies against `payload.aud || payload.client_id`.
-- **Local listener not deployed to Lambda** — `WorkerProcessQueueMapping` is set `Enabled: false`. The sole SQS consumer is `scripts/listener/listener.py` running locally.
+- **`WorkerFunction`/`WorkerProcessQueueMapping` are legacy stubs** — `WorkerProcessQueueMapping` remains `Enabled: false`. `WorkerFunction` (`worker.mjs`) is a no-op stub. The production SQS consumer is `ProcessRegisterFunction` (Python), which has its own `Events.SQSSource` mapping set `Enabled: true`. Do not enable `WorkerProcessQueueMapping` — it would compete with `ProcessRegisterFunction` and consume messages without processing them.
 - **LGR milestone dates are hardcoded** — Wave 2 consultation close (26 March 2026) and Surrey shadow election (7 May 2026) are hardcoded in `lgrUrgency.js`. They will show as 0 days / past after those dates.
 - **Lambda runtime deprecation** — all pre-existing Lambda functions in `ps-upload-api-prod` run on `nodejs20.x`, which AWS deprecates for new deployments before 1 July 2026. All functions must be migrated to `nodejs22.x` before that date. Only `AttendanceRiskRefreshFunction` (added May 2026) is affected by this as a newly-added function; the others were deployed before the deprecation notice.
 - **`infra/upload-api/packaged-template.yaml` not in `.gitignore`** — this file is an ephemeral SAM build artifact and must not be committed. It was excluded manually from the May 2026 commit (435f2fb). Add it to `.gitignore` to prevent accidental future commits.
 - **232 councils with placeholder GSS codes** — councils imported as `OCD-NNN` rather than real ONS GSS codes (`E0xxxxxxx`). These are valid internal IDs but cannot be cross-referenced against ONS datasets. Not yet addressed.
-- **MPPersona password gate** — the MP Persona Generator is gated by a hardcoded password (`"persona2026"`) stored in `localStorage`. This is a simple friction gate, not real auth.
+- **`ANTHROPIC_API_KEY` still requires manual Lambda console entry after each deploy** — `PersonaFunction` reads the key from `process.env.ANTHROPIC_API_KEY`, but the value is **not** managed by CloudFormation. Every SAM deploy to `ps-upload-api-prod` resets the variable, so after each deploy an operator must re-set it via the Lambda console. Both the persona pipeline and the draft pipeline fail with `ANTHROPIC_API_KEY environment variable is not set.` if the key is missing.
 - **Prerender fails in worktrees** — `VITE_SUPABASE_URL` is not set in worktree build contexts; prerender step errors. The client + SSR JS builds succeed. Not a code issue.
 
 ---
@@ -349,7 +357,7 @@ SEO: `noindexPrefixes = ["/portal"]` in `seoRoutes.js` covers all portal subrout
 - Stripe subscriptions are integrated and working (card + invoice payment)
 - Subscription pricing based on number of constituencies per association; computed from `associations_with_pricing` Supabase view
 - Manual admin override (`admin_override_active`) available for provisional access
-- MP Persona Generator is in early access (password-gated)
+- Parliamentary Communications Service is live behind the `feature_mp_persona` flag on `user_permissions`; the old password gate has been removed
 - By-Election Monitor is deployed and running daily
 - No public signup — users register via the enquiry flow and are manually approved
 - Blog is live with automation scripts for drafting and publishing posts

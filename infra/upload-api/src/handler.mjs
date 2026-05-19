@@ -69,6 +69,11 @@ const MAX_ELECTION_ID = 120;
 const MAX_ELECTION_NAME = 200;
 const MAX_ELECTION_TYPE = 64;
 const MAX_ELECTION_AUTHORITY = 120;
+const MAX_ASSOCIATION = 200;
+const MAX_CONSTITUENCY = 200;
+const MAX_COUNCIL_AREA = 200;
+const MAX_ELECTION_LABEL = 200;
+const MAX_ELECTION_DATE = 40;
 const VALID_FILE_TYPES = new Set(["pdf", "csv"]);
 const FILE_TYPE_CONTENT_TYPES = {
   pdf: "application/pdf",
@@ -701,90 +706,37 @@ async function handleCreateJob(event, origin) {
     return response(400, { error: "invalid_json" }, origin);
   }
 
-  const pconCode = sanitize(body.pconCode, MAX_PCON).toUpperCase();
-  if (!pconCode) {
-    return errorResponse(origin, 400, "PCON_REQUIRED", "pconCode is required.");
-  }
+  // Five free-text metadata fields — all mandatory for new uploads.
+  const association = sanitize(body.association, MAX_ASSOCIATION);
+  const constituency = sanitize(body.constituency, MAX_CONSTITUENCY);
+  const councilArea = sanitize(body.councilArea, MAX_COUNCIL_AREA);
+  const election = sanitize(body.election, MAX_ELECTION_LABEL);
+  const electionDate = sanitize(body.electionDate, MAX_ELECTION_DATE);
 
-  const allowedPconCodes = normalizePconCodes("", user?.allowedPconCodes);
-  if (allowedPconCodes.length > 0 && !allowedPconCodes.includes(pconCode)) {
-    return errorResponse(
-      origin,
-      403,
-      "PCON_NOT_ALLOWED",
-      "You are not allowed to submit for this constituency.",
-      { pconCode }
-    );
-  }
-
-  const rawElectionId = sanitize(body.electionId, MAX_ELECTION_ID);
-  if (!rawElectionId) {
-    return errorResponse(origin, 400, "ELECTION_REQUIRED", "electionId is required.");
-  }
-  const electionId = rawElectionId.toUpperCase() === OTHER_ELECTION_ID ? OTHER_ELECTION_ID : rawElectionId;
-  const requiresManualReview = electionId === OTHER_ELECTION_ID;
-  const manualReviewReason = sanitize(body.manualReviewReason, MAX_REASON);
-
-  if (requiresManualReview && manualReviewReason.length < MIN_MANUAL_REVIEW_REASON) {
+  const missing = [];
+  if (!association) missing.push("association");
+  if (!constituency) missing.push("constituency");
+  if (!councilArea) missing.push("councilArea");
+  if (!election) missing.push("election");
+  if (!electionDate) missing.push("electionDate");
+  if (missing.length > 0) {
     return errorResponse(
       origin,
       400,
-      "MANUAL_REVIEW_REASON_REQUIRED",
-      `manualReviewReason must be at least ${MIN_MANUAL_REVIEW_REASON} characters when electionId is OTHER.`
+      "FIELDS_REQUIRED",
+      `Missing required field(s): ${missing.join(", ")}.`,
+      { missing }
     );
   }
 
-  if (!requiresManualReview) {
-    const electionsCheck = ensureElectionsRepo(origin);
-    if (electionsCheck.error) return electionsCheck.error;
-
-    const election = await electionsRepo.getElection(electionId);
-    const electionStatuses = normalizeElectionStatuses(JOB_OPEN_ELECTION_STATUSES, JOB_OPEN_ELECTION_STATUSES);
-    const isAllowedStatus = electionStatuses.includes((election?.status || "").toUpperCase());
-    const electionPconCodes = normalizePconCodes("", election?.pconCodes);
-    if (!election || !isAllowedStatus || !electionPconCodes.includes(pconCode)) {
-      return errorResponse(
-        origin,
-        400,
-        "ELECTION_NOT_ALLOWED",
-        "electionId is not available for this constituency.",
-        { electionId, pconCode }
-      );
-    }
-  }
-
-  const wardParse = normalizeWardCodes(body.wards);
-  if (!wardParse.ok) {
-    return errorResponse(origin, 400, "WARDS_INVALID", wardParse.error);
-  }
-  const wardCodes = wardParse.wardCodes;
-
-  if (wardCodes.length > 0) {
-    if (!geoLookupRepo) {
-      return errorResponse(
-        origin,
-        500,
-        "GEO_LOOKUP_NOT_CONFIGURED",
-        "Ward validation is unavailable because GEO_LOOKUP_TABLE is not configured."
-      );
-    }
-    const wardValidation = await geoLookupRepo.wardsBelongToPcon(wardCodes, pconCode);
-    if (!wardValidation.ok) {
-      return errorResponse(
-        origin,
-        400,
-        "WARD_NOT_IN_PCON",
-        "One or more wards do not belong to the selected constituency.",
-        {
-          details: {
-            wardCode: wardValidation.invalidWardCodes[0] || "",
-            pconCode,
-            invalidWardCodes: wardValidation.invalidWardCodes,
-          },
-        }
-      );
-    }
-  }
+  // Optional legacy fields — accepted for backwards compatibility but no longer
+  // validated against allowedPconCodes / ElectionsTable / wards.
+  const pconCode = sanitize(body.pconCode, MAX_PCON).toUpperCase();
+  const rawElectionId = sanitize(body.electionId, MAX_ELECTION_ID);
+  const electionId = rawElectionId
+    ? (rawElectionId.toUpperCase() === OTHER_ELECTION_ID ? OTHER_ELECTION_ID : rawElectionId)
+    : "";
+  const wardCodes = [];
 
   const filename = sanitize(body.filename, MAX_FILENAME);
   const fileType = (body.fileType || "").toString().toLowerCase().trim();
@@ -828,17 +780,15 @@ async function handleCreateJob(event, origin) {
     status: "QUEUED",
     userId: userSub,
     orgId: user?.orgId || "",
-    pconCode,
-    electionId,
-    requiresManualReview,
-    ...(requiresManualReview ? { manualReviewReason } : {}),
-    ...(requiresManualReview
-      ? {
-          manualReviewStatus: "OPEN",
-          manualReviewKey: "MR#OPEN",
-        }
-      : {}),
-    blocked: requiresManualReview,
+    association,
+    constituency,
+    councilArea,
+    election,
+    electionDate,
+    ...(pconCode ? { pconCode } : {}),
+    ...(electionId ? { electionId } : {}),
+    requiresManualReview: false,
+    blocked: false,
     wardCodes,
     ...(batchId ? { batchId, totalFilesInBatch, constituencyOnsCode: constituencyOnsCode || pconCode } : {}),
     createdAt: now,
@@ -860,10 +810,11 @@ async function handleCreateJob(event, origin) {
       jobId,
       userId: userSub,
       orgId: user?.orgId || "",
-      pconCode,
-      electionId,
-      requiresManualReview,
-      manualReviewReason: requiresManualReview ? manualReviewReason : "",
+      association,
+      constituency,
+      councilArea,
+      election,
+      electionDate,
     },
   });
 
@@ -886,10 +837,14 @@ async function handleCreateJob(event, origin) {
     {
       jobId,
       s3Key,
-      pconCode,
-      electionId,
-      requiresManualReview,
-      ...(requiresManualReview ? { manualReviewReason } : {}),
+      association,
+      constituency,
+      councilArea,
+      election,
+      electionDate,
+      ...(pconCode ? { pconCode } : {}),
+      ...(electionId ? { electionId } : {}),
+      requiresManualReview: false,
       wardCodes,
       upload,
     },

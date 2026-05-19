@@ -1379,6 +1379,7 @@ Resources:
           SUPABASE_URL: !Ref SupabaseUrl
           SUPABASE_SERVICE_KEY: !Ref SupabaseServiceKey
           TESSDATA_PREFIX: /opt/tessdata
+          LD_LIBRARY_PATH: /opt/lib
       Policies:
         - Statement:
             Effect: Allow
@@ -1472,6 +1473,7 @@ Resources:
             Effect: Allow
             Action:
               - ses:SendEmail
+              - ses:SendRawEmail
             Resource: "*"
 
   ProcessRegisterFunctionErrorsAlarm:

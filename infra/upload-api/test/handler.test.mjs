@@ -603,19 +603,24 @@ describe("User application endpoints", () => {
 });
 
 describe("POST /jobs approval gating", () => {
+  const VALID_BODY = {
+    filename: "batch.csv",
+    fileType: "csv",
+    size: 1024,
+    association: "Staffordshire South Conservative Association",
+    constituency: "Stone, Great Wyrley and Penkridge",
+    councilArea: "South Staffordshire District Council",
+    election: "2024 General Election",
+    electionDate: "04 July 2024",
+  };
+
   it("auto-creates approved record when user is missing and allows job creation", async () => {
     const res = await handler(
       buildAuthEvent({
         method: "POST",
         path: "/jobs",
         sub: "missing-user",
-        body: {
-          filename: "batch.csv",
-          pconCode: "E14000637",
-          electionId: "election-allowed",
-          fileType: "csv",
-          size: 1024,
-        },
+        body: { ...VALID_BODY },
       })
     );
 
@@ -636,13 +641,7 @@ describe("POST /jobs approval gating", () => {
       buildAuthEvent({
         method: "POST",
         path: "/jobs",
-        body: {
-          filename: "batch.csv",
-          pconCode: "E14000637",
-          electionId: "election-allowed",
-          fileType: "csv",
-          size: 1024,
-        },
+        body: { ...VALID_BODY },
       })
     );
 
@@ -650,20 +649,12 @@ describe("POST /jobs approval gating", () => {
     expect(JSON.parse(res.body)).toMatchObject({ code: "PENDING_APPROVAL", status: "PENDING" });
   });
 
-  it("allows approved users and creates a job", async () => {
+  it("allows approved users and persists the five free-text fields", async () => {
     const res = await handler(
       buildAuthEvent({
         method: "POST",
         path: "/jobs",
-        body: {
-          filename: "batch.csv",
-          pconCode: "E14000637",
-          electionId: "election-allowed",
-          fileType: "csv",
-          size: 1024,
-          wards: ["W1001"],
-          metadata: { clientName: "North Association", notes: "Batch 1" },
-        },
+        body: { ...VALID_BODY, metadata: { clientName: "North Association", notes: "Batch 1" } },
       })
     );
 
@@ -671,22 +662,38 @@ describe("POST /jobs approval gating", () => {
     const body = JSON.parse(res.body);
     expect(body.jobId).toBeTruthy();
     expect(body.s3Key).toMatch(/^uploads\/user-sub-1\//);
-    expect(body.pconCode).toBe("E14000637");
-    expect(body.electionId).toBe("election-allowed");
+    expect(body.association).toBe(VALID_BODY.association);
+    expect(body.constituency).toBe(VALID_BODY.constituency);
+    expect(body.councilArea).toBe(VALID_BODY.councilArea);
+    expect(body.election).toBe(VALID_BODY.election);
+    expect(body.electionDate).toBe(VALID_BODY.electionDate);
     expect(body.requiresManualReview).toBe(false);
-    expect(body.wardCodes).toEqual(["W1001"]);
     expect(lastPresignedPostParams.Conditions).toContainEqual(["content-length-range", 1, 200 * 1024 * 1024]);
     const storedJob = jobsMap.get(body.jobId);
-    expect(storedJob.pconCode).toBe("E14000637");
-    expect(storedJob.electionId).toBe("election-allowed");
-    expect(storedJob.manualReviewKey).toBeUndefined();
-    expect(storedJob.manualReviewStatus).toBeUndefined();
-    expect(storedJob.wardCodes).toEqual(["W1001"]);
+    expect(storedJob.association).toBe(VALID_BODY.association);
+    expect(storedJob.constituency).toBe(VALID_BODY.constituency);
+    expect(storedJob.councilArea).toBe(VALID_BODY.councilArea);
+    expect(storedJob.election).toBe(VALID_BODY.election);
+    expect(storedJob.electionDate).toBe(VALID_BODY.electionDate);
     expect(storedJob.orgId).toBe("org-a");
     expect(Array.from(auditMap.values()).some((entry) => entry.action === "JOB_CREATED")).toBe(true);
   });
 
-  it("returns 400 when pconCode is missing", async () => {
+  it("returns 400 when any of the five free-text fields is missing", async () => {
+    const res = await handler(
+      buildAuthEvent({
+        method: "POST",
+        path: "/jobs",
+        body: { ...VALID_BODY, association: "", constituency: "" },
+      })
+    );
+    expect(res.statusCode).toBe(400);
+    const body = JSON.parse(res.body);
+    expect(body.code).toBe("FIELDS_REQUIRED");
+    expect(body.missing).toEqual(expect.arrayContaining(["association", "constituency"]));
+  });
+
+  it("returns 400 when all five free-text fields are missing", async () => {
     const res = await handler(
       buildAuthEvent({
         method: "POST",
@@ -695,148 +702,21 @@ describe("POST /jobs approval gating", () => {
       })
     );
     expect(res.statusCode).toBe(400);
-    expect(JSON.parse(res.body).code).toBe("PCON_REQUIRED");
+    expect(JSON.parse(res.body).code).toBe("FIELDS_REQUIRED");
   });
 
-  it("returns 403 when pconCode is not in allowedPconCodes", async () => {
+  it("accepts legacy pconCode/electionId without validating them against allowedPconCodes", async () => {
     const res = await handler(
       buildAuthEvent({
         method: "POST",
         path: "/jobs",
-        body: {
-          filename: "batch.csv",
-          pconCode: "E14009999",
-          electionId: "election-allowed",
-          fileType: "csv",
-          size: 1024,
-        },
-      })
-    );
-    expect(res.statusCode).toBe(403);
-    expect(JSON.parse(res.body).code).toBe("PCON_NOT_ALLOWED");
-  });
-
-  it("allows uploads when the legacy allowedPconCodes list is absent", async () => {
-    usersMap.set("user-sub-1", {
-      userId: "user-sub-1",
-      status: "APPROVED",
-      orgId: "org-a",
-      orgType: "ASSOCIATION",
-      createdAt: "2026-01-01T00:00:00.000Z",
-    });
-
-    const res = await handler(
-      buildAuthEvent({
-        method: "POST",
-        path: "/jobs",
-        body: {
-          filename: "batch.csv",
-          pconCode: "E14000637",
-          electionId: "election-allowed",
-          fileType: "csv",
-          size: 1024,
-        },
-      })
-    );
-
-    expect(res.statusCode).toBe(201);
-    expect(JSON.parse(res.body).pconCode).toBe("E14000637");
-  });
-
-  it("returns 400 when ward does not belong to pconCode", async () => {
-    const res = await handler(
-      buildAuthEvent({
-        method: "POST",
-        path: "/jobs",
-        body: {
-          filename: "batch.csv",
-          pconCode: "E14000637",
-          electionId: "election-allowed",
-          wards: ["W9999"],
-          fileType: "csv",
-          size: 1024,
-        },
-      })
-    );
-    expect(res.statusCode).toBe(400);
-    const body = JSON.parse(res.body);
-    expect(body.code).toBe("WARD_NOT_IN_PCON");
-    expect(body.details.wardCode).toBe("W9999");
-  });
-
-  it("returns 400 when electionId is missing", async () => {
-    const res = await handler(
-      buildAuthEvent({
-        method: "POST",
-        path: "/jobs",
-        body: { filename: "batch.csv", pconCode: "E14000637", fileType: "csv", size: 1024 },
-      })
-    );
-    expect(res.statusCode).toBe(400);
-    expect(JSON.parse(res.body).code).toBe("ELECTION_REQUIRED");
-  });
-
-  it("returns 400 when electionId is not permitted for pcon", async () => {
-    const res = await handler(
-      buildAuthEvent({
-        method: "POST",
-        path: "/jobs",
-        body: {
-          filename: "batch.csv",
-          pconCode: "E14000637",
-          electionId: "election-other-pcon",
-          fileType: "csv",
-          size: 1024,
-        },
-      })
-    );
-    expect(res.statusCode).toBe(400);
-    expect(JSON.parse(res.body).code).toBe("ELECTION_NOT_ALLOWED");
-  });
-
-  it("rejects OTHER electionId without manualReviewReason", async () => {
-    const res = await handler(
-      buildAuthEvent({
-        method: "POST",
-        path: "/jobs",
-        body: {
-          filename: "batch.csv",
-          pconCode: "E14000637",
-          electionId: "OTHER",
-          fileType: "csv",
-          size: 1024,
-        },
-      })
-    );
-    expect(res.statusCode).toBe(400);
-    expect(JSON.parse(res.body).code).toBe("MANUAL_REVIEW_REASON_REQUIRED");
-  });
-
-  it("allows OTHER electionId and sets requiresManualReview", async () => {
-    const res = await handler(
-      buildAuthEvent({
-        method: "POST",
-        path: "/jobs",
-        body: {
-          filename: "batch.csv",
-          pconCode: "E14000637",
-          electionId: "OTHER",
-          manualReviewReason: "Election list not yet configured.",
-          fileType: "csv",
-          size: 1024,
-        },
+        body: { ...VALID_BODY, pconCode: "E14009999", electionId: "election-anything" },
       })
     );
     expect(res.statusCode).toBe(201);
     const body = JSON.parse(res.body);
-    expect(body.requiresManualReview).toBe(true);
-    expect(body.manualReviewReason).toBe("Election list not yet configured.");
-    const storedJob = jobsMap.get(body.jobId);
-    expect(storedJob.electionId).toBe("OTHER");
-    expect(storedJob.requiresManualReview).toBe(true);
-    expect(storedJob.manualReviewReason).toBe("Election list not yet configured.");
-    expect(storedJob.manualReviewKey).toBe("MR#OPEN");
-    expect(storedJob.manualReviewStatus).toBe("OPEN");
+    expect(body.pconCode).toBe("E14009999");
+    expect(body.electionId).toBe("election-anything");
   });
 });
 
