@@ -17,7 +17,67 @@ import {
   revokePermission,
   setSubscriptionStatus,
 } from "../../../lib/permissionsApi.js";
+import { getSupabaseServiceClient } from "../../../lib/supabaseServiceClient.js";
 import { getSession } from "../../../auth/session.js";
+
+const ROOT_ADMIN_EMAIL = "paul@politicalsolutions.uk";
+
+async function fetchMpPersonaFlags(permissionIds) {
+  if (!permissionIds || permissionIds.length === 0) return {};
+  const db = getSupabaseServiceClient();
+  if (!db) return {};
+  const { data, error } = await db
+    .from("user_permissions")
+    .select("id, feature_mp_persona")
+    .in("id", permissionIds);
+  if (error || !Array.isArray(data)) return {};
+  const map = {};
+  for (const row of data) {
+    map[row.id] = Boolean(row.feature_mp_persona);
+  }
+  return map;
+}
+
+async function updateMpPersonaFlag(permissionId, value) {
+  const db = getSupabaseServiceClient();
+  if (!db) throw new Error("Supabase service client not available.");
+  const { error } = await db
+    .from("user_permissions")
+    .update({ feature_mp_persona: value })
+    .eq("id", permissionId);
+  if (error) throw new Error(error.message || "Failed to update MP Persona access.");
+}
+
+function MpPersonaToggle({ permission, value, locked, status, onToggle }) {
+  const inputId = `mp-persona-toggle-${permission.id}`;
+  return (
+    <div className="toggle-cell">
+      <label className="toggle-switch" htmlFor={inputId}>
+        <input
+          id={inputId}
+          type="checkbox"
+          checked={Boolean(value)}
+          disabled={Boolean(locked) || status === "saving"}
+          onChange={(event) => onToggle(permission, event.target.checked)}
+          aria-label={`MP Persona access for ${permission.user_email || "user"}`}
+        />
+        <span className="toggle-switch__slider" />
+      </label>
+      {locked && (
+        <span className="toggle-cell__status">Always on (admin)</span>
+      )}
+      {!locked && status === "saving" && (
+        <span className="toggle-cell__status">Saving…</span>
+      )}
+      {!locked && status === "saved" && (
+        <span className="toggle-cell__status toggle-cell__status--success">Updated</span>
+      )}
+      {!locked && status && status !== "saving" && status !== "saved" && (
+        <span className="toggle-cell__status toggle-cell__status--error">{status}</span>
+      )}
+    </div>
+  );
+}
 
 const USER_STATUSES = ["APPROVED", "PENDING", "REJECTED"];
 
@@ -123,6 +183,9 @@ export default function PermissionsPage() {
   const [subscriptions, setSubscriptions] = useState([]);
   const [subscriptionsLoading, setSubscriptionsLoading] = useState(false);
   const [subscriptionActionId, setSubscriptionActionId] = useState("");
+
+  const [mpPersonaFlags, setMpPersonaFlags] = useState({});
+  const [mpPersonaStatus, setMpPersonaStatus] = useState({});
 
   const adminEmail = getSession()?.user?.email || "";
 
@@ -332,14 +395,25 @@ export default function PermissionsPage() {
     }
   }
 
+  async function refreshSearchAndFlags(email) {
+    const results = await getPermissionsByEmail(email);
+    setSearchResults(results);
+    const ids = (results || []).map((row) => row.id).filter(Boolean);
+    const flags = await fetchMpPersonaFlags(ids);
+    setMpPersonaFlags(flags);
+    setMpPersonaStatus({});
+    return results;
+  }
+
   async function handleSearch(event) {
     event.preventDefault();
     if (!searchEmail.trim()) return;
     setSearching(true);
     setSearchResults(null);
+    setMpPersonaFlags({});
+    setMpPersonaStatus({});
     try {
-      const results = await getPermissionsByEmail(searchEmail.trim());
-      setSearchResults(results);
+      const results = await refreshSearchAndFlags(searchEmail.trim());
       if (results.length > 0) {
         setNewCognitoSub(results[0].cognito_sub);
         setNewEmail(results[0].user_email);
@@ -352,6 +426,30 @@ export default function PermissionsPage() {
       setSearchResults([]);
     } finally {
       setSearching(false);
+    }
+  }
+
+  async function handleToggleMpPersona(permission, nextValue) {
+    if (!permission?.id) return;
+    setMpPersonaStatus((current) => ({ ...current, [permission.id]: "saving" }));
+    setMpPersonaFlags((current) => ({ ...current, [permission.id]: nextValue }));
+    try {
+      await updateMpPersonaFlag(permission.id, nextValue);
+      setMpPersonaStatus((current) => ({ ...current, [permission.id]: "saved" }));
+      setTimeout(() => {
+        setMpPersonaStatus((current) => {
+          if (current[permission.id] !== "saved") return current;
+          const next = { ...current };
+          delete next[permission.id];
+          return next;
+        });
+      }, 2000);
+    } catch (err) {
+      setMpPersonaFlags((current) => ({ ...current, [permission.id]: !nextValue }));
+      setMpPersonaStatus((current) => ({
+        ...current,
+        [permission.id]: err.message || "Failed to update access.",
+      }));
     }
   }
 
@@ -370,7 +468,7 @@ export default function PermissionsPage() {
         adminEmail,
       });
       flashBanner("success", "Permission granted.");
-      setSearchResults(await getPermissionsByEmail(newEmail.trim()));
+      await refreshSearchAndFlags(newEmail.trim());
     } catch (error) {
       flashBanner("error", error.message || "Failed to grant permission.");
     } finally {
@@ -388,7 +486,7 @@ export default function PermissionsPage() {
         associationId: permission.association_id,
       });
       flashBanner("success", "Permission revoked.");
-      setSearchResults(await getPermissionsByEmail(permission.user_email));
+      await refreshSearchAndFlags(permission.user_email);
     } catch (error) {
       flashBanner("error", error.message || "Failed to revoke permission.");
     } finally {
@@ -758,32 +856,46 @@ export default function PermissionsPage() {
                               <th>Association</th>
                               <th>Granted</th>
                               <th>Granted by</th>
+                              <th>MP Persona Access</th>
                               <th>Action</th>
                             </tr>
                           </thead>
                           <tbody>
-                            {activePerms.map((permission) => (
-                              <tr key={permission.id}>
-                                <td>{permission.associations?.name || permission.association_id}</td>
-                                <td>
-                                  {permission.granted_at
-                                    ? new Date(permission.granted_at).toLocaleDateString("en-GB")
-                                    : "—"}
-                                </td>
-                                <td>{permission.granted_by || "—"}</td>
-                                <td>
-                                  <Button
-                                    variant="ghost"
-                                    className="button--small"
-                                    loading={revoking === permission.id}
-                                    disabled={Boolean(revoking)}
-                                    onClick={() => handleRevoke(permission)}
-                                  >
-                                    Revoke
-                                  </Button>
-                                </td>
-                              </tr>
-                            ))}
+                            {activePerms.map((permission) => {
+                              const locked = (permission.user_email || "").trim().toLowerCase() === ROOT_ADMIN_EMAIL;
+                              const value = locked ? true : Boolean(mpPersonaFlags[permission.id]);
+                              return (
+                                <tr key={permission.id}>
+                                  <td>{permission.associations?.name || permission.association_id}</td>
+                                  <td>
+                                    {permission.granted_at
+                                      ? new Date(permission.granted_at).toLocaleDateString("en-GB")
+                                      : "—"}
+                                  </td>
+                                  <td>{permission.granted_by || "—"}</td>
+                                  <td>
+                                    <MpPersonaToggle
+                                      permission={permission}
+                                      value={value}
+                                      locked={locked}
+                                      status={mpPersonaStatus[permission.id] || ""}
+                                      onToggle={handleToggleMpPersona}
+                                    />
+                                  </td>
+                                  <td>
+                                    <Button
+                                      variant="ghost"
+                                      className="button--small"
+                                      loading={revoking === permission.id}
+                                      disabled={Boolean(revoking)}
+                                      onClick={() => handleRevoke(permission)}
+                                    >
+                                      Revoke
+                                    </Button>
+                                  </td>
+                                </tr>
+                              );
+                            })}
                           </tbody>
                         </table>
                       </div>

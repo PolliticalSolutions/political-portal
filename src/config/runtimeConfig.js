@@ -27,6 +27,7 @@ export const getRuntimeConfig = () => {
     enquiryApiUrl: normalizeBaseUrl(readEnv("VITE_ENQUIRY_API_URL")),
     apiBaseUrlExplicit: normalizeBaseUrl(readEnv("VITE_API_BASE_URL")),
     uploadApiBaseUrl: normalizeBaseUrl(readEnv("VITE_UPLOAD_API_URL")),
+    personaApiUrl: normalizeBaseUrl(readEnv("VITE_PERSONA_API_URL")),
     stripePublishableKey: readEnv("VITE_STRIPE_PUBLISHABLE_KEY"),
     stripeApiBaseUrl: normalizeBaseUrl(readEnv("VITE_STRIPE_API_URL")),
     cognitoDomain: readEnv("VITE_COGNITO_DOMAIN"),
