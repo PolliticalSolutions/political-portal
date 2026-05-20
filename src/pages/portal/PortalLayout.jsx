@@ -480,9 +480,6 @@ export default function PortalLayout() {
               <NavLink className={navClass} to="/portal/local-government" onClick={() => setSidebarOpen(false)}>
                 Local Government
               </NavLink>
-              <NavLink className={navClass} to="/portal/local-government/lgr" onClick={() => setSidebarOpen(false)}>
-                LGR Tracker
-              </NavLink>
             </div>
 
             <div className="portal-nav-group">

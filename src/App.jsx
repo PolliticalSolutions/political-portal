@@ -49,7 +49,6 @@ const AlertsPage = lazy(() => import("./pages/portal/alerts/AlertsPage.jsx"));
 const ByElectionRiskDashboard = lazy(() => import("./pages/portal/alerts/ByElectionRiskDashboard.jsx"));
 const LocalGovIndex = lazy(() => import("./pages/portal/local-government/LocalGovIndex.jsx"));
 const LocalGovDetail = lazy(() => import("./pages/portal/local-government/LocalGovDetail.jsx"));
-const LGRTrackerPage = lazy(() => import("./pages/portal/local-government/LGRTrackerPage.jsx"));
 const ByElectionWatchPage = lazy(() => import("./pages/portal/analytics/ByElectionWatchPage.jsx"));
 const CorrelationsPage = lazy(() => import("./pages/portal/analytics/CorrelationsPage.jsx"));
 const ModelPerformancePage = lazy(() => import("./pages/portal/analytics/ModelPerformancePage.jsx"));
@@ -534,14 +533,6 @@ export default function App() {
                   element={
                     <Suspense fallback={<div className="page stack"><p className="muted">Loading…</p></div>}>
                       <LocalGovDetail />
-                    </Suspense>
-                  }
-                />
-                <Route
-                  path="local-government/lgr"
-                  element={
-                    <Suspense fallback={<div className="page stack"><p className="muted">Loading…</p></div>}>
-                      <LGRTrackerPage />
                     </Suspense>
                   }
                 />
