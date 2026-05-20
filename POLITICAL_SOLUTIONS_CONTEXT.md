@@ -223,7 +223,7 @@ All constituency intelligence, permissions, subscriptions, and alerts live in Su
 | `dataset_provenance_links` | Links data entities to their source datasets |
 | `local_authorities` | Local authority records |
 | `lgr_authorities` | LGR (reorganisation) tracking records |
-| `council_data` | Council-level political composition |
+| `council_data` | Council-level political composition. New columns (migration `20260512000000`): `local_authority_id` (FK → `local_authorities`), `controlling_party`, `control_type`, `total_seats`, `composition` (JSONB), `composition_source`, `composition_verified_at`. Populated by `scripts/import_council_composition.py` from Open Council Data UK. |
 | `council_elections` | Council election records |
 | `council_results` | Council ward-level results |
 | `council_wards` | Ward definitions |
@@ -365,6 +365,6 @@ SEO: `noindexPrefixes = ["/portal"]` in `seoRoutes.js` covers all portal subrout
 - SEO layer overhauled: keyword-first titles, optimised meta descriptions, FAQ + Service JSON-LD on Services page
 - **By-Election Early Warning system live (May 2026):** Section 85 LGA 1972 risk alerts seeded for critical/vacant councillors via `import_section85_flags.py`; weekly Monday Lambda (`AttendanceRiskRefreshFunction`) rescores ongoing; dashboard at `/portal/alerts/by-election-risk`; Early Warning panel on every council detail page
 - **Councillor attendance table deduped (May 2026):** reduced from 59,388 to 12,163 rows by removing committee membership rows (null eligible/attended); import script now skips these at source
-- **Council composition import script ready** (`scripts/import_council_composition.py`) — requires migration `supabase/migrations/20260512000000_add_council_composition_columns.sql` to be applied in Supabase first; not yet run against OCD UK data
+- **Council composition migration committed** (`supabase/migrations/20260512000000_add_council_composition_columns.sql`) — adds `local_authority_id`, `controlling_party`, `control_type`, `total_seats`, `composition`, `composition_source`, `composition_verified_at` to `council_data`. Auto-applies on merge to `main` via the Supabase migrations GitHub Actions workflow. After merge, run `python scripts/import_council_composition.py` (requires `SUPABASE_SERVICE_KEY`) to populate composition data from Open Council Data UK. Once populated, `LocalGovDetail.jsx` composition tab renders live seat-breakdown data instead of the "Composition data not yet available" fallback.
 - **Campaign Sessions & Volunteer Coordination shipped (May 2026):** end-to-end module at `/portal/campaigns` (PRs #20–#25). Multi-type sessions with 9-value `campaign_context`, structured addresses geocoded via postcodes.io, always-visible map + list / calendar views with constituency / activity / context filters, mobile-first live register, walk-ins, weekly SES digest to volunteers with HMAC-tokened RSVP links, 16-column bulk-upload CSV
 - **Automated Supabase migrations live (May 2026):** GitHub Actions workflow at `.github/workflows/supabase-migrate.yml` runs `supabase db push` on every merge to `main` that touches `supabase/migrations/**.sql`. All legacy 8-digit prefixes renamed to 14-digit `YYYYMMDDHHMMSS` so the Supabase CLI accepts them. Full playbook in `supabase/migrations/README.md`

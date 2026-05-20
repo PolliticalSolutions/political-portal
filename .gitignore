@@ -32,6 +32,7 @@ yarn-error.log*
 /dist-ssr/
 .claude/*
 !.claude/skills
+!.claude/commands
 .aws-sam/
 infra/enquiry-api/stripe-src/node_modules/
 
