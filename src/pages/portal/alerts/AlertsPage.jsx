@@ -85,7 +85,6 @@ export default function AlertsPage() {
             </p>
           </div>
           <div className="portal-page-header__actions">
-            <Link to="/portal/local-government/lgr" className="button ghost">LGR tracker</Link>
           </div>
         </div>
       </Card>

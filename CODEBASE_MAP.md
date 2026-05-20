@@ -1,6 +1,6 @@
 # Codebase Map
 
-Last updated: 18 May 2026
+Last updated: 20 May 2026
 
 ---
 
@@ -116,7 +116,6 @@ Campaign sessions & volunteer coordination module (shipped May 2026, PRs #20–#
 |------|-------|--------------|
 | `portal/local-government/LocalGovIndex.jsx` | `/portal/local-government` | Browse local authorities; council political composition |
 | `portal/local-government/LocalGovDetail.jsx` | `/portal/local-government/:gssCode` | Council detail: composition, wards, election results, councillors. The `CompositionTab` component (line ~112) renders `controlling_party`, `total_seats`, `control_type`, and per-party seat breakdown from the `composition` JSONB field. Shows "Composition data not yet available" fallback when `composition` is null/empty — resolved once `import_council_composition.py` populates `council_data`. Contains `ByElectionEarlyWarningSection` component (rendered below the tabs Card, above `DataProvenancePanel`) — shows a table of flagged councillors from `political_alerts` for this authority, or "No current early warning flags" empty state. |
-| `portal/local-government/LGRTrackerPage.jsx` | `/portal/local-government/lgr` | LGR tracker: countdown to key dates, status by wave (Surrey/DPP/Wave 2) |
 | `portal/local-government/localGovApi.js` | — | Supabase query functions for local government data. Includes `getByElectionAttendanceAlerts(authorityId)` — fetches active `by_election_risk` alerts for a given authority, filters to rows where `detail.councillorName` is truthy. |
 | `portal/local-government/localGovQuality.js` | — | Data quality helpers for local government records |
 
@@ -137,7 +136,6 @@ Campaign sessions & volunteer coordination module (shipped May 2026, PRs #20–#
 | `ErrorBoundary.jsx` | React error boundary; shows fallback UI on uncaught render errors |
 | `Footer.jsx` | Site footer with legal links |
 | `IdleWarning.jsx` | Modal countdown shown 4 minutes after last activity; auto-logs out after 1 more minute |
-| `LgrUrgencyBanner.jsx` | Countdown strip showing days until Wave 2 close and Surrey shadow elections |
 | `ModelConfidenceBadge.jsx` | Badge showing model confidence level (High / Medium / Low / Insufficient data) |
 | `PageLayout.jsx` | Standard page wrapper with title, description, and action slot |
 | `ProtectedRoute.jsx` | Route guard; redirects to `/login` if session is missing or expired |
@@ -193,7 +191,6 @@ Campaign sessions & volunteer coordination module (shipped May 2026, PRs #20–#
 | `enquiriesApi.js` | `insertEnquiry()` — inserts a row into Supabase `enquiries` table |
 | `enquiryApi.js` | HTTP client for the enquiry/quote API (enquiry-api stack) |
 | `intelligenceMetadataApi.js` | Reads `data_confidence_level`, `data_last_reviewed_at`, `dataset_provenance_links` from Supabase |
-| `lgrUrgency.js` | LGR key dates, countdown logic, Surrey structure, `groupLgrRecords()` |
 | `modelBacktestApi.js` | `getModelBacktestAvailability()` — wraps `modelPerformanceApi` with grouping |
 | `modelCalibrationSummary.js` | Builds a calibration summary object for display |
 | `modelConfidence.js` | `getModelConfidence()` — derives confidence level from available signals |

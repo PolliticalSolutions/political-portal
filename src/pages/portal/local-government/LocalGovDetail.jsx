@@ -649,10 +649,7 @@ function LgrBanner({ lgr }) {
         </p>
       )}
       <div style={{ display: "flex", gap: 12, marginTop: 8, flexWrap: "wrap" }}>
-        <Link to="/portal/local-government/lgr" style={{ fontSize: 12, color: colours.left, fontWeight: 600 }}>
-          View LGR Tracker →
-        </Link>
-        {lgr.source_url && (
+{lgr.source_url && (
           <a href={lgr.source_url} target="_blank" rel="noopener noreferrer" style={{ fontSize: 12, color: "#6b7280" }}>
             MHCLG source →
           </a>
