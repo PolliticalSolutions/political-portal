@@ -297,6 +297,17 @@ Every resource in the SAM template:
 
 ---
 
+## GitHub Actions Workflows (`.github/workflows/`)
+
+| File | Trigger | What it does |
+|------|---------|--------------|
+| `ci.yml` | Push / PR | Runs `test-build` check |
+| `supabase-migrate.yml` | Push to `main` (migration files) | Runs `supabase db push` to apply pending migrations |
+| `blog-automation.yml` | Manual / schedule | Blog post drafting automation |
+| `sync-council-composition.yml` | Weekly Monday 07:00 UTC + `workflow_dispatch` | Runs `scripts/import_council_composition.py` to refresh council composition data from Open Council Data UK. Requires `SUPABASE_SERVICE_KEY` repository secret. |
+
+---
+
 ## Scripts (`scripts/`)
 
 | File | What it does | Still needed? |
@@ -327,7 +338,7 @@ Every resource in the SAM template:
 | `calculate_*.py` | Python scripts for computing threat indices, swings, targets, vulnerability scores | Yes — run when recomputing model data |
 | `import_*.py` | Python scripts for importing data from external sources | Yes — run when importing fresh data |
 | `constituency_data_audit.py` | Audits completeness of all 21 Supabase tables; writes UTF-8-BOM CSV to `scripts/constituency_data_audit_YYYY-MM-DD.csv` | Occasional — run before major import cycles |
-| `import_council_composition.py` | Imports council political composition from Open Council Data UK into `local_authorities` and `council_data`. Phase 1: inserts unmatched English councils into `local_authorities` (placeholder gss_code `OCD-NNN`). Phase 2: patches `controlling_party`, `control_type`, `total_seats`, `composition` on matched `local_authorities` rows. Phase 3: upserts rows in `council_data` keyed by `local_authority_id`. Requires `SUPABASE_SERVICE_KEY` in `.env` or env var. Run after migration `20260512000000_add_council_composition_columns.sql` is applied. | Yes — run after migration merges to main |
+| `import_council_composition.py` | Imports council political composition from Open Council Data UK into `local_authorities` and `council_data`. Phase 1: inserts unmatched English councils into `local_authorities` (placeholder gss_code `OCD-NNN`). Phase 2: patches `controlling_party`, `control_type`, `total_seats`, `composition` on matched `local_authorities` rows. Phase 3: upserts rows in `council_data` keyed by `local_authority_id`. Requires `SUPABASE_SERVICE_KEY` in `.env` or env var. Run manually via `/sync-council-composition` or automatically each Monday via `.github/workflows/sync-council-composition.yml`. | Yes — automated weekly via GitHub Actions |
 | `import_section85_flags.py` | Imports manually-curated Section 85 priority flags into `political_alerts` as `by_election_risk` alerts. Risk thresholds: ≥6 months (or 99=never) → vacant/critical; ≥5 → critical/critical; ≥4 → elevated/high; <4 → skip. Deduplicates on `title + local_authority_id + is_active`. | Run with `--file <path_to_csv>` |
 | `extend_by_election_risk_attendance.py` | One-shot script: scores `councillor_attendance` table against Section 85 thresholds and inserts `political_alerts`; safe to re-run (same dedup as above) | Superseded by weekly Lambda `attendanceRiskRefresh.mjs` for ongoing rescoring |
 | `dedup_councillor_attendance.py` | Removes duplicate rows from `councillor_attendance` — groups by `(local_authority_id, councillor_name, ward)`, keeps row with highest `meetings_eligible` (tiebreak: latest `period_end`), deletes the rest via batched REST DELETE. Includes post-delete verification pass. Supports `--dry-run`. | Run when data sources are re-concatenated; applied May 2026 (59,388 → 12,163 rows) |
