@@ -427,7 +427,11 @@ Resources:
     Type: AWS::SQS::Queue
     Properties:
       QueueName: !Sub "${AWS::StackName}-process-queue"
-      VisibilityTimeout: 43200
+      # 960s > the 900s Lambda timeout, so an in-flight chunk can never be
+      # redelivered while still processing, but a failed/throttled chunk
+      # resurfaces in ~16 minutes rather than 12 hours. Chunking multiplies
+      # message volume ~8x, so slow failure surfacing is no longer acceptable.
+      VisibilityTimeout: 960
       RedrivePolicy:
         deadLetterTargetArn: !GetAtt ProcessDLQ.Arn
         maxReceiveCount: 3
@@ -1363,7 +1367,9 @@ Resources:
       Handler: handler.handler
       Runtime: python3.12
       Timeout: 900
-      MemorySize: 3008
+      # Lambda allocates vCPU in proportion to memory (~6 vCPUs at 10240MB),
+      # which is required to run OCR_WORKERS (6) concurrent Tesseract workers.
+      MemorySize: 10240
       EphemeralStorage:
         Size: 4096
       ReservedConcurrentExecutions: 100
@@ -1376,6 +1382,15 @@ Resources:
           JOBS_TABLE: !Ref JobsTable
           UPLOADS_BUCKET: !Ref UploadsBucket
           COMBINE_FUNCTION_ARN: !GetAtt CombineRegisterFunction.Arn
+          # The splitter enqueues chunk messages back onto ProcessQueue.
+          PROCESS_QUEUE_URL: !Ref ProcessQueue
+          # Chunk size (pages per chunk). CHUNK_PAGES=0 disables splitting and
+          # runs the original serial path — the rollback switch (§10).
+          CHUNK_PAGES: "20"
+          # Concurrent OCR threads per chunk invocation.
+          OCR_WORKERS: "6"
+          # Greyscale rendering is opt-in until verified byte-identical (§5.8).
+          OCR_GRAYSCALE: "false"
           SUPABASE_URL: !Ref SupabaseUrl
           SUPABASE_SERVICE_KEY: !Ref SupabaseServiceKey
           TESSDATA_PREFIX: /opt/tessdata
@@ -1410,6 +1425,8 @@ Resources:
               - sqs:DeleteMessage
               - sqs:GetQueueAttributes
               - sqs:ChangeMessageVisibility
+              # The splitter enqueues chunk messages back onto ProcessQueue.
+              - sqs:SendMessage
             Resource: !GetAtt ProcessQueue.Arn
         - Statement:
             Effect: Allow
@@ -1447,6 +1464,9 @@ Resources:
           SUPABASE_SERVICE_KEY: !Ref SupabaseServiceKey
           SES_SENDER_EMAIL: !Ref SesFromEmail
           SES_RECIPIENT_EMAIL: !Ref SesRecipientEmail
+          # Dedupe-rate threshold (%) above which the completion email carries a
+          # warning block and batchStatus becomes COMPLETE_WITH_WARNINGS (§6.5).
+          DEDUPE_WARN_PCT: "2"
       Policies:
         - Statement:
             Effect: Allow
