@@ -700,71 +700,94 @@ def try_trigger_combiner(batch_id, total_files, job_payload):
     )
 
 
-def try_finalise_job(job_id, batch_id, total_files, combine_payload, output_prefix,
-                     chunk_failed):
+def try_finalise_job(job_id, chunk_index, batch_id, total_files, combine_payload,
+                     output_prefix, chunk_failed):
     """
     Settle one chunk of a job and, once every chunk has settled, finalise the job.
 
-    Mirrors the try_trigger_combiner claim pattern: ADD to the per-job
-    JOB_CHUNKS# tracker, and when completedChunks reaches totalChunks, claim
-    finalisation exactly once via ConditionExpression="attribute_not_exists(jobFinalised)".
-    On the winning claim the job is marked SUCCEEDED (all chunks ok) or FAILED
-    (any chunk failed — §5.7.3), then the batch counter is incremented so the
-    batch can complete.
+    Chunk settlement is idempotent: the settled/failed chunk indexes are recorded
+    in DynamoDB *number sets* (`ADD settledChunks :c`), so re-delivering the same
+    chunk cannot double-count — adding an index already in the set is a no-op.
+    The job is complete when the set reaches totalChunks.
+
+    On completion the job's terminal status is written (idempotent SET) and the
+    batch counter is incremented exactly once, gated by a per-job `batchCounted`
+    claim. The batch increment (`try_trigger_combiner`'s `ADD completedCount`) is
+    the only non-idempotent step, so if it raises we roll the claim back before
+    propagating — a subsequent redelivery can then safely retry it. Nothing here
+    is swallowed: transient DynamoDB errors propagate to the caller, which returns
+    the message to SQS for an idempotent retry rather than stranding the job.
+
+    Raises on any DynamoDB error so the caller can retry. Returns True once the
+    job has been finalised (or was already), False while chunks remain.
     """
     table = dynamo.Table(JOBS_TABLE)
     tracker_key = f"JOB_CHUNKS#{job_id}"
 
+    if chunk_failed:
+        update_expr = "ADD settledChunks :c, failedChunks :c"
+    else:
+        update_expr = "ADD settledChunks :c"
     resp = table.update_item(
         Key={"jobId": tracker_key},
-        UpdateExpression="ADD completedChunks :one, failedChunks :f",
-        ExpressionAttributeValues={
-            ":one": Decimal("1"),
-            ":f": Decimal("1") if chunk_failed else Decimal("0"),
-        },
+        UpdateExpression=update_expr,
+        ExpressionAttributeValues={":c": {chunk_index}},
         ReturnValues="ALL_NEW",
     )
     attrs = resp["Attributes"]
     total_chunks = int(attrs.get("totalChunks", 0))
-    completed = int(attrs.get("completedChunks", 0))
-    failed = int(attrs.get("failedChunks", 0))
+    settled = attrs.get("settledChunks") or set()
+    failed = attrs.get("failedChunks") or set()
     logger.info(
-        "Job %s: chunk settled (%d / %d chunks, %d failed)",
-        job_id, completed, total_chunks, failed,
+        "Job %s: chunk %s settled (%d / %d chunks, %d failed)",
+        job_id, chunk_index, len(settled), total_chunks, len(failed),
     )
 
-    if total_chunks <= 0 or completed < total_chunks:
+    if total_chunks <= 0 or len(settled) < total_chunks:
         return False
 
-    # Claim finalisation — exactly-once even when the last chunks finish concurrently.
+    # Write the job's terminal status. SET to a fixed value is idempotent, so it is
+    # safe to run more than once across concurrent finishers or a redelivery.
+    now_iso = datetime.now(timezone.utc).isoformat()
+    if failed:
+        update_job_failed(job_id, f"{len(failed)} of {total_chunks} chunk(s) failed", now_iso)
+        logger.warning("Job %s finalised as FAILED (%d/%d chunks failed)",
+                       job_id, len(failed), total_chunks)
+    else:
+        update_job_succeeded(job_id, output_prefix, now_iso)
+        logger.info("Job %s finalised as SUCCEEDED (%d chunks)", job_id, total_chunks)
+
+    if not batch_id:
+        return True
+
+    # Increment the batch counter exactly once for this job. The claim guards the
+    # non-idempotent ADD; if the increment then fails we release the claim so a
+    # redelivery can retry it (otherwise the batch could hang under-counted).
     try:
         table.update_item(
             Key={"jobId": tracker_key},
-            UpdateExpression="SET jobFinalised = :true",
-            ConditionExpression="attribute_not_exists(jobFinalised)",
+            UpdateExpression="SET batchCounted = :true",
+            ConditionExpression="attribute_not_exists(batchCounted)",
             ExpressionAttributeValues={":true": True},
         )
     except ClientError as e:
         if e.response["Error"]["Code"] == "ConditionalCheckFailedException":
-            logger.info("Job %s: finalisation already claimed", job_id)
-            return False
+            logger.info("Job %s: batch already counted", job_id)
+            return True
         raise
 
-    # Everything after the claim is best-effort: never re-raise into the caller,
-    # so a post-claim error cannot cause the chunk to be settled twice.
     try:
-        now_iso = datetime.now(timezone.utc).isoformat()
-        if failed > 0:
-            update_job_failed(job_id, f"{failed} of {total_chunks} chunk(s) failed", now_iso)
-            logger.warning("Job %s finalised as FAILED (%d/%d chunks failed)",
-                           job_id, failed, total_chunks)
-        else:
-            update_job_succeeded(job_id, output_prefix, now_iso)
-            logger.info("Job %s finalised as SUCCEEDED (%d chunks)", job_id, total_chunks)
-        if batch_id:
-            try_trigger_combiner(batch_id, total_files, combine_payload)
+        try_trigger_combiner(batch_id, total_files, combine_payload)
     except Exception:
-        logger.exception("Job %s: error during post-claim finalisation", job_id)
+        logger.exception("Job %s: batch increment failed — releasing claim for retry", job_id)
+        try:
+            table.update_item(
+                Key={"jobId": tracker_key},
+                UpdateExpression="REMOVE batchCounted",
+            )
+        except Exception:
+            logger.exception("Job %s: failed to release batchCounted claim", job_id)
+        raise
     return True
 
 
@@ -809,16 +832,13 @@ def run_splitter(job_id, bucket, s3_key, chunk_pages):
     ranges = _build_chunk_ranges(total_pages, chunk_pages)
     total_chunks = len(ranges)
 
-    # Write the tracker first (totalChunks known; counters seeded at 0).
+    # Write the tracker first (totalChunks known). The settledChunks/failedChunks
+    # sets are created lazily by the first chunk's ADD — DynamoDB has no empty set.
     table = dynamo.Table(JOBS_TABLE)
     table.update_item(
         Key={"jobId": f"JOB_CHUNKS#{job_id}"},
-        UpdateExpression=(
-            "SET totalChunks = :tc, "
-            "completedChunks = if_not_exists(completedChunks, :z), "
-            "failedChunks = if_not_exists(failedChunks, :z)"
-        ),
-        ExpressionAttributeValues={":tc": Decimal(str(total_chunks)), ":z": Decimal("0")},
+        UpdateExpression="SET totalChunks = :tc",
+        ExpressionAttributeValues={":tc": Decimal(str(total_chunks))},
     )
 
     for chunk_index, (page_start, page_end) in enumerate(ranges):
@@ -866,7 +886,6 @@ def handler(event, context):
         job_id = None
         mode = "serial"
         settle_ctx = None
-        chunk_settle_attempted = False
         try:
             body = json.loads(record["body"])
             job_id = body["jobId"]
@@ -958,6 +977,8 @@ def handler(event, context):
                 receive_count = int(
                     (record.get("attributes") or {}).get("ApproximateReceiveCount", "1") or "1"
                 )
+
+                chunk_failed = False
                 if receive_count >= 3:
                     # Final delivery before the DLQ — do not attempt the work.
                     # Settle this chunk as failed so the job settles as FAILED and
@@ -967,57 +988,68 @@ def handler(event, context):
                         "Job %s chunk %d at receive count %d — settling as FAILED (§5.7.2)",
                         job_id, chunk_index, receive_count,
                     )
-                    chunk_settle_attempted = True
-                    try_finalise_job(job_id, batch_id, total_files, combine_payload,
-                                     output_prefix, chunk_failed=True)
-                    continue
+                    chunk_failed = True
+                else:
+                    try:
+                        logger.info(
+                            "Worker: job %s chunk %d/%d pages %d-%d",
+                            job_id, chunk_index, total_chunks, page_start, page_end,
+                        )
+                        suffix = Path(s3_key).suffix or ".pdf"
+                        with tempfile.NamedTemporaryFile(suffix=suffix, delete=False) as tmp:
+                            tmp_path = tmp.name
+                        s3_client.download_file(bucket, s3_key, tmp_path)
+                        logger.info("Downloaded to %s (%d bytes)", tmp_path, os.path.getsize(tmp_path))
 
-                logger.info(
-                    "Worker: job %s chunk %d/%d pages %d-%d",
-                    job_id, chunk_index, total_chunks, page_start, page_end,
-                )
+                        rows, ocr_meta, page_districts = ocr_pdf(
+                            tmp_path,
+                            constituency_name,
+                            election_name,
+                            election_date_override=election_date_field,
+                            page_start=page_start,
+                            page_end=page_end,
+                        )
+                        _cleanup(tmp_path)
 
-                suffix = Path(s3_key).suffix or ".pdf"
-                with tempfile.NamedTemporaryFile(suffix=suffix, delete=False) as tmp:
-                    tmp_path = tmp.name
-                s3_client.download_file(bucket, s3_key, tmp_path)
-                logger.info("Downloaded to %s (%d bytes)", tmp_path, os.path.getsize(tmp_path))
+                        # Zero-pad chunkIndex so lexicographic S3 listing == numeric order.
+                        output_key = f"{output_prefix}/{job_id}-{chunk_index:04d}.json"
+                        output_payload = dict(output_meta)
+                        output_payload.update({
+                            "chunkIndex": chunk_index,
+                            "totalChunks": total_chunks,
+                            "pageDistricts": page_districts,
+                            "rows": rows,
+                            "meta": ocr_meta,
+                            "processedAt": datetime.now(timezone.utc).isoformat(),
+                        })
+                        s3_client.put_object(
+                            Bucket=UPLOADS_BUCKET,
+                            Key=output_key,
+                            Body=json.dumps(output_payload),
+                            ContentType="application/json",
+                        )
+                        logger.info(
+                            "Wrote chunk output s3://%s/%s (%d rows)",
+                            UPLOADS_BUCKET, output_key, len(rows),
+                        )
+                    except Exception as work_exc:
+                        # An OCR / download / output failure fails this chunk, and so
+                        # the whole file (§5.7.3). It is not retried — a bad page
+                        # range or corrupt PDF will not improve on redelivery, and
+                        # receive_count already handles genuine timeouts. Settle the
+                        # chunk as failed below so the job settles and the batch
+                        # completes.
+                        logger.exception(
+                            "Job %s chunk %d failed during OCR: %s", job_id, chunk_index, work_exc
+                        )
+                        chunk_failed = True
 
-                rows, ocr_meta, page_districts = ocr_pdf(
-                    tmp_path,
-                    constituency_name,
-                    election_name,
-                    election_date_override=election_date_field,
-                    page_start=page_start,
-                    page_end=page_end,
-                )
-                _cleanup(tmp_path)
-
-                # Zero-pad chunkIndex so lexicographic S3 listing == numeric order.
-                output_key = f"{output_prefix}/{job_id}-{chunk_index:04d}.json"
-                output_payload = dict(output_meta)
-                output_payload.update({
-                    "chunkIndex": chunk_index,
-                    "totalChunks": total_chunks,
-                    "pageDistricts": page_districts,
-                    "rows": rows,
-                    "meta": ocr_meta,
-                    "processedAt": datetime.now(timezone.utc).isoformat(),
-                })
-                s3_client.put_object(
-                    Bucket=UPLOADS_BUCKET,
-                    Key=output_key,
-                    Body=json.dumps(output_payload),
-                    ContentType="application/json",
-                )
-                logger.info(
-                    "Wrote chunk output s3://%s/%s (%d rows)",
-                    UPLOADS_BUCKET, output_key, len(rows),
-                )
-
-                chunk_settle_attempted = True
-                try_finalise_job(job_id, batch_id, total_files, combine_payload,
-                                 output_prefix, chunk_failed=False)
+                # Settle this chunk exactly once for this message. try_finalise_job's
+                # tracker updates are idempotent (number sets), so if it raises on a
+                # transient DynamoDB error the outer handler can safely return the
+                # message to SQS for retry rather than stranding the job.
+                try_finalise_job(job_id, chunk_index, batch_id, total_files,
+                                 combine_payload, output_prefix, chunk_failed=chunk_failed)
                 continue
 
             # ── Serial (rollback, CHUNK_PAGES=0) ──────────────────────────────
@@ -1058,43 +1090,41 @@ def handler(event, context):
 
         except Exception as exc:
             logger.exception("Failed to process record for job %s: %s", job_id, exc)
-            if job_id and settle_ctx:
-                if settle_ctx["mode"] == "worker":
-                    # A failed chunk fails the whole file (§5.7.3). Settle it as a
-                    # failed chunk unless we already reached the settle step, so
-                    # the job settles as FAILED and the batch still completes.
-                    if not chunk_settle_attempted:
-                        try:
-                            try_finalise_job(
-                                job_id, settle_ctx["batch_id"], settle_ctx["total_files"],
-                                settle_ctx["combine_payload"], settle_ctx["output_prefix"],
-                                chunk_failed=True,
-                            )
-                        except Exception:
-                            logger.exception("Failed to settle failed chunk for job %s", job_id)
-                else:
-                    # Serial or splitter failure: mark the job FAILED and increment
-                    # the batch counter so the batch still completes (§5.7.1).
+            mode_now = settle_ctx["mode"] if settle_ctx else mode
+            if mode_now == "worker":
+                # The chunk was not settled (a transient DynamoDB error in
+                # try_finalise_job, or a pre-settle error such as get_job). Return
+                # the message to SQS so it is retried rather than ACKed and left to
+                # strand the job's chunk tracker. Settlement is idempotent
+                # (settledChunks is a set), so a retry cannot double-count; after
+                # maxReceiveCount the message lands in the DLQ, visible rather than
+                # hung. OCR failures never reach here — they settle as a failed
+                # chunk above.
+                message_id = record.get("messageId")
+                if message_id:
+                    failures.append({"itemIdentifier": message_id})
+                    logger.info("Job %s: returning chunk message to SQS for retry", job_id)
+            elif job_id and settle_ctx:
+                # Serial or splitter failure: mark the job FAILED and increment the
+                # batch counter so the batch still completes (§5.7.1).
+                try:
+                    update_job_failed(job_id, str(exc), datetime.now(timezone.utc).isoformat())
+                except Exception:
+                    pass
+                if settle_ctx["batch_id"]:
                     try:
-                        update_job_failed(job_id, str(exc), datetime.now(timezone.utc).isoformat())
+                        try_trigger_combiner(
+                            settle_ctx["batch_id"], settle_ctx["total_files"],
+                            settle_ctx["combine_payload"],
+                        )
                     except Exception:
-                        pass
-                    if settle_ctx["batch_id"]:
-                        try:
-                            try_trigger_combiner(
-                                settle_ctx["batch_id"], settle_ctx["total_files"],
-                                settle_ctx["combine_payload"],
-                            )
-                        except Exception:
-                            logger.exception("Failed to settle batch for failed job %s", job_id)
+                        logger.exception("Failed to settle batch for failed job %s", job_id)
             elif job_id:
                 # Failure before we loaded the job record; best-effort FAILED mark.
                 try:
                     update_job_failed(job_id, str(exc), datetime.now(timezone.utc).isoformat())
                 except Exception:
                     pass
-            # ACK the message rather than letting SQS retry — the FAILED status
-            # in DynamoDB is the user-visible signal.
             continue
 
     return {"batchItemFailures": failures}
