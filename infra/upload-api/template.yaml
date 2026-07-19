@@ -1492,6 +1492,14 @@ Resources:
         - Statement:
             Effect: Allow
             Action:
+              # read_job_outputs() lists chunk objects with list_objects_v2, which
+              # requires the bucket-level ListBucket action on the bucket ARN
+              # (distinct from the /* object resource used above).
+              - s3:ListBucket
+            Resource: !GetAtt UploadsBucket.Arn
+        - Statement:
+            Effect: Allow
+            Action:
               - ses:SendEmail
               - ses:SendRawEmail
             Resource: "*"
