@@ -58,9 +58,19 @@ if ($dirty) {
 }
 
 # --------------------------------------------------------------------- pull --
-Step "Pulling latest from origin"
+Step "Switching to main and pulling latest from origin"
 
-git pull
+# git pull with no arguments follows whatever branch HEAD is on, not
+# necessarily main. Force onto main explicitly so a feature branch or
+# detached HEAD checkout can never get deployed to prod.
+$currentBranch = (git rev-parse --abbrev-ref HEAD).Trim()
+if ($currentBranch -ne "main") {
+    Write-Host "Currently on '$currentBranch' - switching to main." -ForegroundColor Yellow
+    git checkout main
+    if ($LASTEXITCODE -ne 0) { Fail "git checkout main failed. Your work is safe in the stash (git stash list)." }
+}
+
+git pull origin main
 if ($LASTEXITCODE -ne 0) { Fail "git pull failed. Your work is safe in the stash (git stash list)." }
 
 $newCommit = (git rev-parse --short HEAD).Trim()
@@ -103,6 +113,16 @@ Write-Host ""
 Write-Host "DEPLOY COMPLETE" -ForegroundColor Green
 Write-Host "Deployed $startCommit -> $newCommit"
 Write-Host ""
+
+# template.yaml hardcodes ANTHROPIC_API_KEY: "" on PersonaFunction (see
+# POLITICAL_SOLUTIONS_CONTEXT.md, "Known issues") - every deploy wipes it,
+# and CloudFormation does not manage the real value.
+Write-Host "ACTION REQUIRED" -ForegroundColor Red
+Write-Host "  This deploy just reset PersonaFunction's ANTHROPIC_API_KEY to empty." -ForegroundColor Red
+Write-Host "  Re-set it now: Lambda console -> PersonaFunction -> Configuration -> Environment variables." -ForegroundColor Red
+Write-Host "  Until you do, the MP persona and draft pipelines will fail." -ForegroundColor Red
+Write-Host ""
+
 Write-Host "Next:" -ForegroundColor Cyan
 Write-Host "  1. Upload ONE Stafford PDF as a smoke test before sending all seven."
 if ($script:Stashed) {
