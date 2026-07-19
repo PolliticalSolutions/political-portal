@@ -329,6 +329,7 @@ Every resource in the SAM template:
 | `verify-prod-headers.ps1` | Checks security headers on the production site | Yes — pre-deploy check |
 | `verify-prod-seo-html.ps1` | Checks SEO HTML on production | Yes — pre-deploy check |
 | `deploy-upload-api.sh` | SAM build + deploy to `ps-upload-api-prod` | Yes |
+| `deploy-upload-api.ps1` | Windows/PowerShell deploy to `ps-upload-api-prod`. Stashes local changes, pulls `main`, verifies the PR #33 pconCode fix is present (prod profile in `samconfig.toml`, `PCON_REQUIRED` gone from `handler.mjs`) before running `sam build` + `sam deploy --config-env prod` | Yes — for local Windows deploys |
 | `deploy-enquiry-api.sh` | SAM build + deploy to `ps-enquiry-api-prod` | Yes |
 | `listener/` | Local Python listener that consumes SQS and runs the worker locally | Yes — required for processing |
 | `sync_elections_from_democracy_club.py` | Syncs elections from Democracy Club into Supabase | Occasional |
