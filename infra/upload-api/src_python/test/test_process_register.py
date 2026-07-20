@@ -177,6 +177,24 @@ class TestInferMissingEntries:
         out = h._infer_missing_entries(readable, start_num=40)
         assert [e["elector_num"] for e in out] == ["41"]
 
+    def test_low_first_readable_does_not_fill_preceding_gap(self):
+        # A column whose first readable elector is 11 must produce just 11 — the
+        # gap before the first readable number (1..10) has no basis and must not
+        # be fabricated.
+        readable = [{"elector_num": "11", "main_num": 11, "voted": True}]
+        out = h._infer_missing_entries(readable, start_num=0)
+        assert [e["elector_num"] for e in out] == ["11"]
+
+    def test_gap_after_first_readable_still_fills(self):
+        # 11, 15, 16 — the gap 12..14 between two readable numbers must still fill.
+        readable = [
+            {"elector_num": "11", "main_num": 11, "voted": True},
+            {"elector_num": "15", "main_num": 15, "voted": True},
+            {"elector_num": "16", "main_num": 16, "voted": True},
+        ]
+        out = h._infer_missing_entries(readable, start_num=0)
+        assert [e["elector_num"] for e in out] == ["11", "12", "13", "14", "15", "16"]
+
 
 # ── District patterns shared with the combiner (§6.2) ─────────────────────────
 

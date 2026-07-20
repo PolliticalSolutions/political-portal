@@ -268,6 +268,12 @@ def _infer_missing_entries(readable_entries, start_num):
             expected += 1
         elif entry["main_num"] is not None:
             actual = entry["main_num"]
+            if not anchored:
+                # First readable number in the column (and no starting context):
+                # anchor to it. There is no basis to fill any gap that precedes the
+                # first readable number, so a leading low reading like 11 must not
+                # fabricate 1..10.
+                expected = actual
             gap = actual - expected
             if 0 < gap <= MAX_GAP_TO_FILL:
                 while expected < actual:
