@@ -254,8 +254,16 @@ def _infer_missing_entries(readable_entries, start_num):
         return []
     entries = []
     expected = start_num + 1 if start_num > 0 else 1
+    # A strikethrough with no readable number can only be inferred once we have an
+    # anchor to count from — either a starting context (start_num > 0) or a
+    # readable number already seen in this column. Without one, `expected` is just
+    # the default 1, so inferring would fabricate elector "1" (and, with the
+    # district resolver, a spurious district) on every column. Skip until anchored.
+    anchored = start_num > 0
     for entry in readable_entries:
         if entry.get("is_strikethrough") and entry["main_num"] is None:
+            if not anchored:
+                continue
             entries.append({"elector_num": str(expected), "voted": True})
             expected += 1
         elif entry["main_num"] is not None:
@@ -269,6 +277,7 @@ def _infer_missing_entries(readable_entries, start_num):
                 expected = actual
             entries.append({"elector_num": entry["elector_num"], "voted": entry["voted"]})
             expected = actual + 1
+            anchored = True
     return entries
 
 

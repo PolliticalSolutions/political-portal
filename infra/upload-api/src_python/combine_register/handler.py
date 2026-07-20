@@ -19,6 +19,7 @@ import json
 import logging
 import os
 import re
+import statistics
 from datetime import datetime, timezone
 from email.mime.application import MIMEApplication
 from email.mime.multipart import MIMEMultipart
@@ -41,6 +42,12 @@ s3 = boto3.client("s3", region_name=REGION)
 ses = boto3.client("ses", region_name=REGION)
 
 CSV_COLUMNS = ["Election Date", "Constituency", "Polling District", "Elector Number", "Voted", "Postal Vote"]
+
+# A district reset is accepted when this page's median elector number falls below
+# this fraction of the previous page's median. Within a district, page medians
+# increase monotonically, so this only fires on a genuine reset — and using the
+# median (not the minimum) means a single spurious low OCR reading cannot swing it.
+_RESET_MEDIAN_RATIO = 0.5
 
 
 # ── DynamoDB helpers ──────────────────────────────────────────────────────────
@@ -166,11 +173,13 @@ def resolve_job_districts(rows, page_districts, seed_district):
     gets the seed. The logic can only refine, never regress (invariants 1 and 7).
 
     A boundary is accepted when EITHER (a) a district code different from the
-    running district appears in the headers of two consecutive pages, OR (b) the
-    last elector number on the previous page is > 50 and the first on this page
-    is < 10 (a structural reset that fires even when the header is unreadable).
-    When (b) fires without a usable header code, a clearly synthetic label is
-    assigned rather than an invented plausible-looking code."""
+    running district appears in the headers of two consecutive pages, OR (b) this
+    page's median elector number falls substantially below the previous page's
+    median (a structural reset that fires even when the header is unreadable). The
+    median — not the minimum — is used so a single spurious low OCR reading on an
+    otherwise high-numbered page cannot fake a reset. When (b) fires without a
+    usable header code, a clearly synthetic label is assigned rather than an
+    invented plausible-looking code."""
     if not rows:
         return set()
 
@@ -197,33 +206,34 @@ def resolve_job_districts(rows, page_districts, seed_district):
     synthetic_labels = set()
     synth_counter = 1  # first synthetic label becomes '{seed}-2'
     current_district = seed_district
-    prev_page_max = None
+    prev_page_median = None
 
     for page in sorted(rows_by_page):
         page_rows = rows_by_page[page]
-        # Use min and max, not first/last by list position — _process_page returns
-        # left-column rows followed by right-column rows (§6.3).
         nums = [
             n for n in (_elector_main_number(r.get("elector_number")) for r in page_rows)
             if n is not None
         ]
         if not nums:
             # No readable elector numbers on this page: assign the running district
-            # but do not treat it as a boundary and do not disturb prev_page_max —
-            # a blank page mid-document must not look like a district boundary.
+            # but do not treat it as a boundary and do not disturb prev_page_median
+            # — a blank page mid-document must not look like a district boundary.
             for r in page_rows:
                 r["polling_district"] = current_district
             continue
 
-        page_min = min(nums)
-        page_max = max(nums)
+        page_median = statistics.median(nums)
         header = headers.get(page)
         next_header = headers.get(page + 1)
 
         # (a) Header corroboration — two consecutive pages with the same new code.
         accept_a = bool(header) and header != current_district and next_header == header
-        # (b) Elector reset — structural; fires even when the header is unreadable.
-        accept_b = prev_page_max is not None and prev_page_max > 50 and page_min < 10
+        # (b) Elector reset — a substantial drop in the page's median elector
+        #     number. Median-based so one spurious low reading cannot swing it.
+        accept_b = (
+            prev_page_median is not None
+            and page_median < prev_page_median * _RESET_MEDIAN_RATIO
+        )
 
         if accept_a or accept_b:
             if header and header != current_district:
@@ -235,7 +245,7 @@ def resolve_job_districts(rows, page_districts, seed_district):
 
         for r in page_rows:
             r["polling_district"] = current_district
-        prev_page_max = page_max
+        prev_page_median = page_median
 
     return synthetic_labels
 

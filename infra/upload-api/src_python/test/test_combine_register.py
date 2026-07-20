@@ -126,6 +126,33 @@ class TestResolveJobDistricts:
         assert by_page[5] == "LA-2"
         assert by_page[7] == "LA-3"
 
+    def test_single_spurious_low_outlier_does_not_trigger_boundary(self):
+        # Page 4 is a normal continuation (high numbers) but OCR misread one entry
+        # as "1". A min-based rule would fake a reset here; the median-based rule
+        # must not, because the page's median is still high.
+        rows = _rows([
+            (3, "400"), (3, "405"), (3, "410"), (3, "415"), (3, "420"),
+            (4, "1"), (4, "425"), (4, "430"), (4, "435"), (4, "440"),
+        ])
+        page_districts = {"3": "LA", "4": "LA"}
+        synthetic = c.resolve_job_districts(rows, page_districts, "LA")
+        assert set(_districts(rows)) == {"LA"}
+        assert synthetic == set()
+
+    def test_genuine_full_reset_still_triggers(self):
+        # Page 4 is a real new district: every number drops from the ~400s to the
+        # low tens, so the median collapses and the reset must be accepted.
+        rows = _rows([
+            (3, "450"), (3, "460"), (3, "470"), (3, "480"), (3, "490"),
+            (4, "1"), (4, "5"), (4, "10"), (4, "15"), (4, "20"),
+        ])
+        page_districts = {"3": "LA", "4": None}
+        synthetic = c.resolve_job_districts(rows, page_districts, "LA")
+        by_page = {r["page"]: r["polling_district"] for r in rows}
+        assert by_page[3] == "LA"
+        assert by_page[4] == "LA-2"
+        assert synthetic == {"LA-2"}
+
     def test_empty_rows(self):
         assert c.resolve_job_districts([], {"3": "LA"}, "LA") == set()
 
