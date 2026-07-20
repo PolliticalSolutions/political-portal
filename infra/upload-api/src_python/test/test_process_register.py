@@ -144,6 +144,39 @@ class TestInferMissingEntries:
     def test_empty_input(self):
         assert h._infer_missing_entries([], 0) == []
 
+    def test_leading_strikethrough_without_anchor_is_skipped(self):
+        # start_num == 0 and no readable number yet: a strikethrough with no
+        # main_num has no basis for a number and must NOT fabricate elector "1".
+        readable = [{"is_strikethrough": True, "main_num": None}]
+        assert h._infer_missing_entries(readable, start_num=0) == []
+
+    def test_leading_strikethrough_then_high_number_no_fabricated_one(self):
+        readable = [
+            {"is_strikethrough": True, "main_num": None},
+            {"elector_num": "50", "main_num": 50, "voted": True},
+        ]
+        out = h._infer_missing_entries(readable, start_num=0)
+        # The leading strikethrough contributes nothing; only the real 50 remains.
+        assert [e["elector_num"] for e in out] == ["50"]
+
+    def test_strikethrough_after_readable_is_still_inferred(self):
+        # Once a readable number anchors the count, a following strikethrough is a
+        # legitimate inference (the next number in sequence).
+        readable = [
+            {"elector_num": "50", "main_num": 50, "voted": True},
+            {"is_strikethrough": True, "main_num": None},
+        ]
+        out = h._infer_missing_entries(readable, start_num=0)
+        assert [e["elector_num"] for e in out] == ["50", "51"]
+        assert out[1]["voted"] is True
+
+    def test_strikethrough_with_context_start_num_is_inferred(self):
+        # start_num > 0 provides the anchor, so a leading strikethrough infers from
+        # context rather than being skipped.
+        readable = [{"is_strikethrough": True, "main_num": None}]
+        out = h._infer_missing_entries(readable, start_num=40)
+        assert [e["elector_num"] for e in out] == ["41"]
+
 
 # ── District patterns shared with the combiner (§6.2) ─────────────────────────
 
