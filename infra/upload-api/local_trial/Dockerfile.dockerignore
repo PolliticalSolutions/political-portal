@@ -1,0 +1,9 @@
+.aws-sam/**
+!.aws-sam/build/
+!.aws-sam/build/ProcessRegisterFunction/
+!.aws-sam/build/ProcessRegisterFunction/**
+packaged-template.yaml
+src/node_modules
+src_python/.pytest_cache
+src_python/**/__pycache__
+src_python/test

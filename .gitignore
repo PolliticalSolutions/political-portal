@@ -43,3 +43,6 @@ scripts/listener/output/
 scripts/listener/logs/
 scripts/listener/__pycache__/
 
+# Local marked-register trial output is aggregate-only but remains operational
+# evidence and must never be committed.
+infra/upload-api/local-trial-output/
