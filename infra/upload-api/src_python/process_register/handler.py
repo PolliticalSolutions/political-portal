@@ -46,7 +46,7 @@ try:
     import pytesseract
     from pdf2image import convert_from_path
     from pdf2image.pdf2image import pdfinfo_from_path
-    from PIL import Image, ImageOps, ImageEnhance
+    from PIL import Image, ImageOps, ImageEnhance, ImageDraw
     pytesseract.pytesseract.tesseract_cmd = TESSERACT_CMD
     OCR_AVAILABLE = True
 except ImportError:
@@ -92,6 +92,17 @@ _MONTH_MAP = {
     "sep": "09", "oct": "10", "nov": "11", "dec": "12",
 }
 MAX_GAP_TO_FILL = 10
+
+# Candidate Defect B parser. The legacy parser intentionally remains the
+# default until labelled-register acceptance evidence is available. Printed
+# elector numbers occupy the narrow leading gutter of each register column;
+# house/address numbers begin farther right. The candidate preserves colour and
+# the existing full-line OCR, but masks a numeric line-start only when Tesseract
+# locates it outside this gutter.
+_GEOMETRIC_ELECTOR_FILTER_FLAG = "OCR_GEOMETRIC_ELECTOR_FILTER"
+_ELECTOR_NUMBER_GUTTER_RATIO = 0.18
+_COLUMN_OCR_BORDER_PX = 70
+_COLUMN_OCR_CONFIG = r"--oem 3 --psm 6 -c preserve_interword_spaces=1"
 
 # Header patterns that identify a page's polling district. Shared by the page-1
 # metadata parse (_extract_metadata) and the per-page detection (§6.2).
@@ -342,13 +353,125 @@ def _infer_missing_entries(readable_entries, start_num):
     return entries
 
 
+def _geometric_elector_filter_enabled():
+    return os.environ.get(
+        _GEOMETRIC_ELECTOR_FILTER_FLAG, "false"
+    ).strip().lower() == "true"
+
+
+def _is_ignorable_leading_ocr_token(token):
+    """Return whether a TSV word is only punctuation stripped by the parser."""
+    return bool(token) and bool(re.fullmatch(r"[}\[\]|:.\/\-_~*°©=!]+", token))
+
+
+def _starts_with_numeric_candidate(token):
+    """Mirror the parser's permissive leading-number shape for one OCR word."""
+    token = re.sub(r"^[}\[\]|:.\s\/\-_~*°©=!]+", "", token or "")
+    return bool(re.match(r"^\d+(?:\s*\/\s*\d+)?", token))
+
+
+def _out_of_gutter_numeric_line_start_boxes(
+    ocr_data,
+    content_width,
+    border_px=_COLUMN_OCR_BORDER_PX,
+    gutter_ratio=_ELECTOR_NUMBER_GUTTER_RATIO,
+):
+    """Find numeric OCR line starts outside the printed elector-number gutter.
+
+    This is deliberately geometric only: it has no declared-range input and no
+    concept of numeric order. Coordinates are reported in the unpadded column
+    crop's frame so diagnostics are safe and meaningful.
+    """
+    if content_width <= 0:
+        return []
+
+    texts = ocr_data.get("text") or []
+    keys = ("page_num", "block_num", "par_num", "line_num")
+    lines = {}
+    for index, raw_token in enumerate(texts):
+        token = str(raw_token or "").strip()
+        if not token:
+            continue
+        try:
+            line_key = tuple(
+                (ocr_data.get(key) or [0] * len(texts))[index]
+                for key in keys
+            )
+            left = int(ocr_data["left"][index])
+            top = int(ocr_data["top"][index])
+            width = int(ocr_data["width"][index])
+            height = int(ocr_data["height"][index])
+        except (IndexError, KeyError, TypeError, ValueError):
+            continue
+        lines.setdefault(line_key, []).append((left, token, top, width, height))
+
+    gutter_right = content_width * gutter_ratio
+    rejected = []
+    for words in lines.values():
+        words.sort(key=lambda word: word[0])
+        first = next(
+            (word for word in words if not _is_ignorable_leading_ocr_token(word[1])),
+            None,
+        )
+        if not first or not _starts_with_numeric_candidate(first[1]):
+            continue
+        left, _token, top, width, height = first
+        content_left = left - border_px
+        if content_left < gutter_right:
+            continue
+        rejected.append({
+            "left": content_left,
+            "top": top - border_px,
+            "width": width,
+            "height": height,
+        })
+    return rejected
+
+
+def _mask_out_of_gutter_numeric_line_starts(col_img, content_width):
+    """Mask address-position numeric line starts and return safe diagnostics."""
+    ocr_data = pytesseract.image_to_data(
+        col_img,
+        config=_COLUMN_OCR_CONFIG,
+        output_type=pytesseract.Output.DICT,
+    )
+    boxes = _out_of_gutter_numeric_line_start_boxes(ocr_data, content_width)
+    if not boxes:
+        return col_img, []
+
+    masked = col_img.copy()
+    draw = ImageDraw.Draw(masked)
+    for box in boxes:
+        left = box["left"] + _COLUMN_OCR_BORDER_PX
+        top = box["top"] + _COLUMN_OCR_BORDER_PX
+        right = left + box["width"]
+        bottom = top + box["height"]
+        draw.rectangle((left, top, right, bottom), fill="white")
+    return masked, boxes
+
+
 def _process_column(image, col_start, col_end, context_start_num=0):
     col_img = image.crop((col_start, 0, col_end, image.size[1]))
-    col_img = ImageOps.expand(col_img, border=70, fill="white")
+    content_width = col_img.size[0]
+    col_img = ImageOps.expand(col_img, border=_COLUMN_OCR_BORDER_PX, fill="white")
     col_img = ImageEnhance.Contrast(col_img).enhance(1.3)
 
+    if _geometric_elector_filter_enabled():
+        col_img, rejected_boxes = _mask_out_of_gutter_numeric_line_starts(
+            col_img, content_width
+        )
+        logger.info(
+            "Geometric elector filter: column=%d-%d rejected_line_starts=%d "
+            "gutter_right_px=%d bounding_boxes=%s",
+            col_start,
+            col_end,
+            len(rejected_boxes),
+            round(content_width * _ELECTOR_NUMBER_GUTTER_RATIO),
+            rejected_boxes,
+        )
+
     text = pytesseract.image_to_string(
-        col_img, config=r"--oem 3 --psm 6 -c preserve_interword_spaces=1"
+        col_img, config=_COLUMN_OCR_CONFIG
     )
 
     readable = []

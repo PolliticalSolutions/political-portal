@@ -1391,6 +1391,9 @@ Resources:
           OCR_WORKERS: "6"
           # Greyscale rendering is opt-in until verified byte-identical (§5.8).
           OCR_GRAYSCALE: "false"
+          # Defect B candidate: mask numeric OCR line starts geometrically outside
+          # the elector-number gutter. Default-off until labelled-register scoring.
+          OCR_GEOMETRIC_ELECTOR_FILTER: "false"
           SUPABASE_URL: !Ref SupabaseUrl
           SUPABASE_SERVICE_KEY: !Ref SupabaseServiceKey
           TESSDATA_PREFIX: /opt/tessdata

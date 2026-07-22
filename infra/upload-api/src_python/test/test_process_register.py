@@ -6,7 +6,112 @@ Together with test_combine_register they make the §3 correctness invariants
 checkable in CI instead of only by hand.
 """
 
+import json
+import logging
+
+import pytest
+
+import combine_register.handler as c
 import process_register.handler as h
+
+
+SAFE_LABELLED_GEOMETRY_FIXTURES = [
+    {
+        "name": "two_column_near_gutter_house_number",
+        "layout": "two-column",
+        "declared": {"district": "NAA", "start": 700, "end": 702},
+        "expected": ["701/1", "702"],
+        "baseline_lines": [
+            "701/1 -- SYNTHETIC ELECTOR ROW",
+            "812 SAFE ADDRESS LABEL",
+            "702 -- SYNTHETIC ELECTOR ROW",
+        ],
+        "candidate_lines": [
+            "701/1 -- SYNTHETIC ELECTOR ROW",
+            "SAFE ADDRESS LABEL",
+            "702 -- SYNTHETIC ELECTOR ROW",
+        ],
+        "expected_baseline": {
+            "captured_valid": ["701/1", "702"],
+            "missing_declared": [700],
+            "out_of_range": ["812"],
+            "false_positives": 1,
+            "false_negatives": 0,
+        },
+        "expected_candidate": {
+            "captured_valid": ["701/1", "702"],
+            "missing_declared": [700],
+            "out_of_range": [],
+            "false_positives": 0,
+            "false_negatives": 0,
+        },
+    },
+    {
+        "name": "three_column_out_of_sequence_late_registration",
+        "layout": "three-column",
+        "declared": {"district": "NAB", "start": 557, "end": 560},
+        # 557/1 deliberately follows 559. The candidate must not assume numeric
+        # monotonicity; late-registration subnumbers can appear out of sequence.
+        "expected": ["559", "557/1"],
+        "baseline_lines": [
+            "559 -- SYNTHETIC ELECTOR ROW",
+            "612 SAFE ADDRESS LABEL",
+            "557/1 -- SYNTHETIC ELECTOR ROW",
+        ],
+        "candidate_lines": [
+            "559 -- SYNTHETIC ELECTOR ROW",
+            "SAFE ADDRESS LABEL",
+            "557/1 -- SYNTHETIC ELECTOR ROW",
+        ],
+        "expected_baseline": {
+            "captured_valid": ["559", "557/1"],
+            "missing_declared": [558, 560],
+            "out_of_range": ["612"],
+            "false_positives": 1,
+            "false_negatives": 0,
+        },
+        "expected_candidate": {
+            "captured_valid": ["559", "557/1"],
+            "missing_declared": [558, 560],
+            "out_of_range": [],
+            "false_positives": 0,
+            "false_negatives": 0,
+        },
+    },
+]
+
+
+def _parse_labelled_lines(lines):
+    numbers = []
+    previous = 0
+    for line in lines:
+        number, _voted = h._extract_elector_entry(line, previous)
+        if number:
+            numbers.append(number)
+            previous = int(number.split("/")[0])
+    return numbers
+
+
+def _score_labelled_fixture(fixture, lines):
+    actual = _parse_labelled_lines(lines)
+    district = fixture["declared"]["district"]
+    rows = [
+        {"polling_district": district, "elector_number": number}
+        for number in actual
+    ]
+    reports, issues = c.validate_rows_against_declared_ranges(
+        rows, {district: fixture["declared"]}
+    )
+    assert issues == []
+    report = reports[0]
+    expected = fixture["expected"]
+    return {
+        "captured_valid": [number for number in expected if number in actual],
+        "missing_declared": report["missing"],
+        "out_of_range": report["out_of_range"],
+        "false_positives": len([number for number in actual if number not in expected]),
+        "false_negatives": len([number for number in expected if number not in actual]),
+    }
 
 
 # ── Chunk range splitting (§5.1) ──────────────────────────────────────────────
@@ -103,6 +208,145 @@ class TestExtractElectorEntry:
     def test_zero_prefixed_number_rejected(self):
         num, _ = h._extract_elector_entry("047 —— Smith, John")
         assert num is None
+
+
+# ── Defect B candidate: geometric elector-number gutter ─────────────────────
+
+def _geometry_tsv(content_width, house_number="812"):
+    border = h._COLUMN_OCR_BORDER_PX
+    house_left = round(content_width * h._ELECTOR_NUMBER_GUTTER_RATIO) + 2
+    return {
+        "text": ["701/1", "SYNTHETIC", house_number, "SAFE", "702", "SYNTHETIC"],
+        "left": [border + 10, border + 120, border + house_left,
+                 border + house_left + 65, border + 10, border + 120],
+        "top": [border + 10, border + 10, border + 60,
+                border + 60, border + 110, border + 110],
+        "width": [50, 80, 45, 50, 40, 80],
+        "height": [20, 20, 20, 20, 20, 20],
+        "page_num": [1, 1, 1, 1, 1, 1],
+        "block_num": [1, 1, 1, 1, 1, 1],
+        "par_num": [1, 1, 1, 1, 1, 1],
+        "line_num": [1, 1, 2, 2, 3, 3],
+    }
+
+
+class TestGeometricElectorFilter:
+    @pytest.mark.parametrize(
+        ("layout", "content_width"),
+        [("two-column", 600), ("three-column", 400)],
+    )
+    def test_house_number_just_outside_normalised_gutter_is_rejected(
+        self, layout, content_width
+    ):
+        boxes = h._out_of_gutter_numeric_line_start_boxes(
+            _geometry_tsv(content_width), content_width
+        )
+        assert layout in {"two-column", "three-column"}
+        assert boxes == [{
+            "left": round(content_width * h._ELECTOR_NUMBER_GUTTER_RATIO) + 2,
+            "top": 60,
+            "width": 45,
+            "height": 20,
+        }]
+
+    def test_valid_subnumber_and_elector_rows_remain_inside_gutter(self):
+        boxes = h._out_of_gutter_numeric_line_start_boxes(
+            _geometry_tsv(600), 600
+        )
+        assert len(boxes) == 1
+        assert boxes[0]["top"] == 60  # only the synthetic address row
+
+    def test_flag_off_preserves_legacy_output_without_geometry_ocr(self, monkeypatch):
+        monkeypatch.delenv(h._GEOMETRIC_ELECTOR_FILTER_FLAG, raising=False)
+        monkeypatch.setattr(
+            h.pytesseract,
+            "image_to_data",
+            lambda *args, **kwargs: pytest.fail("flag-off path called image_to_data"),
+        )
+        monkeypatch.setattr(
+            h.pytesseract,
+            "image_to_string",
+            lambda *args, **kwargs: "\n".join(
+                SAFE_LABELLED_GEOMETRY_FIXTURES[0]["baseline_lines"]
+            ),
+        )
+
+        entries, last = h._process_column(
+            h.Image.new("RGB", (600, 180), "white"), 0, 600
+        )
+
+        assert json.dumps(entries, separators=(",", ":")) == (
+            '[{"elector_num":"701/1","voted":true},'
+            '{"elector_num":"812","voted":false},'
+            '{"elector_num":"702","voted":true}]'
+        )
+        assert last == 812
+
+    def test_candidate_masks_house_number_and_records_count(
+        self, monkeypatch, caplog
+    ):
+        monkeypatch.setenv(h._GEOMETRIC_ELECTOR_FILTER_FLAG, "true")
+        content_width = 600
+        data = _geometry_tsv(content_width)
+        house_left = data["left"][2]
+        house_top = data["top"][2]
+        image = h.Image.new("RGB", (content_width, 180), "white")
+        source_draw = h.ImageDraw.Draw(image)
+        source_draw.rectangle(
+            (
+                house_left - h._COLUMN_OCR_BORDER_PX,
+                house_top - h._COLUMN_OCR_BORDER_PX,
+                house_left - h._COLUMN_OCR_BORDER_PX + data["width"][2],
+                house_top - h._COLUMN_OCR_BORDER_PX + data["height"][2],
+            ),
+            fill="black",
+        )
+        monkeypatch.setattr(h.pytesseract, "image_to_data", lambda *a, **k: data)
+
+        def fake_image_to_string(masked, **_kwargs):
+            pixel = masked.getpixel((house_left + 2, house_top + 2))
+            lines_key = (
+                "candidate_lines" if pixel == (255, 255, 255) else "baseline_lines"
+            )
+            return "\n".join(SAFE_LABELLED_GEOMETRY_FIXTURES[0][lines_key])
+
+        monkeypatch.setattr(h.pytesseract, "image_to_string", fake_image_to_string)
+
+        with caplog.at_level(logging.INFO):
+            entries, _last = h._process_column(image, 0, content_width)
+
+        assert [entry["elector_num"] for entry in entries] == ["701/1", "702"]
+        assert "rejected_line_starts=1" in caplog.text
+        assert "bounding_boxes=" in caplog.text
+
+    def test_in_gutter_out_of_range_number_is_not_range_deleted(self):
+        data = _geometry_tsv(600, house_number="899")
+        # Move 899 into the elector gutter: geometry must preserve it even though
+        # §5 will diagnose it as outside this fixture's declared 700..702 range.
+        data["left"][2] = h._COLUMN_OCR_BORDER_PX + 10
+        assert h._out_of_gutter_numeric_line_start_boxes(data, 600) == []
+
+        rows = [{"polling_district": "NAA", "elector_number": "899"}]
+        before = [dict(rows[0])]
+        reports, issues = c.validate_rows_against_declared_ranges(
+            rows, {"NAA": {"district": "NAA", "start": 700, "end": 702}}
+        )
+        assert issues == []
+        assert rows == before
+        assert reports[0]["out_of_range"] == ["899"]
+
+    @pytest.mark.parametrize(
+        "fixture", SAFE_LABELLED_GEOMETRY_FIXTURES,
+        ids=[fixture["name"] for fixture in SAFE_LABELLED_GEOMETRY_FIXTURES],
+    )
+    def test_labelled_baseline_candidate_scores(self, fixture):
+        baseline = _score_labelled_fixture(fixture, fixture["baseline_lines"])
+        candidate = _score_labelled_fixture(fixture, fixture["candidate_lines"])
+
+        assert baseline == fixture["expected_baseline"]
+        assert candidate == fixture["expected_candidate"]
+        assert candidate["false_positives"] < baseline["false_positives"]
+        assert candidate["false_negatives"] == baseline["false_negatives"] == 0
 
 
 class TestHasVotingMark:
