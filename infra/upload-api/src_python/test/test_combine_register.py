@@ -50,6 +50,13 @@ class TestElectorMainNumber:
 # ── resolve_job_districts (§6.3 / §6.4) ───────────────────────────────────────
 
 class TestResolveJobDistricts:
+    # District boundaries are accepted only on corroborated printed header codes.
+    # The elector-number-reset trigger ("Layer 3b") was removed in Defect A because
+    # it split clean single-district registers on OCR artefacts (house numbers
+    # misread as low elector numbers) and on out-of-sequence late-registration
+    # electors. These tests pin the header-only behaviour and, for the reset
+    # scenarios the old code mishandled, assert that a numeric dip no longer splits.
+
     def test_single_district_no_signal_returns_seed_everywhere(self):
         """Invariant 1/7: no per-page signal → every row gets the seed."""
         rows = _rows([(3, "1"), (3, "2"), (4, "3"), (4, "4")])
@@ -65,8 +72,8 @@ class TestResolveJobDistricts:
         assert _districts(rows) == ["LA", "LA", "LA", "LA", "LB", "LB", "LB", "LB"]
         assert synthetic == set()
 
-    def test_header_corroboration_without_reset(self):
-        """Layer (a) alone: a different code on two consecutive pages, no reset."""
+    def test_header_corroboration_splits_on_two_consecutive_pages(self):
+        """A different printed code on two consecutive pages is the boundary."""
         rows = _rows([(3, "10"), (3, "55"), (4, "56"), (4, "60"), (5, "61"), (5, "70")])
         page_districts = {"3": "LA", "4": "LB", "5": "LB"}
         synthetic = c.resolve_job_districts(rows, page_districts, "LA")
@@ -82,17 +89,9 @@ class TestResolveJobDistricts:
         assert set(_districts(rows)) == {"LA"}
         assert synthetic == set()
 
-    def test_unreadable_second_header_triggers_synthetic_via_reset(self):
-        """Layer (b): elector reset fires even when the header is unreadable."""
-        rows = _rows([(3, "10"), (3, "55"), (4, "56"), (4, "60"),
-                      (5, "1"), (5, "5"), (6, "6"), (6, "40")])
-        page_districts = {"3": "LA", "4": "LA", "5": None, "6": None}
-        synthetic = c.resolve_job_districts(rows, page_districts, "LA")
-        assert _districts(rows) == ["LA", "LA", "LA", "LA", "LA-2", "LA-2", "LA-2", "LA-2"]
-        assert synthetic == {"LA-2"}
-
-    def test_reset_prefers_real_header_code_over_synthetic(self):
-        """If a usable header code is present when (b) fires, use it, not a label."""
+    def test_header_split_midway_through_file(self):
+        """A printed code change midway (LA→LB on two consecutive pages) splits;
+        elector numbers are irrelevant to the decision."""
         rows = _rows([(3, "55"), (4, "60"), (5, "1"), (6, "40")])
         page_districts = {"3": "LA", "4": "LA", "5": "LB", "6": "LB"}
         synthetic = c.resolve_job_districts(rows, page_districts, "LA")
@@ -100,58 +99,74 @@ class TestResolveJobDistricts:
         assert synthetic == set()
 
     def test_blank_page_mid_document_is_not_a_boundary(self):
-        """A page with no rows must not reset the running max (§6.3)."""
+        """A page with no rows is simply skipped; the run continues unbroken."""
         rows = _rows([(3, "10"), (3, "55"), (4, "56"), (4, "60"), (6, "61"), (6, "70")])
         page_districts = {"3": "LA", "4": "LA", "5": "LA", "6": "LA"}
         synthetic = c.resolve_job_districts(rows, page_districts, "LA")
         assert set(_districts(rows)) == {"LA"}
         assert synthetic == set()
 
-    def test_sub_numbered_electors_do_not_manufacture_reset(self):
+    def test_sub_numbered_electors_do_not_split(self):
         rows = _rows([(3, "47"), (3, "47/1"), (3, "48"), (4, "49"), (4, "50")])
         page_districts = {"3": "LA", "4": "LA"}
         synthetic = c.resolve_job_districts(rows, page_districts, "LA")
         assert set(_districts(rows)) == {"LA"}
         assert synthetic == set()
 
-    def test_multiple_resets_increment_synthetic_labels(self):
-        rows = _rows([(3, "10"), (3, "55"), (4, "56"), (4, "60"),
-                      (5, "1"), (5, "5"), (6, "6"), (6, "60"),
-                      (7, "1"), (7, "5"), (8, "6"), (8, "40")])
-        page_districts = {str(p): None for p in range(3, 9)}
-        synthetic = c.resolve_job_districts(rows, page_districts, "LA")
-        assert synthetic == {"LA-2", "LA-3"}
-        by_page = {r["page"]: r["polling_district"] for r in rows}
-        assert by_page[3] == "LA"
-        assert by_page[5] == "LA-2"
-        assert by_page[7] == "LA-3"
+    # ── Defect A regressions: numeric resets must NOT split a single district ──
 
-    def test_single_spurious_low_outlier_does_not_trigger_boundary(self):
-        # Page 4 is a normal continuation (high numbers) but OCR misread one entry
-        # as "1". A min-based rule would fake a reset here; the median-based rule
-        # must not, because the page's median is still high.
+    def test_house_number_dip_does_not_split_single_district(self):
+        """The reported Defect A regression, reproduced. A run of misread house
+        numbers (1..5) drops the page's numbers far below the previous page — the
+        exact pattern the old median-reset trigger split into a phantom 'LA-2'.
+        With a consistent printed header, and now under header-only logic, it must
+        stay a single district."""
         rows = _rows([
-            (3, "400"), (3, "405"), (3, "410"), (3, "415"), (3, "420"),
-            (4, "1"), (4, "425"), (4, "430"), (4, "435"), (4, "440"),
+            (3, "410"), (3, "411"), (3, "412"), (3, "413"), (3, "414"), (3, "415"),
+            (4, "1"), (4, "2"), (4, "3"), (4, "4"), (4, "5"),
+            (4, "416"), (4, "417"), (4, "418"),
         ])
         page_districts = {"3": "LA", "4": "LA"}
         synthetic = c.resolve_job_districts(rows, page_districts, "LA")
         assert set(_districts(rows)) == {"LA"}
         assert synthetic == set()
 
-    def test_genuine_full_reset_still_triggers(self):
-        # Page 4 is a real new district: every number drops from the ~400s to the
-        # low tens, so the median collapses and the reset must be accepted.
+    def test_full_numeric_reset_without_header_no_longer_splits(self):
+        """A full numeric reset (400s → low tens) with no readable header code no
+        longer creates a synthetic district — the old code produced 'LA-2' here.
+        Without a printed code we do not invent a boundary; the run stays 'LA'."""
         rows = _rows([
             (3, "450"), (3, "460"), (3, "470"), (3, "480"), (3, "490"),
             (4, "1"), (4, "5"), (4, "10"), (4, "15"), (4, "20"),
         ])
         page_districts = {"3": "LA", "4": None}
         synthetic = c.resolve_job_districts(rows, page_districts, "LA")
-        by_page = {r["page"]: r["polling_district"] for r in rows}
-        assert by_page[3] == "LA"
-        assert by_page[4] == "LA-2"
-        assert synthetic == {"LA-2"}
+        assert set(_districts(rows)) == {"LA"}
+        assert synthetic == set()
+
+    def test_unreadable_second_header_no_longer_splits(self):
+        """Deliberately accepted trade-off: a genuine second district whose header
+        cannot be OCR'd is no longer detected by a numeric reset, so its rows
+        inherit the running district here. In the real pipeline this collision
+        surfaces downstream as a high dedupe rate → COMPLETE_WITH_WARNINGS, not as
+        a synthetic label. This test pins the new, intentional behaviour."""
+        rows = _rows([(3, "10"), (3, "55"), (4, "56"), (4, "60"),
+                      (5, "1"), (5, "5"), (6, "6"), (6, "40")])
+        page_districts = {"3": "LA", "4": "LA", "5": None, "6": None}
+        synthetic = c.resolve_job_districts(rows, page_districts, "LA")
+        assert set(_districts(rows)) == {"LA"}
+        assert synthetic == set()
+
+    def test_repeated_numeric_resets_without_headers_do_not_split(self):
+        """Several numeric resets across a headerless run must not manufacture a
+        cascade of synthetic districts (the old code produced LA-2, LA-3, ...)."""
+        rows = _rows([(3, "10"), (3, "55"), (4, "56"), (4, "60"),
+                      (5, "1"), (5, "5"), (6, "6"), (6, "60"),
+                      (7, "1"), (7, "5"), (8, "6"), (8, "40")])
+        page_districts = {str(p): None for p in range(3, 9)}
+        synthetic = c.resolve_job_districts(rows, page_districts, "LA")
+        assert set(_districts(rows)) == {"LA"}
+        assert synthetic == set()
 
     def test_empty_rows(self):
         assert c.resolve_job_districts([], {"3": "LA"}, "LA") == set()

@@ -19,7 +19,6 @@ import json
 import logging
 import os
 import re
-import statistics
 from datetime import datetime, timezone
 from email.mime.application import MIMEApplication
 from email.mime.multipart import MIMEMultipart
@@ -42,12 +41,6 @@ s3 = boto3.client("s3", region_name=REGION)
 ses = boto3.client("ses", region_name=REGION)
 
 CSV_COLUMNS = ["Election Date", "Constituency", "Polling District", "Elector Number", "Voted", "Postal Vote"]
-
-# A district reset is accepted when this page's median elector number falls below
-# this fraction of the previous page's median. Within a district, page medians
-# increase monotonically, so this only fires on a genuine reset — and using the
-# median (not the minimum) means a single spurious low OCR reading cannot swing it.
-_RESET_MEDIAN_RATIO = 0.5
 
 
 # ── DynamoDB helpers ──────────────────────────────────────────────────────────
@@ -150,8 +143,11 @@ def _elector_main_number(elector_number):
     """Parse the main elector number — the part before '/'. Returns int or None.
 
     Deliberately NOT the same as _sort_key's re.sub(r'\\D', '', en): that turns
-    '47/1' into 471 and would manufacture phantom resets. This is a separate
-    parse for a separate purpose (§6.3)."""
+    '47/1' into 471. This is a separate parse for a separate purpose.
+
+    No longer consulted by resolve_job_districts (the numeric-reset trigger it fed
+    was removed in Defect A); retained because the declared-range validation (§5)
+    will need exactly this parse, and it is covered by its own unit tests."""
     if elector_number is None:
         return None
     head = str(elector_number).split("/")[0].strip()
@@ -162,24 +158,35 @@ def _elector_main_number(elector_number):
 
 
 def resolve_job_districts(rows, page_districts, seed_district):
-    """Assign a polling_district to every row of one job, using the per-page
-    header map and structural elector-number resets. Mutates rows in place.
+    """Assign a polling_district to every row of one job from the per-page header
+    map. Mutates rows in place.
 
-    Returns the set of synthetic labels ('{seed}-2', '{seed}-3', ...) assigned —
-    empty on a clean single-district or well-labelled multi-district file.
+    Returns the set of synthetic ('{seed}-N') labels assigned. Boundaries are now
+    accepted only on corroborated printed header codes (see below), which never
+    produce a synthetic label, so this is always an empty set. The return value is
+    kept so the caller's warning/`COMPLETE_WITH_WARNINGS` plumbing is undisturbed
+    and available for any future non-header boundary signal.
 
     Seeded with the current (page-1 metadata) district, so a document that yields
-    no per-page signal anywhere receives exactly today's assignment: every row
-    gets the seed. The logic can only refine, never regress (invariants 1 and 7).
+    no per-page header signal anywhere receives exactly today's assignment: every
+    row gets the seed. The logic can only refine, never regress (invariants 1/7).
 
-    A boundary is accepted when EITHER (a) a district code different from the
-    running district appears in the headers of two consecutive pages, OR (b) this
-    page's median elector number falls substantially below the previous page's
-    median (a structural reset that fires even when the header is unreadable). The
-    median — not the minimum — is used so a single spurious low OCR reading on an
-    otherwise high-numbered page cannot fake a reset. When (b) fires without a
-    usable header code, a clearly synthetic label is assigned rather than an
-    invented plausible-looking code."""
+    A boundary is accepted only on **header corroboration**: a printed district
+    code different from the running district appearing in the headers of two
+    consecutive pages. A printed code is hard evidence; requiring it on two
+    consecutive pages suppresses one-off OCR noise.
+
+    The former elector-number-reset trigger ("Layer 3b") was removed (Defect A).
+    It fired on OCR artefacts — house numbers misread as low elector numbers, and
+    legitimately out-of-sequence late-registration electors — and split clean
+    single-district registers into spurious synthetic districts, inflating the
+    row count. A numeric dip is no longer treated as a boundary.
+
+    Trade-off, deliberately accepted: a genuine second district whose printed
+    header cannot be OCR'd on two consecutive pages is no longer detected here.
+    That case now surfaces as a high deduplication rate in the completion email
+    (the COMPLETE_WITH_WARNINGS path) — the intended safety net until the
+    declared-range validation (§5) lands — rather than as a synthetic label."""
     if not rows:
         return set()
 
@@ -203,51 +210,22 @@ def resolve_job_districts(rows, page_districts, seed_district):
             continue
         rows_by_page.setdefault(page, []).append(row)
 
-    synthetic_labels = set()
-    synth_counter = 1  # first synthetic label becomes '{seed}-2'
     current_district = seed_district
-    prev_page_median = None
 
     for page in sorted(rows_by_page):
-        page_rows = rows_by_page[page]
-        nums = [
-            n for n in (_elector_main_number(r.get("elector_number")) for r in page_rows)
-            if n is not None
-        ]
-        if not nums:
-            # No readable elector numbers on this page: assign the running district
-            # but do not treat it as a boundary and do not disturb prev_page_median
-            # — a blank page mid-document must not look like a district boundary.
-            for r in page_rows:
-                r["polling_district"] = current_district
-            continue
-
-        page_median = statistics.median(nums)
         header = headers.get(page)
         next_header = headers.get(page + 1)
-
-        # (a) Header corroboration — two consecutive pages with the same new code.
-        accept_a = bool(header) and header != current_district and next_header == header
-        # (b) Elector reset — a substantial drop in the page's median elector
-        #     number. Median-based so one spurious low reading cannot swing it.
-        accept_b = (
-            prev_page_median is not None
-            and page_median < prev_page_median * _RESET_MEDIAN_RATIO
-        )
-
-        if accept_a or accept_b:
-            if header and header != current_district:
-                current_district = header
-            else:
-                synth_counter += 1
-                current_district = f"{seed_district}-{synth_counter}"
-                synthetic_labels.add(current_district)
-
-        for r in page_rows:
+        # Header corroboration is the only accepted boundary: a printed code
+        # different from the running district on two consecutive pages. Elector
+        # numbers are intentionally not consulted — a numeric reset is no longer a
+        # boundary signal (Defect A). A blank/None header simply inherits the
+        # running district, which is how continuation pages actually behave.
+        if header and header != current_district and next_header == header:
+            current_district = header
+        for r in rows_by_page[page]:
             r["polling_district"] = current_district
-        prev_page_median = page_median
 
-    return synthetic_labels
+    return set()
 
 
 # ── CSV builder ───────────────────────────────────────────────────────────────
