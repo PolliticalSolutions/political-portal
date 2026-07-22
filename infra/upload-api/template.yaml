@@ -567,7 +567,7 @@ Resources:
     Properties:
       CodeUri: src/
       Handler: handler.handler
-      Runtime: nodejs20.x
+      Runtime: nodejs24.x
       Timeout: 29
       MemorySize: 256
       Environment:
@@ -778,7 +778,7 @@ Resources:
     Properties:
       CodeUri: src/
       Handler: worker.handler
-      Runtime: nodejs20.x
+      Runtime: nodejs24.x
       Timeout: 300
       MemorySize: 512
       Environment:
@@ -847,7 +847,7 @@ Resources:
     Properties:
       CodeUri: src/
       Handler: uploadCompleteHandler.handler
-      Runtime: nodejs20.x
+      Runtime: nodejs24.x
       Timeout: 30
       MemorySize: 256
       Environment:
@@ -884,7 +884,7 @@ Resources:
     Properties:
       CodeUri: src/
       Handler: scanResultHandler.handler
-      Runtime: nodejs20.x
+      Runtime: nodejs24.x
       Timeout: 30
       MemorySize: 256
       Environment:
@@ -1014,7 +1014,7 @@ Resources:
     Properties:
       CodeUri: src/
       Handler: personaHandler.handler
-      Runtime: nodejs20.x
+      Runtime: nodejs24.x
       Timeout: 300
       MemorySize: 512
       Environment:
@@ -1068,7 +1068,7 @@ Resources:
     Properties:
       CodeUri: src/
       Handler: volunteerOps.handler
-      Runtime: nodejs20.x
+      Runtime: nodejs24.x
       Timeout: 29
       MemorySize: 256
       Environment:
@@ -1113,7 +1113,7 @@ Resources:
     Properties:
       CodeUri: src/
       Handler: byElectionMonitor.handler
-      Runtime: nodejs20.x
+      Runtime: nodejs24.x
       Timeout: 120
       MemorySize: 256
       Environment:
@@ -1163,7 +1163,7 @@ Resources:
     Properties:
       CodeUri: src/
       Handler: volunteerEmail.handler
-      Runtime: nodejs20.x
+      Runtime: nodejs24.x
       Timeout: 300
       MemorySize: 512
       Environment:
