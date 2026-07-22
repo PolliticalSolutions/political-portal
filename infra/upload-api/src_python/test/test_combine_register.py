@@ -8,6 +8,8 @@ second header, blank page mid-document, and 47/1-style sub-numbered electors.
 """
 
 from copy import deepcopy
+from email import policy
+from email.parser import BytesParser
 
 import combine_register.handler as c
 
@@ -417,7 +419,7 @@ class TestWarningsTriggered:
 
 
 class TestRangeReportFormatting:
-    def test_captured_vs_declared_and_missing_list(self):
+    def test_numbering_span_observed_and_not_observed_lists(self):
         text = c._format_range_report({
             "source": "register.pdf",
             "district": "NAA",
@@ -428,11 +430,61 @@ class TestRangeReportFormatting:
             "captured_pct": 812 / 926 * 100,
             "missing_count": 3,
             "missing": [4, 19, 926],
+            "out_of_range": [927],
         })
         assert text == (
-            "register.pdf: NAA 1-926: captured 812 of 926 (87.7%); "
-            "3 missing: [4, 19, 926]"
+            "register.pdf: Declared numbering span: NAA 1-926\n"
+            "    Unique base numbers observed within span: 812\n"
+            "    Numbers not observed within span (3): [4, 19, 926]\n"
+            "    Observed outside the declared span: [927]"
         )
+
+    def test_completion_email_explains_span_is_only_a_review_checklist(self, monkeypatch):
+        sent = {}
+
+        class FakeSes:
+            def send_raw_email(self, **kwargs):
+                sent.update(kwargs)
+
+        monkeypatch.setattr(c, "ses", FakeSes())
+        c.send_completion_email(
+            filename="synthetic.csv",
+            csv_bytes=b"header\n",
+            succeeded_count=1,
+            failed_count=0,
+            failed_filenames=[],
+            row_count=812,
+            range_reports=[{
+                "source": "synthetic.pdf",
+                "district": "NAA",
+                "start": 1,
+                "end": 926,
+                "captured_count": 812,
+                "declared_count": 926,
+                "captured_pct": 812 / 926 * 100,
+                "missing_count": 3,
+                "missing": [4, 19, 926],
+                "out_of_range_count": 1,
+                "out_of_range": [927],
+                "unparseable_count": 0,
+            }],
+        )
+
+        message = BytesParser(policy=policy.default).parsebytes(
+            sent["RawMessage"]["Data"]
+        )
+        body = message.get_body(preferencelist=("plain",)).get_content()
+        assert "Declared numbering span: NAA 1-926" in body
+        assert "Unique base numbers observed within span: 812" in body
+        assert "Numbers not observed within span (3): [4, 19, 926]" in body
+        assert "Observed outside the declared span: [927]" in body
+        assert (
+            "Numbering spans may contain legitimate gaps. This section is a "
+            "review checklist, not an electorate count, extraction-accuracy "
+            "score, or turnout calculation."
+        ) in body
+        assert "87.7%" not in body
+        assert "captured 812 of 926" not in body
 
 
 # ── build_csv column mapping (page field must never reach the CSV) ────────────

@@ -516,10 +516,14 @@ def _format_number_list(values):
 def _format_range_report(report):
     source = f"{report['source']}: " if report.get("source") else ""
     return (
-        f"{source}{report['district']} {report['start']}-{report['end']}: "
-        f"captured {report['captured_count']:,} of {report['declared_count']:,} "
-        f"({report['captured_pct']:.1f}%); {report['missing_count']:,} missing: "
-        f"{_format_number_list(report.get('missing'))}"
+        f"{source}Declared numbering span: "
+        f"{report['district']} {report['start']}-{report['end']}\n"
+        f"    Unique base numbers observed within span: "
+        f"{report['captured_count']:,}\n"
+        f"    Numbers not observed within span ({report['missing_count']:,}): "
+        f"{_format_number_list(report.get('missing'))}\n"
+        f"    Observed outside the declared span: "
+        f"{_format_number_list(report.get('out_of_range'))}"
     )
 
 
@@ -576,14 +580,9 @@ def send_completion_email(filename, csv_bytes, succeeded_count, failed_count,
 
     if range_reports or range_issues:
         body_lines.append("")
-        body_lines.append("Declared-range validation:")
+        body_lines.append("Declared-numbering review:")
         for report in range_reports:
             body_lines.append(f"  - {_format_range_report(report)}")
-            if report.get("out_of_range_count"):
-                body_lines.append(
-                    f"    OUT OF RANGE ({report['out_of_range_count']:,}): "
-                    f"{_format_number_list(report.get('out_of_range'))}"
-                )
             if report.get("unparseable_count"):
                 body_lines.append(
                     f"    Unparseable elector numbers ({report['unparseable_count']:,}): "
@@ -591,6 +590,11 @@ def send_completion_email(filename, csv_bytes, succeeded_count, failed_count,
                 )
         for issue in range_issues:
             body_lines.append(f"  - RANGE NOT TRUSTED: {issue}")
+        body_lines.append(
+            "Numbering spans may contain legitimate gaps. This section is a "
+            "review checklist, not an electorate count, extraction-accuracy "
+            "score, or turnout calculation."
+        )
 
     if _warnings_triggered(
         dedupe_pct, synthetic_labels, warn_pct, range_reports, range_issues
@@ -612,9 +616,9 @@ def send_completion_email(filename, csv_bytes, succeeded_count, failed_count,
             )
         if _range_warnings_triggered(range_reports, range_issues):
             body_lines.append(
-                "  - Declared-range validation found missing, out-of-range, "
-                "unparseable, or untrusted range data. Review the detailed "
-                "declared-range section above against the source PDF."
+                "  - The declared-numbering review found numbers not observed, "
+                "out-of-range numbers, unparseable numbers, or untrusted range "
+                "data. Review the checklist above against the source PDF."
             )
 
     if failed_count > 0:
@@ -673,6 +677,10 @@ def handler(event, context):
     synthetic_labels_all = set()
     range_reports_all = []
     range_issues_all = []
+    inference_diagnostics_all = {
+        "numeric_gap_rows_legacy_would_generate": 0,
+        "explicit_strikethrough_rows_inferred": 0,
+    }
 
     for job in jobs:
         job_id = job["jobId"]
@@ -697,10 +705,16 @@ def handler(event, context):
                 page_districts[str(k)] = v
             for k, v in (payload.get("pageDeclaredRanges") or {}).items():
                 page_declared_ranges[str(k)] = v
-            meta_ranges = (payload.get("meta") or {}).get("declared_ranges") or []
+            payload_meta = payload.get("meta") or {}
+            meta_ranges = payload_meta.get("declared_ranges") or []
             if isinstance(meta_ranges, dict):
                 meta_ranges = [meta_ranges]
             cover_declared_ranges.extend(meta_ranges)
+            inference_diagnostics = payload_meta.get("inference_diagnostics") or {}
+            for key in inference_diagnostics_all:
+                inference_diagnostics_all[key] += int(
+                    inference_diagnostics.get(key, 0)
+                )
 
         # Seed = page-1 metadata district from the lowest-numbered chunk. Every
         # chunk extracts it independently and deterministically, so assert they
@@ -737,11 +751,11 @@ def handler(event, context):
             report["source"] = source_name
             range_reports_all.append(report)
             logger.info(
-                "Job %s declared range %s %d-%d: captured=%d/%d (%.1f%%), "
-                "missing=%s, out_of_range=%s",
+                "Job %s declared numbering span %s %d-%d: "
+                "observed_within_span=%d, not_observed=%s, out_of_range=%s",
                 job_id, report["district"], report["start"], report["end"],
-                report["captured_count"], report["declared_count"],
-                report["captured_pct"], report["missing"], report["out_of_range"],
+                report["captured_count"], report["missing"],
+                report["out_of_range"],
             )
         for issue in range_issues + validation_issues:
             rendered_issue = f"{source_name}: {issue}"
@@ -763,6 +777,14 @@ def handler(event, context):
     logger.info(
         "Batch %s: %d rows from %d jobs (%d failed)",
         batch_id, len(all_rows), succeeded_count, len(failed_filenames),
+    )
+    logger.info(
+        "Batch %s OCR inference diagnostics: "
+        "numeric_gap_rows_legacy_would_generate=%d, "
+        "explicit_strikethrough_rows_inferred=%d",
+        batch_id,
+        inference_diagnostics_all["numeric_gap_rows_legacy_would_generate"],
+        inference_diagnostics_all["explicit_strikethrough_rows_inferred"],
     )
 
     pre_dedupe_count = len(all_rows)

@@ -92,6 +92,12 @@ _MONTH_MAP = {
     "sep": "09", "oct": "10", "nov": "11", "dec": "12",
 }
 MAX_GAP_TO_FILL = 10
+EVIDENCE_ONLY_GAP_INFERENCE_FLAG = "OCR_EVIDENCE_ONLY_GAP_INFERENCE"
+
+_INFERENCE_DIAGNOSTIC_KEYS = (
+    "numeric_gap_rows_legacy_would_generate",
+    "explicit_strikethrough_rows_inferred",
+)
 
 # Header patterns that identify a page's polling district. Shared by the page-1
 # metadata parse (_extract_metadata) and the per-page detection (§6.2).
@@ -304,9 +310,25 @@ def _is_likely_strikethrough(line):
     return (score >= 3 and (has_name or dashes >= 1)) or (len(line) > 40 and garbled >= 2)
 
 
-def _infer_missing_entries(readable_entries, start_num):
+def _new_inference_diagnostics():
+    return {key: 0 for key in _INFERENCE_DIAGNOSTIC_KEYS}
+
+
+def _merge_inference_diagnostics(target, source):
+    for key in _INFERENCE_DIAGNOSTIC_KEYS:
+        target[key] += int((source or {}).get(key, 0))
+
+
+def _evidence_only_gap_inference_enabled():
+    return os.environ.get(EVIDENCE_ONLY_GAP_INFERENCE_FLAG, "false").strip().lower() == "true"
+
+
+def _infer_missing_entries(readable_entries, start_num,
+                           evidence_only_gap_inference=None, diagnostics=None):
     if not readable_entries:
         return []
+    if evidence_only_gap_inference is None:
+        evidence_only_gap_inference = _evidence_only_gap_inference_enabled()
     entries = []
     expected = start_num + 1 if start_num > 0 else 1
     # A strikethrough with no readable number can only be inferred once we have an
@@ -320,6 +342,8 @@ def _infer_missing_entries(readable_entries, start_num):
             if not anchored:
                 continue
             entries.append({"elector_num": str(expected), "voted": True})
+            if diagnostics is not None:
+                diagnostics["explicit_strikethrough_rows_inferred"] += 1
             expected += 1
         elif entry["main_num"] is not None:
             actual = entry["main_num"]
@@ -331,9 +355,12 @@ def _infer_missing_entries(readable_entries, start_num):
                 expected = actual
             gap = actual - expected
             if 0 < gap <= MAX_GAP_TO_FILL:
-                while expected < actual:
-                    entries.append({"elector_num": str(expected), "voted": True})
-                    expected += 1
+                if diagnostics is not None:
+                    diagnostics["numeric_gap_rows_legacy_would_generate"] += gap
+                if not evidence_only_gap_inference:
+                    while expected < actual:
+                        entries.append({"elector_num": str(expected), "voted": True})
+                        expected += 1
             elif gap > MAX_GAP_TO_FILL:
                 expected = actual
             entries.append({"elector_num": entry["elector_num"], "voted": entry["voted"]})
@@ -342,7 +369,8 @@ def _infer_missing_entries(readable_entries, start_num):
     return entries
 
 
-def _process_column(image, col_start, col_end, context_start_num=0):
+def _process_column(image, col_start, col_end, context_start_num=0,
+                    inference_diagnostics=None):
     col_img = image.crop((col_start, 0, col_end, image.size[1]))
     col_img = ImageOps.expand(col_img, border=70, fill="white")
     col_img = ImageEnhance.Contrast(col_img).enhance(1.3)
@@ -374,7 +402,9 @@ def _process_column(image, col_start, col_end, context_start_num=0):
                 {"elector_num": None, "main_num": None, "voted": True, "line": line, "is_strikethrough": True}
             )
 
-    entries = _infer_missing_entries(readable, context_start_num)
+    entries = _infer_missing_entries(
+        readable, context_start_num, diagnostics=inference_diagnostics
+    )
 
     last_num = context_start_num
     if entries:
@@ -398,7 +428,7 @@ def _detect_columns(image):
     return 3 if count >= 10 else 2
 
 
-def _process_page(image, context_num=0, ncols=None):
+def _process_page(image, context_num=0, ncols=None, inference_diagnostics=None):
     w = image.size[0]
     # Column layout is a property of the register's print format and is fixed for
     # the whole document, so the caller may pass a cached ncols (detected once per
@@ -409,12 +439,18 @@ def _process_page(image, context_num=0, ncols=None):
     entries = []
     if ncols == 3:
         for start, end in [(0, int(w * 0.32)), (int(w * 0.32), int(w * 0.64)), (int(w * 0.64), w)]:
-            col_entries, _ = _process_column(image, start, end, 0)
+            col_entries, _ = _process_column(
+                image, start, end, 0, inference_diagnostics
+            )
             entries.extend(col_entries)
         last_num = context_num
     else:
-        left, left_last = _process_column(image, 0, int(w * 0.48), 0)
-        right, right_last = _process_column(image, int(w * 0.50), w, 0)
+        left, left_last = _process_column(
+            image, 0, int(w * 0.48), 0, inference_diagnostics
+        )
+        right, right_last = _process_column(
+            image, int(w * 0.50), w, 0, inference_diagnostics
+        )
         entries = left + right
         last_num = max(left_last, right_last) if left_last and right_last else (left_last or right_last or 0)
     return entries, last_num
@@ -502,7 +538,7 @@ def _build_rows(entries, constituency_name, election_date, polling_district, vot
 
 
 def _ocr_serial(pdf_path, total_pages, constituency_name, election_date,
-                polling_district, vote_type):
+                polling_district, vote_type, inference_diagnostics=None):
     """Original serial page-by-page OCR path, preserved unchanged for the
     CHUNK_PAGES=0 rollback switch (§10)."""
     if total_pages == 0:
@@ -528,7 +564,9 @@ def _ocr_serial(pdf_path, total_pages, constituency_name, election_date,
             continue
 
         img = page_images[0]
-        entries, _ = _process_page(img)
+        entries, _ = _process_page(
+            img, inference_diagnostics=inference_diagnostics
+        )
         all_entries.extend(entries)
         del img, page_images  # free memory; image file not persisted
 
@@ -546,7 +584,8 @@ def _ocr_serial(pdf_path, total_pages, constituency_name, election_date,
 
 
 def _ocr_chunk(pdf_path, page_start, page_end, total_pages, constituency_name,
-               election_date, polling_district, vote_type):
+               election_date, polling_district, vote_type,
+               inference_diagnostics=None):
     """Parallel OCR of one page range. Detects column layout once for the chunk,
     OCRs the remaining pages concurrently, tags every row with its source page,
     and records each page's detected polling district and declared elector range.
@@ -584,7 +623,15 @@ def _ocr_chunk(pdf_path, page_start, page_end, total_pages, constituency_name,
         img0 = first_imgs[0]
         try:
             ncols = _detect_columns(img0)
-            entries0, _ = _process_page(img0, ncols=ncols)
+            page_inference_diagnostics = _new_inference_diagnostics()
+            entries0, _ = _process_page(
+                img0, ncols=ncols,
+                inference_diagnostics=page_inference_diagnostics,
+            )
+            if inference_diagnostics is not None:
+                _merge_inference_diagnostics(
+                    inference_diagnostics, page_inference_diagnostics
+                )
             for e in entries0:
                 e["page"] = detect_page
             page_entries[detect_page] = entries0
@@ -597,14 +644,21 @@ def _ocr_chunk(pdf_path, page_start, page_end, total_pages, constituency_name,
     def _work(page_num):
         imgs = _render_page(pdf_path, page_num, grayscale)
         if not imgs:
-            return page_num, [], None, []
+            return page_num, [], None, [], _new_inference_diagnostics()
         img = imgs[0]
         try:
-            entries, _ = _process_page(img, ncols=ncols)
+            page_inference_diagnostics = _new_inference_diagnostics()
+            entries, _ = _process_page(
+                img, ncols=ncols,
+                inference_diagnostics=page_inference_diagnostics,
+            )
             for e in entries:
                 e["page"] = page_num
             district, declared_ranges = _extract_page_header(img)
-            return page_num, entries, district, declared_ranges
+            return (
+                page_num, entries, district, declared_ranges,
+                page_inference_diagnostics,
+            )
         finally:
             del img, imgs
 
@@ -614,10 +668,15 @@ def _ocr_chunk(pdf_path, page_start, page_end, total_pages, constituency_name,
         # external binaries, releasing the GIL, and threads avoid pickling PIL
         # images / fork() issues inside Lambda (§5.2).
         with concurrent.futures.ThreadPoolExecutor(max_workers=workers) as pool:
-            for page_num, entries, district, declared_ranges in pool.map(_work, remaining):
+            for (page_num, entries, district, declared_ranges,
+                 page_inference_diagnostics) in pool.map(_work, remaining):
                 page_entries[page_num] = entries
                 page_districts[page_num] = district
                 page_declared_ranges[page_num] = declared_ranges
+                if inference_diagnostics is not None:
+                    _merge_inference_diagnostics(
+                        inference_diagnostics, page_inference_diagnostics
+                    )
 
     # Flatten in ascending page order — ordering must be deterministic (invariant 1).
     all_entries = []
@@ -681,18 +740,35 @@ def ocr_pdf(pdf_path, constituency_name, election_name, election_date_override="
         "vote_type": vote_type,
         "declared_ranges": declared_ranges,
     }
+    inference_diagnostics = _new_inference_diagnostics()
 
     total_pages = _count_pages(pdf_path)
 
     if page_start is None:
         rows = _ocr_serial(pdf_path, total_pages, constituency_name, election_date,
-                           polling_district, vote_type)
+                           polling_district, vote_type, inference_diagnostics)
+        meta["inference_diagnostics"] = inference_diagnostics
+        logger.info(
+            "OCR inference diagnostics: "
+            "numeric_gap_rows_legacy_would_generate=%d, "
+            "explicit_strikethrough_rows_inferred=%d",
+            inference_diagnostics["numeric_gap_rows_legacy_would_generate"],
+            inference_diagnostics["explicit_strikethrough_rows_inferred"],
+        )
         logger.info("OCR complete (serial): %d entries extracted", len(rows))
         return rows, meta, {}, {}
 
     rows, page_districts, page_declared_ranges = _ocr_chunk(
         pdf_path, page_start, page_end, total_pages, constituency_name,
-        election_date, polling_district, vote_type,
+        election_date, polling_district, vote_type, inference_diagnostics,
+    )
+    meta["inference_diagnostics"] = inference_diagnostics
+    logger.info(
+        "OCR inference diagnostics: "
+        "numeric_gap_rows_legacy_would_generate=%d, "
+        "explicit_strikethrough_rows_inferred=%d",
+        inference_diagnostics["numeric_gap_rows_legacy_would_generate"],
+        inference_diagnostics["explicit_strikethrough_rows_inferred"],
     )
     logger.info(
         "OCR complete (chunk %s-%s): %d entries extracted", page_start, page_end, len(rows)
