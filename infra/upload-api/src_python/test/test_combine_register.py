@@ -7,6 +7,8 @@ out exactly these cases: single district, clean two-district split, unreadable
 second header, blank page mid-document, and 47/1-style sub-numbered electors.
 """
 
+from copy import deepcopy
+
 import combine_register.handler as c
 
 
@@ -45,6 +47,117 @@ class TestElectorMainNumber:
 
     def test_whitespace(self):
         assert c._elector_main_number(" 47 ") == 47
+
+
+# ── Declared-range selection and validation (§5) ─────────────────────────────
+
+class TestResolveDeclaredRanges:
+    def test_cover_and_modal_page_header_agreement_is_trusted(self):
+        cover = [{"district": "NAA", "start": 1, "end": 926}]
+        pages = {
+            "3": [{"district": "NAA", "start": 1, "end": 926}],
+            "4": [{"district": "NAA", "start": 1, "end": 926}],
+            "5": [{"district": "NAA", "start": 1, "end": 926}],
+        }
+        trusted, issues = c.resolve_declared_ranges(cover, pages)
+        assert trusted["NAA"]["start"] == 1
+        assert trusted["NAA"]["end"] == 926
+        assert trusted["NAA"]["evidence"] == "cover+page_headers"
+        assert issues == []
+
+    def test_one_noisy_header_does_not_override_modal_agreement(self):
+        cover = [{"district": "NAA", "start": 1, "end": 926}]
+        pages = {
+            "3": [{"district": "NAA", "start": 1, "end": 926}],
+            "4": [{"district": "NAA", "start": 1, "end": 1926}],
+            "5": [{"district": "NAA", "start": 1, "end": 926}],
+        }
+        trusted, issues = c.resolve_declared_ranges(cover, pages)
+        assert trusted["NAA"]["end"] == 926
+        assert trusted["NAA"]["header_count"] == 2
+        assert issues == []
+
+    def test_mis_ocr_cover_disagreement_is_not_trusted(self):
+        cover = [{"district": "NAA", "start": 1, "end": 1926}]
+        pages = {
+            "3": [{"district": "NAA", "start": 1, "end": 926}],
+            "4": [{"district": "NAA", "start": 1, "end": 926}],
+            "5": [{"district": "NAA", "start": 1, "end": 926}],
+        }
+        trusted, issues = c.resolve_declared_ranges(cover, pages)
+        assert trusted == {}
+        assert len(issues) == 1
+        assert "disagrees" in issues[0]
+        assert "range not trusted" in issues[0]
+
+    def test_repeated_header_only_range_supports_genuine_second_district(self):
+        pages = {
+            "8": [{"district": "NAB", "start": 50, "end": 400}],
+            "9": [{"district": "NAB", "start": 50, "end": 400}],
+        }
+        trusted, issues = c.resolve_declared_ranges([], pages)
+        assert trusted["NAB"]["evidence"] == "repeated_page_headers"
+        assert trusted["NAB"]["start"] == 50
+        assert issues == []
+
+    def test_single_header_without_cover_is_not_trusted(self):
+        pages = {"8": [{"district": "NAB", "start": 50, "end": 400}]}
+        trusted, issues = c.resolve_declared_ranges([], pages)
+        assert trusted == {}
+        assert "appeared only once" in issues[0]
+
+    def test_no_declarations_reports_issue(self):
+        trusted, issues = c.resolve_declared_ranges([], {})
+        assert trusted == {}
+        assert "No declared elector range" in issues[0]
+
+
+class TestValidateRowsAgainstDeclaredRanges:
+    def test_in_range_out_of_range_and_missing_are_reported_without_dropping(self):
+        rows = _rows([
+            (3, "9"), (3, "10"), (3, "12"), (3, "12/1"),
+            (4, "15"), (4, "16"),
+        ], seed="NAA")
+        before = deepcopy(rows)
+        declared = {"NAA": {"district": "NAA", "start": 10, "end": 15}}
+
+        reports, issues = c.validate_rows_against_declared_ranges(rows, declared)
+
+        assert rows == before
+        assert issues == []
+        assert reports[0]["captured_count"] == 3
+        assert reports[0]["missing"] == [11, 13, 14]
+        assert reports[0]["out_of_range"] == ["9", "16"]
+        assert reports[0]["out_of_range_count"] == 2
+
+    def test_sub_number_uses_part_before_slash(self):
+        rows = _rows([(3, "47/1")], seed="NAA")
+        declared = {"NAA": {"district": "NAA", "start": 46, "end": 48}}
+        reports, _ = c.validate_rows_against_declared_ranges(rows, declared)
+        assert reports[0]["captured_count"] == 1
+        assert reports[0]["missing"] == [46, 48]
+        assert reports[0]["out_of_range"] == []
+
+    def test_register_not_starting_at_one(self):
+        rows = _rows([
+            (3, "557"), (3, "558"), (4, "560"), (4, "100"), (4, "3752")
+        ], seed="TH7")
+        declared = {"TH7": {"district": "TH7", "start": 557, "end": 3751}}
+        reports, _ = c.validate_rows_against_declared_ranges(rows, declared)
+        report = reports[0]
+        assert report["declared_count"] == 3195
+        assert report["captured_count"] == 3
+        assert report["missing"][0] == 559
+        assert report["missing"][-1] == 3751
+        assert report["out_of_range"] == ["100", "3752"]
+
+    def test_rows_in_district_without_trusted_range_are_flagged(self):
+        rows = _rows([(3, "1")], seed="NAB")
+        declared = {"NAA": {"district": "NAA", "start": 1, "end": 2}}
+        _, issues = c.validate_rows_against_declared_ranges(rows, declared)
+        assert issues == [
+            "No trusted declared range was available for extracted district(s): NAB."
+        ]
 
 
 # ── resolve_job_districts (§6.3 / §6.4) ───────────────────────────────────────
@@ -274,6 +387,52 @@ class TestWarningsTriggered:
 
     def test_pct_exactly_at_threshold_no_warning(self):
         assert c._warnings_triggered(dedupe_pct=2.0, synthetic_labels=set(), warn_pct=2.0) is False
+
+    def test_missing_declared_electors_trigger_warning(self):
+        reports = [{"missing_count": 1, "out_of_range_count": 0, "unparseable_count": 0}]
+        assert c._warnings_triggered(
+            dedupe_pct=0.0, synthetic_labels=set(), warn_pct=2.0,
+            range_reports=reports,
+        ) is True
+
+    def test_out_of_range_electors_trigger_warning(self):
+        reports = [{"missing_count": 0, "out_of_range_count": 1, "unparseable_count": 0}]
+        assert c._warnings_triggered(
+            dedupe_pct=0.0, synthetic_labels=set(), warn_pct=2.0,
+            range_reports=reports,
+        ) is True
+
+    def test_untrusted_range_issue_triggers_warning(self):
+        assert c._warnings_triggered(
+            dedupe_pct=0.0, synthetic_labels=set(), warn_pct=2.0,
+            range_issues=["NAA: range not trusted"],
+        ) is True
+
+    def test_complete_declared_range_is_clean(self):
+        reports = [{"missing_count": 0, "out_of_range_count": 0, "unparseable_count": 0}]
+        assert c._warnings_triggered(
+            dedupe_pct=0.0, synthetic_labels=set(), warn_pct=2.0,
+            range_reports=reports,
+        ) is False
+
+
+class TestRangeReportFormatting:
+    def test_captured_vs_declared_and_missing_list(self):
+        text = c._format_range_report({
+            "source": "register.pdf",
+            "district": "NAA",
+            "start": 1,
+            "end": 926,
+            "captured_count": 812,
+            "declared_count": 926,
+            "captured_pct": 812 / 926 * 100,
+            "missing_count": 3,
+            "missing": [4, 19, 926],
+        })
+        assert text == (
+            "register.pdf: NAA 1-926: captured 812 of 926 (87.7%); "
+            "3 missing: [4, 19, 926]"
+        )
 
 
 # ── build_csv column mapping (page field must never reach the CSV) ────────────

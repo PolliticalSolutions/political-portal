@@ -35,15 +35,25 @@ def _chunk_payload(chunk_index, pages, seed="LA"):
     """Build a chunk output payload spanning the given {page: electors} pages."""
     rows = []
     page_districts = {}
+    page_declared_ranges = {}
     for page, electors in sorted(pages.items()):
         rows.extend(_make_page_rows(page, electors, seed))
         page_districts[str(page)] = seed
+        page_declared_ranges[str(page)] = [
+            {"district": seed, "start": 1, "end": 30}
+        ]
     return {
         "chunkIndex": chunk_index,
         "totalChunks": 0,  # not read by the pipeline under test
         "pageDistricts": page_districts,
+        "pageDeclaredRanges": page_declared_ranges,
         "rows": rows,
-        "meta": {"polling_district": seed, "election_date": "01/05/2026", "vote_type": "In Person"},
+        "meta": {
+            "polling_district": seed,
+            "election_date": "01/05/2026",
+            "vote_type": "In Person",
+            "declared_ranges": [{"district": seed, "start": 1, "end": 30}],
+        },
     }
 
 
@@ -53,15 +63,25 @@ def _run_pipeline(payloads):
     payloads = sorted(payloads, key=lambda p: p.get("chunkIndex", 0))
     job_rows = []
     page_districts = {}
+    page_declared_ranges = {}
+    cover_declared_ranges = []
     for p in payloads:
         job_rows.extend(p["rows"])
         for k, v in p["pageDistricts"].items():
             page_districts[str(k)] = v
+        for k, v in p["pageDeclaredRanges"].items():
+            page_declared_ranges[str(k)] = v
+        cover_declared_ranges.extend((p.get("meta") or {}).get("declared_ranges") or [])
     seeds = [(p.get("meta") or {}).get("polling_district") for p in payloads]
     seeds = [s for s in seeds if s]
     seed = seeds[0] if seeds else ""
     if any("page" in r for r in job_rows):
         c.resolve_job_districts(job_rows, page_districts, seed)
+    trusted, issues = c.resolve_declared_ranges(cover_declared_ranges, page_declared_ranges)
+    reports, validation_issues = c.validate_rows_against_declared_ranges(job_rows, trusted)
+    assert issues == []
+    assert validation_issues == []
+    assert len(reports) == 1
     job_rows = c._dedupe_rows(job_rows)
     job_rows.sort(key=c._sort_key)
     return c.build_csv(job_rows)
