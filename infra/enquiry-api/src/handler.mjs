@@ -2,16 +2,7 @@ import { createRequire } from "module";
 import crypto from "crypto";
 
 const require = createRequire(import.meta.url);
-let AWS;
-try {
-  AWS = require("aws-sdk");
-} catch (error) {
-  if (globalThis.__AWS_SDK_MOCK__) {
-    AWS = globalThis.__AWS_SDK_MOCK__;
-  } else {
-    throw error;
-  }
-}
+const AWS = globalThis.__AWS_SDK_MOCK__ || require("aws-sdk");
 
 const REGION = process.env.AWS_REGION || "eu-west-2";
 
