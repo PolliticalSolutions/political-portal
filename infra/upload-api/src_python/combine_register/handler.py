@@ -19,6 +19,7 @@ import json
 import logging
 import os
 import re
+from collections import Counter
 from datetime import datetime, timezone
 from email.mime.application import MIMEApplication
 from email.mime.multipart import MIMEMultipart
@@ -157,6 +158,205 @@ def _elector_main_number(elector_number):
         return None
 
 
+# ── Declared-range validation (§5) ────────────────────────────────────────────
+
+_MAX_DECLARED_SPAN = 100_000
+
+
+def _normalise_declared_range(value):
+    """Return a canonical (district, start, end) tuple, or None if implausible."""
+    if not isinstance(value, dict):
+        return None
+    district = str(value.get("district") or "").strip().upper()
+    if not re.fullmatch(r"[A-Z0-9]{2,8}", district):
+        return None
+    try:
+        start = int(value.get("start"))
+        end = int(value.get("end"))
+    except (TypeError, ValueError):
+        return None
+    if start < 1 or end < start or (end - start + 1) > _MAX_DECLARED_SPAN:
+        return None
+    return district, start, end
+
+
+def resolve_declared_ranges(cover_ranges, page_declared_ranges):
+    """Choose file ranges only after independent declaration corroboration.
+
+    Cover declarations must agree exactly with the unique modal range read from
+    page headers. A district absent from the cover (for example a genuine second
+    register concatenated into the PDF) may use a header-only range only when the
+    same declaration appears on at least two pages. Returns
+    (trusted_ranges_by_district, issues). No extracted row is changed or dropped.
+    """
+    cover_by_district = {}
+    for value in cover_ranges or []:
+        candidate = _normalise_declared_range(value)
+        if candidate:
+            cover_by_district.setdefault(candidate[0], set()).add(candidate)
+
+    header_counts = {}
+    for values in (page_declared_ranges or {}).values():
+        if isinstance(values, dict):
+            values = [values]
+        page_candidates = set()
+        for value in values or []:
+            candidate = _normalise_declared_range(value)
+            if candidate:
+                page_candidates.add(candidate)
+        for candidate in page_candidates:
+            header_counts.setdefault(candidate[0], Counter())[candidate] += 1
+
+    trusted = {}
+    issues = []
+    districts = sorted(set(cover_by_district) | set(header_counts))
+
+    if not districts:
+        return {}, [
+            "No declared elector range could be verified from the cover or page headers."
+        ]
+
+    for district in districts:
+        covers = sorted(cover_by_district.get(district, set()))
+        counts = header_counts.get(district, Counter())
+        ranked = sorted(
+            counts.items(),
+            key=lambda item: (-item[1], item[0][1], item[0][2]),
+        )
+        modal = ranked[0][0] if ranked else None
+        modal_count = ranked[0][1] if ranked else 0
+        modal_is_unique = bool(ranked) and (
+            len(ranked) == 1 or ranked[0][1] > ranked[1][1]
+        )
+
+        if covers:
+            if len(covers) != 1:
+                rendered = ", ".join(f"{start}-{end}" for _, start, end in covers)
+                issues.append(
+                    f"{district}: conflicting cover ranges ({rendered}); range not trusted."
+                )
+                continue
+            cover = covers[0]
+            if not ranked:
+                issues.append(
+                    f"{district}: cover range {cover[1]}-{cover[2]} had no readable "
+                    "page-header range for corroboration; range not trusted."
+                )
+                continue
+            if not modal_is_unique:
+                issues.append(
+                    f"{district}: page-header ranges have no unique mode; range not trusted."
+                )
+                continue
+            if modal != cover:
+                issues.append(
+                    f"{district}: cover range {cover[1]}-{cover[2]} disagrees with "
+                    f"modal page-header range {modal[1]}-{modal[2]} ({modal_count} page(s)); "
+                    "range not trusted."
+                )
+                continue
+            trusted[district] = {
+                "district": district,
+                "start": cover[1],
+                "end": cover[2],
+                "evidence": "cover+page_headers",
+                "header_count": modal_count,
+            }
+            continue
+
+        if modal_is_unique and modal_count >= 2:
+            trusted[district] = {
+                "district": district,
+                "start": modal[1],
+                "end": modal[2],
+                "evidence": "repeated_page_headers",
+                "header_count": modal_count,
+            }
+        elif ranked and not modal_is_unique:
+            issues.append(
+                f"{district}: page-header ranges have no unique mode and no cover "
+                "declaration; range not trusted."
+            )
+        elif ranked:
+            issues.append(
+                f"{district}: page-header range {modal[1]}-{modal[2]} appeared only once "
+                "and has no cover declaration; range not trusted."
+            )
+
+    return trusted, issues
+
+
+def validate_rows_against_declared_ranges(rows, declared_ranges):
+    """Report captured, missing, and out-of-range electors without mutating rows."""
+    ranges = {}
+    for value in (declared_ranges or {}).values():
+        candidate = _normalise_declared_range(value)
+        if candidate:
+            ranges[candidate[0]] = {
+                "district": candidate[0], "start": candidate[1], "end": candidate[2]
+            }
+
+    reports = []
+    for district in sorted(ranges):
+        declared = ranges[district]
+        start = declared["start"]
+        end = declared["end"]
+        captured = set()
+        out_of_range = []
+        unparseable = []
+
+        for row in rows or []:
+            row_district = str(row.get("polling_district") or "").strip().upper()
+            if row_district != district:
+                continue
+            identifier = str(row.get("elector_number") or "").strip()
+            main_number = _elector_main_number(identifier)
+            if main_number is None:
+                unparseable.append(identifier or "(blank)")
+            elif main_number < start or main_number > end:
+                out_of_range.append(identifier)
+            else:
+                # 47/1 is in range as elector 47, never 471. Completeness is
+                # measured against the register's declared main-number span.
+                captured.add(main_number)
+
+        missing = [number for number in range(start, end + 1) if number not in captured]
+        declared_count = end - start + 1
+        reports.append({
+            "district": district,
+            "start": start,
+            "end": end,
+            "declared_count": declared_count,
+            "captured_count": len(captured),
+            "captured_pct": (len(captured) / declared_count * 100.0),
+            "missing_count": len(missing),
+            "missing": missing,
+            "out_of_range_count": len(out_of_range),
+            "out_of_range": sorted(
+                out_of_range,
+                key=lambda value: (_elector_main_number(value) or 0, value),
+            ),
+            "unparseable_count": len(unparseable),
+            "unparseable": sorted(unparseable),
+        })
+
+    issues = []
+    if ranges:
+        row_districts = {
+            str(row.get("polling_district") or "").strip().upper()
+            for row in rows or []
+            if str(row.get("polling_district") or "").strip()
+        }
+        unchecked = sorted(row_districts - set(ranges))
+        if unchecked:
+            issues.append(
+                "No trusted declared range was available for extracted district(s): "
+                + ", ".join(unchecked)
+                + "."
+            )
+    return reports, issues
+
+
 def resolve_job_districts(rows, page_districts, seed_district):
     """Assign a polling_district to every row of one job from the per-page header
     map. Mutates rows in place.
@@ -291,8 +491,36 @@ def _format_districts(district_counts):
     return f"Polling districts: {len(district_counts)} ({', '.join(parts)})"
 
 
-def _warnings_triggered(dedupe_pct, synthetic_labels, warn_pct):
-    return (dedupe_pct > warn_pct) or bool(synthetic_labels)
+def _range_warnings_triggered(range_reports, range_issues):
+    return bool(range_issues) or any(
+        report.get("missing_count", 0)
+        or report.get("out_of_range_count", 0)
+        or report.get("unparseable_count", 0)
+        for report in (range_reports or [])
+    )
+
+
+def _warnings_triggered(dedupe_pct, synthetic_labels, warn_pct,
+                        range_reports=None, range_issues=None):
+    return (
+        (dedupe_pct > warn_pct)
+        or bool(synthetic_labels)
+        or _range_warnings_triggered(range_reports, range_issues)
+    )
+
+
+def _format_number_list(values):
+    return "[" + ", ".join(str(value) for value in values or []) + "]"
+
+
+def _format_range_report(report):
+    source = f"{report['source']}: " if report.get("source") else ""
+    return (
+        f"{source}{report['district']} {report['start']}-{report['end']}: "
+        f"captured {report['captured_count']:,} of {report['declared_count']:,} "
+        f"({report['captured_pct']:.1f}%); {report['missing_count']:,} missing: "
+        f"{_format_number_list(report.get('missing'))}"
+    )
 
 
 # ── Filename builder ──────────────────────────────────────────────────────────
@@ -326,13 +554,15 @@ def build_filename(association, constituency, council_area, election, election_d
 def send_completion_email(filename, csv_bytes, succeeded_count, failed_count,
                           failed_filenames, row_count, district_counts=None,
                           dedupe_removed=0, dedupe_pct=0.0, synthetic_labels=None,
-                          warn_pct=2.0):
+                          warn_pct=2.0, range_reports=None, range_issues=None):
     subject = filename.rstrip(".csv").rstrip()
     if not subject:
         subject = "Marked Register"
 
     district_counts = district_counts or {}
     synthetic_labels = synthetic_labels or set()
+    range_reports = range_reports or []
+    range_issues = range_issues or []
 
     body_lines = [
         f"Marked register processing complete.",
@@ -344,7 +574,27 @@ def send_completion_email(filename, csv_bytes, succeeded_count, failed_count,
         f"Duplicate rows removed: {dedupe_removed:,} ({dedupe_pct:.1f}% of pre-dedupe rows)",
     ]
 
-    if _warnings_triggered(dedupe_pct, synthetic_labels, warn_pct):
+    if range_reports or range_issues:
+        body_lines.append("")
+        body_lines.append("Declared-range validation:")
+        for report in range_reports:
+            body_lines.append(f"  - {_format_range_report(report)}")
+            if report.get("out_of_range_count"):
+                body_lines.append(
+                    f"    OUT OF RANGE ({report['out_of_range_count']:,}): "
+                    f"{_format_number_list(report.get('out_of_range'))}"
+                )
+            if report.get("unparseable_count"):
+                body_lines.append(
+                    f"    Unparseable elector numbers ({report['unparseable_count']:,}): "
+                    f"{_format_number_list(report.get('unparseable'))}"
+                )
+        for issue in range_issues:
+            body_lines.append(f"  - RANGE NOT TRUSTED: {issue}")
+
+    if _warnings_triggered(
+        dedupe_pct, synthetic_labels, warn_pct, range_reports, range_issues
+    ):
         body_lines.append("")
         body_lines.append("⚠ WARNING — please review before sending to the customer:")
         if dedupe_pct > warn_pct:
@@ -359,6 +609,12 @@ def send_completion_email(filename, csv_bytes, succeeded_count, failed_count,
                 f"  - A second polling district was detected by an elector-number "
                 f"reset but its code could not be read; it was labelled: {labels}. "
                 f"Confirm the district code against the source PDF."
+            )
+        if _range_warnings_triggered(range_reports, range_issues):
+            body_lines.append(
+                "  - Declared-range validation found missing, out-of-range, "
+                "unparseable, or untrusted range data. Review the detailed "
+                "declared-range section above against the source PDF."
             )
 
     if failed_count > 0:
@@ -415,6 +671,8 @@ def handler(event, context):
     failed_filenames = []
     succeeded_count = 0
     synthetic_labels_all = set()
+    range_reports_all = []
+    range_issues_all = []
 
     for job in jobs:
         job_id = job["jobId"]
@@ -431,10 +689,18 @@ def handler(event, context):
         # Merge this job's chunk rows and page->district maps.
         job_rows = []
         page_districts = {}
+        page_declared_ranges = {}
+        cover_declared_ranges = []
         for payload in payloads:
             job_rows.extend(payload.get("rows", []))
             for k, v in (payload.get("pageDistricts") or {}).items():
                 page_districts[str(k)] = v
+            for k, v in (payload.get("pageDeclaredRanges") or {}).items():
+                page_declared_ranges[str(k)] = v
+            meta_ranges = (payload.get("meta") or {}).get("declared_ranges") or []
+            if isinstance(meta_ranges, dict):
+                meta_ranges = [meta_ranges]
+            cover_declared_ranges.extend(meta_ranges)
 
         # Seed = page-1 metadata district from the lowest-numbered chunk. Every
         # chunk extracts it independently and deterministically, so assert they
@@ -455,6 +721,32 @@ def handler(event, context):
         # the deploy cannot KeyError (§6.3).
         if any("page" in r for r in job_rows):
             synthetic_labels_all |= resolve_job_districts(job_rows, page_districts, seed_district)
+
+        # Resolve and validate declared ranges after district assignment, but do
+        # not mutate or filter job_rows. A deduped copy is used only for reporting
+        # so diagnostics match the unique rows that can reach the final CSV.
+        trusted_ranges, range_issues = resolve_declared_ranges(
+            cover_declared_ranges, page_declared_ranges
+        )
+        validation_rows = _dedupe_rows(job_rows)
+        range_reports, validation_issues = validate_rows_against_declared_ranges(
+            validation_rows, trusted_ranges
+        )
+        source_name = job.get("filename") or job_id
+        for report in range_reports:
+            report["source"] = source_name
+            range_reports_all.append(report)
+            logger.info(
+                "Job %s declared range %s %d-%d: captured=%d/%d (%.1f%%), "
+                "missing=%s, out_of_range=%s",
+                job_id, report["district"], report["start"], report["end"],
+                report["captured_count"], report["declared_count"],
+                report["captured_pct"], report["missing"], report["out_of_range"],
+            )
+        for issue in range_issues + validation_issues:
+            rendered_issue = f"{source_name}: {issue}"
+            range_issues_all.append(rendered_issue)
+            logger.warning("Job %s declared-range validation: %s", job_id, issue)
 
         # Overwrite per-row constituency / election_date with the form-provided
         # values so the columns match the filename even for legacy in-flight rows.
@@ -481,7 +773,10 @@ def handler(event, context):
 
     district_counts = _count_districts(all_rows)
     warn_pct = float(os.environ.get("DEDUPE_WARN_PCT", "2"))
-    warnings_on = _warnings_triggered(dedupe_pct, synthetic_labels_all, warn_pct)
+    warnings_on = _warnings_triggered(
+        dedupe_pct, synthetic_labels_all, warn_pct,
+        range_reports_all, range_issues_all,
+    )
 
     logger.info(
         "Batch %s: %d districts, %d rows removed by dedupe (%.1f%%), synthetic=%s",
@@ -511,6 +806,8 @@ def handler(event, context):
             dedupe_pct=dedupe_pct,
             synthetic_labels=synthetic_labels_all,
             warn_pct=warn_pct,
+            range_reports=range_reports_all,
+            range_issues=range_issues_all,
         )
         logger.info("Email sent to %s for batch %s", SES_RECIPIENT_EMAIL, batch_id)
     except Exception as exc:
@@ -540,4 +837,7 @@ def handler(event, context):
         "filename": filename,
         "districts": len(district_counts),
         "dedupeRemoved": dedupe_removed,
+        "declaredRangeWarnings": _range_warnings_triggered(
+            range_reports_all, range_issues_all
+        ),
     }

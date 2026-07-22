@@ -207,3 +207,45 @@ class TestDistrictPatterns:
         import re
         m = re.search(h._DISTRICT_PATTERNS[0], "Polling District LA1", re.IGNORECASE)
         assert m and m.group(1) == "LA1"
+
+
+# ── Printed declared-range extraction (§5) ───────────────────────────────────
+
+class TestDeclaredRangeParsing:
+    def test_cover_declaration(self):
+        assert h._extract_declared_ranges("Electors NAA-1 to NAA-926") == [
+            {"district": "NAA", "start": 1, "end": 926}
+        ]
+
+    def test_page_header_declaration(self):
+        assert h._extract_declared_ranges("Page 4 (NAA-1 / NAA-926)") == [
+            {"district": "NAA", "start": 1, "end": 926}
+        ]
+
+    def test_register_not_starting_at_one_and_comma_number(self):
+        assert h._extract_declared_ranges(
+            "Electors TH7-557 to TH7-3,751"
+        ) == [{"district": "TH7", "start": 557, "end": 3751}]
+
+    def test_multiple_district_declarations_are_preserved(self):
+        text = "Electors NAA-1 to NAA-926\nElectors NAB-50 to NAB-400"
+        assert h._extract_declared_ranges(text) == [
+            {"district": "NAA", "start": 1, "end": 926},
+            {"district": "NAB", "start": 50, "end": 400},
+        ]
+
+    def test_mismatched_codes_are_rejected(self):
+        assert h._extract_declared_ranges("Electors NAA-1 to NAB-926") == []
+
+    def test_reversed_range_is_rejected(self):
+        assert h._extract_declared_ranges("(NAA-926 / NAA-1)") == []
+
+    def test_declared_code_is_ground_truth_fallback_for_typographic_dash(self):
+        text = "Electors NAA – 1 to NAA – 926"
+        declared = h._extract_declared_ranges(text)
+        assert h._extract_polling_district_from_text(text, declared) == "NAA"
+
+    def test_existing_district_pattern_still_wins_for_byte_equivalence(self):
+        text = "Polling District LA1\nElectors NAA-1 to NAA-926"
+        declared = h._extract_declared_ranges(text)
+        assert h._extract_polling_district_from_text(text, declared) == "LA1"

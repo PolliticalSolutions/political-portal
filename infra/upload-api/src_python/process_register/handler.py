@@ -102,6 +102,61 @@ _DISTRICT_PATTERNS = [
     r"\(([A-Z0-9]{2,8})-\d+\s*/\s*[A-Z0-9]+-\d+\)",
 ]
 
+# Printed register declarations appear on both the cover ("Electors NAA-1 to
+# NAA-926") and content-page headers ("(NAA-1 / NAA-926)"). Keep this parse
+# separate from elector-row extraction: these are small, printed header bands,
+# not voter rows or handwritten marks.
+_DECLARED_CODE = r"[A-Z0-9]{2,8}"
+_DECLARED_NUMBER = r"(?:\d{1,3}(?:,\d{3})+|\d{1,7})"
+_DECLARED_RANGE_PATTERNS = [
+    rf"\bElectors?\s*:?\s*({_DECLARED_CODE})\s*[-–—]\s*({_DECLARED_NUMBER})"
+    rf"\s+to\s+({_DECLARED_CODE})\s*[-–—]\s*({_DECLARED_NUMBER})",
+    rf"\(?\s*({_DECLARED_CODE})\s*[-–—]\s*({_DECLARED_NUMBER})"
+    rf"\s*/\s*({_DECLARED_CODE})\s*[-–—]\s*({_DECLARED_NUMBER})\s*\)?",
+]
+
+
+def _extract_declared_ranges(text):
+    """Return unique printed district/range declarations found in OCR text.
+
+    A declaration is accepted only when the district code is printed at both
+    ends and agrees case-insensitively. This intentionally rejects looser number
+    pairs that commonly occur elsewhere on a register page.
+    """
+    ranges = []
+    seen = set()
+    for pattern in _DECLARED_RANGE_PATTERNS:
+        for match in re.finditer(pattern, text or "", re.IGNORECASE):
+            start_code, start_text, end_code, end_text = match.groups()
+            district = start_code.upper()
+            if end_code.upper() != district:
+                continue
+            try:
+                start = int(start_text.replace(",", ""))
+                end = int(end_text.replace(",", ""))
+            except (TypeError, ValueError):
+                continue
+            if start < 1 or end < start:
+                continue
+            key = (district, start, end)
+            if key in seen:
+                continue
+            seen.add(key)
+            ranges.append({"district": district, "start": start, "end": end})
+    return ranges
+
+
+def _extract_polling_district_from_text(text, declared_ranges=None):
+    """Preserve existing district patterns, then use a declaration as fallback."""
+    for pattern in _DISTRICT_PATTERNS:
+        match = re.search(pattern, text or "", re.IGNORECASE)
+        if match:
+            return match.group(1)
+    declared_ranges = (
+        _extract_declared_ranges(text) if declared_ranges is None else declared_ranges
+    )
+    return declared_ranges[0]["district"] if declared_ranges else None
+
 
 def _has_voting_mark(line_text, dash_chars=""):
     if dash_chars:
@@ -366,7 +421,7 @@ def _process_page(image, context_num=0, ncols=None):
 
 
 def _extract_metadata(image):
-    """Extract date, polling district, vote type from a page image."""
+    """Extract date, polling district, vote type, and declared ranges."""
     text = pytesseract.image_to_string(image)
 
     # Election date
@@ -380,31 +435,32 @@ def _extract_metadata(image):
         month = _MONTH_MAP.get(dm.group(2).lower(), "01")
         election_date = f"{dm.group(1).zfill(2)}/{month}/{dm.group(3)}"
 
-    # Polling district
-    polling_district = None
-    for pat in _DISTRICT_PATTERNS:
-        m = re.search(pat, text, re.IGNORECASE)
-        if m:
-            polling_district = m.group(1)
-            break
-
     vote_type = "Postal" if "postal" in text.lower() else "In Person"
-    return election_date, polling_district or "Unknown", vote_type
+    declared_ranges = _extract_declared_ranges(text)
+    # Existing patterns remain authoritative for byte-identical behaviour on
+    # registers that already work. A parsed declaration is the fallback ground
+    # truth when spacing or a typographic dash defeats those older patterns.
+    polling_district = _extract_polling_district_from_text(text, declared_ranges)
+    return election_date, polling_district or "Unknown", vote_type, declared_ranges
 
 
-def _extract_page_district(image):
-    """OCR the header band of a page and return its polling district code, or None.
+def _extract_page_header(image):
+    """OCR a page header and return (district code, declared ranges).
 
     Reads only the top ~12% of the page (printed header text, never marks), so it
     is cheap and safe to run once per page inside the worker loop (§6.2)."""
     w, h = image.size
     header = image.crop((0, 0, w, int(h * 0.12)))
     text = pytesseract.image_to_string(header, config=r"--oem 3 --psm 6")
-    for pat in _DISTRICT_PATTERNS:
-        m = re.search(pat, text, re.IGNORECASE)
-        if m:
-            return m.group(1)
-    return None
+    declared_ranges = _extract_declared_ranges(text)
+    district = _extract_polling_district_from_text(text, declared_ranges)
+    return district, declared_ranges
+
+
+def _extract_page_district(image):
+    """Backward-compatible district-only wrapper used by pure callers/tests."""
+    district, _ = _extract_page_header(image)
+    return district
 
 
 def _render_page(pdf_path, page_num, grayscale=False):
@@ -493,7 +549,8 @@ def _ocr_chunk(pdf_path, page_start, page_end, total_pages, constituency_name,
                election_date, polling_district, vote_type):
     """Parallel OCR of one page range. Detects column layout once for the chunk,
     OCRs the remaining pages concurrently, tags every row with its source page,
-    and records each page's detected polling district. Returns (rows, pageDistricts)."""
+    and records each page's detected polling district and declared elector range.
+    Returns (rows, pageDistricts, pageDeclaredRanges)."""
     workers = int(os.environ.get("OCR_WORKERS", "6"))
     grayscale = os.environ.get("OCR_GRAYSCALE", "false").strip().lower() == "true"
     skip_pages = 2
@@ -513,9 +570,10 @@ def _ocr_chunk(pdf_path, page_start, page_end, total_pages, constituency_name,
 
     page_entries = {}     # absolute page number -> list of entry dicts
     page_districts = {}   # absolute page number -> district code or None
+    page_declared_ranges = {}  # absolute page number -> printed range declarations
 
     if not content_pages:
-        return [], page_districts
+        return [], page_districts, page_declared_ranges
 
     # §5.6 — detect the column layout once, on the chunk's first content page, and
     # reuse that rendered image so we don't render it a second time at 600dpi.
@@ -530,21 +588,23 @@ def _ocr_chunk(pdf_path, page_start, page_end, total_pages, constituency_name,
             for e in entries0:
                 e["page"] = detect_page
             page_entries[detect_page] = entries0
-            page_districts[detect_page] = _extract_page_district(img0)
+            district, declared_ranges = _extract_page_header(img0)
+            page_districts[detect_page] = district
+            page_declared_ranges[detect_page] = declared_ranges
         finally:
             del img0, first_imgs
 
     def _work(page_num):
         imgs = _render_page(pdf_path, page_num, grayscale)
         if not imgs:
-            return page_num, [], None
+            return page_num, [], None, []
         img = imgs[0]
         try:
             entries, _ = _process_page(img, ncols=ncols)
             for e in entries:
                 e["page"] = page_num
-            district = _extract_page_district(img)
-            return page_num, entries, district
+            district, declared_ranges = _extract_page_header(img)
+            return page_num, entries, district, declared_ranges
         finally:
             del img, imgs
 
@@ -554,9 +614,10 @@ def _ocr_chunk(pdf_path, page_start, page_end, total_pages, constituency_name,
         # external binaries, releasing the GIL, and threads avoid pickling PIL
         # images / fork() issues inside Lambda (§5.2).
         with concurrent.futures.ThreadPoolExecutor(max_workers=workers) as pool:
-            for page_num, entries, district in pool.map(_work, remaining):
+            for page_num, entries, district, declared_ranges in pool.map(_work, remaining):
                 page_entries[page_num] = entries
                 page_districts[page_num] = district
+                page_declared_ranges[page_num] = declared_ranges
 
     # Flatten in ascending page order — ordering must be deterministic (invariant 1).
     all_entries = []
@@ -580,19 +641,22 @@ def _ocr_chunk(pdf_path, page_start, page_end, total_pages, constituency_name,
     # JSON object keys are strings; keep the map string-keyed for round-trip
     # stability through S3 (§5.4).
     page_districts_out = {str(k): v for k, v in page_districts.items()}
-    return rows, page_districts_out
+    page_declared_ranges_out = {
+        str(k): v for k, v in page_declared_ranges.items()
+    }
+    return rows, page_districts_out, page_declared_ranges_out
 
 
 def ocr_pdf(pdf_path, constituency_name, election_name, election_date_override="",
             page_start=None, page_end=None):
     """
-    OCR a PDF and return (rows, meta, pageDistricts).
+    OCR a PDF and return (rows, meta, pageDistricts, pageDeclaredRanges).
 
     When page_start/page_end are given the function OCRs only that page range in
     parallel (chunk worker mode), tagging each row with its source page and
-    returning a per-page district map. When both are omitted it runs the original
-    serial path unchanged (the CHUNK_PAGES=0 rollback), returning an empty
-    pageDistricts map and rows without a page field.
+    returning per-page district and declared-range maps. When both are omitted it
+    runs the original serial path unchanged (the CHUNK_PAGES=0 rollback),
+    returning empty page maps and rows without a page field.
 
     Page-1 metadata (date, polling district, vote type) is extracted at 150dpi in
     every invocation, so all chunks of a job carry the same seed values (§6.3).
@@ -602,8 +666,9 @@ def ocr_pdf(pdf_path, constituency_name, election_name, election_date_override="
     first_pages = convert_from_path(
         pdf_path, dpi=150, first_page=1, last_page=1, poppler_path=POPPLER_PATH
     )
-    ocr_election_date, polling_district, vote_type = (
-        _extract_metadata(first_pages[0]) if first_pages else (None, "Unknown", "In Person")
+    ocr_election_date, polling_district, vote_type, declared_ranges = (
+        _extract_metadata(first_pages[0])
+        if first_pages else (None, "Unknown", "In Person", [])
     )
     election_date = (
         election_date_override
@@ -614,6 +679,7 @@ def ocr_pdf(pdf_path, constituency_name, election_name, election_date_override="
         "election_date": election_date,
         "polling_district": polling_district,
         "vote_type": vote_type,
+        "declared_ranges": declared_ranges,
     }
 
     total_pages = _count_pages(pdf_path)
@@ -622,16 +688,16 @@ def ocr_pdf(pdf_path, constituency_name, election_name, election_date_override="
         rows = _ocr_serial(pdf_path, total_pages, constituency_name, election_date,
                            polling_district, vote_type)
         logger.info("OCR complete (serial): %d entries extracted", len(rows))
-        return rows, meta, {}
+        return rows, meta, {}, {}
 
-    rows, page_districts = _ocr_chunk(
+    rows, page_districts, page_declared_ranges = _ocr_chunk(
         pdf_path, page_start, page_end, total_pages, constituency_name,
         election_date, polling_district, vote_type,
     )
     logger.info(
         "OCR complete (chunk %s-%s): %d entries extracted", page_start, page_end, len(rows)
     )
-    return rows, meta, page_districts
+    return rows, meta, page_districts, page_declared_ranges
 
 
 # ════════════════════════════════════════════════════════════════════════════════
@@ -1016,7 +1082,7 @@ def handler(event, context):
                         s3_client.download_file(bucket, s3_key, tmp_path)
                         logger.info("Downloaded to %s (%d bytes)", tmp_path, os.path.getsize(tmp_path))
 
-                        rows, ocr_meta, page_districts = ocr_pdf(
+                        rows, ocr_meta, page_districts, page_declared_ranges = ocr_pdf(
                             tmp_path,
                             constituency_name,
                             election_name,
@@ -1033,6 +1099,7 @@ def handler(event, context):
                             "chunkIndex": chunk_index,
                             "totalChunks": total_chunks,
                             "pageDistricts": page_districts,
+                            "pageDeclaredRanges": page_declared_ranges,
                             "rows": rows,
                             "meta": ocr_meta,
                             "processedAt": datetime.now(timezone.utc).isoformat(),
@@ -1075,7 +1142,7 @@ def handler(event, context):
             s3_client.download_file(bucket, s3_key, tmp_path)
             logger.info("Downloaded to %s (%d bytes)", tmp_path, os.path.getsize(tmp_path))
 
-            rows, ocr_meta, _ = ocr_pdf(
+            rows, ocr_meta, _, _ = ocr_pdf(
                 tmp_path,
                 constituency_name,
                 election_name,
