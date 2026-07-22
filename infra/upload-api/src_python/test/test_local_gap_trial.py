@@ -80,6 +80,8 @@ def test_range_summary_omits_elector_number_lists_and_issue_text():
 def test_run_trial_writes_aggregate_report_without_input_identity(
         monkeypatch, tmp_path):
     baseline = {
+        "document_count": 2,
+        "page_count": 20,
         "rows_before_deduplication": 15,
         "rows_after_deduplication": 12,
         "duplicate_rows_removed": 3,
@@ -113,10 +115,53 @@ def test_run_trial_writes_aggregate_report_without_input_identity(
 
     input_path = tmp_path / "private-register-name.pdf"
     output_path = tmp_path / "aggregate.json"
-    report = trial.run_trial(input_path, output_path)
+    report = trial.run_trial([input_path, tmp_path / "second.pdf"], output_path)
     written = output_path.read_text(encoding="utf-8")
 
     assert "private-register-name" not in written
     assert str(input_path) not in written
     assert report["candidate_minus_baseline"]["voted_y"] == -2
     assert report["candidate_minus_baseline"]["rows_after_deduplication"] == -2
+    assert report["baseline_legacy"]["document_count"] == 2
+
+
+def test_run_mode_deduplicates_across_documents(monkeypatch, tmp_path):
+    first_pdf = tmp_path / "first.pdf"
+    second_pdf = tmp_path / "second.pdf"
+    documents = {
+        first_pdf: {
+            "rows": [_row("10", "Y"), _row("11")],
+            "range_reports": [],
+            "range_issues": [],
+            "inference_diagnostics": {
+                "numeric_gap_rows_legacy_would_generate": 0,
+                "explicit_strikethrough_rows_inferred": 0,
+            },
+            "page_count": 4,
+        },
+        second_pdf: {
+            "rows": [_row("10", "Y")],
+            "range_reports": [],
+            "range_issues": [],
+            "inference_diagnostics": {
+                "numeric_gap_rows_legacy_would_generate": 0,
+                "explicit_strikethrough_rows_inferred": 0,
+            },
+            "page_count": 5,
+        },
+    }
+    monkeypatch.setattr(
+        trial,
+        "_process_document",
+        lambda pdf_path, chunk_pages: documents[pdf_path],
+    )
+
+    summary = trial._run_mode(
+        [first_pdf, second_pdf], evidence_only=True, chunk_pages=20
+    )
+
+    assert summary["document_count"] == 2
+    assert summary["page_count"] == 9
+    assert summary["rows_before_deduplication"] == 3
+    assert summary["rows_after_deduplication"] == 2
+    assert summary["duplicate_rows_removed"] == 1

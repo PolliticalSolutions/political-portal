@@ -24,8 +24,11 @@ Do not commit the selected PDF or anything written under
 
 ```powershell
 & .\infra\upload-api\local_trial\run-gap-trial.ps1 `
-  -PdfPath "C:\full\path\to\register.pdf"
+  -InputPath "C:\full\path\to\register.pdf"
 ```
+
+`InputPath` may also be a folder. In that case every PDF directly inside the
+folder is processed as one batch, including cross-file deduplication.
 
 The first run reuses the Linux Python packages from the SAM build and builds a
 local image containing Python 3.12, Tesseract and Poppler. The PDF is then

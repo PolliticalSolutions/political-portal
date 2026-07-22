@@ -1,6 +1,7 @@
 param(
     [Parameter(Mandatory = $true)]
-    [string]$PdfPath,
+    [Alias("PdfPath")]
+    [string]$InputPath,
 
     [string]$OutputDirectory = "",
 
@@ -13,9 +14,20 @@ param(
 
 $ErrorActionPreference = "Stop"
 
-$pdf = Get-Item -LiteralPath $PdfPath -ErrorAction Stop
-if ($pdf.PSIsContainer -or $pdf.Extension -ine ".pdf") {
-    throw "PdfPath must identify one PDF file."
+$inputItem = Get-Item -LiteralPath $InputPath -ErrorAction Stop
+if ($inputItem.PSIsContainer) {
+    $pdfs = @(Get-ChildItem -LiteralPath $inputItem.FullName -File -Filter "*.pdf" | Sort-Object Name)
+    $inputDirectory = $inputItem.FullName
+}
+elseif ($inputItem.Extension -ieq ".pdf") {
+    $pdfs = @($inputItem)
+    $inputDirectory = $inputItem.Directory.FullName
+}
+else {
+    throw "InputPath must identify one PDF file or a folder containing PDFs."
+}
+if ($pdfs.Count -eq 0) {
+    throw "No PDF files were found in the selected folder."
 }
 
 $uploadApiRoot = Split-Path -Parent $PSScriptRoot
@@ -59,21 +71,27 @@ if ($LASTEXITCODE -ne 0) {
     throw "The local OCR trial image could not be built."
 }
 
-$inputMount = "$($pdf.Directory.FullName):/input:ro"
+$inputMount = "${inputDirectory}:/input:ro"
 $outputMount = "$($output.FullName):/output"
-$containerPdf = "/input/$($pdf.Name)"
 $containerReport = "/output/$reportName"
 
-Write-Host "Running the register twice locally (legacy, then candidate)..."
-& $docker.Source run --rm `
-    --network none `
-    --volume $inputMount `
-    --volume $outputMount `
-    $imageName `
-    --pdf $containerPdf `
-    --output $containerReport `
-    --chunk-pages $ChunkPages `
-    --workers $Workers
+Write-Host "Running $($pdfs.Count) PDF file(s) twice locally (legacy, then candidate)..."
+$runArguments = @(
+    "run", "--rm",
+    "--network", "none",
+    "--volume", $inputMount,
+    "--volume", $outputMount,
+    $imageName
+)
+foreach ($pdf in $pdfs) {
+    $runArguments += @("--pdf", "/input/$($pdf.Name)")
+}
+$runArguments += @(
+    "--output", $containerReport,
+    "--chunk-pages", $ChunkPages,
+    "--workers", $Workers
+)
+& $docker.Source @runArguments
 if ($LASTEXITCODE -ne 0) {
     throw "The local OCR comparison did not complete."
 }

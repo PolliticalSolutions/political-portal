@@ -153,7 +153,8 @@ def _safe_range_summary(range_reports, range_issues):
 
 
 def _summarise_rows(rows, pre_dedupe_count, range_reports, range_issues,
-                    inference_diagnostics, page_count, elapsed_seconds):
+                    inference_diagnostics, document_count, page_count,
+                    elapsed_seconds):
     voted_y = sum(row.get("voted") == "Y" for row in rows)
     postal_y = sum(row.get("postal_vote") == "Y" for row in rows)
     unique_bases = {
@@ -169,6 +170,7 @@ def _summarise_rows(rows, pre_dedupe_count, range_reports, range_issues,
         district_counts[row.get("polling_district") or "(none)"] += 1
 
     summary = {
+        "document_count": document_count,
         "page_count": page_count,
         "rows_before_deduplication": pre_dedupe_count,
         "rows_after_deduplication": len(rows),
@@ -192,11 +194,7 @@ def _summarise_rows(rows, pre_dedupe_count, range_reports, range_issues,
     return summary
 
 
-def _run_mode(pdf_path, evidence_only, chunk_pages):
-    os.environ[process.EVIDENCE_ONLY_GAP_INFERENCE_FLAG] = (
-        "true" if evidence_only else "false"
-    )
-    started = time.monotonic()
+def _process_document(pdf_path, chunk_pages):
     total_pages = process._count_pages(str(pdf_path))
     if total_pages < 1:
         raise RuntimeError("The PDF page count could not be read")
@@ -252,18 +250,54 @@ def _run_mode(pdf_path, evidence_only, chunk_pages):
     )
     range_issues.extend(validation_issues)
 
-    pre_dedupe_count = len(job_rows)
-    final_rows = combine._dedupe_rows(job_rows)
-    final_rows.sort(key=combine._sort_key)
-    return _summarise_rows(
-        final_rows,
-        pre_dedupe_count,
-        range_reports,
-        range_issues,
-        inference_diagnostics,
-        total_pages,
-        time.monotonic() - started,
-    )
+    return {
+        "rows": job_rows,
+        "range_reports": range_reports,
+        "range_issues": range_issues,
+        "inference_diagnostics": inference_diagnostics,
+        "page_count": total_pages,
+    }
+
+
+def _run_mode(pdf_paths, evidence_only, chunk_pages):
+    flag = process.EVIDENCE_ONLY_GAP_INFERENCE_FLAG
+    previous_flag = os.environ.get(flag)
+    os.environ[flag] = "true" if evidence_only else "false"
+    try:
+        started = time.monotonic()
+        all_rows = []
+        range_reports = []
+        range_issues = []
+        inference_diagnostics = {key: 0 for key in DIAGNOSTIC_KEYS}
+        page_count = 0
+
+        for pdf_path in pdf_paths:
+            document = _process_document(pdf_path, chunk_pages)
+            all_rows.extend(document["rows"])
+            range_reports.extend(document["range_reports"])
+            range_issues.extend(document["range_issues"])
+            page_count += document["page_count"]
+            for key in DIAGNOSTIC_KEYS:
+                inference_diagnostics[key] += document["inference_diagnostics"][key]
+
+        pre_dedupe_count = len(all_rows)
+        final_rows = combine._dedupe_rows(all_rows)
+        final_rows.sort(key=combine._sort_key)
+        return _summarise_rows(
+            final_rows,
+            pre_dedupe_count,
+            range_reports,
+            range_issues,
+            inference_diagnostics,
+            len(pdf_paths),
+            page_count,
+            time.monotonic() - started,
+        )
+    finally:
+        if previous_flag is None:
+            os.environ.pop(flag, None)
+        else:
+            os.environ[flag] = previous_flag
 
 
 def _numeric_delta(baseline, candidate):
@@ -285,13 +319,18 @@ def _numeric_delta(baseline, candidate):
     }
 
 
-def run_trial(pdf_path, output_path, chunk_pages=20, workers=6):
+def run_trial(pdf_paths, output_path, chunk_pages=20, workers=6):
     _configure_local_binaries()
     os.environ["OCR_WORKERS"] = str(workers)
     os.environ["OCR_GRAYSCALE"] = "false"
 
-    baseline = _run_mode(pdf_path, evidence_only=False, chunk_pages=chunk_pages)
-    candidate = _run_mode(pdf_path, evidence_only=True, chunk_pages=chunk_pages)
+    if isinstance(pdf_paths, (str, Path)):
+        pdf_paths = [Path(pdf_paths)]
+    else:
+        pdf_paths = [Path(path) for path in pdf_paths]
+
+    baseline = _run_mode(pdf_paths, evidence_only=False, chunk_pages=chunk_pages)
+    candidate = _run_mode(pdf_paths, evidence_only=True, chunk_pages=chunk_pages)
     report = {
         "schema_version": 1,
         "generated_at": datetime.now(timezone.utc).isoformat(),
@@ -324,7 +363,7 @@ def _parser():
             "Only aggregate results are written."
         )
     )
-    parser.add_argument("--pdf", required=True, type=Path)
+    parser.add_argument("--pdf", action="append", required=True, type=Path)
     parser.add_argument("--output", required=True, type=Path)
     parser.add_argument("--chunk-pages", type=int, default=20)
     parser.add_argument("--workers", type=int, default=6)
@@ -333,8 +372,8 @@ def _parser():
 
 def main(argv=None):
     args = _parser().parse_args(argv)
-    if not args.pdf.is_file() or args.pdf.suffix.lower() != ".pdf":
-        print("Trial failed: the selected input is not a readable PDF.", file=sys.stderr)
+    if any(not path.is_file() or path.suffix.lower() != ".pdf" for path in args.pdf):
+        print("Trial failed: every selected input must be a readable PDF.", file=sys.stderr)
         return 2
     if args.chunk_pages < 1 or args.workers < 1:
         print("Trial failed: chunk pages and workers must be positive.", file=sys.stderr)
