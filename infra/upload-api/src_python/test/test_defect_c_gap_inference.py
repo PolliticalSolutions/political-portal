@@ -322,4 +322,15 @@ def test_ocr_metadata_records_counts_without_elector_content(monkeypatch):
 
 def test_sam_template_keeps_candidate_default_off():
     template = Path(__file__).parents[2] / "template.yaml"
-    assert 'OCR_EVIDENCE_ONLY_GAP_INFERENCE: "false"' in template.read_text()
+    text = template.read_text()
+    assert 'OcrEvidenceOnlyGapInference:\n    Type: String\n    Default: "false"' in text
+    assert (
+        "OCR_EVIDENCE_ONLY_GAP_INFERENCE: "
+        "!Ref OcrEvidenceOnlyGapInference"
+    ) in text
+
+
+def test_sam_prod_config_enables_candidate_explicitly():
+    config = Path(__file__).parents[2] / "samconfig.toml"
+    text = config.read_text()
+    assert 'OcrEvidenceOnlyGapInference=\\"true\\"' in text

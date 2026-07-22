@@ -98,6 +98,13 @@ Parameters:
     Type: String
     Default: ""
     Description: ARN of the Tesseract + poppler Lambda layer (built via build_layer.sh and published manually).
+  OcrEvidenceOnlyGapInference:
+    Type: String
+    Default: "false"
+    AllowedValues:
+      - "true"
+      - "false"
+    Description: Suppress sequence-only OCR gap rows while retaining visually evidenced inference.
   SesRecipientEmail:
     Type: String
     Default: "markedregisters@politicalsolutions.uk"
@@ -1394,7 +1401,7 @@ Resources:
           # Default-off Defect C candidate. When enabled, retain only readable
           # rows and visually evidenced strikethrough inference; sequence-only
           # numeric gaps remain diagnostics and do not create elector rows.
-          OCR_EVIDENCE_ONLY_GAP_INFERENCE: "false"
+          OCR_EVIDENCE_ONLY_GAP_INFERENCE: !Ref OcrEvidenceOnlyGapInference
           SUPABASE_URL: !Ref SupabaseUrl
           SUPABASE_SERVICE_KEY: !Ref SupabaseServiceKey
           TESSDATA_PREFIX: /opt/tessdata

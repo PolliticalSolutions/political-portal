@@ -13,7 +13,9 @@ image_repositories = []
 region = "eu-west-2"
 
 # Production profile — deploys to ps-upload-api-prod (API ID 77i4hpcez8).
-# Only AllowedOrigins is overridden; every other parameter keeps its
+# The Defect C evidence-only gap-inference candidate is enabled explicitly in
+# production. Set it back to false and redeploy for an immediate rollback.
+# Only these values are overridden; every other parameter keeps its
 # previously-deployed value (CloudFormation default for updates), which
 # preserves secrets such as SupabaseServiceKey and VolunteerTokenSecret.
 # Usage: sam deploy --config-env prod
@@ -23,7 +25,7 @@ resolve_s3 = true
 s3_prefix = "ps-upload-api-prod"
 confirm_changeset = true
 capabilities = "CAPABILITY_IAM"
-parameter_overrides = "AllowedOrigins=\"https://www.politicalsolutions.uk,https://politicalsolutions.uk\""
+parameter_overrides = "AllowedOrigins=\"https://www.politicalsolutions.uk,https://politicalsolutions.uk\" OcrEvidenceOnlyGapInference=\"true\""
 image_repositories = []
 
 [prod.global.parameters]
