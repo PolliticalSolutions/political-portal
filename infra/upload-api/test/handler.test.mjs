@@ -774,6 +774,102 @@ describe("POST /jobs approval gating", () => {
   });
 });
 
+describe("GET /jobs/{jobId}/download", () => {
+  it("signs the tenant-scoped combined CSV even when the component job failed", async () => {
+    jobsMap.set("batch-job-1", {
+      jobId: "batch-job-1",
+      userSub: "user-sub-1",
+      batchId: "batch-1",
+      status: "FAILED",
+      batchStatus: "COMPLETE_WITH_FAILURES",
+      batchOutputKey: "outputs/user-sub-1/batch-1/Combined Marked Register.csv",
+      batchOutputFilename: "Combined Marked Register.csv",
+    });
+
+    const res = await handler(
+      buildAuthEvent({
+        method: "GET",
+        path: "/jobs/batch-job-1/download",
+      })
+    );
+
+    expect(res.statusCode).toBe(200);
+    expect(JSON.parse(res.body)).toEqual({
+      jobId: "batch-job-1",
+      files: [{
+        name: "Combined Marked Register.csv",
+        contentType: "text/csv",
+        downloadUrl:
+          "https://mock-bucket.s3.amazonaws.com/outputs/user-sub-1/batch-1/Combined Marked Register.csv?op=getObject",
+      }],
+    });
+  });
+
+  it("does not allow another user to download the batch result", async () => {
+    jobsMap.set("batch-job-1", {
+      jobId: "batch-job-1",
+      userSub: "user-sub-1",
+      batchId: "batch-1",
+      status: "SUCCEEDED",
+      batchOutputKey: "outputs/user-sub-1/batch-1/result.csv",
+      batchOutputFilename: "result.csv",
+    });
+
+    const res = await handler(
+      buildAuthEvent({
+        method: "GET",
+        path: "/jobs/batch-job-1/download",
+        sub: "different-user",
+      })
+    );
+
+    expect(res.statusCode).toBe(403);
+  });
+
+  it("rejects a combined-output key outside the authenticated user's batch prefix", async () => {
+    jobsMap.set("batch-job-1", {
+      jobId: "batch-job-1",
+      userSub: "user-sub-1",
+      batchId: "batch-1",
+      status: "SUCCEEDED",
+      batchOutputKey: "outputs/different-user/batch-1/result.csv",
+      batchOutputFilename: "result.csv",
+    });
+
+    const res = await handler(
+      buildAuthEvent({
+        method: "GET",
+        path: "/jobs/batch-job-1/download",
+      })
+    );
+
+    expect(res.statusCode).toBe(409);
+    expect(JSON.parse(res.body).error).toBe("batch_result_unavailable");
+  });
+
+  it("keeps the existing not-ready response when no combined result exists", async () => {
+    jobsMap.set("batch-job-1", {
+      jobId: "batch-job-1",
+      userSub: "user-sub-1",
+      batchId: "batch-1",
+      status: "FAILED",
+    });
+
+    const res = await handler(
+      buildAuthEvent({
+        method: "GET",
+        path: "/jobs/batch-job-1/download",
+      })
+    );
+
+    expect(res.statusCode).toBe(409);
+    expect(JSON.parse(res.body)).toMatchObject({
+      error: "job_not_ready",
+      status: "FAILED",
+    });
+  });
+});
+
 describe("GET /elections", () => {
   it("rejects pconCode outside allowedPconCodes", async () => {
     const res = await handler(

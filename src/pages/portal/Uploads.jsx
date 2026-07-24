@@ -2,7 +2,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { Helmet } from "react-helmet-async";
 import Button from "../../components/Button.jsx";
 import Card from "../../components/Card.jsx";
-import { createJob, listJobs } from "../../lib/uploadApi.js";
+import { createJob, getDownloadUrls, listJobs } from "../../lib/uploadApi.js";
 
 const MAX_FILE_SIZE = 200 * 1024 * 1024; // 200 MB
 const FILE_TYPE_BY_EXTENSION = {
@@ -39,13 +39,20 @@ function isActiveJobStatus(status) {
   return PENDING_JOB_STATUSES.has(normalized) || PROCESSING_JOB_STATUSES.has(normalized);
 }
 
+function isJobAwaitingCompletion(job) {
+  if (isActiveJobStatus(job.status)) return true;
+  if (!job.batchId) return false;
+  if (!job.batchStatus) return true;
+  return normalizeJobStatus(job.completionEmailStatus) === "PENDING";
+}
+
 function getStatusPresentation(status) {
   const normalized = normalizeJobStatus(status);
 
   if (PROCESSING_JOB_STATUSES.has(normalized)) {
     return {
       label: "Processing",
-      description: "Processing now — large batches may take several hours. You will receive an email when complete.",
+      description: "Processing now — large batches may take several hours. We’ll email you when ready; the result will also appear here.",
       style: { background: "#dbeafe", color: "var(--color-navy-mid)" },
     };
   }
@@ -57,7 +64,7 @@ function getStatusPresentation(status) {
   if (FAILED_JOB_STATUSES.has(normalized)) {
     return {
       label: "Failed",
-      description: "Processing encountered an issue. Our team has been notified.",
+      description: "This file could not be processed. Any usable batch result will appear above.",
       style: { background: "#fee2e2", color: "var(--color-danger)" },
     };
   }
@@ -65,7 +72,7 @@ function getStatusPresentation(status) {
   return {
     label: PENDING_JOB_STATUSES.has(normalized) || !normalized ? "Pending" : normalized,
     description: PENDING_JOB_STATUSES.has(normalized)
-      ? "Queued for processing — you will receive an email when complete. Large batches may take several hours."
+      ? "Queued for processing — we’ll email you when ready, and the result will also appear here. Large batches may take several hours."
       : null,
     style: PENDING_JOB_STATUSES.has(normalized)
       ? { background: "var(--color-border)", color: "var(--color-text-secondary)" }
@@ -209,6 +216,8 @@ export default function Uploads() {
 
   const [jobs, setJobs] = useState([]);
   const [loadError, setLoadError] = useState(null);
+  const [downloadError, setDownloadError] = useState("");
+  const [downloadingJobId, setDownloadingJobId] = useState("");
   const [dragOver, setDragOver] = useState(false);
 
   const fileInputRef = useRef(null);
@@ -230,7 +239,7 @@ export default function Uploads() {
       clearInterval(pollingRef.current);
       pollingRef.current = null;
     }
-    if (!jobs.some((j) => isActiveJobStatus(j.status))) return undefined;
+    if (!jobs.some(isJobAwaitingCompletion)) return undefined;
     pollingRef.current = setInterval(loadJobs, POLL_INTERVAL_MS);
     return () => {
       if (pollingRef.current) { clearInterval(pollingRef.current); pollingRef.current = null; }
@@ -342,7 +351,7 @@ export default function Uploads() {
 
     if (uploadedCount > 0) {
       setUploadSuccessMessage(
-        `${uploadedCount} file${uploadedCount !== 1 ? "s" : ""} submitted. You will receive an email when processing is complete.`
+        `${uploadedCount} file${uploadedCount !== 1 ? "s" : ""} submitted. We’ll email you when processing is complete, and the result will also appear below.`
       );
       setStaged((prev) => prev.filter(({ file, error }) => error || !successfulFiles.has(file)));
       if (valid.length === uploadedCount) {
@@ -365,6 +374,36 @@ export default function Uploads() {
 
   const canUpload = !uploading && validStaged.length > 0 && allFieldsFilled;
 
+  const batchResults = [];
+  const seenBatchIds = new Set();
+  for (const job of jobs) {
+    if (!job.batchId || seenBatchIds.has(job.batchId)) continue;
+    if (!job.batchStatus && !job.batchOutputKey && !job.completionEmailStatus) continue;
+    seenBatchIds.add(job.batchId);
+    batchResults.push(job);
+  }
+
+  const handleBatchDownload = async (job) => {
+    setDownloadError("");
+    setDownloadingJobId(job.jobId);
+    try {
+      const result = await getDownloadUrls(job.jobId);
+      const file = result?.files?.[0];
+      if (!file?.downloadUrl) throw new Error("The download link was not returned.");
+      const anchor = document.createElement("a");
+      anchor.href = file.downloadUrl;
+      anchor.rel = "noopener noreferrer";
+      anchor.download = file.name || "";
+      document.body.appendChild(anchor);
+      anchor.click();
+      anchor.remove();
+    } catch (error) {
+      setDownloadError(error instanceof Error ? error.message : "The result could not be downloaded.");
+    } finally {
+      setDownloadingJobId("");
+    }
+  };
+
   // ── Render ───────────────────────────────────────────────────────────────────
   return (
     <div className="page stack">
@@ -377,7 +416,8 @@ export default function Uploads() {
             <h1 className="portal-page-header__title">Uploads</h1>
             <p className="portal-page-header__subtitle">
               Enter the batch details, then upload your Marked Register PDFs, CSVs, or Excel
-              (.xlsx) workbooks. We will process them and email you the results.
+              (.xlsx) workbooks. We will process them, show the result here, and send a
+              completion email.
             </p>
           </div>
         </div>
@@ -568,6 +608,84 @@ export default function Uploads() {
         }
       >
         {loadError && <p style={{ color: "var(--color-danger)", margin: 0 }}>{loadError}</p>}
+        {downloadError && (
+          <div className="status error" role="alert" style={{ marginBottom: 12 }}>
+            {downloadError}
+          </div>
+        )}
+        {batchResults.length > 0 && (
+          <div className="stack" aria-label="Batch results" style={{ gap: 10, marginBottom: 16 }}>
+            {batchResults.map((job) => {
+              const emailStatus = normalizeJobStatus(job.completionEmailStatus);
+              const emailFailed = emailStatus === "FAILED";
+              const hasFileFailures =
+                normalizeJobStatus(job.batchStatus) === "COMPLETE_WITH_FAILURES";
+              const hasWarnings =
+                normalizeJobStatus(job.batchStatus) === "COMPLETE_WITH_WARNINGS";
+              const needsAttention = emailFailed || hasFileFailures || hasWarnings;
+              const succeededCount = Number(job.batchSucceededCount);
+              const failedCount = Number(job.batchFailedCount);
+              const rowCount = Number(job.batchRowCount);
+              const countsAvailable =
+                Number.isFinite(succeededCount) && Number.isFinite(failedCount);
+
+              return (
+                <div
+                  key={job.batchId}
+                  role={needsAttention ? "alert" : "status"}
+                  style={{
+                    border: `1px solid ${needsAttention ? "#f59e0b" : "var(--color-border)"}`,
+                    background: needsAttention ? "#fffbeb" : "#f8fafc",
+                    borderRadius: 8,
+                    padding: 14,
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "space-between",
+                    gap: 16,
+                    flexWrap: "wrap",
+                  }}
+                >
+                  <div>
+                    <strong>
+                      {hasWarnings
+                        ? "Batch complete with warnings — review before use"
+                        : hasFileFailures
+                        ? `Batch complete${Number.isFinite(failedCount) ? ` with ${failedCount} file failure${failedCount === 1 ? "" : "s"}` : " with file failures"}`
+                        : "Batch result ready"}
+                    </strong>
+                    <div style={{ marginTop: 4, fontSize: 13, color: "var(--color-text-muted)" }}>
+                      {countsAvailable && (
+                        <span>
+                          {succeededCount} file{succeededCount === 1 ? "" : "s"} processed successfully
+                          {Number.isFinite(rowCount) ? ` · ${rowCount.toLocaleString()} elector records` : ""}
+                          {". "}
+                        </span>
+                      )}
+                      {emailFailed && "The completion email could not be sent. Your result is still ready below."}
+                      {emailStatus === "SENT" && job.completionEmailMode === "DOWNLOAD_LINK" &&
+                        "A completion email with a secure download link was sent."}
+                      {emailStatus === "SENT" && job.completionEmailMode === "ATTACHMENT" &&
+                        "The completed CSV was sent by email."}
+                      {emailStatus === "PENDING" && "The completion email is being sent."}
+                      {hasWarnings && " Review the completion email checks before using the CSV."}
+                    </div>
+                  </div>
+                  {job.batchOutputKey && (
+                    <Button
+                      type="button"
+                      className="button--small"
+                      onClick={() => handleBatchDownload(job)}
+                      loading={downloadingJobId === job.jobId}
+                      disabled={Boolean(downloadingJobId)}
+                    >
+                      Download combined CSV
+                    </Button>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        )}
         {jobs.length === 0 && !loadError && (
           <p className="muted" style={{ margin: 0 }}>No jobs yet. Upload files above to get started.</p>
         )}

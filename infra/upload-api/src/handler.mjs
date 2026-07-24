@@ -1520,6 +1520,37 @@ async function handleGetDownload(event, origin, jobId) {
   const job = result.Item;
   if (!job) return response(404, { error: "not_found" }, origin);
   if (job.userSub !== userSub) return response(403, { error: "forbidden" }, origin);
+
+  // The batch combiner stores one consolidated CSV against every component job.
+  // Validate its tenant-scoped prefix before signing it; the URL itself is
+  // short-lived and is never persisted in DynamoDB.
+  if (job.batchOutputKey) {
+    const expectedPrefix = job.batchId
+      ? `outputs/${userSub}/${job.batchId}/`
+      : "";
+    if (!expectedPrefix || !job.batchOutputKey.startsWith(expectedPrefix)) {
+      console.error("[jobs/download] Rejected invalid batch output key", {
+        jobId,
+        batchId: job.batchId || "",
+      });
+      return response(409, { error: "batch_result_unavailable" }, origin);
+    }
+
+    const downloadUrl = await s3.getSignedUrlPromise("getObject", {
+      Bucket: UPLOADS_BUCKET,
+      Key: job.batchOutputKey,
+      Expires: DOWNLOAD_URL_TTL,
+    });
+    return response(200, {
+      jobId,
+      files: [{
+        name: job.batchOutputFilename || "Marked Register.csv",
+        contentType: "text/csv",
+        downloadUrl,
+      }],
+    }, origin);
+  }
+
   if (job.status !== "SUCCEEDED") {
     return response(409, { error: "job_not_ready", status: job.status }, origin);
   }

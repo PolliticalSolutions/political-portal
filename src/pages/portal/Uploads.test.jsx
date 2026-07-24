@@ -318,7 +318,7 @@ describe("Uploads – upload flow", () => {
 
     expect(
       screen.getByText(
-        "1 file submitted. You will receive an email when processing is complete."
+        "1 file submitted. We’ll email you when processing is complete, and the result will also appear below."
       )
     ).toBeInTheDocument();
     expect(screen.getByText("report.pdf")).toBeInTheDocument();
@@ -436,6 +436,46 @@ describe("Uploads – polling", () => {
     expect(uploadApi.listJobs).not.toHaveBeenCalled();
     unmount();
   });
+
+  it("keeps polling after file processing until the batch combiner has finished", async () => {
+    vi.useFakeTimers();
+
+    const processedJob = {
+      jobId: "batch-job-1",
+      batchId: "batch-1",
+      filename: "done.pdf",
+      fileType: "pdf",
+      status: "SUCCEEDED",
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    };
+    uploadApi.listJobs
+      .mockResolvedValueOnce({ items: [processedJob] })
+      .mockResolvedValueOnce({
+        items: [{
+          ...processedJob,
+          batchStatus: "COMPLETE",
+          completionEmailStatus: "SENT",
+        }],
+      });
+
+    const { unmount } = render(<Uploads />);
+
+    await act(async () => {
+      await Promise.resolve();
+      await Promise.resolve();
+    });
+    uploadApi.listJobs.mockClear();
+
+    await act(async () => {
+      vi.advanceTimersByTime(POLL_INTERVAL_MS + 100);
+      await Promise.resolve();
+      await Promise.resolve();
+    });
+
+    expect(uploadApi.listJobs).toHaveBeenCalledWith(25);
+    unmount();
+  });
 });
 
 // ── Job statuses ───────────────────────────────────────────────────────────
@@ -470,5 +510,122 @@ describe("Uploads – job status badges", () => {
       expect(screen.getByText("Complete")).toBeInTheDocument();
       expect(screen.getByText("Failed")).toBeInTheDocument();
     });
+  });
+});
+
+describe("Uploads – batch results", () => {
+  it("shows one recoverable result alert when a completion email failed", async () => {
+    const batchFields = {
+      batchId: "batch-1",
+      batchStatus: "COMPLETE_WITH_FAILURES",
+      batchSucceededCount: 242,
+      batchFailedCount: 4,
+      batchRowCount: 233541,
+      batchOutputKey: "outputs/user-sub-1/batch-1/result.csv",
+      batchOutputFilename: "result.csv",
+      completionEmailStatus: "FAILED",
+      completionEmailMode: "ATTACHMENT",
+    };
+    uploadApi.listJobs.mockResolvedValueOnce({
+      items: [
+        {
+          ...batchFields,
+          jobId: "batch-job-1",
+          filename: "one.pdf",
+          fileType: "pdf",
+          status: "SUCCEEDED",
+        },
+        {
+          ...batchFields,
+          jobId: "batch-job-2",
+          filename: "two.xlsx",
+          fileType: "xlsx",
+          status: "FAILED",
+        },
+      ],
+    });
+    uploadApi.getDownloadUrls.mockResolvedValueOnce({
+      files: [{
+        name: "result.csv",
+        downloadUrl: "https://example.test/result.csv?signature=temporary",
+      }],
+    });
+    const clickSpy = vi
+      .spyOn(HTMLAnchorElement.prototype, "click")
+      .mockImplementation(() => {});
+
+    render(<Uploads />);
+
+    expect(
+      await screen.findByText("Batch complete with 4 file failures")
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText(/The completion email could not be sent/)
+    ).toBeInTheDocument();
+    expect(screen.getAllByRole("button", { name: "Download combined CSV" })).toHaveLength(1);
+
+    fireEvent.click(screen.getByRole("button", { name: "Download combined CSV" }));
+    await waitFor(() => {
+      expect(uploadApi.getDownloadUrls).toHaveBeenCalledWith("batch-job-1");
+      expect(clickSpy).toHaveBeenCalled();
+    });
+    clickSpy.mockRestore();
+  });
+
+  it("keeps the portal download available when a link email was sent", async () => {
+    uploadApi.listJobs.mockResolvedValueOnce({
+      items: [{
+        jobId: "batch-job-1",
+        batchId: "batch-1",
+        filename: "one.pdf",
+        fileType: "pdf",
+        status: "SUCCEEDED",
+        batchStatus: "COMPLETE",
+        batchSucceededCount: 1,
+        batchFailedCount: 0,
+        batchRowCount: 100,
+        batchOutputKey: "outputs/user-sub-1/batch-1/result.csv",
+        completionEmailStatus: "SENT",
+        completionEmailMode: "DOWNLOAD_LINK",
+      }],
+    });
+
+    render(<Uploads />);
+
+    expect(await screen.findByText("Batch result ready")).toBeInTheDocument();
+    expect(
+      screen.getByText("A completion email with a secure download link was sent.")
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: "Download combined CSV" })
+    ).toBeInTheDocument();
+  });
+
+  it("makes a completed batch warning visible before download", async () => {
+    uploadApi.listJobs.mockResolvedValueOnce({
+      items: [{
+        jobId: "batch-job-1",
+        batchId: "batch-1",
+        filename: "one.pdf",
+        fileType: "pdf",
+        status: "SUCCEEDED",
+        batchStatus: "COMPLETE_WITH_WARNINGS",
+        batchSucceededCount: 1,
+        batchFailedCount: 0,
+        batchRowCount: 100,
+        batchOutputKey: "outputs/user-sub-1/batch-1/result.csv",
+        completionEmailStatus: "SENT",
+        completionEmailMode: "ATTACHMENT",
+      }],
+    });
+
+    render(<Uploads />);
+
+    expect(
+      await screen.findByRole("alert")
+    ).toHaveTextContent("Batch complete with warnings — review before use");
+    expect(
+      screen.getByText(/Review the completion email checks before using the CSV/)
+    ).toBeInTheDocument();
   });
 });
