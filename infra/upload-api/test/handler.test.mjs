@@ -679,6 +679,60 @@ describe("POST /jobs approval gating", () => {
     expect(Array.from(auditMap.values()).some((entry) => entry.action === "JOB_CREATED")).toBe(true);
   });
 
+  it("accepts XLSX jobs and constrains the presigned upload to the canonical MIME type", async () => {
+    const xlsxContentType =
+      "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
+    const res = await handler(
+      buildAuthEvent({
+        method: "POST",
+        path: "/jobs",
+        body: {
+          ...VALID_BODY,
+          filename: "absent-voters.XLSX",
+          fileType: "xlsx",
+        },
+      })
+    );
+
+    expect(res.statusCode).toBe(201);
+    const body = JSON.parse(res.body);
+    const storedJob = jobsMap.get(body.jobId);
+    expect(storedJob.fileType).toBe("xlsx");
+    expect(storedJob.expectedFileType).toBe("xlsx");
+    expect(lastPresignedPostParams.Fields["Content-Type"]).toBe(xlsxContentType);
+    expect(lastPresignedPostParams.Conditions).toContainEqual([
+      "eq",
+      "$Content-Type",
+      xlsxContentType,
+    ]);
+  });
+
+  it.each([
+    ["legacy.xls", "xls", "invalid_file_type"],
+    ["macro.xlsm", "xlsm", "invalid_file_type"],
+    ["wrong.xlsx", "csv", "file_type_mismatch"],
+    ["wrong.csv", "xlsx", "file_type_mismatch"],
+    ["wrong.docx", "xlsx", "file_type_mismatch"],
+    ["macro.xlsm", "xlsx", "file_type_mismatch"],
+  ])(
+    "rejects unsupported or mismatched spreadsheet upload %s as %s",
+    async (filename, fileType, expectedError) => {
+      const jobCountBefore = jobsMap.size;
+      const res = await handler(
+        buildAuthEvent({
+          method: "POST",
+          path: "/jobs",
+          body: { ...VALID_BODY, filename, fileType },
+        })
+      );
+
+      expect(res.statusCode).toBe(400);
+      expect(JSON.parse(res.body).error).toBe(expectedError);
+      expect(jobsMap.size).toBe(jobCountBefore);
+      expect(lastPresignedPostParams).toBeNull();
+    }
+  );
+
   it("returns 400 when any of the five free-text fields is missing", async () => {
     const res = await handler(
       buildAuthEvent({

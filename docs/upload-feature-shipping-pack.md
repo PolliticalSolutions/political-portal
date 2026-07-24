@@ -6,7 +6,7 @@
 **Author:** Technical PM / Security Review
 
 > **Assumptions made (no questions asked):**
-> - Clients are UK political parties, campaign groups, and CLPs uploading marked registers (PDF) and canvass/campaign data (CSV).
+> - Clients are UK political parties, campaign groups, and CLPs uploading marked-register and absent-voter data as PDF, CSV, or XLSX files.
 > - "Presigned POST upgrade" is the next deploy — this doc covers the full feature including that change.
 > - Cognito user pool is in `eu-west-2` (London). All infra stays in `eu-west-2`.
 > - No multi-tenancy beyond Cognito `sub` isolation today — org-level access is a future iteration.
@@ -21,7 +21,7 @@
 
 | # | Story | Acceptance criteria |
 |---|-------|-------------------|
-| US-1 | As an authenticated portal user, I can upload one or more PDF/CSV files so that they are queued for processing. | Files accepted via drag-drop or file picker. Job record created per file. Presigned POST used with server-enforced 200 MB limit. |
+| US-1 | As an authenticated portal user, I can upload one or more PDF/CSV/XLSX files so that they are queued for processing. | Files accepted via drag-drop or file picker. Job record created per file. Presigned POST used with server-enforced 200 MB limit. |
 | US-2 | As a portal user, I can see the real-time status of my processing jobs so I know when results are ready. | Jobs table shows QUEUED → PROCESSING → SUCCEEDED/FAILED with auto-polling (5 s). Status badges are colour-coded. |
 | US-3 | As a portal user, I can download the processed output files for any succeeded job. | Download button appears on SUCCEEDED jobs. Presigned GET URLs generated (15-min TTL). Files download to browser. |
 | US-4 | As a portal user, I can attach a client name and notes to my upload batch so I can find jobs later. | Optional metadata fields (client name ≤200 chars, notes ≤1000 chars) saved with each job. |
@@ -65,7 +65,7 @@
 
 | Error | Where caught | User sees |
 |-------|-------------|-----------|
-| File type not PDF/CSV | Client (Uploads.jsx) | Inline error: file listed in red with message |
+| File type not PDF/CSV/XLSX | Client (Uploads.jsx) | Inline error: file listed in red with message |
 | File exceeds 200 MB | Client (Uploads.jsx) | Inline error per file |
 | File exceeds 200 MB (bypass client) | Server — S3 POST policy `content-length-range` | Upload rejected, upload error shown |
 | Invalid file content (e.g. PDF magic bytes wrong) | Worker | Job status → FAILED, error message in table |
@@ -83,7 +83,7 @@
 - [ ] S3 CORS updated: POST method allowed (currently only PUT)
 - [ ] API handler returns POST policy fields (not just a URL)
 - [ ] Frontend uses FormData POST (not PUT) to upload
-- [ ] Server-side validation in worker: PDF magic bytes check (`%PDF-`), CSV non-empty check
+- [ ] Server-side validation in worker: PDF magic bytes check (`%PDF-`), CSV validation, and hardened XLSX/OOXML validation
 - [ ] API input validation: fileType, filename length, metadata length
 - [ ] All four API endpoints return correct responses with auth
 - [ ] Worker transitions QUEUED → PROCESSING → SUCCEEDED/FAILED correctly
@@ -108,7 +108,8 @@
 #### Happy Path
 - [ ] Upload a single valid PDF (<10 MB) — job created, status progresses to SUCCEEDED, download works
 - [ ] Upload a single valid CSV (<1 MB) — same progression
-- [ ] Upload multiple files (2 PDF + 1 CSV) in one batch — 3 separate jobs created
+- [ ] Upload a single valid XLSX (<1 MB) — same progression
+- [ ] Upload multiple files (1 PDF + 1 CSV + 1 XLSX) in one batch — 3 separate jobs created
 - [ ] Attach client name and notes — metadata visible when inspecting job (API response)
 - [ ] Download output file — browser downloads CSV, content is valid
 - [ ] Drag-and-drop upload — file accepted, same flow
@@ -153,7 +154,7 @@
 | **API handler** — input validation | Missing filename, invalid fileType, oversized metadata | Vitest | Same |
 | **API handler** — tenant isolation | User A cannot read User B's job | Vitest | Same |
 | **Worker** — PDF processing | Placeholder output generated, status updated | Vitest | `infra/upload-api/test/worker.test.mjs` (create) |
-| **Worker** — CSV processing | Valid CSV normalised, empty CSV fails | Vitest | Same |
+| **Worker** — CSV/XLSX processing | Valid supported spreadsheet normalised; empty or malformed input fails safely | Vitest/Pytest | Same |
 | **Worker** — error handling | Unknown fileType, missing job record, S3 read failure | Vitest | Same |
 | **Frontend** — file validation | Extension check, size check | Vitest (jsdom) | `src/pages/portal/__tests__/Uploads.test.jsx` (create) |
 | **Frontend** — upload flow | createJob called, S3 PUT/POST called, job added to list | Vitest (jsdom) with mocks | Same |
@@ -253,7 +254,7 @@ All of the following must be green before production deploy:
 
 | Data type | What we store | Retention recommendation | Rationale |
 |-----------|--------------|------------------------|-----------|
-| **Uploaded files** (S3 `uploads/` prefix) | Raw PDF/CSV as uploaded | **90 days**, then auto-delete via S3 lifecycle rule | We don't need originals after processing. Clients should keep their own copies. |
+| **Uploaded files** (S3 `uploads/` prefix) | Raw PDF/CSV/XLSX as uploaded | **90 days**, then auto-delete via S3 lifecycle rule | We don't need originals after processing. Clients should keep their own copies. |
 | **Output files** (S3 `outputs/` prefix) | Processed results (CSV) | **90 days**, then auto-delete | Same rationale. Clients should download promptly. |
 | **Job metadata** (DynamoDB) | jobId, userSub, filename, fileType, status, timestamps, clientName, notes | **12 months**, then TTL delete | Needed for audit trail and support. No file content stored here. |
 | **CloudWatch logs** | Structured JSON: jobId, status transitions, errors | **90 days** (Lambda log groups), **14 days** (WAF logs) | Ops and security investigation. No PII in logs (see section 5). |
@@ -448,16 +449,16 @@ aws dynamodb update-item \
 ### 7.1 Upload Page — Helper Text & Warnings
 
 **Page intro (below heading):**
-> Upload PDF or CSV files for processing. Each file becomes a separate processing job.
+> Upload PDF, CSV, or XLSX files for processing. Each file becomes a separate processing job.
 
 **Dropzone text:**
 > Drag & drop files here, or **click to browse**
 
 **Dropzone subtitle:**
-> Accepted formats: PDF, CSV. Maximum file size: 200 MB.
+> Accepted formats: PDF, CSV, XLSX. Maximum file size: 200 MB.
 
 **Processing time expectation (below upload button):**
-> Processing usually takes under a minute for CSV files and 1–5 minutes for PDFs, depending on the number of pages. You can close this page and return later — your jobs will continue in the background.
+> Processing usually takes under a minute for CSV or XLSX files and 1–5 minutes for PDFs, depending on the number of pages. You can close this page and return later — your jobs will continue in the background.
 
 **Metadata helper text:**
 > *Client name* and *Notes* are optional. Use them to help identify this batch later.
@@ -466,7 +467,7 @@ aws dynamodb update-item \
 
 | Scenario | Message |
 |----------|---------|
-| **Wrong file type (client)** | `Only PDF and CSV files are accepted.` |
+| **Wrong file type (client)** | `Only PDF, CSV, and XLSX files are accepted.` |
 | **File too large (client)** | `This file exceeds the 200 MB size limit.` |
 | **File too large (server, POST policy)** | `Upload rejected: file exceeds the maximum allowed size.` |
 | **Upload failed (network)** | `Upload failed. Please check your connection and try again.` |

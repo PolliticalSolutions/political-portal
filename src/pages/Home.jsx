@@ -105,7 +105,8 @@ export default function Home() {
             <Card title="Marked Register Processing" className="product-card">
               <div className="product-card__body">
                 <p>
-                  Turn marked register PDFs and CSVs into structured outputs your campaign team can use quickly.
+                  Turn marked register PDFs, CSVs, and Excel (.xlsx) workbooks into structured outputs your
+                  campaign team can use quickly.
                 </p>
                 <p className="product-card__meta">
                   <strong>Who it is for:</strong> Association officers, agents, candidates, and teams managing

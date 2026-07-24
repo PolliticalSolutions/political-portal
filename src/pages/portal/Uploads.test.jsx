@@ -83,7 +83,7 @@ describe("Uploads – file validation", () => {
     ]);
 
     await waitFor(() => {
-      expect(screen.getByText(/only PDF and CSV files are accepted/)).toBeInTheDocument();
+      expect(screen.getByText(/only PDF, CSV, and XLSX files are accepted/)).toBeInTheDocument();
     });
   });
 
@@ -97,7 +97,7 @@ describe("Uploads – file validation", () => {
     await waitFor(() => {
       expect(screen.getByText(/document\.pdf/)).toBeInTheDocument();
     });
-    expect(screen.queryByText(/only PDF and CSV/)).not.toBeInTheDocument();
+    expect(screen.queryByText(/only PDF, CSV, and XLSX/)).not.toBeInTheDocument();
   });
 
   it("accepts CSV files without error", async () => {
@@ -110,8 +110,61 @@ describe("Uploads – file validation", () => {
     await waitFor(() => {
       expect(screen.getByText(/data\.csv/)).toBeInTheDocument();
     });
-    expect(screen.queryByText(/only PDF and CSV/)).not.toBeInTheDocument();
+    expect(screen.queryByText(/only PDF, CSV, and XLSX/)).not.toBeInTheDocument();
   });
+
+  it("accepts XLSX files and advertises the canonical browser file types", async () => {
+    render(<Uploads />);
+    await waitFor(() => expect(uploadApi.listJobs).toHaveBeenCalled());
+
+    const input = document.querySelector('input[type="file"]');
+    expect(input.getAttribute("accept")).toContain(".xlsx");
+    expect(input.getAttribute("accept")).toContain(
+      "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+    );
+
+    setInputFiles(input, [
+      makeFile(
+        "data.XLSX",
+        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+      ),
+    ]);
+
+    await waitFor(() => {
+      expect(screen.getByText(/data\.XLSX/)).toBeInTheDocument();
+    });
+    expect(screen.queryByText(/only PDF, CSV, and XLSX/)).not.toBeInTheDocument();
+  });
+
+  it("accepts XLSX by extension when the browser supplies no MIME type", async () => {
+    render(<Uploads />);
+    await waitFor(() => expect(uploadApi.listJobs).toHaveBeenCalled());
+
+    const input = document.querySelector('input[type="file"]');
+    setInputFiles(input, [makeFile("data.xlsx", "")]);
+
+    await waitFor(() => {
+      expect(screen.getByText(/data\.xlsx/)).toBeInTheDocument();
+    });
+    expect(screen.queryByText(/only PDF, CSV, and XLSX/)).not.toBeInTheDocument();
+  });
+
+  it.each(["legacy.xls", "macro.xlsm"])(
+    "rejects unsupported Excel format %s",
+    async (filename) => {
+      render(<Uploads />);
+      await waitFor(() => expect(uploadApi.listJobs).toHaveBeenCalled());
+
+      const input = document.querySelector('input[type="file"]');
+      setInputFiles(input, [makeFile(filename, "application/vnd.ms-excel")]);
+
+      await waitFor(() => {
+        expect(
+          screen.getByText(/only PDF, CSV, and XLSX files are accepted/)
+        ).toBeInTheDocument();
+      });
+    }
+  );
 
   it("shows an error when a file exceeds 200 MB", async () => {
     render(<Uploads />);
@@ -161,6 +214,46 @@ describe("Uploads – upload flow", () => {
         election: "2024 General Election",
         electionDate: "04 July 2024",
       }),
+    );
+  });
+
+  it("creates XLSX jobs with the xlsx file type", async () => {
+    uploadApi.createJob.mockResolvedValue({
+      jobId: "test-job-xlsx",
+      upload: {
+        url: "https://bucket.s3.amazonaws.com",
+        fields: {
+          key: "uploads/sub1/test-job-xlsx/data.xlsx",
+          policy: "abc",
+          "Content-Type":
+            "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        },
+      },
+      s3Key: "uploads/sub1/test-job-xlsx/data.xlsx",
+    });
+    global.fetch = vi.fn().mockResolvedValue({ ok: true });
+
+    render(<Uploads />);
+    await waitFor(() => expect(uploadApi.listJobs).toHaveBeenCalled());
+
+    const input = document.querySelector('input[type="file"]');
+    setInputFiles(input, [
+      makeFile(
+        "data.xlsx",
+        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+      ),
+    ]);
+    await waitFor(() => expect(screen.getByText(/data\.xlsx/)).toBeInTheDocument());
+
+    fillRequiredFields();
+    await reviewAndConfirmUpload();
+
+    expect(uploadApi.createJob).toHaveBeenCalledWith(
+      expect.objectContaining({
+        filename: "data.xlsx",
+        fileType: "xlsx",
+        size: 1024,
+      })
     );
   });
 

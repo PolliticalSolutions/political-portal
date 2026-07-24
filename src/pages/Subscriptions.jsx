@@ -302,7 +302,9 @@ export default function Subscriptions() {
               <div className="subtle-row">
                 <div>
                   <div style={{ fontWeight: 700 }}>Marked Register Processing</div>
-                  <div className="muted">One-off marked register processing for PDF or CSV inputs.</div>
+                  <div className="muted">
+                    One-off marked register processing for PDF, CSV, or XLSX inputs.
+                  </div>
                 </div>
                 <div style={{ fontWeight: 700 }}>{formatCurrency(65)}</div>
               </div>

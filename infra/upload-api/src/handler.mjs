@@ -74,10 +74,16 @@ const MAX_CONSTITUENCY = 200;
 const MAX_COUNCIL_AREA = 200;
 const MAX_ELECTION_LABEL = 200;
 const MAX_ELECTION_DATE = 40;
-const VALID_FILE_TYPES = new Set(["pdf", "csv"]);
+const VALID_FILE_TYPES = new Set(["pdf", "csv", "xlsx"]);
 const FILE_TYPE_CONTENT_TYPES = {
   pdf: "application/pdf",
   csv: "text/csv",
+  xlsx: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+};
+const FILE_TYPE_EXTENSIONS = {
+  pdf: ".pdf",
+  csv: ".csv",
+  xlsx: ".xlsx",
 };
 const USER_STATUSES = new Set(["PENDING", "APPROVED", "REJECTED"]);
 const ALLOWED_ORG_TYPES = new Set(["ASSOCIATION", "FEDERATION"]);
@@ -746,7 +752,20 @@ async function handleCreateJob(event, origin) {
     return response(400, { error: "filename_required" }, origin);
   }
   if (!VALID_FILE_TYPES.has(fileType)) {
-    return response(400, { error: "invalid_file_type", detail: "Must be pdf or csv." }, origin);
+    return response(400, { error: "invalid_file_type", detail: "Must be pdf, csv, or xlsx." }, origin);
+  }
+  const extensionStart = filename.lastIndexOf(".");
+  const filenameExtension =
+    extensionStart >= 0 ? filename.slice(extensionStart).toLowerCase() : "";
+  if (filenameExtension !== FILE_TYPE_EXTENSIONS[fileType]) {
+    return response(
+      400,
+      {
+        error: "file_type_mismatch",
+        detail: "Filename extension must match the declared file type.",
+      },
+      origin
+    );
   }
   if (size === null) {
     return response(400, { error: "size_required", detail: "Provide file size in bytes." }, origin);

@@ -5,7 +5,12 @@ import Card from "../../components/Card.jsx";
 import { createJob, listJobs } from "../../lib/uploadApi.js";
 
 const MAX_FILE_SIZE = 200 * 1024 * 1024; // 200 MB
-const ALLOWED_EXTENSIONS = new Set([".pdf", ".csv"]);
+const FILE_TYPE_BY_EXTENSION = {
+  ".pdf": "pdf",
+  ".csv": "csv",
+  ".xlsx": "xlsx",
+};
+const ALLOWED_EXTENSIONS = new Set(Object.keys(FILE_TYPE_BY_EXTENSION));
 const POLL_INTERVAL_MS = 30000;
 const PENDING_JOB_STATUSES = new Set(["PENDING", "QUEUED", "CREATED", "RECEIVED"]);
 const PROCESSING_JOB_STATUSES = new Set(["PROCESSING", "RUNNING"]);
@@ -70,7 +75,9 @@ function getStatusPresentation(status) {
 
 function validateFile(file) {
   const ext = getFileExt(file.name);
-  if (!ALLOWED_EXTENSIONS.has(ext)) return `"${file.name}": only PDF and CSV files are accepted.`;
+  if (!ALLOWED_EXTENSIONS.has(ext)) {
+    return `"${file.name}": only PDF, CSV, and XLSX files are accepted.`;
+  }
   if (file.size > MAX_FILE_SIZE) return `"${file.name}": exceeds the 200 MB size limit.`;
   return null;
 }
@@ -295,7 +302,7 @@ export default function Uploads() {
 
     for (const { file } of valid) {
       const ext = getFileExt(file.name);
-      const fileType = ext === ".pdf" ? "pdf" : "csv";
+      const fileType = FILE_TYPE_BY_EXTENSION[ext];
       try {
         const { jobId, upload, s3Key } = await createJob({
           filename: file.name,
@@ -369,8 +376,8 @@ export default function Uploads() {
             <span className="portal-page-header__eyebrow">Marked Register Processing</span>
             <h1 className="portal-page-header__title">Uploads</h1>
             <p className="portal-page-header__subtitle">
-              Enter the batch details, then upload your Marked Register PDFs. We will process them
-              and email you the results.
+              Enter the batch details, then upload your Marked Register PDFs, CSVs, or Excel
+              (.xlsx) workbooks. We will process them and email you the results.
             </p>
           </div>
         </div>
@@ -473,14 +480,16 @@ export default function Uploads() {
               aria-label="Drop files here or click to choose"
             >
               <p className="portal-dropzone__title">
-                Drag &amp; drop PDF or CSV files here, or{" "}
+                Drag &amp; drop PDF, CSV, or XLSX files here, or{" "}
                 <strong style={{ color: "var(--color-navy-mid)" }}>click to browse</strong>
               </p>
-              <p className="portal-dropzone__meta">Accepted: .pdf, .csv — max 200 MB per file</p>
+              <p className="portal-dropzone__meta">
+                Accepted: .pdf, .csv, .xlsx — max 200 MB per file
+              </p>
               <input
                 ref={fileInputRef}
                 type="file"
-                accept=".pdf,.csv,application/pdf,text/csv"
+                accept=".pdf,.csv,.xlsx,application/pdf,text/csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
                 multiple
                 onChange={handleFileChange}
                 style={{ display: "none" }}
