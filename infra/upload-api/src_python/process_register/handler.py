@@ -149,7 +149,7 @@ _MARKED_POSTAL_REPORT_HEADERS = {
     ),
     4: "ward",
 }
-_PV_MARKED_REGISTER_HEADERS = frozenset({
+_PV_MARKED_REGISTER_REQUIRED_HEADERS = frozenset({
     "recno",
     "electiondescription",
     "electiondate",
@@ -177,10 +177,19 @@ _PV_MARKED_REGISTER_HEADERS = frozenset({
     "postaladdress5",
     "postaladdress6",
     "postaladdresspostcode",
-    "areaname1",
     "pvsstatus",
     "decreceiptdate",
 })
+_PV_MARKED_REGISTER_OPTIONAL_HEADERS = frozenset({
+    # Some Civica exports omit this presentation-only field. It is never read
+    # or retained, so accepting both exact profiles does not change row
+    # semantics or weaken heading validation.
+    "areaname1",
+})
+_PV_MARKED_REGISTER_HEADERS = (
+    _PV_MARKED_REGISTER_REQUIRED_HEADERS
+    | _PV_MARKED_REGISTER_OPTIONAL_HEADERS
+)
 
 _INFERENCE_DIAGNOSTIC_KEYS = (
     "numeric_gap_rows_legacy_would_generate",
@@ -189,6 +198,7 @@ _INFERENCE_DIAGNOSTIC_KEYS = (
     "excluded_eligibility_y_suppressed",
     "removed_elector_rows_excluded",
     "unreadable_strikethrough_rows_suppressed",
+    "out_of_sequence_rows_excluded",
 )
 
 # These are the single-letter elector markers seen in UK registers. Whether a
@@ -222,6 +232,39 @@ _DECLARED_RANGE_PATTERNS = [
     rf"\(?\s*({_DECLARED_CODE})\s*[-–—]\s*({_DECLARED_NUMBER})"
     rf"\s*/\s*({_DECLARED_CODE})\s*[-–—]\s*({_DECLARED_NUMBER})\s*\)?",
 ]
+
+# Stafford's scanned registers place "Polling District <code>" around 5% down
+# the physical page. Tesseract fails to segment that line when it receives only
+# the former 12% strip, even though the text is geometrically inside the crop.
+# Retaining the top quarter supplies enough surrounding table structure for
+# stable layout segmentation while still avoiding an unnecessary full-page
+# header OCR pass.
+_PAGE_HEADER_HEIGHT_RATIO = 0.25
+
+# A normal polling-station register cover can mention postal voters in its
+# instructions or legend. A bare "postal" substring therefore cannot classify
+# the whole document as a postal list. Require an explicit document title or
+# equivalent phrase instead.
+_PDF_POSTAL_DOCUMENT_PATTERNS = (
+    r"\babsent\s+voter\s+postal\s+list\s+marked\b",
+    r"\bmarked\s+(?:absent\s+)?postal\s+voters?\s+list\b",
+    r"\b(?:marked\s+)?list\s+of\s+postal\s+voters\b",
+)
+_HEADER_NON_DISTRICT_TOKENS = frozenset({
+    "BOROUGH",
+    "COUNCIL",
+    "COUNTY",
+    "DISTRICT",
+    "DIVISION",
+    "ELECTOR",
+    "ELECTORS",
+    "PAGE",
+    "POLLING",
+    "REGISTER",
+    "STATION",
+    "UNKNOWN",
+    "WARD",
+})
 
 
 def _extract_declared_ranges(text):
@@ -264,6 +307,47 @@ def _extract_polling_district_from_text(text, declared_ranges=None):
         _extract_declared_ranges(text) if declared_ranges is None else declared_ranges
     )
     return declared_ranges[0]["district"] if declared_ranges else None
+
+
+def _classify_pdf_vote_type(text):
+    """Classify a PDF as postal only from an explicit document description."""
+    return (
+        "Postal"
+        if any(
+            re.search(pattern, text or "", re.IGNORECASE)
+            for pattern in _PDF_POSTAL_DOCUMENT_PATTERNS
+        )
+        else "In Person"
+    )
+
+
+def _extract_polling_district_from_tokens(tokens):
+    """Extract a code immediately following a Polling District token pair."""
+    normalised = [
+        re.sub(r"[^A-Z0-9]+", "", str(token or "").upper())
+        for token in tokens or []
+    ]
+    for index, token in enumerate(normalised):
+        if token != "POLLING":
+            continue
+        district_index = next(
+            (
+                candidate
+                for candidate in range(index + 1, min(index + 4, len(normalised)))
+                if normalised[candidate] == "DISTRICT"
+            ),
+            None,
+        )
+        if district_index is None:
+            continue
+        for candidate in normalised[district_index + 1:district_index + 4]:
+            if (
+                2 <= len(candidate) <= 8
+                and re.search(r"[A-Z]", candidate)
+                and candidate not in _HEADER_NON_DISTRICT_TOKENS
+            ):
+                return candidate
+    return None
 
 
 def _row_eligibility_filter_enabled():
@@ -587,6 +671,85 @@ def _infer_missing_entries(readable_entries, start_num,
     return entries
 
 
+def _filter_monotonic_elector_entries(
+        readable_entries, diagnostics=None, maximum_gap=25):
+    """Keep the strongest increasing elector-number sequence in one column.
+
+    OCR can treat a wrapped address beginning with a house number as an elector
+    row. Real roll numbers are printed in non-decreasing order within a column;
+    address numbers are not. Select the longest ordered chain, preferring the
+    chain with the smallest cumulative gaps when lengths tie. Numberless
+    strikethrough candidates remain present so the existing suppression
+    diagnostics continue to account for them.
+    """
+    # Slash subnumbers are legitimate late additions and can appear after the
+    # main sequence has moved on. They are never candidates for exclusion.
+    numbered = [
+        (index, entry)
+        for index, entry in enumerate(readable_entries)
+        if (
+            entry.get("main_num") is not None
+            and "/" not in str(entry.get("elector_num") or "")
+        )
+    ]
+    if len(numbered) < 3:
+        return readable_entries
+
+    best = []
+    for position, (_original_index, entry) in enumerate(numbered):
+        current_num = int(entry["main_num"])
+        best_length = 1
+        best_gap_cost = 0
+        best_previous = None
+        for candidate in range(position):
+            previous_num = int(numbered[candidate][1]["main_num"])
+            gap = current_num - previous_num
+            if gap < 0 or gap > maximum_gap:
+                continue
+            candidate_length = best[candidate][0] + 1
+            candidate_cost = best[candidate][1] + max(gap - 1, 0)
+            if (
+                candidate_length > best_length
+                or (
+                    candidate_length == best_length
+                    and candidate_cost < best_gap_cost
+                )
+            ):
+                best_length = candidate_length
+                best_gap_cost = candidate_cost
+                best_previous = candidate
+        best.append((best_length, best_gap_cost, best_previous))
+
+    end = min(
+        range(len(numbered)),
+        key=lambda index: (-best[index][0], best[index][1], index),
+    )
+    selected_numbered_positions = set()
+    while end is not None:
+        selected_numbered_positions.add(numbered[end][0])
+        end = best[end][2]
+
+    # Do not make a sparse/uncertain column even sparser. Normal register
+    # columns contain many ordered rows; a selected chain shorter than three
+    # is not sufficient evidence for exclusion.
+    if len(selected_numbered_positions) < 3:
+        return readable_entries
+
+    filtered = [
+        entry
+        for index, entry in enumerate(readable_entries)
+        if (
+            entry.get("main_num") is None
+            or "/" in str(entry.get("elector_num") or "")
+            or index in selected_numbered_positions
+        )
+    ]
+    excluded = len(numbered) - len(selected_numbered_positions)
+    if diagnostics is not None:
+        diagnostics["out_of_sequence_rows_excluded"] += excluded
+    return filtered
+
+
 def _process_column(image, col_start, col_end, context_start_num=0,
                     inference_diagnostics=None, row_eligibility_filter=None,
                     excluded_codes=None):
@@ -643,6 +806,12 @@ def _process_column(image, col_start, col_end, context_start_num=0,
             readable.append(
                 {"elector_num": None, "main_num": None, "voted": True, "line": line, "is_strikethrough": True}
             )
+
+    if row_eligibility_filter:
+        readable = _filter_monotonic_elector_entries(
+            readable,
+            diagnostics=inference_diagnostics,
+        )
 
     entries = _infer_missing_entries(
         readable, context_start_num, diagnostics=inference_diagnostics,
@@ -718,7 +887,7 @@ def _extract_metadata(image):
         month = _MONTH_MAP.get(dm.group(2).lower(), "01")
         election_date = f"{dm.group(1).zfill(2)}/{month}/{dm.group(3)}"
 
-    vote_type = "Postal" if "postal" in text.lower() else "In Person"
+    vote_type = _classify_pdf_vote_type(text)
     declared_ranges = _extract_declared_ranges(text)
     # Existing patterns remain authoritative for byte-identical behaviour on
     # registers that already work. A parsed declaration is the fallback ground
@@ -727,16 +896,72 @@ def _extract_metadata(image):
     return election_date, polling_district or "Unknown", vote_type, declared_ranges
 
 
+def _ocr_page_header_crop(header):
+    """Parse a cropped page header without retaining its OCR text."""
+    data = pytesseract.image_to_data(
+        header,
+        config=r"--oem 3 --psm 6",
+        output_type=pytesseract.Output.DICT,
+    )
+    lines = {}
+    line_order = []
+    tokens = []
+    for index, raw_token in enumerate(data.get("text", [])):
+        token = str(raw_token or "").strip()
+        if not token:
+            continue
+        tokens.append(token)
+        key = (
+            int(data["block_num"][index]),
+            int(data["par_num"][index]),
+            int(data["line_num"][index]),
+        )
+        if key not in lines:
+            lines[key] = []
+            line_order.append(key)
+        lines[key].append(token)
+    text = "\n".join(" ".join(lines[key]) for key in line_order)
+    declared_ranges = _extract_declared_ranges(text)
+    district = (
+        _extract_polling_district_from_text(text, declared_ranges)
+        or _extract_polling_district_from_tokens(tokens)
+    )
+    return district, declared_ranges
+
+
 def _extract_page_header(image):
     """OCR a page header and return (district code, declared ranges).
 
-    Reads only the top ~12% of the page (printed header text, never marks), so it
-    is cheap and safe to run once per page inside the worker loop (§6.2)."""
+    Reads only the top quarter of the page. The wider context is required for
+    Tesseract to segment Stafford's header table reliably. A second, half-size
+    OCR pass is used only when the primary pass misses a code or returns a
+    two-character prefix. This recovers small suffixes and faint short runs
+    without allowing a weaker pass to replace an otherwise complete code.
+    Only parsed district codes and declared ranges leave this function."""
     w, h = image.size
-    header = image.crop((0, 0, w, int(h * 0.12)))
-    text = pytesseract.image_to_string(header, config=r"--oem 3 --psm 6")
-    declared_ranges = _extract_declared_ranges(text)
-    district = _extract_polling_district_from_text(text, declared_ranges)
+    header = image.crop((0, 0, w, int(h * _PAGE_HEADER_HEIGHT_RATIO)))
+    district, declared_ranges = _ocr_page_header_crop(header)
+
+    if not district or len(district) == 2:
+        header_w, header_h = header.size
+        fallback_header = header.resize(
+            (max(1, header_w // 2), max(1, header_h // 2)),
+            resample=Image.Resampling.LANCZOS,
+        )
+        fallback_district, fallback_ranges = _ocr_page_header_crop(
+            fallback_header
+        )
+        if not declared_ranges:
+            declared_ranges = fallback_ranges
+        if not district:
+            district = fallback_district
+        elif (
+            fallback_district
+            and len(fallback_district) > len(district)
+            and fallback_district.startswith(district)
+        ):
+            district = fallback_district
+
     return district, declared_ranges
 
 
@@ -893,15 +1118,18 @@ def _is_marked_postal_report_header(row):
 
 
 def _is_pv_marked_register_header(row):
-    """Recognise the exact thirty-column postal-vote marked-register export."""
+    """Recognise either exact approved postal-vote marked-register profile."""
     normalised = [
         _normalise_csv_header(value)
         for value in row
     ]
+    header_set = frozenset(normalised)
     return (
-        len(normalised) == len(_PV_MARKED_REGISTER_HEADERS)
-        and len(set(normalised)) == len(normalised)
-        and set(normalised) == _PV_MARKED_REGISTER_HEADERS
+        len(header_set) == len(normalised)
+        and header_set in {
+            _PV_MARKED_REGISTER_REQUIRED_HEADERS,
+            _PV_MARKED_REGISTER_HEADERS,
+        }
     )
 
 
@@ -926,7 +1154,7 @@ def _parse_pv_marked_register_rows(
     election_date,
     source_format,
 ):
-    """Normalise the thirty-column postal-vote marked-register export.
+    """Normalise an approved postal-vote marked-register export.
 
     Only ElectorNo, PVSStatus, and DecReceiptDate are inspected. Names,
     addresses, polling-place details, and other presentation columns are
@@ -1453,7 +1681,8 @@ def _parse_uploaded_csv(csv_path, constituency_name, election_date):
     Recognised profiles are the flat absent-voter export
     (DistrictRef + ElectorShortNumber + MarkerPostal) and the nine-column
     multi-record marked postal-list report, plus the thirty-column PV marked
-    register export (ElectorNo + PVSStatus + DecReceiptDate). Unrelated or
+    register export (ElectorNo + PVSStatus + DecReceiptDate), with its optional
+    AreaName1 presentation field. Unrelated or
     sensitive presentation columns are used only for structural framing and are
     never copied to JSON, logs, or errors.
     """
@@ -2146,13 +2375,15 @@ def ocr_pdf(pdf_path, constituency_name, election_name, election_date_override="
             "excluded_eligibility_rows_seen=%d, "
             "excluded_eligibility_y_suppressed=%d, "
             "removed_elector_rows_excluded=%d, "
-            "unreadable_strikethrough_rows_suppressed=%d",
+            "unreadable_strikethrough_rows_suppressed=%d, "
+            "out_of_sequence_rows_excluded=%d",
             inference_diagnostics["numeric_gap_rows_legacy_would_generate"],
             inference_diagnostics["explicit_strikethrough_rows_inferred"],
             inference_diagnostics["excluded_eligibility_rows_seen"],
             inference_diagnostics["excluded_eligibility_y_suppressed"],
             inference_diagnostics["removed_elector_rows_excluded"],
             inference_diagnostics["unreadable_strikethrough_rows_suppressed"],
+            inference_diagnostics["out_of_sequence_rows_excluded"],
         )
         logger.info("OCR complete (serial): %d entries extracted", len(rows))
         return rows, meta, {}, {}
@@ -2171,13 +2402,15 @@ def ocr_pdf(pdf_path, constituency_name, election_name, election_date_override="
         "excluded_eligibility_rows_seen=%d, "
         "excluded_eligibility_y_suppressed=%d, "
         "removed_elector_rows_excluded=%d, "
-        "unreadable_strikethrough_rows_suppressed=%d",
+        "unreadable_strikethrough_rows_suppressed=%d, "
+        "out_of_sequence_rows_excluded=%d",
         inference_diagnostics["numeric_gap_rows_legacy_would_generate"],
         inference_diagnostics["explicit_strikethrough_rows_inferred"],
         inference_diagnostics["excluded_eligibility_rows_seen"],
         inference_diagnostics["excluded_eligibility_y_suppressed"],
         inference_diagnostics["removed_elector_rows_excluded"],
         inference_diagnostics["unreadable_strikethrough_rows_suppressed"],
+        inference_diagnostics["out_of_sequence_rows_excluded"],
     )
     logger.info(
         "OCR complete (chunk %s-%s): %d entries extracted", page_start, page_end, len(rows)

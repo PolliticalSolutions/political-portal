@@ -13,8 +13,9 @@ image_repositories = []
 region = "eu-west-2"
 
 # Production profile — deploys to ps-upload-api-prod (API ID 77i4hpcez8).
-# The Defect C evidence-only gap-inference candidate is enabled explicitly in
-# production. Set it back to false and redeploy for an immediate rollback.
+# The Defect C evidence-only gap-inference and Defect D row-eligibility
+# candidates are enabled explicitly in production. Set either value back to
+# false and redeploy for an immediate rollback of that candidate.
 # Only these values are overridden; every other parameter keeps its
 # previously-deployed value (CloudFormation default for updates), which
 # preserves secrets such as SupabaseServiceKey and VolunteerTokenSecret.
@@ -25,7 +26,7 @@ resolve_s3 = true
 s3_prefix = "ps-upload-api-prod"
 confirm_changeset = true
 capabilities = "CAPABILITY_IAM"
-parameter_overrides = "AllowedOrigins=\"https://www.politicalsolutions.uk,https://politicalsolutions.uk\" OcrEvidenceOnlyGapInference=\"true\""
+parameter_overrides = "AllowedOrigins=\"https://www.politicalsolutions.uk,https://politicalsolutions.uk\" TesseractLayerArn=\"arn:aws:lambda:eu-west-2:561375865143:layer:tesseract-layer:6\" OcrEvidenceOnlyGapInference=\"true\" OcrRowEligibilityFilter=\"true\""
 image_repositories = []
 
 [prod.global.parameters]

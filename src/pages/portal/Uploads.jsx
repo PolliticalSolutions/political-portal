@@ -437,7 +437,7 @@ export default function Uploads() {
               <strong>Step 1:</strong> Batch details
             </p>
             <p style={{ margin: "0 0 12px", fontSize: 13, color: "var(--color-text-muted)" }}>
-              All five fields are mandatory and appear in the output CSV filename.
+              All five fields are mandatory and appear in the output workbook filename.
             </p>
             <div className="stack" style={{ gap: 12 }}>
               <label className="field" htmlFor="association">
@@ -622,7 +622,10 @@ export default function Uploads() {
                 normalizeJobStatus(job.batchStatus) === "COMPLETE_WITH_FAILURES";
               const hasWarnings =
                 normalizeJobStatus(job.batchStatus) === "COMPLETE_WITH_WARNINGS";
-              const needsAttention = emailFailed || hasFileFailures || hasWarnings;
+              const qualityReviewRequired =
+                normalizeJobStatus(job.batchStatus) === "QUALITY_REVIEW_REQUIRED";
+              const needsAttention =
+                emailFailed || hasFileFailures || hasWarnings || qualityReviewRequired;
               const succeededCount = Number(job.batchSucceededCount);
               const failedCount = Number(job.batchFailedCount);
               const rowCount = Number(job.batchRowCount);
@@ -647,7 +650,9 @@ export default function Uploads() {
                 >
                   <div>
                     <strong>
-                      {hasWarnings
+                      {qualityReviewRequired
+                        ? "Batch withheld — quality checks failed"
+                        : hasWarnings
                         ? "Batch complete with warnings — review before use"
                         : hasFileFailures
                         ? `Batch complete${Number.isFinite(failedCount) ? ` with ${failedCount} file failure${failedCount === 1 ? "" : "s"}` : " with file failures"}`
@@ -657,7 +662,11 @@ export default function Uploads() {
                       {countsAvailable && (
                         <span>
                           {succeededCount} file{succeededCount === 1 ? "" : "s"} processed successfully
-                          {Number.isFinite(rowCount) ? ` · ${rowCount.toLocaleString()} elector records` : ""}
+                          {Number.isFinite(rowCount)
+                            ? qualityReviewRequired
+                              ? ` · ${rowCount.toLocaleString()} candidate rows assessed`
+                              : ` · ${rowCount.toLocaleString()} elector records`
+                            : ""}
                           {". "}
                         </span>
                       )}
@@ -665,9 +674,13 @@ export default function Uploads() {
                       {emailStatus === "SENT" && job.completionEmailMode === "DOWNLOAD_LINK" &&
                         "A completion email with a secure download link was sent."}
                       {emailStatus === "SENT" && job.completionEmailMode === "ATTACHMENT" &&
-                        "The completed CSV was sent by email."}
+                        "The completed Excel workbook was sent by email."}
+                      {emailStatus === "SENT" && job.completionEmailMode === "NOTICE_ONLY" &&
+                        "A quality-review notice was sent; no output file was released."}
                       {emailStatus === "PENDING" && "The completion email is being sent."}
-                      {hasWarnings && " Review the completion email checks before using the CSV."}
+                      {hasWarnings && " Review the completion email checks before using the result."}
+                      {qualityReviewRequired &&
+                        " Correct the extraction problem and rerun the original files."}
                     </div>
                   </div>
                   {job.batchOutputKey && (
@@ -678,7 +691,7 @@ export default function Uploads() {
                       loading={downloadingJobId === job.jobId}
                       disabled={Boolean(downloadingJobId)}
                     >
-                      Download combined CSV
+                      Download combined result
                     </Button>
                   )}
                 </div>

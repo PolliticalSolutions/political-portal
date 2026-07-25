@@ -328,6 +328,41 @@ class TestXlsxParsing:
         assert rows[0]["elector_number"] == "91"
         assert rows[0]["voted"] == "Y"
 
+    def test_pv_marked_register_accepts_profile_without_optional_area(
+        self, tmp_path
+    ):
+        headers = [
+            header
+            for header in PV_MARKED_HEADERS
+            if header != "AreaName1"
+        ]
+        source_row = _pv_marked_row(
+            elector_number="3CD-118/2",
+            status="12",
+            receipt_date="09/07/2026 21:14:05",
+        )
+        values_by_header = dict(zip(PV_MARKED_HEADERS, source_row))
+        row_without_area = [
+            values_by_header[header]
+            for header in headers
+        ]
+        path = _save_workbook(
+            tmp_path,
+            _pv_marked_workbook(row_without_area, headers=headers),
+        )
+
+        rows, meta = h._parse_uploaded_xlsx(path, "Test", "Date")
+
+        assert rows == [{
+            "election_date": "Date",
+            "constituency": "Test",
+            "polling_district": "3CD",
+            "elector_number": "118/2",
+            "voted": "Y",
+            "postal_vote": "Y",
+        }]
+        assert meta["csv_schema"] == "pv_marked_register_v1"
+
     @pytest.mark.parametrize(
         ("row_overrides", "expected_detail", "private_value"),
         [

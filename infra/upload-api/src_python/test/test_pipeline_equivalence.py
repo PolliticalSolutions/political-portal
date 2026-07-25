@@ -157,3 +157,40 @@ class TestChunkBoundaryEquivalence:
         assert csv_one == csv_split
         # Elector 3 appears exactly once in the final CSV.
         assert csv_one.count(",3,") == 1
+
+
+class TestMixedPdfAndCsvEquivalence:
+    def test_source_order_does_not_change_merged_cchq_output(self):
+        pdf_row = {
+            "election_date": "01/05/2026",
+            "constituency": "Testville",
+            "polling_district": "PD1",
+            "elector_number": "47/1",
+            "voted": "Y",
+            "postal_vote": "N",
+            "_source_type": "pdf",
+        }
+        absent_voter_row = {
+            "election_date": "01/05/2026",
+            "constituency": "Testville",
+            "polling_district": "PD1",
+            "elector_number": "47/1",
+            "voted": "N",
+            "postal_vote": "Y",
+            "_source_type": "csv",
+        }
+
+        def render(rows):
+            merged = c._dedupe_rows(rows)
+            merged.sort(key=c._sort_key)
+            return c.build_csv(merged)
+
+        pdf_first = render([pdf_row, absent_voter_row])
+        csv_first = render([absent_voter_row, pdf_row])
+
+        assert pdf_first == csv_first
+        assert pdf_first == (
+            "Election Date,Constituency,Polling District,Elector Number,"
+            "Voted,Postal Vote\r\n"
+            "01/05/2026,Testville,PD1,47/1,Y,Y\r\n"
+        )

@@ -10,6 +10,10 @@ second header, blank page mid-document, and 47/1-style sub-numbered electors.
 from copy import deepcopy
 from email import policy
 from email.parser import BytesParser
+from io import BytesIO
+
+import pytest
+from openpyxl import load_workbook
 
 import combine_register.handler as c
 
@@ -204,6 +208,18 @@ class TestResolveJobDistricts:
         assert set(_districts(rows)) == {"LA"}
         assert synthetic == set()
 
+    def test_alternating_header_noise_is_not_corroboration(self):
+        """A repeated error cannot corroborate across a different readable code."""
+        rows = _rows([
+            (3, "10"), (4, "11"), (5, "12"), (6, "13"), (7, "14"),
+        ])
+        page_districts = {
+            "3": "LA", "4": "LA", "5": "LX", "6": "LA", "7": "LX",
+        }
+        synthetic = c.resolve_job_districts(rows, page_districts, "LA")
+        assert set(_districts(rows)) == {"LA"}
+        assert synthetic == set()
+
     def test_header_split_midway_through_file(self):
         """A printed code change midway (LA→LB on two consecutive pages) splits;
         elector numbers are irrelevant to the decision."""
@@ -263,8 +279,9 @@ class TestResolveJobDistricts:
         """Deliberately accepted trade-off: a genuine second district whose header
         cannot be OCR'd is no longer detected by a numeric reset, so its rows
         inherit the running district here. In the real pipeline this collision
-        surfaces downstream as a high dedupe rate → COMPLETE_WITH_WARNINGS, not as
-        a synthetic label. This test pins the new, intentional behaviour."""
+        surfaces downstream as a high dedupe rate and the customer result is
+        withheld, rather than creating a synthetic label. This test pins the
+        intentional behaviour."""
         rows = _rows([(3, "10"), (3, "55"), (4, "56"), (4, "60"),
                       (5, "1"), (5, "5"), (6, "6"), (6, "40")])
         page_districts = {"3": "LA", "4": "LA", "5": None, "6": None}
@@ -293,6 +310,62 @@ class TestResolveJobDistricts:
         assert rows[0]["polling_district"] == "LA"
         assert synthetic == set()
 
+    def test_corroborated_headers_produce_trusted_resolution_report(self):
+        rows = _rows([
+            (3, "1"), (3, "2"),
+            (4, "3"), (4, "4"),
+            (5, "5"), (5, "6"),
+        ])
+        synthetic, report = c._resolve_job_districts_with_report(
+            rows,
+            {"3": "ECA", "4": "ECA", "5": None},
+            "DIVISION",
+        )
+
+        assert synthetic == set()
+        assert report["trusted"] is True
+        assert report["accepted_districts"] == ["ECA"]
+        assert report["header_coverage_pct"] == 66.7
+        assert report["unresolved_leading_pages"] == 0
+        assert set(_districts(rows)) == {"ECA"}
+
+    def test_corroboration_tolerates_one_missed_header_page(self):
+        rows = _rows([(3, "1"), (4, "2"), (5, "3")])
+        _synthetic, report = c._resolve_job_districts_with_report(
+            rows,
+            {"3": "ECA", "4": None, "5": "ECA"},
+            "DIVISION",
+        )
+
+        assert report["trusted"] is True
+        assert report["accepted_districts"] == ["ECA"]
+        assert set(_districts(rows)) == {"ECA"}
+
+    def test_single_uncorroborated_header_is_not_trusted(self):
+        rows = _rows([(3, "1"), (4, "2"), (5, "3")])
+        _synthetic, report = c._resolve_job_districts_with_report(
+            rows,
+            {"3": "ECA", "4": None, "5": None},
+            "DIVISION",
+        )
+
+        assert report["trusted"] is False
+        assert report["accepted_districts"] == []
+        assert report["rows_with_untrusted_district"] == 3
+        assert any("within the next two pages" in issue for issue in report["issues"])
+
+    def test_low_header_coverage_is_not_trusted_even_with_one_good_run(self):
+        rows = _rows([(page, str(page)) for page in range(3, 18)])
+        _synthetic, report = c._resolve_job_districts_with_report(
+            rows,
+            {"3": "ECA", "4": "ECA"},
+            "ECA",
+        )
+
+        assert report["header_coverage_pct"] == 13.3
+        assert report["trusted"] is False
+        assert any("minimum 20%" in issue for issue in report["issues"])
+
 
 # ── _dedupe_rows (§6.1 — the core bug this fixes) ─────────────────────────────
 
@@ -317,13 +390,162 @@ class TestDedupeRows:
         rows = [{"polling_district": "LA", "elector_number": ""}]
         assert c._dedupe_rows(rows) == []
 
-    def test_first_occurrence_kept(self):
+    def test_same_source_conflict_preserves_first_pdf_row(self):
         rows = [
-            {"polling_district": "LA", "elector_number": "1", "voted": "Y"},
-            {"polling_district": "LA", "elector_number": "1", "voted": "N"},
+            {
+                "polling_district": "LA", "elector_number": "1",
+                "voted": "N", "postal_vote": "N", "_source_type": "pdf",
+            },
+            {
+                "polling_district": "LA", "elector_number": "1",
+                "voted": "Y", "postal_vote": "Y", "_source_type": "pdf",
+            },
         ]
         out = c._dedupe_rows(rows)
-        assert out[0]["voted"] == "Y"
+        assert out[0]["voted"] == "N"
+        assert out[0]["postal_vote"] == "N"
+
+    def test_pdf_vote_and_csv_postal_status_are_merged_independently(self):
+        rows = [
+            {
+                "polling_district": "LA", "elector_number": "47/1",
+                "voted": "Y", "postal_vote": "N", "_source_type": "pdf",
+            },
+            {
+                "polling_district": "LA", "elector_number": "47/1",
+                "voted": "N", "postal_vote": "Y", "_source_type": "csv",
+            },
+        ]
+        assert c._dedupe_rows(rows) == [{
+            "polling_district": "LA",
+            "elector_number": "47/1",
+            "voted": "Y",
+            "postal_vote": "Y",
+            "_source_type": "pdf",
+        }]
+
+    def test_flag_merge_is_order_independent(self):
+        pdf = {
+            "polling_district": "LA", "elector_number": "47/1",
+            "voted": "Y", "postal_vote": "N", "_source_type": "pdf",
+        }
+        absent_voter = {
+            "polling_district": "LA", "elector_number": "47/1",
+            "voted": "N", "postal_vote": "Y", "_source_type": "csv",
+        }
+        pdf_first = c._dedupe_rows([pdf, absent_voter])[0]
+        csv_first = c._dedupe_rows([absent_voter, pdf])[0]
+        assert (pdf_first["voted"], pdf_first["postal_vote"]) == ("Y", "Y")
+        assert (csv_first["voted"], csv_first["postal_vote"]) == ("Y", "Y")
+
+    def test_cross_source_key_normalises_district_case_and_outer_whitespace(self):
+        pdf = {
+            "election_date": "01/05/2026",
+            "constituency": "Test",
+            "polling_district": " pd1 ",
+            "elector_number": " 47/1 ",
+            "voted": "Y",
+            "postal_vote": "N",
+            "_source_type": "pdf",
+        }
+        absent_voter = {
+            "election_date": "01/05/2026",
+            "constituency": "Test",
+            "polling_district": "PD1",
+            "elector_number": "47/1",
+            "voted": "N",
+            "postal_vote": "Y",
+            "_source_type": "csv",
+        }
+        pdf_first = c._dedupe_rows([pdf, absent_voter])
+        csv_first = c._dedupe_rows([absent_voter, pdf])
+        assert len(pdf_first) == 1
+        assert c.build_csv(pdf_first) == c.build_csv(csv_first)
+        assert pdf_first[0]["polling_district"] == "PD1"
+        assert pdf_first[0]["elector_number"] == "47/1"
+        assert (pdf_first[0]["voted"], pdf_first[0]["postal_vote"]) == ("Y", "Y")
+
+    def test_subnumbers_remain_distinct_keys(self):
+        rows = [
+            {"polling_district": "LA", "elector_number": "47"},
+            {"polling_district": "LA", "elector_number": "47/1"},
+            {"polling_district": "LA", "elector_number": "47/2"},
+        ]
+        assert len(c._dedupe_rows(rows)) == 3
+
+    def test_dedupe_does_not_mutate_input_rows(self):
+        rows = [
+            {
+                "polling_district": "LA", "elector_number": "1",
+                "voted": "N", "postal_vote": "N",
+            },
+            {
+                "polling_district": "LA", "elector_number": "1",
+                "voted": "Y", "postal_vote": "Y",
+            },
+        ]
+        before = deepcopy(rows)
+        c._dedupe_rows(rows)
+        assert rows == before
+
+
+class TestDedupeSourceCounts:
+    def test_cross_source_match_is_not_a_within_source_duplicate(self):
+        rows = [
+            {
+                "polling_district": "LA", "elector_number": "1",
+                "_source_type": "pdf",
+            },
+            {
+                "polling_district": "LA", "elector_number": "1",
+                "_source_type": "csv",
+            },
+        ]
+        assert c._dedupe_source_counts(rows) == {
+            "within_source": 0,
+            "cross_source": 1,
+            "total": 1,
+        }
+
+    def test_same_source_repeat_remains_a_duplicate(self):
+        rows = [
+            {
+                "polling_district": "LA", "elector_number": "1",
+                "_source_type": "pdf",
+            },
+            {
+                "polling_district": "LA", "elector_number": "1",
+                "_source_type": "pdf",
+            },
+            {
+                "polling_district": "LA", "elector_number": "1",
+                "_source_type": "csv",
+            },
+        ]
+        assert c._dedupe_source_counts(rows) == {
+            "within_source": 1,
+            "cross_source": 1,
+            "total": 2,
+        }
+
+    def test_source_counts_use_the_same_canonical_district_key(self):
+        rows = [
+            {
+                "polling_district": " pd1 ",
+                "elector_number": "1",
+                "_source_type": "pdf",
+            },
+            {
+                "polling_district": "PD1",
+                "elector_number": "1",
+                "_source_type": "csv",
+            },
+        ]
+        assert c._dedupe_source_counts(rows) == {
+            "within_source": 0,
+            "cross_source": 1,
+            "total": 1,
+        }
 
 
 # ── _sort_key ─────────────────────────────────────────────────────────────────
@@ -347,11 +569,11 @@ class TestBuildFilename:
     def test_all_parts_joined(self):
         # '/' is a forbidden filename char and is sanitised to a space.
         name = c.build_filename("Assoc", "Const", "Council", "GE 2026", "01/05/2026", "batch-1")
-        assert name == "Assoc - Const - Council - GE 2026 - 01 05 2026 - Marked Register.csv"
+        assert name == "Assoc - Const - Council - GE 2026 - 01 05 2026 - Marked Register.xlsx"
 
     def test_missing_part_uses_fallback(self):
         name = c.build_filename("Assoc", "", "Council", "GE 2026", "01/05/2026", "batch-1")
-        assert name == "batch-1 - Marked Register.csv"
+        assert name == "batch-1 - Marked Register.xlsx"
 
     def test_forbidden_characters_sanitised(self):
         name = c.build_filename("A/B", "C:D", "E", "F", "G", "batch")
@@ -416,6 +638,43 @@ class TestWarningsTriggered:
             dedupe_pct=0.0, synthetic_labels=set(), warn_pct=2.0,
             range_reports=reports,
         ) is False
+
+
+class TestQualityBlockers:
+    def test_high_within_source_dedupe_blocks_release(self):
+        blockers = c._quality_blockers(
+            dedupe_pct=84.3,
+            warn_pct=2.0,
+            district_counts={"ECA": 100},
+            district_resolution_reports=[{"trusted": True}],
+        )
+        assert blockers == [
+            "Deduplication would remove 84.3% of within-source rows "
+            "(maximum 2%)."
+        ]
+
+    def test_untrusted_resolution_blocks_release(self):
+        blockers = c._quality_blockers(
+            dedupe_pct=0.0,
+            warn_pct=2.0,
+            district_counts={"ECA": 100},
+            district_resolution_reports=[{
+                "trusted": False,
+                "source": "register.pdf",
+                "issues": ["No district headers were corroborated."],
+            }],
+        )
+        assert blockers == [
+            "register.pdf: No district headers were corroborated."
+        ]
+
+    def test_clean_resolution_has_no_blockers(self):
+        assert c._quality_blockers(
+            dedupe_pct=0.5,
+            warn_pct=2.0,
+            district_counts={"ECA": 100},
+            district_resolution_reports=[{"trusted": True}],
+        ) == []
 
 
 class TestRangeReportFormatting:
@@ -487,6 +746,307 @@ class TestRangeReportFormatting:
         assert "captured 812 of 926" not in body
 
 
+class TestCompletionDelivery:
+    def test_quality_review_email_has_no_attachment_or_download(self):
+        raw, mode = c.prepare_quality_review_email(
+            filename="result.csv",
+            succeeded_count=7,
+            failed_count=0,
+            candidate_row_count=65_873,
+            quality_blockers=["District resolution failed."],
+        )
+        message = BytesParser(policy=policy.default).parsebytes(raw)
+        body = message.get_body(preferencelist=("plain",)).get_content()
+
+        assert mode == "NOTICE_ONLY"
+        assert list(message.iter_attachments()) == []
+        assert "No output file was released" in body
+        assert "District resolution failed." in body
+
+    def test_small_result_is_attached(self, monkeypatch):
+        sent = {}
+
+        class FakeSes:
+            def send_raw_email(self, **kwargs):
+                sent.update(kwargs)
+
+        monkeypatch.setattr(c, "ses", FakeSes())
+        monkeypatch.setattr(c, "SES_MAX_RAW_EMAIL_BYTES", 1_000_000)
+
+        mode = c.send_completion_email(
+            filename="synthetic.xlsx",
+            csv_bytes=c.build_xlsx([]),
+            succeeded_count=1,
+            failed_count=0,
+            failed_filenames=[],
+            row_count=1,
+        )
+
+        message = BytesParser(policy=policy.default).parsebytes(
+            sent["RawMessage"]["Data"]
+        )
+        assert mode == "ATTACHMENT"
+        assert message.get_body(preferencelist=("plain",)) is not None
+        attachments = list(message.iter_attachments())
+        assert len(attachments) == 1
+        assert attachments[0].get_content_type() == (
+            "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+        )
+
+    def test_oversized_result_uses_authenticated_portal_link(self, monkeypatch):
+        sent = {}
+
+        class FakeSes:
+            def send_raw_email(self, **kwargs):
+                sent.update(kwargs)
+
+        monkeypatch.setattr(c, "ses", FakeSes())
+        monkeypatch.setattr(c, "SES_MAX_RAW_EMAIL_BYTES", 1)
+        monkeypatch.setattr(
+            c, "PLATFORM_BASE_URL", "https://www.politicalsolutions.uk"
+        )
+        generated_for = []
+        monkeypatch.setattr(
+            c,
+            "generate_download_url",
+            lambda key: (
+                generated_for.append(key)
+                or "https://downloads.example.test/result.csv?temporary=signature"
+            ),
+        )
+
+        mode = c.send_completion_email(
+            filename="large.csv",
+            csv_bytes=b"header\n" + (b"value\n" * 100),
+            succeeded_count=1,
+            failed_count=0,
+            failed_filenames=[],
+            row_count=100,
+            csv_key="outputs/user-1/batch-1/large.csv",
+        )
+
+        message = BytesParser(policy=policy.default).parsebytes(
+            sent["RawMessage"]["Data"]
+        )
+        body = message.get_body(preferencelist=("plain",)).get_content()
+        assert mode == "DOWNLOAD_LINK"
+        assert list(message.iter_attachments()) == []
+        assert "too large to send safely as an email attachment" in body
+        assert "https://downloads.example.test/result.csv?temporary=signature" in body
+        assert "https://www.politicalsolutions.uk/portal/uploads" in body
+        assert generated_for == ["outputs/user-1/batch-1/large.csv"]
+
+    def test_email_failure_code_is_sanitised(self):
+        class SesError(RuntimeError):
+            response = {"Error": {"Code": "InvalidParameterValue"}}
+
+        assert (
+            c._completion_email_failure_code(SesError())
+            == "SES_INVALIDPARAMETERVALUE"
+        )
+        assert c._completion_email_failure_code(RuntimeError()) == "EMAIL_SEND_FAILED"
+
+    def test_handler_persists_failure_then_reraises_for_lambda_alarm(
+        self, monkeypatch
+    ):
+        jobs = [{
+            "jobId": "job-1",
+            "status": "FAILED",
+            "filename": "unsupported.xlsx",
+        }]
+        updates = []
+
+        monkeypatch.setattr(c, "get_all_batch_jobs", lambda _batch_id: jobs)
+        monkeypatch.setattr(
+            c,
+            "upload_csv",
+            lambda _user_sub, _batch_id, _filename, _content: (
+                "outputs/user-1/batch-1/result.csv"
+            ),
+        )
+        monkeypatch.setattr(
+            c,
+            "update_batch_jobs",
+            lambda updated_jobs, **kwargs: updates.append(
+                (updated_jobs, kwargs)
+            ),
+        )
+        monkeypatch.setattr(
+            c,
+            "send_prepared_completion_email",
+            lambda _message: (_ for _ in ()).throw(RuntimeError("SES unavailable")),
+        )
+
+        with pytest.raises(RuntimeError, match="SES unavailable"):
+            c.handler(
+                {
+                    "batchId": "batch-1",
+                    "userSub": "user-1",
+                    "association": "Test Association",
+                    "constituency": "Test Constituency",
+                    "councilArea": "Test Council",
+                    "election": "Test Election",
+                    "electionDate": "01 May 2026",
+                },
+                None,
+            )
+
+        assert [update[1]["email_status"] for update in updates] == [
+            "PENDING",
+            "FAILED",
+        ]
+        failed = updates[-1][1]
+        assert failed["batch_status"] == "COMPLETE_WITH_FAILURES"
+        assert failed["email_failure_code"] == "EMAIL_SEND_FAILED"
+        assert failed["output_key"] == "outputs/user-1/batch-1/result.csv"
+
+    def test_handler_skips_duplicate_email_after_acceptance_marker(
+        self, monkeypatch
+    ):
+        jobs = [{
+            "jobId": "job-1",
+            "status": "FAILED",
+            "filename": "unsupported.xlsx",
+            "completionEmailStatus": "SENT",
+            "completionEmailMode": "DOWNLOAD_LINK",
+            "completionEmailUpdatedAt": "2026-07-24T18:00:00+00:00",
+            "batchOutputKey": "outputs/user-1/batch-1/result.csv",
+        }]
+        updates = []
+        send_calls = []
+
+        monkeypatch.setattr(c, "get_all_batch_jobs", lambda _batch_id: jobs)
+        monkeypatch.setattr(
+            c,
+            "upload_csv",
+            lambda _user_sub, _batch_id, _filename, _content: (
+                "outputs/user-1/batch-1/result.csv"
+            ),
+        )
+        monkeypatch.setattr(
+            c,
+            "update_batch_jobs",
+            lambda updated_jobs, **kwargs: updates.append(
+                (updated_jobs, kwargs)
+            ),
+        )
+        monkeypatch.setattr(
+            c,
+            "send_prepared_completion_email",
+            lambda message: send_calls.append(message),
+        )
+
+        result = c.handler(
+            {
+                "batchId": "batch-1",
+                "userSub": "user-1",
+                "association": "Test Association",
+                "constituency": "Test Constituency",
+                "councilArea": "Test Council",
+                "election": "Test Election",
+                "electionDate": "01 May 2026",
+            },
+            None,
+        )
+
+        assert send_calls == []
+        assert len(updates) == 1
+        assert updates[0][1]["email_status"] == "SENT"
+        assert updates[0][1]["email_mode"] == "DOWNLOAD_LINK"
+        assert result["completionEmailMode"] == "DOWNLOAD_LINK"
+
+    def test_handler_withholds_high_dedupe_pdf_without_uploading_csv(
+        self, monkeypatch
+    ):
+        jobs = [{
+            "jobId": "job-1",
+            "status": "SUCCEEDED",
+            "filename": "register.pdf",
+        }]
+        payloads = [{
+            "meta": {
+                "source_type": "pdf",
+                "polling_district": "ECA",
+            },
+            "rows": [
+                {
+                    "page": 3, "polling_district": "ECA",
+                    "elector_number": "1", "voted": "N",
+                    "postal_vote": "N",
+                },
+                {
+                    "page": 4, "polling_district": "ECA",
+                    "elector_number": "2", "voted": "N",
+                    "postal_vote": "N",
+                },
+                {
+                    "page": 5, "polling_district": "ECA",
+                    "elector_number": "1", "voted": "Y",
+                    "postal_vote": "N",
+                },
+            ],
+            "pageDistricts": {"3": "ECA", "4": "ECA", "5": "ECA"},
+        }]
+        updates = []
+        marker_updates = []
+        sent = []
+
+        monkeypatch.setattr(c, "get_all_batch_jobs", lambda _batch_id: jobs)
+        monkeypatch.setattr(
+            c,
+            "read_job_outputs",
+            lambda _user_sub, _batch_id, _job_id: payloads,
+        )
+        monkeypatch.setattr(
+            c,
+            "upload_csv",
+            lambda *_args, **_kwargs: pytest.fail(
+                "A blocked batch must not upload a result."
+            ),
+        )
+        monkeypatch.setattr(
+            c,
+            "update_batch_jobs",
+            lambda updated_jobs, **kwargs: updates.append(
+                (updated_jobs, kwargs)
+            ),
+        )
+        monkeypatch.setattr(
+            c,
+            "update_job_batch_completion",
+            lambda job_id, **kwargs: marker_updates.append((job_id, kwargs)),
+        )
+        monkeypatch.setattr(
+            c,
+            "send_prepared_completion_email",
+            lambda message: sent.append(message),
+        )
+
+        result = c.handler(
+            {
+                "batchId": "batch-1",
+                "userSub": "user-1",
+                "association": "Test Association",
+                "constituency": "Test Constituency",
+                "councilArea": "Test Council",
+                "election": "Test Election",
+                "electionDate": "01 May 2026",
+            },
+            None,
+        )
+
+        assert result["batchStatus"] == "QUALITY_REVIEW_REQUIRED"
+        assert result["completionEmailMode"] == "NOTICE_ONLY"
+        assert result["csvKey"] == ""
+        assert result["qualityBlockerCount"] == 1
+        assert len(sent) == 1
+        assert [update[1]["email_status"] for update in updates] == [
+            "PENDING",
+            "SENT",
+        ]
+        assert marker_updates[0][1]["output_key"] == ""
+
+
 # ── build_csv column mapping (page field must never reach the CSV) ────────────
 
 class TestBuildCsv:
@@ -508,3 +1068,36 @@ class TestBuildCsv:
         out = c.build_csv(rows)
         lines = out.strip().splitlines()
         assert lines[1] == "01/05/2026,C,LA,47,Y,N"
+
+
+class TestBuildXlsx:
+    def test_roll_number_is_literal_text_not_a_date(self):
+        rows = [{
+            "election_date": "01/05/2026",
+            "constituency": "C",
+            "polling_district": "LA",
+            "elector_number": "12/3",
+            "voted": "Y",
+            "postal_vote": "N",
+        }]
+
+        workbook = load_workbook(BytesIO(c.build_xlsx(rows)), data_only=False)
+        worksheet = workbook["Marked Register"]
+
+        assert worksheet["D2"].value == "12/3"
+        assert worksheet["D2"].data_type == "s"
+        assert worksheet["D2"].number_format == "@"
+
+    def test_formula_shaped_value_is_literal_text(self):
+        rows = [{
+            "election_date": "",
+            "constituency": "",
+            "polling_district": "LA",
+            "elector_number": "=1+1",
+            "voted": "N",
+            "postal_vote": "N",
+        }]
+
+        workbook = load_workbook(BytesIO(c.build_xlsx(rows)), data_only=False)
+        assert workbook["Marked Register"]["D2"].value == "=1+1"
+        assert workbook["Marked Register"]["D2"].data_type == "s"

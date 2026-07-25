@@ -24,5 +24,7 @@ COPY .aws-sam/build/ProcessRegisterFunction/ /usr/local/lib/python3.12/site-pack
 COPY src_python/process_register /app/process_register
 COPY src_python/combine_register /app/combine_register
 COPY src_python/local_gap_trial.py /app/local_gap_trial.py
+COPY src_python/local_row_trial.py /app/local_row_trial.py
+COPY src_python/ocr_runtime_versions.py /app/ocr_runtime_versions.py
 
 ENTRYPOINT ["python", "/app/local_gap_trial.py"]

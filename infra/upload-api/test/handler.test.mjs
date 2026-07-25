@@ -805,6 +805,34 @@ describe("GET /jobs/{jobId}/download", () => {
     });
   });
 
+  it("returns the Excel content type for the combined workbook", async () => {
+    jobsMap.set("batch-job-1", {
+      jobId: "batch-job-1",
+      userSub: "user-sub-1",
+      batchId: "batch-1",
+      status: "SUCCEEDED",
+      batchStatus: "COMPLETE",
+      batchOutputKey: "outputs/user-sub-1/batch-1/Marked Register.xlsx",
+      batchOutputFilename: "Marked Register.xlsx",
+    });
+
+    const res = await handler(
+      buildAuthEvent({
+        method: "GET",
+        path: "/jobs/batch-job-1/download",
+      })
+    );
+
+    expect(res.statusCode).toBe(200);
+    expect(JSON.parse(res.body).files[0]).toEqual({
+      name: "Marked Register.xlsx",
+      contentType:
+        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+      downloadUrl:
+        "https://mock-bucket.s3.amazonaws.com/outputs/user-sub-1/batch-1/Marked Register.xlsx?op=getObject",
+    });
+  });
+
   it("does not allow another user to download the batch result", async () => {
     jobsMap.set("batch-job-1", {
       jobId: "batch-job-1",

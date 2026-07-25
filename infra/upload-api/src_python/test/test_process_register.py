@@ -208,6 +208,143 @@ class TestDistrictPatterns:
         m = re.search(h._DISTRICT_PATTERNS[0], "Polling District LA1", re.IGNORECASE)
         assert m and m.group(1) == "LA1"
 
+    def test_structured_tokens_extract_code_despite_noise(self):
+        assert h._extract_polling_district_from_tokens(
+            ["x", "Polling", "District", "ECA", "r"]
+        ) == "ECA"
+
+    def test_structured_tokens_reject_generic_cover_label(self):
+        assert h._extract_polling_district_from_tokens(
+            ["Polling", "District", "Division"]
+        ) is None
+
+    def test_structured_tokens_require_polling_anchor(self):
+        assert h._extract_polling_district_from_tokens(
+            ["Elector", "District", "ECA"]
+        ) is None
+
+
+class TestPdfVoteTypeClassification:
+    def test_incidental_postal_legend_does_not_classify_whole_register(self):
+        text = (
+            "Register of electors\n"
+            "A postal voter cannot vote in person at the polling station.\n"
+            "Postal votes marked register: see the prescribed marks legend."
+        )
+        assert h._classify_pdf_vote_type(text) == "In Person"
+
+    def test_explicit_absent_voter_postal_list_is_postal(self):
+        assert (
+            h._classify_pdf_vote_type("Absent Voter Postal List Marked")
+            == "Postal"
+        )
+
+    def test_explicit_list_of_postal_voters_is_postal(self):
+        assert h._classify_pdf_vote_type("Marked List of Postal Voters") == "Postal"
+
+
+class TestPageHeaderCrop:
+    def test_header_ocr_keeps_top_quarter_for_layout_context(self, monkeypatch):
+        crops = []
+
+        class FakeImage:
+            size = (1000, 2000)
+
+            def crop(self, box):
+                crops.append(box)
+                return object()
+
+        monkeypatch.setattr(
+            h.pytesseract,
+            "image_to_data",
+            lambda _image, config=None, output_type=None: {
+                "text": ["Polling", "District", "BSA"],
+                "block_num": [1, 1, 1],
+                "par_num": [1, 1, 1],
+                "line_num": [1, 1, 1],
+            },
+        )
+
+        district, ranges = h._extract_page_header(FakeImage())
+
+        assert crops == [(0, 0, 1000, 500)]
+        assert district == "BSA"
+        assert ranges == []
+
+    def test_missing_primary_code_uses_half_size_fallback(self, monkeypatch):
+        class FakeHeader:
+            size = (1000, 500)
+
+            def resize(self, size, resample=None):
+                assert size == (500, 250)
+                return "half-size"
+
+        class FakeImage:
+            size = (1000, 2000)
+
+            def crop(self, box):
+                assert box == (0, 0, 1000, 500)
+                return FakeHeader()
+
+        responses = iter([
+            {
+                "text": [],
+                "block_num": [],
+                "par_num": [],
+                "line_num": [],
+            },
+            {
+                "text": ["Polling", "District", "BSG"],
+                "block_num": [1, 1, 1],
+                "par_num": [1, 1, 1],
+                "line_num": [1, 1, 1],
+            },
+        ])
+        monkeypatch.setattr(
+            h.pytesseract,
+            "image_to_data",
+            lambda _image, config=None, output_type=None: next(responses),
+        )
+
+        assert h._extract_page_header(FakeImage()) == ("BSG", [])
+
+    def test_half_size_extension_replaces_two_character_prefix(
+        self, monkeypatch
+    ):
+        class FakeHeader:
+            size = (1000, 500)
+
+            def resize(self, size, resample=None):
+                return "half-size"
+
+        class FakeImage:
+            size = (1000, 2000)
+
+            def crop(self, box):
+                return FakeHeader()
+
+        responses = iter([
+            {
+                "text": ["Polling", "District", "EC"],
+                "block_num": [1, 1, 1],
+                "par_num": [1, 1, 1],
+                "line_num": [1, 1, 1],
+            },
+            {
+                "text": ["Polling", "District", "ECI"],
+                "block_num": [1, 1, 1],
+                "par_num": [1, 1, 1],
+                "line_num": [1, 1, 1],
+            },
+        ])
+        monkeypatch.setattr(
+            h.pytesseract,
+            "image_to_data",
+            lambda _image, config=None, output_type=None: next(responses),
+        )
+
+        assert h._extract_page_header(FakeImage()) == ("ECI", [])
+
 
 # ── Printed declared-range extraction (§5) ───────────────────────────────────
 

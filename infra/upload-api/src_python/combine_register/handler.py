@@ -4,13 +4,15 @@ CombineRegisterFunction — Marked Register Batch Combiner Lambda
 Invoked asynchronously by ProcessRegisterFunction once all jobs in a batch
 are complete. Reads per-job JSON outputs from S3 (one per chunk since the
 chunked-OCR change), resolves each job's polling districts across the full
-page sequence, merges and sorts elector rows, builds a CSV, uploads it, and
-emails the CSV as an attachment.
+page sequence, merges and sorts elector rows, builds an Excel workbook with
+text-typed roll numbers, uploads it, and emails it as an attachment or directs
+the recipient to the authenticated portal when the attachment would exceed
+SES's message-size limit.
 
 The filename is built from five form-provided free-text fields:
-    {association} - {constituency} - {councilArea} - {election} - {electionDate} - Marked Register.csv
+    {association} - {constituency} - {councilArea} - {election} - {electionDate} - Marked Register.xlsx
 For legacy in-flight jobs missing those fields, the filename falls back to:
-    {batchId or jobId} - Marked Register.csv
+    {batchId or jobId} - Marked Register.xlsx
 """
 
 import csv
@@ -19,6 +21,7 @@ import json
 import logging
 import os
 import re
+import zipfile
 from collections import Counter
 from datetime import datetime, timezone
 from email.mime.application import MIMEApplication
@@ -35,6 +38,15 @@ JOBS_TABLE = os.environ.get("JOBS_TABLE", "")
 UPLOADS_BUCKET = os.environ.get("UPLOADS_BUCKET", "")
 SES_SENDER_EMAIL = os.environ.get("SES_SENDER_EMAIL", "noreply@politicalsolutions.uk")
 SES_RECIPIENT_EMAIL = os.environ.get("SES_RECIPIENT_EMAIL", "markedregisters@politicalsolutions.uk")
+PLATFORM_BASE_URL = os.environ.get(
+    "PLATFORM_BASE_URL", "https://www.politicalsolutions.uk"
+).rstrip("/")
+SES_MAX_RAW_EMAIL_BYTES = int(
+    os.environ.get("SES_MAX_RAW_EMAIL_BYTES", "9500000")
+)
+DOWNLOAD_URL_TTL_SECONDS = int(
+    os.environ.get("DOWNLOAD_URL_TTL_SECONDS", "21600")
+)
 REGION = os.environ.get("AWS_REGION", "eu-west-2")
 
 dynamo = boto3.resource("dynamodb", region_name=REGION)
@@ -42,6 +54,7 @@ s3 = boto3.client("s3", region_name=REGION)
 ses = boto3.client("ses", region_name=REGION)
 
 CSV_COLUMNS = ["Election Date", "Constituency", "Polling District", "Elector Number", "Voted", "Postal Vote"]
+_UNTRUSTED_DISTRICT_LABELS = frozenset({"", "DISTRICT", "DIVISION", "UNKNOWN"})
 
 
 # ── DynamoDB helpers ──────────────────────────────────────────────────────────
@@ -67,13 +80,75 @@ def get_all_batch_jobs(batch_id):
             if not j.get("jobId", "").startswith(("BATCH_TRACKER#", "JOB_CHUNKS#"))]
 
 
-def update_job_batch_status(job_id, batch_status, updated_at):
+def update_job_batch_completion(
+    job_id,
+    *,
+    batch_status,
+    completed_at,
+    succeeded_count,
+    failed_count,
+    row_count,
+    output_key,
+    output_filename,
+    output_bytes,
+    email_status,
+    email_mode,
+    email_updated_at,
+    email_failure_code="",
+):
+    """Persist the result and its notification state as separate concerns."""
     table = dynamo.Table(JOBS_TABLE)
+    update_expression = (
+        "SET batchStatus = :bs, batchCompletedAt = :bc, "
+        "batchSucceededCount = :sc, batchFailedCount = :fc, "
+        "batchRowCount = :rc, batchOutputKey = :ok, "
+        "batchOutputFilename = :of, batchOutputBytes = :ob, "
+        "completionEmailStatus = :es, completionEmailMode = :em, "
+        "completionEmailUpdatedAt = :eu, updatedAt = :u"
+    )
+    values = {
+        ":bs": batch_status,
+        ":bc": completed_at,
+        ":sc": succeeded_count,
+        ":fc": failed_count,
+        ":rc": row_count,
+        ":ok": output_key,
+        ":of": output_filename,
+        ":ob": output_bytes,
+        ":es": email_status,
+        ":em": email_mode,
+        ":eu": email_updated_at,
+        ":u": email_updated_at,
+    }
+    if email_failure_code:
+        update_expression += ", completionEmailFailureCode = :ef"
+        values[":ef"] = email_failure_code
+    else:
+        update_expression += " REMOVE completionEmailFailureCode"
+
     table.update_item(
         Key={"jobId": job_id},
-        UpdateExpression="SET batchStatus = :s, updatedAt = :u",
-        ExpressionAttributeValues={":s": batch_status, ":u": updated_at},
+        UpdateExpression=update_expression,
+        ExpressionAttributeValues=values,
     )
+
+
+def update_batch_jobs(jobs, **completion):
+    """Update every real job or fail the combiner so its alarm can fire."""
+    failed_updates = 0
+    for job in jobs:
+        try:
+            update_job_batch_completion(job["jobId"], **completion)
+        except Exception:
+            failed_updates += 1
+            logger.exception(
+                "Failed to persist batch completion metadata for job %s",
+                job["jobId"],
+            )
+    if failed_updates:
+        raise RuntimeError(
+            f"Failed to persist completion metadata for {failed_updates} job(s)."
+        )
 
 
 # ── S3 helpers ────────────────────────────────────────────────────────────────
@@ -125,17 +200,37 @@ def read_job_outputs(user_sub, batch_id, job_id):
     return []
 
 
-def upload_csv(user_sub, batch_id, filename, csv_content):
+def upload_csv(user_sub, batch_id, filename, output_content):
+    """Upload the result; retain the historical name for recovery tooling."""
     prefix = f"outputs/{user_sub}/{batch_id}" if user_sub else f"outputs/{batch_id}"
     key = f"{prefix}/{filename}"
+    body = (
+        output_content
+        if isinstance(output_content, bytes)
+        else str(output_content).encode("utf-8-sig")
+    )
+    content_type = (
+        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+        if filename.lower().endswith(".xlsx")
+        else "text/csv"
+    )
     s3.put_object(
         Bucket=UPLOADS_BUCKET,
         Key=key,
-        Body=csv_content.encode("utf-8-sig"),
-        ContentType="text/csv",
+        Body=body,
+        ContentType=content_type,
         ContentDisposition=f'attachment; filename="{filename}"',
     )
     return key
+
+
+def generate_download_url(key):
+    """Create a bearer URL only for the email body; never persist or log it."""
+    return s3.generate_presigned_url(
+        "get_object",
+        Params={"Bucket": UPLOADS_BUCKET, "Key": key},
+        ExpiresIn=DOWNLOAD_URL_TTL_SECONDS,
+    )
 
 
 # ── District resolution (§6.3 / §6.4) ─────────────────────────────────────────
@@ -357,44 +452,48 @@ def validate_rows_against_declared_ranges(rows, declared_ranges):
     return reports, issues
 
 
-def resolve_job_districts(rows, page_districts, seed_district):
+def _trusted_district_code(value):
+    code = str(value or "").strip().upper()
+    return (
+        code
+        if (
+            re.fullmatch(r"[A-Z0-9]{2,8}", code)
+            and code not in _UNTRUSTED_DISTRICT_LABELS
+        )
+        else ""
+    )
+
+
+def _resolve_job_districts_with_report(rows, page_districts, seed_district):
     """Assign a polling_district to every row of one job from the per-page header
-    map. Mutates rows in place.
+    map and return both synthetic labels and trust diagnostics.
 
-    Returns the set of synthetic ('{seed}-N') labels assigned. Boundaries are now
-    accepted only on corroborated printed header codes (see below), which never
-    produce a synthetic label, so this is always an empty set. The return value is
-    kept so the caller's warning/`COMPLETE_WITH_WARNINGS` plumbing is undisturbed
-    and available for any future non-header boundary signal.
+    Boundaries are accepted only on corroborated printed header codes: the same
+    code must appear on the next physical page, or after exactly one unreadable
+    header. A different readable code on the intervening page invalidates the
+    match. This tolerates one missed continuation-page header while ensuring
+    one-off and alternating OCR errors never create a boundary.
 
-    Seeded with the current (page-1 metadata) district, so a document that yields
-    no per-page header signal anywhere receives exactly today's assignment: every
-    row gets the seed. The logic can only refine, never regress (invariants 1/7).
-
-    A boundary is accepted only on **header corroboration**: a printed district
-    code different from the running district appearing in the headers of two
-    consecutive pages. A printed code is hard evidence; requiring it on two
-    consecutive pages suppresses one-off OCR noise.
-
-    The former elector-number-reset trigger ("Layer 3b") was removed (Defect A).
-    It fired on OCR artefacts — house numbers misread as low elector numbers, and
-    legitimately out-of-sequence late-registration electors — and split clean
-    single-district registers into spurious synthetic districts, inflating the
-    row count. A numeric dip is no longer treated as a boundary.
-
-    Trade-off, deliberately accepted: a genuine second district whose printed
-    header cannot be OCR'd on two consecutive pages is no longer detected here.
-    That case now surfaces as a high deduplication rate in the completion email
-    (the COMPLETE_WITH_WARNINGS path) — the intended safety net until the
-    declared-range validation (§5) lands — rather than as a synthetic label."""
+    The report is deliberately aggregate-only. It contains page and row counts,
+    codes, percentages, and issue labels, never elector numbers or OCR text.
+    """
     if not rows:
-        return set()
+        return set(), {
+            "trusted": False,
+            "row_page_count": 0,
+            "recognised_header_pages": 0,
+            "header_coverage_pct": 0.0,
+            "accepted_districts": [],
+            "unresolved_leading_pages": 0,
+            "rows_with_untrusted_district": 0,
+            "issues": ["No elector rows were available for district resolution."],
+        }
 
     # Normalise the header map to int page keys (JSON object keys arrive as str).
     headers = {}
     for k, v in (page_districts or {}).items():
         try:
-            headers[int(k)] = v
+            headers[int(k)] = _trusted_district_code(v)
         except (ValueError, TypeError):
             continue
 
@@ -410,25 +509,100 @@ def resolve_job_districts(rows, page_districts, seed_district):
             continue
         rows_by_page.setdefault(page, []).append(row)
 
-    current_district = seed_district
+    current_district = _trusted_district_code(seed_district)
+    accepted_districts = set()
+    first_accepted_page = None
 
     for page in sorted(rows_by_page):
         header = headers.get(page)
-        next_header = headers.get(page + 1)
+        corroborated = bool(header) and (
+            headers.get(page + 1) == header
+            or (
+                not headers.get(page + 1)
+                and headers.get(page + 2) == header
+            )
+        )
         # Header corroboration is the only accepted boundary: a printed code
-        # different from the running district on two consecutive pages. Elector
-        # numbers are intentionally not consulted — a numeric reset is no longer a
-        # boundary signal (Defect A). A blank/None header simply inherits the
-        # running district, which is how continuation pages actually behave.
-        if header and header != current_district and next_header == header:
+        # repeated within the next two physical pages. Elector numbers are
+        # intentionally not consulted — a numeric reset is no longer a boundary
+        # signal (Defect A). A blank/None header simply inherits the running
+        # district, which is how continuation pages actually behave.
+        if corroborated and header != current_district:
             current_district = header
+            accepted_districts.add(header)
+            if first_accepted_page is None:
+                first_accepted_page = page
+        elif corroborated:
+            accepted_districts.add(header)
+            if first_accepted_page is None:
+                first_accepted_page = page
         for r in rows_by_page[page]:
             r["polling_district"] = current_district
 
-    return set()
+    row_pages = sorted(rows_by_page)
+    recognised_header_pages = sum(
+        bool(headers.get(page))
+        for page in row_pages
+    )
+    header_coverage_pct = (
+        recognised_header_pages / len(row_pages) * 100.0
+        if row_pages else 0.0
+    )
+    unresolved_leading_pages = (
+        sum(page < first_accepted_page for page in row_pages)
+        if first_accepted_page is not None
+        else len(row_pages)
+    )
+    rows_with_untrusted_district = sum(
+        not _trusted_district_code(row.get("polling_district"))
+        for row in rows
+    )
+    min_header_pct = float(os.environ.get("DISTRICT_HEADER_MIN_PCT", "20"))
+    issues = []
+    if not accepted_districts:
+        issues.append(
+            "No polling district was corroborated within the next two pages."
+        )
+    if unresolved_leading_pages:
+        issues.append(
+            f"{unresolved_leading_pages} leading page(s) preceded the first "
+            "corroborated polling-district header."
+        )
+    if rows_with_untrusted_district:
+        issues.append(
+            f"{rows_with_untrusted_district} row(s) retained an untrusted "
+            "polling-district label."
+        )
+    if header_coverage_pct < min_header_pct:
+        issues.append(
+            f"Polling-district headers were recognised on only "
+            f"{header_coverage_pct:.1f}% of row-bearing pages "
+            f"(minimum {min_header_pct:.0f}%)."
+        )
+
+    return set(), {
+        "trusted": not issues,
+        "row_page_count": len(row_pages),
+        "recognised_header_pages": recognised_header_pages,
+        "header_coverage_pct": round(header_coverage_pct, 1),
+        "accepted_districts": sorted(accepted_districts),
+        "unresolved_leading_pages": unresolved_leading_pages,
+        "rows_with_untrusted_district": rows_with_untrusted_district,
+        "issues": issues,
+    }
 
 
-# ── CSV builder ───────────────────────────────────────────────────────────────
+def resolve_job_districts(rows, page_districts, seed_district):
+    """Backward-compatible district resolver returning synthetic labels only."""
+    synthetic_labels, _report = _resolve_job_districts_with_report(
+        rows,
+        page_districts,
+        seed_district,
+    )
+    return synthetic_labels
+
+
+# ── Tabular output builders ──────────────────────────────────────────────────
 
 def _sort_key(row):
     pd = row.get("polling_district", "")
@@ -440,19 +614,97 @@ def _sort_key(row):
     return (pd, en_int, en)
 
 
+def _dedupe_key(row):
+    """Return the canonical composite key without collapsing subnumbers."""
+    district = str(row.get("polling_district") or "").strip().upper()
+    elector = str(row.get("elector_number") or "").strip()
+    return district, elector
+
+
 def _dedupe_rows(rows):
-    """Dedupe on (polling_district, elector_number). Elector numbers reset per
-    polling district, so we can't dedupe on elector_number alone without
-    collapsing distinct electors across districts."""
-    seen = set()
+    """Merge duplicates on (polling_district, elector_number).
+
+    Elector numbers reset per polling district, so elector_number alone would
+    collapse distinct electors. For a PDF row matched to an absent-voter CSV
+    row, classification flags are combined independently: evidence from either
+    source is retained. Repeated rows within one source retain the established
+    first-occurrence behaviour.
+    """
+    by_key = {}
+    source_rows_by_key = {}
     out = []
     for row in rows:
-        key = (row.get("polling_district", ""), row.get("elector_number", ""))
-        if key in seen or not key[1]:
+        key = _dedupe_key(row)
+        if not key[1]:
             continue
-        seen.add(key)
-        out.append(row)
+        source = str(row.get("_source_type") or "unknown").strip().lower()
+        existing = by_key.get(key)
+        if existing is None:
+            existing = dict(row)
+            existing["polling_district"] = key[0]
+            existing["elector_number"] = key[1]
+            by_key[key] = existing
+            source_rows_by_key[key] = {source: row}
+            out.append(existing)
+            continue
+
+        source_rows = source_rows_by_key[key]
+        if source in source_rows:
+            continue
+        source_rows[source] = row
+
+        # Only the explicitly supported PDF + absent-voter CSV pairing may
+        # enrich a row. Unknown or future source types retain first-row-wins.
+        if not {"pdf", "csv"}.issubset(source_rows):
+            continue
+        pdf_row = source_rows["pdf"]
+        csv_row = source_rows["csv"]
+        existing["voted"] = (
+            "Y"
+            if "Y" in {
+                str(pdf_row.get("voted") or "").strip().upper(),
+                str(csv_row.get("voted") or "").strip().upper(),
+            }
+            else "N"
+        )
+        existing["postal_vote"] = (
+            "Y"
+            if "Y" in {
+                str(pdf_row.get("postal_vote") or "").strip().upper(),
+                str(csv_row.get("postal_vote") or "").strip().upper(),
+            }
+            else "N"
+        )
+        for field in ("election_date", "constituency"):
+            if not existing.get(field) and row.get(field):
+                existing[field] = row[field]
     return out
+
+
+def _dedupe_source_counts(rows):
+    """Separate expected cross-source joins from within-source duplicates."""
+    grouped = {}
+    blank_elector_rows = 0
+    for row in rows:
+        key = _dedupe_key(row)
+        if not key[1]:
+            blank_elector_rows += 1
+            continue
+        source = str(row.get("_source_type") or "unknown").strip().lower()
+        grouped.setdefault(key, Counter())[source] += 1
+
+    within_source = blank_elector_rows
+    cross_source = 0
+    for source_counts in grouped.values():
+        duplicates = sum(source_counts.values()) - 1
+        expected_join = int("pdf" in source_counts and "csv" in source_counts)
+        cross_source += expected_join
+        within_source += duplicates - expected_join
+    return {
+        "within_source": within_source,
+        "cross_source": cross_source,
+        "total": within_source + cross_source,
+    }
 
 
 def build_csv(rows):
@@ -469,6 +721,152 @@ def build_csv(rows):
             "Postal Vote": row.get("postal_vote", ""),
         })
     return buf.getvalue()
+
+
+_XML_ILLEGAL_CONTROL_CHARS = re.compile(
+    "[\x00-\x08\x0B\x0C\x0E-\x1F]"
+)
+_XLSX_MAX_DATA_ROWS = 1_048_575
+
+
+def _xlsx_text(value):
+    """Return an XML-safe string that remains literal workbook text."""
+    from xml.sax.saxutils import escape
+
+    cleaned = _XML_ILLEGAL_CONTROL_CHARS.sub(
+        "",
+        str("" if value is None else value),
+    )
+    return escape(cleaned, {'"': "&quot;"})
+
+
+def _xlsx_inline_cell(reference, value, style=None):
+    style_attribute = f' s="{style}"' if style is not None else ""
+    return (
+        f'<c r="{reference}" t="inlineStr"{style_attribute}>'
+        f'<is><t xml:space="preserve">{_xlsx_text(value)}</t></is></c>'
+    )
+
+
+def build_xlsx(rows):
+    """Build a workbook whose values, including roll numbers, are literal text.
+
+    CSV cannot express a column type, so spreadsheet software may reinterpret
+    roll numbers such as ``12/3`` as dates. Inline-string XLSX cells preserve
+    the actual value and also prevent formula evaluation.
+    """
+    if len(rows) > _XLSX_MAX_DATA_ROWS:
+        raise ValueError(
+            "The marked register is too large for one Excel worksheet."
+        )
+
+    output = io.BytesIO()
+    last_row = len(rows) + 1
+    with zipfile.ZipFile(
+        output,
+        mode="w",
+        compression=zipfile.ZIP_DEFLATED,
+        compresslevel=6,
+    ) as workbook:
+        workbook.writestr(
+            "[Content_Types].xml",
+            """<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">
+  <Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/>
+  <Default Extension="xml" ContentType="application/xml"/>
+  <Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/>
+  <Override PartName="/xl/worksheets/sheet1.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/>
+  <Override PartName="/xl/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.styles+xml"/>
+</Types>""",
+        )
+        workbook.writestr(
+            "_rels/.rels",
+            """<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">
+  <Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="xl/workbook.xml"/>
+</Relationships>""",
+        )
+        workbook.writestr(
+            "xl/workbook.xml",
+            """<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships">
+  <sheets><sheet name="Marked Register" sheetId="1" r:id="rId1"/></sheets>
+</workbook>""",
+        )
+        workbook.writestr(
+            "xl/_rels/workbook.xml.rels",
+            """<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">
+  <Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet1.xml"/>
+  <Relationship Id="rId2" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/>
+</Relationships>""",
+        )
+        workbook.writestr(
+            "xl/styles.xml",
+            """<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<styleSheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">
+  <fonts count="2"><font/><font><b/></font></fonts>
+  <fills count="1"><fill><patternFill patternType="none"/></fill></fills>
+  <borders count="1"><border/></borders>
+  <cellStyleXfs count="1"><xf numFmtId="0" fontId="0" fillId="0" borderId="0"/></cellStyleXfs>
+  <cellXfs count="2">
+    <xf numFmtId="49" fontId="0" fillId="0" borderId="0" xfId="0" applyNumberFormat="1"/>
+    <xf numFmtId="49" fontId="1" fillId="0" borderId="0" xfId="0" applyFont="1" applyNumberFormat="1"/>
+  </cellXfs>
+  <cellStyles count="1"><cellStyle name="Normal" xfId="0" builtinId="0"/></cellStyles>
+</styleSheet>""",
+        )
+
+        with workbook.open("xl/worksheets/sheet1.xml", mode="w") as sheet:
+            def write(value):
+                sheet.write(value.encode("utf-8"))
+
+            write(
+                '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'
+                '<worksheet '
+                'xmlns="http://schemas.openxmlformats.org/'
+                'spreadsheetml/2006/main">'
+                f'<dimension ref="A1:F{last_row}"/>'
+                '<sheetViews><sheetView workbookViewId="0">'
+                '<pane ySplit="1" topLeftCell="A2" activePane="bottomLeft" '
+                'state="frozen"/>'
+                '</sheetView></sheetViews>'
+                '<cols>'
+                '<col min="1" max="1" width="16" customWidth="1"/>'
+                '<col min="2" max="2" width="28" customWidth="1"/>'
+                '<col min="3" max="3" width="18" customWidth="1"/>'
+                '<col min="4" max="4" width="18" customWidth="1"/>'
+                '<col min="5" max="6" width="13" customWidth="1"/>'
+                '</cols><sheetData>'
+            )
+            write('<row r="1">')
+            for column, value in zip("ABCDEF", CSV_COLUMNS):
+                write(_xlsx_inline_cell(f"{column}1", value, style=1))
+            write("</row>")
+
+            for row_number, row in enumerate(rows, start=2):
+                values = (
+                    row.get("election_date", ""),
+                    row.get("constituency", ""),
+                    row.get("polling_district", ""),
+                    row.get("elector_number", ""),
+                    row.get("voted", ""),
+                    row.get("postal_vote", ""),
+                )
+                write(f'<row r="{row_number}">')
+                for column, value in zip("ABCDEF", values):
+                    write(_xlsx_inline_cell(
+                        f"{column}{row_number}",
+                        value,
+                        style=0,
+                    ))
+                write("</row>")
+            write(
+                "</sheetData>"
+                f'<autoFilter ref="A1:F{last_row}"/>'
+                "</worksheet>"
+            )
+    return output.getvalue()
 
 
 # ── Warning / district reporting ──────────────────────────────────────────────
@@ -507,6 +905,39 @@ def _warnings_triggered(dedupe_pct, synthetic_labels, warn_pct,
         or bool(synthetic_labels)
         or _range_warnings_triggered(range_reports, range_issues)
     )
+
+
+def _quality_blockers(dedupe_pct, warn_pct, district_counts,
+                      district_resolution_reports):
+    """Return fail-closed reasons that make a customer result unsafe to release."""
+    blockers = []
+    if dedupe_pct > warn_pct:
+        blockers.append(
+            f"Deduplication would remove {dedupe_pct:.1f}% of within-source "
+            f"rows (maximum {warn_pct:.0f}%)."
+        )
+
+    untrusted_labels = sorted(
+        str(code or "(blank)")
+        for code in (district_counts or {})
+        if not _trusted_district_code(code)
+    )
+    if untrusted_labels:
+        blockers.append(
+            "Untrusted polling-district labels remain: "
+            + ", ".join(untrusted_labels)
+            + "."
+        )
+
+    for report in district_resolution_reports or []:
+        if report.get("trusted"):
+            continue
+        source = report.get("source") or "PDF source"
+        details = "; ".join(report.get("issues") or [
+            "page-level district resolution was not trusted"
+        ])
+        blockers.append(f"{source}: {details}")
+    return blockers
 
 
 def _format_number_list(values):
@@ -549,17 +980,19 @@ def build_filename(association, constituency, council_area, election, election_d
         _sanitise_component(election_date),
     ]
     if all(parts):
-        return " - ".join(parts) + " - Marked Register.csv"
-    return f"{_sanitise_component(fallback_id) or 'batch'} - Marked Register.csv"
+        return " - ".join(parts) + " - Marked Register.xlsx"
+    return f"{_sanitise_component(fallback_id) or 'batch'} - Marked Register.xlsx"
 
 
-# ── Email (raw with attachment) ───────────────────────────────────────────────
+# ── Email (attachment with authenticated-portal fallback) ────────────────────
 
-def send_completion_email(filename, csv_bytes, succeeded_count, failed_count,
-                          failed_filenames, row_count, district_counts=None,
-                          dedupe_removed=0, dedupe_pct=0.0, synthetic_labels=None,
-                          warn_pct=2.0, range_reports=None, range_issues=None):
-    subject = filename.rstrip(".csv").rstrip()
+def prepare_completion_email(filename, csv_bytes, succeeded_count, failed_count,
+                             failed_filenames, row_count, district_counts=None,
+                             dedupe_removed=0, dedupe_pct=0.0,
+                             synthetic_labels=None, warn_pct=2.0,
+                             range_reports=None, range_issues=None,
+                             cross_source_merged=0, csv_key=""):
+    subject = os.path.splitext(filename)[0].rstrip()
     if not subject:
         subject = "Marked Register"
 
@@ -575,8 +1008,18 @@ def send_completion_email(filename, csv_bytes, succeeded_count, failed_count,
         f"Elector records: {row_count:,}",
         f"Files processed: {succeeded_count} of {succeeded_count + failed_count}",
         _format_districts(district_counts),
-        f"Duplicate rows removed: {dedupe_removed:,} ({dedupe_pct:.1f}% of pre-dedupe rows)",
     ]
+    if cross_source_merged:
+        body_lines.extend([
+            f"Within-source duplicate rows removed: {dedupe_removed:,} "
+            f"({dedupe_pct:.1f}% after cross-source matching)",
+            f"Cross-source elector records merged: {cross_source_merged:,}",
+        ])
+    else:
+        body_lines.append(
+            f"Duplicate rows removed: {dedupe_removed:,} "
+            f"({dedupe_pct:.1f}% of pre-dedupe rows)"
+        )
 
     if range_reports or range_issues:
         body_lines.append("")
@@ -623,27 +1066,130 @@ def send_completion_email(filename, csv_bytes, succeeded_count, failed_count,
 
     if failed_count > 0:
         body_lines.append("")
-        body_lines.append(f"{failed_count} file(s) failed OCR and were excluded:")
+        body_lines.append(f"{failed_count} file(s) failed processing and were excluded:")
         for name in failed_filenames:
             body_lines.append(f"  - {name}")
         body_lines.append("")
-        body_lines.append("The attached CSV contains only successfully processed records.")
+        body_lines.append(
+            "The attached workbook contains only successfully processed records."
+        )
 
-    msg = MIMEMultipart()
-    msg["Subject"] = subject
-    msg["From"] = SES_SENDER_EMAIL
-    msg["To"] = SES_RECIPIENT_EMAIL
-    msg.attach(MIMEText("\n".join(body_lines), "plain", "utf-8"))
+    def build_message(lines, include_attachment):
+        message = MIMEMultipart()
+        message["Subject"] = subject
+        message["From"] = SES_SENDER_EMAIL
+        message["To"] = SES_RECIPIENT_EMAIL
+        message.attach(MIMEText("\n".join(lines), "plain", "utf-8"))
+        if include_attachment:
+            subtype = (
+                "vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+                if filename.lower().endswith(".xlsx")
+                else "csv"
+            )
+            attachment = MIMEApplication(csv_bytes, _subtype=subtype)
+            attachment.add_header(
+                "Content-Disposition", "attachment", filename=filename
+            )
+            message.attach(attachment)
+        return message
 
-    attachment = MIMEApplication(csv_bytes, _subtype="csv")
-    attachment.add_header("Content-Disposition", "attachment", filename=filename)
-    msg.attach(attachment)
+    attachment_message = build_message(body_lines, include_attachment=True)
+    attachment_raw = attachment_message.as_bytes()
+    if len(attachment_raw) <= SES_MAX_RAW_EMAIL_BYTES:
+        return attachment_raw, "ATTACHMENT"
 
+    link_body_lines = [
+        line.replace(
+            "The attached workbook contains only successfully processed records.",
+            "The downloadable workbook contains only successfully processed records.",
+        )
+        for line in body_lines
+    ]
+    link_body_lines.extend([
+        "",
+        "The result is too large to send safely as an email attachment.",
+    ])
+    if csv_key:
+        expiry_hours = DOWNLOAD_URL_TTL_SECONDS / 3600
+        expiry_label = (
+            f"{int(expiry_hours)} hour"
+            f"{'' if expiry_hours == 1 else 's'}"
+            if expiry_hours.is_integer()
+            else f"{DOWNLOAD_URL_TTL_SECONDS // 60} minutes"
+        )
+        link_body_lines.extend([
+            "Secure time-limited download:",
+            generate_download_url(csv_key),
+            "",
+            f"This direct link expires within {expiry_label}.",
+        ])
+    link_body_lines.extend([
+        "",
+        "The uploader can also sign in and create a fresh, time-limited download "
+        "from the Uploads page:",
+        f"{PLATFORM_BASE_URL}/portal/uploads",
+    ])
+    link_message = build_message(link_body_lines, include_attachment=False)
+    return link_message.as_bytes(), "DOWNLOAD_LINK"
+
+
+def prepare_quality_review_email(filename, succeeded_count, failed_count,
+                                 candidate_row_count, quality_blockers):
+    """Build a notice-only email when automated quality gates withhold output."""
+    subject_base = os.path.splitext(filename)[0].rstrip() or "Marked Register"
+    message = MIMEMultipart()
+    message["Subject"] = f"QUALITY REVIEW REQUIRED — {subject_base}"
+    message["From"] = SES_SENDER_EMAIL
+    message["To"] = SES_RECIPIENT_EMAIL
+    body_lines = [
+        "Marked register processing stopped at the quality gate.",
+        "",
+        f"Intended file: {filename}",
+        f"Candidate rows assessed: {candidate_row_count:,}",
+        f"Files processed: {succeeded_count} of "
+        f"{succeeded_count + failed_count}",
+        "",
+        "No output file was released, attached, or made available for download.",
+        "Reasons:",
+    ]
+    body_lines.extend(f"  - {reason}" for reason in quality_blockers)
+    body_lines.extend([
+        "",
+        "Correct the extraction or source classification problem and rerun the "
+        "original files. Candidate counts above are diagnostic only and must "
+        "not be treated as an electorate or turnout result.",
+    ])
+    message.attach(MIMEText("\n".join(body_lines), "plain", "utf-8"))
+    return message.as_bytes(), "NOTICE_ONLY"
+
+
+def send_prepared_completion_email(raw_message):
     ses.send_raw_email(
         Source=SES_SENDER_EMAIL,
         Destinations=[SES_RECIPIENT_EMAIL],
-        RawMessage={"Data": msg.as_bytes()},
+        RawMessage={"Data": raw_message},
     )
+
+
+def send_completion_email(*args, **kwargs):
+    """Compatibility wrapper used by focused email tests."""
+    raw_message, mode = prepare_completion_email(*args, **kwargs)
+    send_prepared_completion_email(raw_message)
+    return mode
+
+
+def _completion_email_failure_code(exc):
+    """Return a safe enum-like code without persisting the SES error message."""
+    error_code = (
+        getattr(exc, "response", {})
+        .get("Error", {})
+        .get("Code", "")
+    )
+    if error_code:
+        normalised = re.sub(r"[^A-Za-z0-9]+", "_", error_code).strip("_")
+        if normalised:
+            return f"SES_{normalised.upper()}"[:80]
+    return "EMAIL_SEND_FAILED"
 
 
 # ════════════════════════════════════════════════════════════════════════════════
@@ -677,9 +1223,15 @@ def handler(event, context):
     synthetic_labels_all = set()
     range_reports_all = []
     range_issues_all = []
+    district_resolution_reports = []
     inference_diagnostics_all = {
         "numeric_gap_rows_legacy_would_generate": 0,
         "explicit_strikethrough_rows_inferred": 0,
+        "excluded_eligibility_rows_seen": 0,
+        "excluded_eligibility_y_suppressed": 0,
+        "removed_elector_rows_excluded": 0,
+        "unreadable_strikethrough_rows_suppressed": 0,
+        "out_of_sequence_rows_excluded": 0,
     }
 
     for job in jobs:
@@ -699,13 +1251,21 @@ def handler(event, context):
         page_districts = {}
         page_declared_ranges = {}
         cover_declared_ranges = []
+        job_source_types = set()
         for payload in payloads:
-            job_rows.extend(payload.get("rows", []))
+            payload_meta = payload.get("meta") or {}
+            source_type = str(
+                payload_meta.get("source_type") or "pdf"
+            ).strip().lower()
+            job_source_types.add(source_type)
+            payload_rows = payload.get("rows", [])
+            for row in payload_rows:
+                row["_source_type"] = source_type
+            job_rows.extend(payload_rows)
             for k, v in (payload.get("pageDistricts") or {}).items():
                 page_districts[str(k)] = v
             for k, v in (payload.get("pageDeclaredRanges") or {}).items():
                 page_declared_ranges[str(k)] = v
-            payload_meta = payload.get("meta") or {}
             meta_ranges = payload_meta.get("declared_ranges") or []
             if isinstance(meta_ranges, dict):
                 meta_ranges = [meta_ranges]
@@ -715,6 +1275,8 @@ def handler(event, context):
                 inference_diagnostics_all[key] += int(
                     inference_diagnostics.get(key, 0)
                 )
+
+        source_name = job.get("filename") or job_id
 
         # Seed = page-1 metadata district from the lowest-numbered chunk. Every
         # chunk extracts it independently and deterministically, so assert they
@@ -733,34 +1295,68 @@ def handler(event, context):
         # have no 'page' field: bypass resolution entirely and leave
         # polling_district exactly as written, so combining an in-flight job after
         # the deploy cannot KeyError (§6.3).
-        if any("page" in r for r in job_rows):
-            synthetic_labels_all |= resolve_job_districts(job_rows, page_districts, seed_district)
+        if job_source_types != {"csv"}:
+            if any("page" in r for r in job_rows):
+                synthetic_labels, resolution_report = (
+                    _resolve_job_districts_with_report(
+                        job_rows,
+                        page_districts,
+                        seed_district,
+                    )
+                )
+                synthetic_labels_all |= synthetic_labels
+            else:
+                resolution_report = {
+                    "trusted": False,
+                    "row_page_count": 0,
+                    "recognised_header_pages": 0,
+                    "header_coverage_pct": 0.0,
+                    "accepted_districts": [],
+                    "unresolved_leading_pages": 0,
+                    "rows_with_untrusted_district": 0,
+                    "issues": [
+                        "No page-level polling-district evidence was available."
+                    ],
+                }
+            resolution_report["source"] = source_name
+            district_resolution_reports.append(resolution_report)
+            logger.info(
+                "Job %s district resolution: trusted=%s, coverage=%.1f%%, "
+                "accepted_districts=%d",
+                job_id,
+                resolution_report["trusted"],
+                resolution_report["header_coverage_pct"],
+                len(resolution_report["accepted_districts"]),
+            )
 
         # Resolve and validate declared ranges after district assignment, but do
         # not mutate or filter job_rows. A deduped copy is used only for reporting
-        # so diagnostics match the unique rows that can reach the final CSV.
-        trusted_ranges, range_issues = resolve_declared_ranges(
-            cover_declared_ranges, page_declared_ranges
-        )
-        validation_rows = _dedupe_rows(job_rows)
-        range_reports, validation_issues = validate_rows_against_declared_ranges(
-            validation_rows, trusted_ranges
-        )
-        source_name = job.get("filename") or job_id
-        for report in range_reports:
-            report["source"] = source_name
-            range_reports_all.append(report)
-            logger.info(
-                "Job %s declared numbering span %s %d-%d: "
-                "observed_within_span=%d, not_observed=%s, out_of_range=%s",
-                job_id, report["district"], report["start"], report["end"],
-                report["captured_count"], report["missing"],
-                report["out_of_range"],
+        # so diagnostics match the unique rows that can reach the final result.
+        if job_source_types != {"csv"}:
+            trusted_ranges, range_issues = resolve_declared_ranges(
+                cover_declared_ranges, page_declared_ranges
             )
-        for issue in range_issues + validation_issues:
-            rendered_issue = f"{source_name}: {issue}"
-            range_issues_all.append(rendered_issue)
-            logger.warning("Job %s declared-range validation: %s", job_id, issue)
+            validation_rows = _dedupe_rows(job_rows)
+            range_reports, validation_issues = validate_rows_against_declared_ranges(
+                validation_rows, trusted_ranges
+            )
+            for report in range_reports:
+                report["source"] = source_name
+                range_reports_all.append(report)
+                logger.info(
+                    "Job %s declared numbering span %s %d-%d: "
+                    "observed_within_span=%d, not_observed_count=%d, "
+                    "out_of_range_count=%d",
+                    job_id, report["district"], report["start"], report["end"],
+                    report["captured_count"], report["missing_count"],
+                    report["out_of_range_count"],
+                )
+            for issue in range_issues + validation_issues:
+                rendered_issue = f"{source_name}: {issue}"
+                range_issues_all.append(rendered_issue)
+                logger.warning(
+                    "Job %s declared-range validation issue recorded", job_id
+                )
 
         # Overwrite per-row constituency / election_date with the form-provided
         # values so the columns match the filename even for legacy in-flight rows.
@@ -781,16 +1377,33 @@ def handler(event, context):
     logger.info(
         "Batch %s OCR inference diagnostics: "
         "numeric_gap_rows_legacy_would_generate=%d, "
-        "explicit_strikethrough_rows_inferred=%d",
+        "explicit_strikethrough_rows_inferred=%d, "
+        "excluded_eligibility_rows_seen=%d, "
+        "excluded_eligibility_y_suppressed=%d, "
+        "removed_elector_rows_excluded=%d, "
+        "unreadable_strikethrough_rows_suppressed=%d, "
+        "out_of_sequence_rows_excluded=%d",
         batch_id,
         inference_diagnostics_all["numeric_gap_rows_legacy_would_generate"],
         inference_diagnostics_all["explicit_strikethrough_rows_inferred"],
+        inference_diagnostics_all["excluded_eligibility_rows_seen"],
+        inference_diagnostics_all["excluded_eligibility_y_suppressed"],
+        inference_diagnostics_all["removed_elector_rows_excluded"],
+        inference_diagnostics_all["unreadable_strikethrough_rows_suppressed"],
+        inference_diagnostics_all["out_of_sequence_rows_excluded"],
     )
 
     pre_dedupe_count = len(all_rows)
+    dedupe_source_counts = _dedupe_source_counts(all_rows)
     all_rows = _dedupe_rows(all_rows)
     dedupe_removed = pre_dedupe_count - len(all_rows)
-    dedupe_pct = (dedupe_removed / pre_dedupe_count * 100.0) if pre_dedupe_count else 0.0
+    within_source_removed = dedupe_source_counts["within_source"]
+    cross_source_merged = dedupe_source_counts["cross_source"]
+    warning_base = pre_dedupe_count - cross_source_merged
+    dedupe_pct = (
+        within_source_removed / warning_base * 100.0
+        if warning_base > 0 else 0.0
+    )
     all_rows.sort(key=_sort_key)
 
     district_counts = _count_districts(all_rows)
@@ -799,24 +1412,58 @@ def handler(event, context):
         dedupe_pct, synthetic_labels_all, warn_pct,
         range_reports_all, range_issues_all,
     )
+    quality_blockers = _quality_blockers(
+        dedupe_pct,
+        warn_pct,
+        district_counts,
+        district_resolution_reports,
+    )
 
     logger.info(
-        "Batch %s: %d districts, %d rows removed by dedupe (%.1f%%), synthetic=%s",
-        batch_id, len(district_counts), dedupe_removed, dedupe_pct,
-        sorted(synthetic_labels_all),
+        "Batch %s: %d districts, %d within-source duplicates removed "
+        "(%.1f%%), %d cross-source records merged, synthetic=%s",
+        batch_id, len(district_counts), within_source_removed, dedupe_pct,
+        cross_source_merged, sorted(synthetic_labels_all),
     )
 
     filename = build_filename(
         association, constituency, council_area, election, election_date,
         fallback_id=batch_id,
     )
-    csv_content = build_csv(all_rows)
-    csv_bytes = csv_content.encode("utf-8-sig")
-    csv_key = upload_csv(user_sub, batch_id, filename, csv_content)
-    logger.info("Uploaded CSV: s3://%s/%s (%d rows)", UPLOADS_BUCKET, csv_key, len(all_rows))
+    if quality_blockers:
+        csv_bytes = b""
+        csv_key = ""
+        batch_status = "QUALITY_REVIEW_REQUIRED"
+        raw_email, email_mode = prepare_quality_review_email(
+            filename=filename,
+            succeeded_count=succeeded_count,
+            failed_count=len(failed_filenames),
+            candidate_row_count=len(all_rows),
+            quality_blockers=quality_blockers,
+        )
+        logger.warning(
+            "Batch %s output withheld by %d quality blocker(s)",
+            batch_id,
+            len(quality_blockers),
+        )
+    else:
+        csv_bytes = build_xlsx(all_rows)
+        csv_key = upload_csv(user_sub, batch_id, filename, csv_bytes)
+        logger.info(
+            "Uploaded workbook: s3://%s/%s (%d rows)",
+            UPLOADS_BUCKET,
+            csv_key,
+            len(all_rows),
+        )
 
-    try:
-        send_completion_email(
+        if failed_filenames:
+            batch_status = "COMPLETE_WITH_FAILURES"
+        elif warnings_on:
+            batch_status = "COMPLETE_WITH_WARNINGS"
+        else:
+            batch_status = "COMPLETE"
+
+        raw_email, email_mode = prepare_completion_email(
             filename=filename,
             csv_bytes=csv_bytes,
             succeeded_count=succeeded_count,
@@ -824,42 +1471,124 @@ def handler(event, context):
             failed_filenames=failed_filenames,
             row_count=len(all_rows),
             district_counts=district_counts,
-            dedupe_removed=dedupe_removed,
+            dedupe_removed=within_source_removed,
             dedupe_pct=dedupe_pct,
             synthetic_labels=synthetic_labels_all,
             warn_pct=warn_pct,
             range_reports=range_reports_all,
             range_issues=range_issues_all,
+            cross_source_merged=cross_source_merged,
+            csv_key=csv_key,
         )
-        logger.info("Email sent to %s for batch %s", SES_RECIPIENT_EMAIL, batch_id)
-    except Exception as exc:
-        logger.error("Failed to send email for batch %s: %s", batch_id, exc)
 
-    if failed_filenames:
-        batch_status = "COMPLETE_WITH_FAILURES"
-    elif warnings_on:
-        batch_status = "COMPLETE_WITH_WARNINGS"
+    completed_at = datetime.now(timezone.utc).isoformat()
+    completion = {
+        "batch_status": batch_status,
+        "completed_at": completed_at,
+        "succeeded_count": succeeded_count,
+        "failed_count": len(failed_filenames),
+        "row_count": len(all_rows),
+        "output_key": csv_key,
+        "output_filename": filename,
+        "output_bytes": len(csv_bytes),
+        "email_mode": email_mode,
+    }
+    prior_sent_job = next(
+        (
+            job for job in jobs
+            if job.get("completionEmailStatus") == "SENT"
+            and job.get("batchOutputKey") == csv_key
+            and (
+                not job.get("batchStatus")
+                or job.get("batchStatus") == batch_status
+            )
+        ),
+        None,
+    )
+    if prior_sent_job:
+        # A previous invocation reached SES and persisted its acceptance marker
+        # but was retried while copying metadata to the remaining jobs.
+        email_mode = prior_sent_job.get("completionEmailMode") or email_mode
+        completion["email_mode"] = email_mode
+        email_sent_at = (
+            prior_sent_job.get("completionEmailUpdatedAt") or completed_at
+        )
+        logger.info(
+            "Batch %s email was already accepted; skipping duplicate send",
+            batch_id,
+        )
     else:
-        batch_status = "COMPLETE"
+        update_batch_jobs(
+            jobs,
+            **completion,
+            email_status="PENDING",
+            email_updated_at=completed_at,
+        )
 
-    now_iso = datetime.now(timezone.utc).isoformat()
-    for job in jobs:
         try:
-            update_job_batch_status(job["jobId"], batch_status, now_iso)
+            send_prepared_completion_email(raw_email)
+            logger.info(
+                "Email sent to %s for batch %s", SES_RECIPIENT_EMAIL, batch_id
+            )
         except Exception as exc:
-            logger.warning("Failed to update batchStatus for job %s: %s", job["jobId"], exc)
+            try:
+                update_batch_jobs(
+                    jobs,
+                    **completion,
+                    email_status="FAILED",
+                    email_updated_at=datetime.now(timezone.utc).isoformat(),
+                    email_failure_code=_completion_email_failure_code(exc),
+                )
+            except Exception:
+                logger.exception(
+                    "Failed to persist email failure state for batch %s",
+                    batch_id,
+                )
+            logger.exception(
+                "Completion email failed for batch %s (mode=%s, code=%s)",
+                batch_id,
+                email_mode,
+                _completion_email_failure_code(exc),
+            )
+            raise
 
-    logger.info("Batch %s done — status=%s, rows=%d", batch_id, batch_status, len(all_rows))
+        email_sent_at = datetime.now(timezone.utc).isoformat()
+        # Persist one deterministic acceptance marker before the fan-out update.
+        # If a later job update fails, an async retry can safely skip SES.
+        delivery_marker = min(jobs, key=lambda job: job["jobId"])
+        update_job_batch_completion(
+            delivery_marker["jobId"],
+            **completion,
+            email_status="SENT",
+            email_updated_at=email_sent_at,
+        )
+
+    update_batch_jobs(
+        jobs,
+        **completion,
+        email_status="SENT",
+        email_updated_at=email_sent_at,
+    )
+
+    logger.info(
+        "Batch %s done — status=%s, email=%s/%s, rows=%d",
+        batch_id, batch_status, "SENT", email_mode, len(all_rows),
+    )
     return {
         "statusCode": 200,
         "batchId": batch_id,
         "batchStatus": batch_status,
+        "completionEmailStatus": "SENT",
+        "completionEmailMode": email_mode,
         "rowCount": len(all_rows),
         "csvKey": csv_key,
         "filename": filename,
         "districts": len(district_counts),
         "dedupeRemoved": dedupe_removed,
+        "withinSourceDuplicatesRemoved": within_source_removed,
+        "crossSourceMerged": cross_source_merged,
         "declaredRangeWarnings": _range_warnings_triggered(
             range_reports_all, range_issues_all
         ),
+        "qualityBlockerCount": len(quality_blockers),
     }

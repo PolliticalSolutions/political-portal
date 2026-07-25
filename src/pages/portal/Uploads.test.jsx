@@ -562,9 +562,9 @@ describe("Uploads – batch results", () => {
     expect(
       screen.getByText(/The completion email could not be sent/)
     ).toBeInTheDocument();
-    expect(screen.getAllByRole("button", { name: "Download combined CSV" })).toHaveLength(1);
+    expect(screen.getAllByRole("button", { name: "Download combined result" })).toHaveLength(1);
 
-    fireEvent.click(screen.getByRole("button", { name: "Download combined CSV" }));
+    fireEvent.click(screen.getByRole("button", { name: "Download combined result" }));
     await waitFor(() => {
       expect(uploadApi.getDownloadUrls).toHaveBeenCalledWith("batch-job-1");
       expect(clickSpy).toHaveBeenCalled();
@@ -597,7 +597,7 @@ describe("Uploads – batch results", () => {
       screen.getByText("A completion email with a secure download link was sent.")
     ).toBeInTheDocument();
     expect(
-      screen.getByRole("button", { name: "Download combined CSV" })
+      screen.getByRole("button", { name: "Download combined result" })
     ).toBeInTheDocument();
   });
 
@@ -625,7 +625,36 @@ describe("Uploads – batch results", () => {
       await screen.findByRole("alert")
     ).toHaveTextContent("Batch complete with warnings — review before use");
     expect(
-      screen.getByText(/Review the completion email checks before using the CSV/)
+      screen.getByText(/Review the completion email checks before using the result/)
     ).toBeInTheDocument();
+  });
+
+  it("shows a quality-blocked batch without offering a result download", async () => {
+    uploadApi.listJobs.mockResolvedValueOnce({
+      items: [{
+        jobId: "batch-job-1",
+        batchId: "batch-1",
+        filename: "one.pdf",
+        fileType: "pdf",
+        status: "SUCCEEDED",
+        batchStatus: "QUALITY_REVIEW_REQUIRED",
+        batchSucceededCount: 1,
+        batchFailedCount: 0,
+        batchRowCount: 65873,
+        batchOutputKey: "",
+        completionEmailStatus: "SENT",
+        completionEmailMode: "NOTICE_ONLY",
+      }],
+    });
+
+    render(<Uploads />);
+
+    const alert = await screen.findByRole("alert");
+    expect(alert).toHaveTextContent("Batch withheld — quality checks failed");
+    expect(alert).toHaveTextContent("65,873 candidate rows assessed");
+    expect(alert).toHaveTextContent("no output file was released");
+    expect(
+      screen.queryByRole("button", { name: "Download combined result" })
+    ).not.toBeInTheDocument();
   });
 });

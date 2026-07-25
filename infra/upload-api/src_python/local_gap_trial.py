@@ -73,10 +73,7 @@ from combine_register import handler as combine  # noqa: E402
 from process_register import handler as process  # noqa: E402
 
 
-DIAGNOSTIC_KEYS = (
-    "numeric_gap_rows_legacy_would_generate",
-    "explicit_strikethrough_rows_inferred",
-)
+DIAGNOSTIC_KEYS = process._INFERENCE_DIAGNOSTIC_KEYS
 
 
 def _configure_local_binaries():
@@ -278,7 +275,9 @@ def _run_mode(pdf_paths, evidence_only, chunk_pages):
             range_issues.extend(document["range_issues"])
             page_count += document["page_count"]
             for key in DIAGNOSTIC_KEYS:
-                inference_diagnostics[key] += document["inference_diagnostics"][key]
+                inference_diagnostics[key] += int(
+                    document["inference_diagnostics"].get(key, 0)
+                )
 
         pre_dedupe_count = len(all_rows)
         final_rows = combine._dedupe_rows(all_rows)

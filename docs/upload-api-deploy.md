@@ -155,6 +155,70 @@ Response contains presigned download URLs, valid for 15 minutes.
 5. `WorkerFunction` consumes SQS messages, validates/processes, writes outputs.
 6. Failed processing retries and eventually lands in `ProcessDLQ`.
 
+## Marked-register release procedure
+
+The marked-register path has an additional fail-closed quality gate. PDF
+district boundaries must be corroborated by anchored page headers, at least
+20% of row-bearing pages must have readable headers, no untrusted district
+label may remain, and within-source deduplication must not exceed 2%. A failed
+gate records `QUALITY_REVIEW_REQUIRED`, sends a notice-only email, and does not
+upload or expose a customer result.
+
+Page headers are read at the production render size and, only when a code is
+missing or reduced to a two-character prefix, at half size as a fallback. A
+district boundary requires the same code on the next page or after exactly one
+unreadable page; a different readable intervening code invalidates the match.
+
+The row filter removes numeric wrapped-address lines by retaining the strongest
+ordered roll-number sequence within each printed column. Slash-numbered late
+additions are always retained, even when they appear out of sequence.
+
+The successful combined result is an `.xlsx` workbook. Every cell is written
+as literal text, so roll numbers such as `12/3` cannot be silently converted to
+calendar dates by Excel. Legacy completed CSV batches remain downloadable.
+
+Before deploying marked-register changes:
+
+1. Run the privacy-safe production-equivalent validation over the original
+   source folder:
+
+   ```powershell
+   & .\infra\upload-api\local_trial\run-fix-validation.ps1 `
+     -InputPath "C:\full\path\to\folder"
+   ```
+
+2. Require `aggregate.quality_gate` to be `PASS`. Review the aggregate district
+   and vote-type counts; the report contains no filenames or elector data.
+
+3. Run the focused regression suites:
+
+   ```powershell
+   python -m pytest `
+     infra/upload-api/src_python/test/test_process_register.py `
+     infra/upload-api/src_python/test/test_combine_register.py `
+     infra/upload-api/src_python/test/test_local_register_structure_audit.py `
+     -q
+   npm run test:api -- infra/upload-api/test/handler.test.mjs
+   npm run test:run -- src/pages/portal/Uploads.test.jsx
+   ```
+
+4. Build and inspect the production change set:
+
+   ```powershell
+   Push-Location infra/upload-api
+   sam build
+   sam deploy --config-env prod --no-execute-changeset
+   Pop-Location
+   ```
+
+5. Only after approval, execute the reviewed change set (or rerun
+   `sam deploy --config-env prod`) and deploy the matching portal build.
+
+6. Upload the original PDFs as a new batch. Do not reuse the old output: it was
+   created before district resolution and the quality gate were corrected.
+   Confirm the new batch reaches `COMPLETE` or `COMPLETE_WITH_WARNINGS`, has an
+   `.xlsx` download, and does not show `QUALITY_REVIEW_REQUIRED`.
+
 ## GuardDuty scan feature flags
 - `EnableGuardDutyScan`:
   - `true` enables `AWS::GuardDuty::MalwareProtectionPlan` + EventBridge scan-result routing.
@@ -174,10 +238,32 @@ Response contains presigned download URLs, valid for 15 minutes.
   - TTL deletion is best-effort and not immediate.
 
 ## DLQ replay
-To replay failed processor messages from the DLQ:
-1. Inspect DLQ payloads and error cause in CloudWatch Logs.
-2. Re-drive from `ProcessDLQ` back to `ProcessQueue` (SQS redrive in console or CLI).
-3. Confirm the root cause is fixed before replaying to avoid repeat failures.
+Do not directly redrive the entire standard-queue DLQ: duplicate submissions can
+leave several messages for the same splitter job and would multiply the OCR
+work. Use the deduplicating recovery tool instead:
+
+1. Inspect the plan without changing either queue:
+
+   ```bash
+   python infra/upload-api/src_python/process_dlq_recovery.py
+   ```
+
+2. Correlate the listed job IDs with `ProcessRegisterFunction` CloudWatch logs.
+   The tool only proposes replay for `PENDING`/`QUEUED` jobs whose source object
+   still exists. It proposes deletion for stale messages whose job is already
+   `SUCCEEDED`/`FAILED`, and holds every ambiguous case. Confirm the root cause
+   is fixed before replaying to avoid repeat failures.
+
+3. Apply the printed plan:
+
+   ```bash
+   python infra/upload-api/src_python/process_dlq_recovery.py --apply
+   ```
+
+The tool sends one copy of each logical message to `ProcessQueue` before
+deleting its DLQ copies. If deletion fails after the send, processing may be
+duplicated but the work is not lost. Splitter messages are deduplicated per job;
+different chunk messages for the same job remain separate.
 
 ## Throttling + 429s
 - Default stage throttling: 20 rps, burst 40.

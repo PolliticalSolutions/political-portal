@@ -1521,7 +1521,8 @@ async function handleGetDownload(event, origin, jobId) {
   if (!job) return response(404, { error: "not_found" }, origin);
   if (job.userSub !== userSub) return response(403, { error: "forbidden" }, origin);
 
-  // The batch combiner stores one consolidated CSV against every component job.
+  // The batch combiner stores one consolidated workbook against every component
+  // job. Legacy completed batches can still point to CSV output.
   // Validate its tenant-scoped prefix before signing it; the URL itself is
   // short-lived and is never persisted in DynamoDB.
   if (job.batchOutputKey) {
@@ -1541,11 +1542,15 @@ async function handleGetDownload(event, origin, jobId) {
       Key: job.batchOutputKey,
       Expires: DOWNLOAD_URL_TTL,
     });
+    const outputName = job.batchOutputFilename || "Marked Register.xlsx";
+    const contentType = outputName.toLowerCase().endsWith(".xlsx")
+      ? "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+      : "text/csv";
     return response(200, {
       jobId,
       files: [{
-        name: job.batchOutputFilename || "Marked Register.csv",
-        contentType: "text/csv",
+        name: outputName,
+        contentType,
         downloadUrl,
       }],
     }, origin);

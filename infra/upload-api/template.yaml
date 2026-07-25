@@ -105,10 +105,17 @@ Parameters:
       - "true"
       - "false"
     Description: Suppress sequence-only OCR gap rows while retaining visually evidenced inference.
+  OcrRowEligibilityFilter:
+    Type: String
+    Default: "false"
+    AllowedValues:
+      - "true"
+      - "false"
+    Description: Apply election-specific row eligibility rules and suppress unreadable strikethrough inference.
   SesRecipientEmail:
     Type: String
     Default: "markedregisters@politicalsolutions.uk"
-    Description: Recipient email for processed marked register CSV notifications.
+    Description: Recipient email for processed marked register notifications.
   VolunteerTokenSecret:
     Type: String
     Default: ""
@@ -1402,6 +1409,10 @@ Resources:
           # rows and visually evidenced strikethrough inference; sequence-only
           # numeric gaps remain diagnostics and do not create elector rows.
           OCR_EVIDENCE_ONLY_GAP_INFERENCE: !Ref OcrEvidenceOnlyGapInference
+          # Default-off row-classification candidate. Uses the cover legend and
+          # election family to distinguish printed eligibility exclusions from
+          # genuine polling marks; also rejects removed and numberless rows.
+          OCR_ROW_ELIGIBILITY_FILTER: !Ref OcrRowEligibilityFilter
           SUPABASE_URL: !Ref SupabaseUrl
           SUPABASE_SERVICE_KEY: !Ref SupabaseServiceKey
           TESSDATA_PREFIX: /opt/tessdata
@@ -1456,7 +1467,8 @@ Resources:
 
   # ── Marked Register batch combiner (Python, direct invoke) ────────────────
   # Invoked async by ProcessRegisterFunction once all jobs in a batch complete.
-  # Merges per-job JSON outputs into a single CSV and emails a download link.
+  # Merges per-job JSON outputs into one text-safe XLSX workbook and emails it
+  # or a download link.
 
   CombineRegisterFunction:
     Type: AWS::Serverless::Function
@@ -1475,9 +1487,19 @@ Resources:
           SUPABASE_SERVICE_KEY: !Ref SupabaseServiceKey
           SES_SENDER_EMAIL: !Ref SesFromEmail
           SES_RECIPIENT_EMAIL: !Ref SesRecipientEmail
-          # Dedupe-rate threshold (%) above which the completion email carries a
-          # warning block and batchStatus becomes COMPLETE_WITH_WARNINGS (§6.5).
+          PLATFORM_BASE_URL: !Ref PlatformBaseUrl
+          # Leave headroom below SES's 10 MiB raw-message ceiling. The combiner
+          # measures the fully encoded MIME message, not the workbook bytes.
+          SES_MAX_RAW_EMAIL_BYTES: "9500000"
+          # Large-result emails receive a temporary direct link; authenticated
+          # portal downloads can mint a fresh 15-minute link at any time.
+          DOWNLOAD_URL_TTL_SECONDS: "21600"
+          # Within-source dedupe threshold (%). Exceeding it withholds the result
+          # and sets batchStatus=QUALITY_REVIEW_REQUIRED.
           DEDUPE_WARN_PCT: "2"
+          # Fail closed when too few row-bearing PDF pages have a readable,
+          # anchored polling-district header.
+          DISTRICT_HEADER_MIN_PCT: "20"
       Policies:
         - Statement:
             Effect: Allow

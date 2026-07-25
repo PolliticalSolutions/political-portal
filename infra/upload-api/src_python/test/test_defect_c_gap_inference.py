@@ -227,6 +227,11 @@ def test_safe_labelled_baseline_candidate_comparison():
         assert report["candidate_diagnostics"] == {
             "numeric_gap_rows_legacy_would_generate": len(expected["gap_rows"]),
             "explicit_strikethrough_rows_inferred": len(expected["strikethrough_rows"]),
+            "excluded_eligibility_rows_seen": 0,
+            "excluded_eligibility_y_suppressed": 0,
+            "removed_elector_rows_excluded": 0,
+            "unreadable_strikethrough_rows_suppressed": 0,
+            "out_of_sequence_rows_excluded": 0,
         }
         assert report["baseline_diagnostics"] == report["candidate_diagnostics"]
 
@@ -316,6 +321,11 @@ def test_ocr_metadata_records_counts_without_elector_content(monkeypatch):
     assert meta["inference_diagnostics"] == {
         "numeric_gap_rows_legacy_would_generate": 2,
         "explicit_strikethrough_rows_inferred": 1,
+        "excluded_eligibility_rows_seen": 0,
+        "excluded_eligibility_y_suppressed": 0,
+        "removed_elector_rows_excluded": 0,
+        "unreadable_strikethrough_rows_suppressed": 0,
+        "out_of_sequence_rows_excluded": 0,
     }
     assert set(meta["inference_diagnostics"]) == set(h._INFERENCE_DIAGNOSTIC_KEYS)
 
