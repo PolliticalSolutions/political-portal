@@ -1232,6 +1232,9 @@ def handler(event, context):
         "removed_elector_rows_excluded": 0,
         "unreadable_strikethrough_rows_suppressed": 0,
         "out_of_sequence_rows_excluded": 0,
+        "eno_unanchored_rows_excluded": 0,
+        "eno_sequence_numbers_repaired": 0,
+        "eno_supplemental_numbers_preserved": 0,
     }
 
     for job in jobs:
@@ -1382,7 +1385,10 @@ def handler(event, context):
         "excluded_eligibility_y_suppressed=%d, "
         "removed_elector_rows_excluded=%d, "
         "unreadable_strikethrough_rows_suppressed=%d, "
-        "out_of_sequence_rows_excluded=%d",
+        "out_of_sequence_rows_excluded=%d, "
+        "eno_unanchored_rows_excluded=%d, "
+        "eno_sequence_numbers_repaired=%d, "
+        "eno_supplemental_numbers_preserved=%d",
         batch_id,
         inference_diagnostics_all["numeric_gap_rows_legacy_would_generate"],
         inference_diagnostics_all["explicit_strikethrough_rows_inferred"],
@@ -1391,6 +1397,9 @@ def handler(event, context):
         inference_diagnostics_all["removed_elector_rows_excluded"],
         inference_diagnostics_all["unreadable_strikethrough_rows_suppressed"],
         inference_diagnostics_all["out_of_sequence_rows_excluded"],
+        inference_diagnostics_all["eno_unanchored_rows_excluded"],
+        inference_diagnostics_all["eno_sequence_numbers_repaired"],
+        inference_diagnostics_all["eno_supplemental_numbers_preserved"],
     )
 
     pre_dedupe_count = len(all_rows)

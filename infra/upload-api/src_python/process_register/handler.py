@@ -199,7 +199,16 @@ _INFERENCE_DIAGNOSTIC_KEYS = (
     "removed_elector_rows_excluded",
     "unreadable_strikethrough_rows_suppressed",
     "out_of_sequence_rows_excluded",
+    "eno_unanchored_rows_excluded",
+    "eno_sequence_numbers_repaired",
+    "eno_supplemental_numbers_preserved",
 )
+
+# The printed ENO field occupies the narrow leading band of every register
+# column. Dates are printed over elector names farther to the right, and house
+# numbers sit at the far edge. Requiring the first numeric OCR token to begin in
+# this band prevents either from becoming an electoral number.
+_ENO_ANCHOR_MAX_X_RATIO = 0.24
 
 # These are the single-letter elector markers seen in UK registers. Whether a
 # marker excludes an elector depends on the election: for example, B is valid at
@@ -498,7 +507,7 @@ def _extract_elector_entry(line, context_prev_num=0):
     if not line or len(line) < 5:
         return None, None
 
-    line = re.sub(r"^[\s:;|'\"\-._~*°©=/\[\]!]+", "", line)
+    line = re.sub(r"^[\s:;|'\"\-._~*°©=/{}\[\]!]+", "", line)
 
     noise = re.match(r"^([rtl1|i])\s+(\d{2,3})", line)
     if noise:
@@ -554,7 +563,17 @@ def _extract_elector_entry(line, context_prev_num=0):
         return None, None
 
     if context_prev_num > 0:
-        if main_num < 10 and 70 <= context_prev_num < 80:
+        expected_next = context_prev_num + 1
+        if (
+            context_prev_num >= 100
+            and main_num < 100
+            and main_num == expected_next % 100
+        ):
+            main_num = expected_next
+            elector_num = (
+                f"{main_num}/{sub_num}" if sub_num else str(main_num)
+            )
+        elif main_num < 10 and 70 <= context_prev_num < 80:
             c = 70 + main_num
             if context_prev_num < c <= context_prev_num + 5:
                 main_num = c
@@ -673,27 +692,52 @@ def _infer_missing_entries(readable_entries, start_num,
 
 def _filter_monotonic_elector_entries(
         readable_entries, diagnostics=None, maximum_gap=25):
-    """Keep the strongest increasing elector-number sequence in one column.
+    """Reconcile one printed ENO column without discarding late additions.
 
-    OCR can treat a wrapped address beginning with a house number as an elector
-    row. Real roll numbers are printed in non-decreasing order within a column;
-    address numbers are not. Select the longest ordered chain, preferring the
-    chain with the smallest cumulative gaps when lengths tie. Numberless
-    strikethrough candidates remain present so the existing suppression
-    diagnostics continue to account for them.
+    The longest ordered chain remains useful for identifying the ordinary roll
+    sequence, but Stafford also prints genuine high-number supplemental
+    electors between ordinary rows. Spatial ENO anchoring now separates those
+    rows from dates and wrapped addresses. OCR-damaged ordinary numbers are
+    repaired only when a printed candidate occupies a single supported gap
+    between readable anchors; remaining spatially anchored high numbers are
+    retained as supplemental electors.
+
+    Synthetic/unit callers that do not provide ``eno_anchored`` retain the
+    legacy behaviour so the pure sequence helper remains backwards-compatible.
     """
-    # Slash subnumbers are legitimate late additions and can appear after the
-    # main sequence has moved on. They are never candidates for exclusion.
+    spatial_mode = any(
+        "eno_anchored" in entry
+        for entry in readable_entries
+    )
+
     numbered = [
         (index, entry)
         for index, entry in enumerate(readable_entries)
         if (
             entry.get("main_num") is not None
             and "/" not in str(entry.get("elector_num") or "")
+            and (
+                not spatial_mode
+                or entry.get("eno_anchored") is True
+            )
         )
     ]
     if len(numbered) < 3:
-        return readable_entries
+        if not spatial_mode:
+            return readable_entries
+        filtered = [
+            entry
+            for entry in readable_entries
+            if (
+                entry.get("main_num") is None
+                or entry.get("eno_anchored") is True
+            )
+        ]
+        excluded = len(readable_entries) - len(filtered)
+        if diagnostics is not None:
+            diagnostics["out_of_sequence_rows_excluded"] += excluded
+            diagnostics["eno_unanchored_rows_excluded"] += excluded
+        return filtered
 
     best = []
     for position, (_original_index, entry) in enumerate(numbered):
@@ -729,25 +773,297 @@ def _filter_monotonic_elector_entries(
         selected_numbered_positions.add(numbered[end][0])
         end = best[end][2]
 
-    # Do not make a sparse/uncertain column even sparser. Normal register
-    # columns contain many ordered rows; a selected chain shorter than three
-    # is not sufficient evidence for exclusion.
+    # Do not make a sparse/uncertain legacy column even sparser. Spatially
+    # anchored columns can still safely reject unanchored numeric candidates.
     if len(selected_numbered_positions) < 3:
-        return readable_entries
+        if not spatial_mode:
+            return readable_entries
+        selected_numbered_positions = {
+            original_index for original_index, _entry in numbered
+        }
+
+    if not spatial_mode:
+        filtered = [
+            entry
+            for index, entry in enumerate(readable_entries)
+            if (
+                entry.get("main_num") is None
+                or "/" in str(entry.get("elector_num") or "")
+                or index in selected_numbered_positions
+            )
+        ]
+        excluded = len(numbered) - len(selected_numbered_positions)
+        if diagnostics is not None:
+            diagnostics["out_of_sequence_rows_excluded"] += excluded
+        return filtered
+
+    def digit_distance(left, right):
+        """Small Levenshtein distance for OCR-damaged numeric tokens."""
+        left = str(left)
+        right = str(right)
+        previous = list(range(len(right) + 1))
+        for left_index, left_char in enumerate(left, start=1):
+            current = [left_index]
+            for right_index, right_char in enumerate(right, start=1):
+                current.append(min(
+                    current[-1] + 1,
+                    previous[right_index] + 1,
+                    previous[right_index - 1]
+                    + (left_char != right_char),
+                ))
+            previous = current
+        return previous[-1]
+
+    selected = sorted(
+        (
+            index,
+            int(readable_entries[index]["main_num"]),
+        )
+        for index in selected_numbered_positions
+    )
+    kept_positions = set(selected_numbered_positions)
+    repaired_positions = set()
+
+    # When two reliable primary anchors bracket exactly one printed candidate
+    # per missing number, the row positions themselves are stronger evidence
+    # than a damaged glyph. This repairs compact runs such as
+    # 220, 224, 222, 23, 24, 225 -> 220..225 without fabricating any row: every
+    # repaired number still has its own spatially anchored printed candidate.
+    for left_anchor in range(len(selected)):
+        left_index, left_num = selected[left_anchor]
+        for right_anchor in range(
+                left_anchor + 1,
+                min(len(selected), left_anchor + maximum_gap + 1)):
+            right_index, right_num = selected[right_anchor]
+            gap = right_num - left_num
+            if gap <= 1 or gap > maximum_gap:
+                continue
+            candidates = [
+                index
+                for index in range(left_index + 1, right_index)
+                if (
+                    readable_entries[index].get("main_num") is not None
+                    and readable_entries[index].get("eno_anchored") is True
+                    and "/" not in str(
+                        readable_entries[index].get("elector_num") or ""
+                    )
+                )
+            ]
+            expected_values = list(range(left_num + 1, right_num))
+            if (
+                len(candidates) != gap - 1
+                or any(
+                    digit_distance(
+                        readable_entries[candidate_index]["main_num"],
+                        expected,
+                    ) > 2
+                    for candidate_index, expected in zip(
+                        candidates,
+                        expected_values,
+                    )
+                )
+            ):
+                continue
+            for expected, candidate_index in zip(
+                    expected_values,
+                    candidates):
+                candidate = readable_entries[candidate_index]
+                if int(candidate["main_num"]) == expected:
+                    kept_positions.add(candidate_index)
+                    continue
+                candidate["elector_num"] = str(expected)
+                candidate["main_num"] = expected
+                candidate["eno_sequence_repaired"] = True
+                kept_positions.add(candidate_index)
+                repaired_positions.add(candidate_index)
+
+    # Match spatially anchored, non-slash candidates to supported missing
+    # numbers between consecutive primary anchors. A one-edit limit repairs
+    # common readings such as 423->123, 20->201 and 1414->141 without inventing
+    # a row where no numeric glyph was observed.
+    for (left_index, left_num), (right_index, right_num) in zip(
+            selected, selected[1:]):
+        gap = right_num - left_num
+        if gap <= 1 or gap > maximum_gap:
+            continue
+        expected = list(range(left_num + 1, right_num))
+        candidates = [
+            index
+            for index in range(left_index + 1, right_index)
+            if (
+                index not in kept_positions
+                and readable_entries[index].get("main_num") is not None
+                and readable_entries[index].get("eno_anchored") is True
+                and "/" not in str(
+                    readable_entries[index].get("elector_num") or ""
+                )
+            )
+        ]
+        expected_cursor = 0
+        for candidate_index in candidates:
+            candidate = readable_entries[candidate_index]
+            best = None
+            for offset in range(expected_cursor, len(expected)):
+                distance = digit_distance(
+                    candidate["main_num"],
+                    expected[offset],
+                )
+                if distance <= 1:
+                    score = (distance, offset)
+                    if best is None or score < best[0]:
+                        best = (score, offset)
+            if best is None:
+                continue
+            expected_offset = best[1]
+            repaired = expected[expected_offset]
+            candidate["elector_num"] = str(repaired)
+            candidate["main_num"] = repaired
+            candidate["eno_sequence_repaired"] = True
+            kept_positions.add(candidate_index)
+            repaired_positions.add(candidate_index)
+            expected_cursor = expected_offset + 1
+
+    # A single leading excluded-code row immediately before the first primary
+    # anchor is still a readable elector row (for example a crossed-through A
+    # row). Recover its number from the adjacent anchor instead of retaining a
+    # badly damaged high reading as a supplemental elector.
+    if selected:
+        first_index, first_num = selected[0]
+        leading = [
+            index
+            for index in range(first_index)
+            if (
+                readable_entries[index].get("main_num") is not None
+                and readable_entries[index].get("eno_anchored") is True
+                and "/" not in str(
+                    readable_entries[index].get("elector_num") or ""
+                )
+            )
+        ]
+        if len(leading) == 1 and first_num > 1:
+            candidate_index = leading[0]
+            candidate = readable_entries[candidate_index]
+            expected = first_num - 1
+            if (
+                digit_distance(candidate["main_num"], expected) <= 1
+                or candidate.get("eligibility_reason")
+                == "excluded_eligibility"
+            ):
+                candidate["elector_num"] = str(expected)
+                candidate["main_num"] = expected
+                candidate["eno_sequence_repaired"] = True
+                kept_positions.add(candidate_index)
+                repaired_positions.add(candidate_index)
+
+    primary_values = [number for _index, number in selected]
+    primary_min = min(primary_values, default=0)
+    primary_max = max(primary_values, default=0)
+    supplemental_positions = set()
+    for index, entry in enumerate(readable_entries):
+        if index in kept_positions or entry.get("main_num") is None:
+            continue
+        if entry.get("eno_anchored") is not True:
+            continue
+        elector_num = str(entry.get("elector_num") or "")
+        if "/" in elector_num:
+            kept_positions.add(index)
+            supplemental_positions.add(index)
+            continue
+        main_num = int(entry["main_num"])
+        # Stafford's whole-number late additions use a high supplemental run.
+        # Low outliers are damaged ordinary numbers; genuine low late additions
+        # use slash notation and are handled above.
+        outside_primary_run = main_num > primary_max + maximum_gap
+        if (
+            outside_primary_run
+            and entry.get("eligibility_reason") != "excluded_eligibility"
+        ):
+            kept_positions.add(index)
+            supplemental_positions.add(index)
 
     filtered = [
         entry
         for index, entry in enumerate(readable_entries)
         if (
             entry.get("main_num") is None
-            or "/" in str(entry.get("elector_num") or "")
-            or index in selected_numbered_positions
+            or index in kept_positions
         )
     ]
-    excluded = len(numbered) - len(selected_numbered_positions)
+    numbered_input = sum(
+        entry.get("main_num") is not None
+        for entry in readable_entries
+    )
+    numbered_output = sum(
+        entry.get("main_num") is not None
+        for entry in filtered
+    )
+    excluded = numbered_input - numbered_output
+    unanchored_excluded = sum(
+        entry.get("main_num") is not None
+        and entry.get("eno_anchored") is not True
+        for entry in readable_entries
+    )
     if diagnostics is not None:
         diagnostics["out_of_sequence_rows_excluded"] += excluded
+        diagnostics["eno_unanchored_rows_excluded"] += (
+            unanchored_excluded
+        )
+        diagnostics["eno_sequence_numbers_repaired"] += len(
+            repaired_positions
+        )
+        diagnostics["eno_supplemental_numbers_preserved"] += len(
+            supplemental_positions
+        )
     return filtered
+
+
+def _ocr_column_line_records(image):
+    """Return OCR lines with spatial evidence for the printed ENO band."""
+    data = pytesseract.image_to_data(
+        image,
+        config=r"--oem 3 --psm 6 -c preserve_interword_spaces=1",
+        output_type=pytesseract.Output.DICT,
+    )
+    lines = {}
+    line_order = []
+    for index, raw_token in enumerate(data.get("text", [])):
+        token = str(raw_token or "").strip()
+        if not token:
+            continue
+        key = (
+            int(data["block_num"][index]),
+            int(data["par_num"][index]),
+            int(data["line_num"][index]),
+        )
+        if key not in lines:
+            lines[key] = []
+            line_order.append(key)
+        lines[key].append({
+            "text": token,
+            "left": int(data["left"][index]),
+        })
+
+    records = []
+    maximum_eno_left = image.size[0] * _ENO_ANCHOR_MAX_X_RATIO
+    for key in line_order:
+        tokens = lines[key]
+        text = " ".join(token["text"] for token in tokens)
+        first_numeric = next(
+            (
+                token
+                for token in tokens
+                if re.search(r"\d", token["text"])
+            ),
+            None,
+        )
+        records.append({
+            "text": text,
+            "eno_anchored": bool(
+                first_numeric
+                and first_numeric["left"] <= maximum_eno_left
+            ),
+        })
+    return records
 
 
 def _process_column(image, col_start, col_end, context_start_num=0,
@@ -760,14 +1076,12 @@ def _process_column(image, col_start, col_end, context_start_num=0,
     col_img = ImageOps.expand(col_img, border=70, fill="white")
     col_img = ImageEnhance.Contrast(col_img).enhance(1.3)
 
-    text = pytesseract.image_to_string(
-        col_img, config=r"--oem 3 --psm 6 -c preserve_interword_spaces=1"
-    )
+    line_records = _ocr_column_line_records(col_img)
 
     readable = []
     prev_num = context_start_num
-    for line in text.split("\n"):
-        line = line.strip()
+    for line_record in line_records:
+        line = line_record["text"].strip()
         if not line or len(line) < 3:
             continue
         if row_eligibility_filter and _is_removed_elector_line(line):
@@ -776,16 +1090,20 @@ def _process_column(image, col_start, col_end, context_start_num=0,
             continue
         elector_num, voted = _extract_elector_entry(line, prev_num)
         if elector_num:
+            eligibility_code = None
+            eligibility_reason = None
             if row_eligibility_filter:
                 raw_voted = voted
-                voted, eligibility_code, reason = _apply_row_eligibility_rules(
+                voted, eligibility_code, eligibility_reason = (
+                    _apply_row_eligibility_rules(
                     line, voted, excluded_codes
                 )
-                if reason == "removed":
+                )
+                if eligibility_reason == "removed":
                     # Kept as a defensive branch for OCR variants that only
                     # become recognisable after elector parsing.
                     continue
-                if reason == "excluded_eligibility":
+                if eligibility_reason == "excluded_eligibility":
                     if inference_diagnostics is not None:
                         inference_diagnostics["excluded_eligibility_rows_seen"] += 1
                         if raw_voted:
@@ -797,14 +1115,29 @@ def _process_column(image, col_start, col_end, context_start_num=0,
                 if context_start_num > 10 and main_num < context_start_num - 10:
                     continue
                 readable.append(
-                    {"elector_num": elector_num, "main_num": main_num, "voted": voted, "line": line}
+                    {
+                        "elector_num": elector_num,
+                        "main_num": main_num,
+                        "voted": voted,
+                        "line": line,
+                        "eno_anchored": line_record["eno_anchored"],
+                        "eligibility_code": eligibility_code,
+                        "eligibility_reason": eligibility_reason,
+                    }
                 )
                 prev_num = main_num
             except ValueError:
                 pass
         elif _is_likely_strikethrough(line):
             readable.append(
-                {"elector_num": None, "main_num": None, "voted": True, "line": line, "is_strikethrough": True}
+                {
+                    "elector_num": None,
+                    "main_num": None,
+                    "voted": True,
+                    "line": line,
+                    "is_strikethrough": True,
+                    "eno_anchored": line_record["eno_anchored"],
+                }
             )
 
     if row_eligibility_filter:
@@ -828,16 +1161,80 @@ def _process_column(image, col_start, col_end, context_start_num=0,
 
 
 def _detect_columns(image):
-    width, height = image.size
-    mid = image.crop((int(width * 0.33), 0, int(width * 0.66), height))
-    mid = ImageOps.expand(mid, border=70, fill="white")
-    mid = ImageEnhance.Contrast(mid).enhance(1.3)
-    text = pytesseract.image_to_string(mid, config=r"--oem 3 --psm 6")
-    count = sum(
-        1 for line in text.split("\n")
-        if re.match(r"^\d{1,4}\s*[—–\-]?\s*[A-Z][a-z]+", line.strip())
+    _centre_x, centre_score = _column_divider_run(
+        image, 0.44, 0.52
     )
-    return 3 if count >= 10 else 2
+    _first_x, first_score = _column_divider_run(
+        image, 0.28, 0.38
+    )
+    _second_x, second_score = _column_divider_run(
+        image, 0.60, 0.70
+    )
+    # Long printed rules span a substantial fraction of the page height.
+    # Ordinary glyph strokes in the same search bands are short. Requiring two
+    # strong third-width rules avoids the old false three-column classification
+    # caused by elector text appearing inside the middle third.
+    sampled_height = max(1, int(image.size[1] * 0.93) // 2)
+    minimum_rule_run = max(20, int(sampled_height * 0.08))
+    if (
+        first_score >= minimum_rule_run
+        and second_score >= minimum_rule_run
+        and min(first_score, second_score) > centre_score
+    ):
+        return 3
+    return 2
+
+
+def _column_divider_run(image, minimum_ratio, maximum_ratio):
+    """Return (x, run length) for a vertical rule search band.
+
+    Stafford's two-column divider ranges from roughly 46% to 50% of the page.
+    A fixed 50% crop can therefore remove the leading digits from the right ENO
+    field. Long-run detection distinguishes the column rule from short glyph
+    strokes without retaining any page content.
+    """
+    grayscale = image.convert("L")
+    width, height = grayscale.size
+    left = max(0, int(width * minimum_ratio))
+    right = min(width, int(width * maximum_ratio))
+    if right <= left:
+        return (left + right) // 2
+
+    pixels = grayscale.load()
+    y_start = int(height * 0.05)
+    y_end = int(height * 0.98)
+    y_step = 2
+    best_x = (left + right) // 2
+    best_run = -1
+    for x_pos in range(left, right):
+        current_run = 0
+        longest_run = 0
+        light_gaps = 0
+        for y_pos in range(y_start, y_end, y_step):
+            if pixels[x_pos, y_pos] < 160:
+                current_run += 1
+                light_gaps = 0
+            elif current_run and light_gaps < 2:
+                current_run += 1
+                light_gaps += 1
+            else:
+                longest_run = max(longest_run, current_run)
+                current_run = 0
+                light_gaps = 0
+        longest_run = max(longest_run, current_run)
+        if longest_run > best_run:
+            best_run = longest_run
+            best_x = x_pos
+    return best_x, best_run
+
+
+def _find_column_divider(image, minimum_ratio, maximum_ratio):
+    """Locate the strongest long vertical rule inside a layout search band."""
+    return _column_divider_run(
+        image,
+        minimum_ratio,
+        maximum_ratio,
+    )[0]
 
 
 def _process_page(image, context_num=0, ncols=None, inference_diagnostics=None,
@@ -851,7 +1248,13 @@ def _process_page(image, context_num=0, ncols=None, inference_diagnostics=None,
         ncols = _detect_columns(image)
     entries = []
     if ncols == 3:
-        for start, end in [(0, int(w * 0.32)), (int(w * 0.32), int(w * 0.64)), (int(w * 0.64), w)]:
+        first_divider = _find_column_divider(image, 0.28, 0.38)
+        second_divider = _find_column_divider(image, 0.60, 0.70)
+        for start, end in [
+            (0, first_divider),
+            (first_divider, second_divider),
+            (second_divider, w),
+        ]:
             col_entries, _ = _process_column(
                 image, start, end, 0, inference_diagnostics,
                 row_eligibility_filter, excluded_codes,
@@ -859,12 +1262,13 @@ def _process_page(image, context_num=0, ncols=None, inference_diagnostics=None,
             entries.extend(col_entries)
         last_num = context_num
     else:
+        divider = _find_column_divider(image, 0.44, 0.52)
         left, left_last = _process_column(
-            image, 0, int(w * 0.48), 0, inference_diagnostics,
+            image, 0, divider, 0, inference_diagnostics,
             row_eligibility_filter, excluded_codes,
         )
         right, right_last = _process_column(
-            image, int(w * 0.50), w, 0, inference_diagnostics,
+            image, divider, w, 0, inference_diagnostics,
             row_eligibility_filter, excluded_codes,
         )
         entries = left + right
@@ -2376,7 +2780,10 @@ def ocr_pdf(pdf_path, constituency_name, election_name, election_date_override="
             "excluded_eligibility_y_suppressed=%d, "
             "removed_elector_rows_excluded=%d, "
             "unreadable_strikethrough_rows_suppressed=%d, "
-            "out_of_sequence_rows_excluded=%d",
+            "out_of_sequence_rows_excluded=%d, "
+            "eno_unanchored_rows_excluded=%d, "
+            "eno_sequence_numbers_repaired=%d, "
+            "eno_supplemental_numbers_preserved=%d",
             inference_diagnostics["numeric_gap_rows_legacy_would_generate"],
             inference_diagnostics["explicit_strikethrough_rows_inferred"],
             inference_diagnostics["excluded_eligibility_rows_seen"],
@@ -2384,6 +2791,9 @@ def ocr_pdf(pdf_path, constituency_name, election_name, election_date_override="
             inference_diagnostics["removed_elector_rows_excluded"],
             inference_diagnostics["unreadable_strikethrough_rows_suppressed"],
             inference_diagnostics["out_of_sequence_rows_excluded"],
+            inference_diagnostics["eno_unanchored_rows_excluded"],
+            inference_diagnostics["eno_sequence_numbers_repaired"],
+            inference_diagnostics["eno_supplemental_numbers_preserved"],
         )
         logger.info("OCR complete (serial): %d entries extracted", len(rows))
         return rows, meta, {}, {}
@@ -2403,7 +2813,10 @@ def ocr_pdf(pdf_path, constituency_name, election_name, election_date_override="
         "excluded_eligibility_y_suppressed=%d, "
         "removed_elector_rows_excluded=%d, "
         "unreadable_strikethrough_rows_suppressed=%d, "
-        "out_of_sequence_rows_excluded=%d",
+        "out_of_sequence_rows_excluded=%d, "
+        "eno_unanchored_rows_excluded=%d, "
+        "eno_sequence_numbers_repaired=%d, "
+        "eno_supplemental_numbers_preserved=%d",
         inference_diagnostics["numeric_gap_rows_legacy_would_generate"],
         inference_diagnostics["explicit_strikethrough_rows_inferred"],
         inference_diagnostics["excluded_eligibility_rows_seen"],
@@ -2411,6 +2824,9 @@ def ocr_pdf(pdf_path, constituency_name, election_name, election_date_override="
         inference_diagnostics["removed_elector_rows_excluded"],
         inference_diagnostics["unreadable_strikethrough_rows_suppressed"],
         inference_diagnostics["out_of_sequence_rows_excluded"],
+        inference_diagnostics["eno_unanchored_rows_excluded"],
+        inference_diagnostics["eno_sequence_numbers_repaired"],
+        inference_diagnostics["eno_supplemental_numbers_preserved"],
     )
     logger.info(
         "OCR complete (chunk %s-%s): %d entries extracted", page_start, page_end, len(rows)

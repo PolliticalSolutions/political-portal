@@ -169,9 +169,12 @@ missing or reduced to a two-character prefix, at half size as a fallback. A
 district boundary requires the same code on the next page or after exactly one
 unreadable page; a different readable intervening code invalidates the match.
 
-The row filter removes numeric wrapped-address lines by retaining the strongest
-ordered roll-number sequence within each printed column. Slash-numbered late
-additions are always retained, even when they appear out of sequence.
+The row extractor locates each printed vertical column rule and accepts numeric
+candidates only from the narrow ENO band. It uses the strongest ordered run as
+an ordinary-number anchor, repairs a damaged number only where surrounding
+printed candidates support the repair, and preserves spatially anchored
+high-number or slash-number late additions. Dates printed over elector names
+and house numbers outside the ENO band are rejected.
 
 The successful combined result is an `.xlsx` workbook. Every cell is written
 as literal text, so roll numbers such as `12/3` cannot be silently converted to

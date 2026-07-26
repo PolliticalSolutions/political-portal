@@ -7,6 +7,8 @@ pages without storing elector names, addresses, images or source filenames.
 
 from pathlib import Path
 
+from PIL import Image, ImageDraw
+
 import process_register.handler as h
 
 
@@ -197,6 +199,150 @@ def test_monotonic_filter_preserves_out_of_order_late_subnumber():
 
     assert filtered == readable
     assert diagnostics["out_of_sequence_rows_excluded"] == 0
+
+
+def test_spatial_eno_filter_repairs_sequence_and_keeps_high_additions():
+    diagnostics = h._new_inference_diagnostics()
+    readable = [
+        {
+            "elector_num": "120",
+            "main_num": 120,
+            "eno_anchored": True,
+        },
+        {
+            "elector_num": "121",
+            "main_num": 121,
+            "eno_anchored": True,
+        },
+        {
+            "elector_num": "843",
+            "main_num": 843,
+            "eno_anchored": True,
+        },
+        {
+            "elector_num": "122",
+            "main_num": 122,
+            "eno_anchored": True,
+        },
+        {
+            "elector_num": "423",
+            "main_num": 423,
+            "eno_anchored": True,
+        },
+        {
+            "elector_num": "124",
+            "main_num": 124,
+            "eno_anchored": True,
+        },
+        {
+            "elector_num": "125",
+            "main_num": 125,
+            "eno_anchored": True,
+        },
+        {
+            "elector_num": "1/982",
+            "main_num": 1,
+            "eno_anchored": False,
+        },
+    ]
+
+    filtered = h._filter_monotonic_elector_entries(
+        readable,
+        diagnostics=diagnostics,
+    )
+
+    assert [entry["elector_num"] for entry in filtered] == [
+        "120", "121", "843", "122", "123", "124", "125",
+    ]
+    assert diagnostics["eno_sequence_numbers_repaired"] == 1
+    assert diagnostics["eno_supplemental_numbers_preserved"] == 1
+    assert diagnostics["eno_unanchored_rows_excluded"] == 1
+    assert diagnostics["out_of_sequence_rows_excluded"] == 1
+
+
+def test_spatial_eno_filter_repairs_compact_damaged_run():
+    diagnostics = h._new_inference_diagnostics()
+    readable = [
+        {
+            "elector_num": str(number),
+            "main_num": number,
+            "eno_anchored": True,
+        }
+        for number in (218, 219, 220, 224, 222, 23, 24, 225, 226)
+    ]
+
+    filtered = h._filter_monotonic_elector_entries(
+        readable,
+        diagnostics=diagnostics,
+    )
+
+    assert [entry["elector_num"] for entry in filtered] == [
+        str(number) for number in range(218, 227)
+    ]
+    assert diagnostics["eno_sequence_numbers_repaired"] == 3
+    assert diagnostics["out_of_sequence_rows_excluded"] == 0
+
+
+def test_column_line_records_distinguish_eno_from_name_column_date(
+        monkeypatch):
+    monkeypatch.setattr(
+        h.pytesseract,
+        "image_to_data",
+        lambda _image, config=None, output_type=None: {
+            "text": [
+                "843", "Sample,", "Elector",
+                "12/06/2025", "Sample,", "Elector",
+            ],
+            "left": [120, 300, 450, 330, 500, 650],
+            "block_num": [1, 1, 1, 1, 1, 1],
+            "par_num": [1, 1, 1, 1, 1, 1],
+            "line_num": [1, 1, 1, 2, 2, 2],
+        },
+    )
+
+    class FakeImage:
+        size = (1000, 2000)
+
+    assert h._ocr_column_line_records(FakeImage()) == [
+        {
+            "text": "843 Sample, Elector",
+            "eno_anchored": True,
+        },
+        {
+            "text": "12/06/2025 Sample, Elector",
+            "eno_anchored": False,
+        },
+    ]
+
+
+def test_missing_hundreds_digit_is_recovered_from_readable_context():
+    number, voted = h._extract_elector_entry(
+        "{21 Sample, Elector",
+        context_prev_num=120,
+    )
+    assert number == "121"
+    assert voted is False
+
+
+def test_column_divider_uses_long_vertical_rule_not_fixed_halfway_point():
+    image = Image.new("L", (1000, 1200), "white")
+    draw = ImageDraw.Draw(image)
+    draw.line((470, 60, 470, 1170), fill="black", width=2)
+    # A shorter text-like stroke must not replace the true column divider.
+    draw.line((500, 400, 500, 520), fill="black", width=3)
+
+    assert h._find_column_divider(image, 0.44, 0.52) in {470, 471}
+    assert h._detect_columns(image) == 2
+
+
+def test_column_count_requires_two_long_third_width_rules():
+    image = Image.new("L", (1000, 1200), "white")
+    draw = ImageDraw.Draw(image)
+    draw.line((330, 60, 330, 1170), fill="black", width=2)
+    draw.line((660, 60, 660, 1170), fill="black", width=2)
+    draw.line((500, 400, 500, 520), fill="black", width=3)
+
+    assert h._detect_columns(image) == 3
 
 
 def test_row_candidate_defaults_off_but_prod_config_enables_explicitly():

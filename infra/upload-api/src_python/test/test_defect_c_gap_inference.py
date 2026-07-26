@@ -232,6 +232,9 @@ def test_safe_labelled_baseline_candidate_comparison():
             "removed_elector_rows_excluded": 0,
             "unreadable_strikethrough_rows_suppressed": 0,
             "out_of_sequence_rows_excluded": 0,
+            "eno_unanchored_rows_excluded": 0,
+            "eno_sequence_numbers_repaired": 0,
+            "eno_supplemental_numbers_preserved": 0,
         }
         assert report["baseline_diagnostics"] == report["candidate_diagnostics"]
 
@@ -326,6 +329,9 @@ def test_ocr_metadata_records_counts_without_elector_content(monkeypatch):
         "removed_elector_rows_excluded": 0,
         "unreadable_strikethrough_rows_suppressed": 0,
         "out_of_sequence_rows_excluded": 0,
+        "eno_unanchored_rows_excluded": 0,
+        "eno_sequence_numbers_repaired": 0,
+        "eno_supplemental_numbers_preserved": 0,
     }
     assert set(meta["inference_diagnostics"]) == set(h._INFERENCE_DIAGNOSTIC_KEYS)
 

@@ -48,12 +48,16 @@ production-equivalent pass over the original PDFs:
 
 This uses the production 600 dpi colour OCR settings, evidence-only gap
 inference, two-scale fallback for missing or clipped page-header codes, and
-row-eligibility filtering. The row filter preserves slash-numbered late
-additions even when they are printed out of sequence. It processes full pages,
-so it takes materially longer than the header audit. The same privacy boundary
-applies: Docker networking is disabled, the source folder is read-only, and
-elector rows remain in memory. The saved report contains only aggregate counts
-and the final `PASS` or `WITHHOLD` quality-gate decision.
+row-eligibility filtering. The row extractor locates the printed vertical
+column rules, requires numeric candidates to begin inside the narrow ENO band,
+repairs OCR-damaged ordinary numbers only where readable anchors support the
+repair, and preserves spatially anchored high-number and slash-number late
+additions. Dates printed over names and house numbers outside the ENO band are
+rejected. It processes full pages, so it takes materially longer than the
+header audit. The same privacy boundary applies: Docker networking is disabled,
+the source folder is read-only, and elector rows remain in memory. The saved
+report contains only aggregate counts and the final `PASS` or `WITHHOLD`
+quality-gate decision.
 
 Do not release a result unless:
 
