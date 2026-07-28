@@ -509,11 +509,12 @@ def _resolve_job_districts_with_report(rows, page_districts, seed_district):
             continue
         rows_by_page.setdefault(page, []).append(row)
 
-    current_district = _trusted_district_code(seed_district)
-    accepted_districts = set()
-    first_accepted_page = None
-
-    for page in sorted(rows_by_page):
+    # Establish boundary events from every physical page header, including
+    # cover/transition pages that contain no elector rows. Short districts can
+    # otherwise disappear when their first corroborating header is on a cover
+    # page and their only row-bearing header has no matching code ahead of it.
+    corroborated_headers = {}
+    for page in sorted(headers):
         header = headers.get(page)
         corroborated = bool(header) and (
             headers.get(page + 1) == header
@@ -522,24 +523,38 @@ def _resolve_job_districts_with_report(rows, page_districts, seed_district):
                 and headers.get(page + 2) == header
             )
         )
+        if corroborated:
+            corroborated_headers[page] = header
+
+    current_district = _trusted_district_code(seed_district)
+    accepted_districts = set()
+    first_accepted_page = None
+    row_pages = sorted(rows_by_page)
+    last_row_page = row_pages[-1] if row_pages else -1
+
+    for page in sorted(set(row_pages) | {
+        boundary_page
+        for boundary_page in corroborated_headers
+        if boundary_page <= last_row_page
+    }):
+        header = corroborated_headers.get(page)
         # Header corroboration is the only accepted boundary: a printed code
         # repeated within the next two physical pages. Elector numbers are
         # intentionally not consulted — a numeric reset is no longer a boundary
         # signal (Defect A). A blank/None header simply inherits the running
         # district, which is how continuation pages actually behave.
-        if corroborated and header != current_district:
+        if header and header != current_district:
             current_district = header
             accepted_districts.add(header)
             if first_accepted_page is None:
                 first_accepted_page = page
-        elif corroborated:
+        elif header:
             accepted_districts.add(header)
             if first_accepted_page is None:
                 first_accepted_page = page
-        for r in rows_by_page[page]:
+        for r in rows_by_page.get(page, []):
             r["polling_district"] = current_district
 
-    row_pages = sorted(rows_by_page)
     recognised_header_pages = sum(
         bool(headers.get(page))
         for page in row_pages

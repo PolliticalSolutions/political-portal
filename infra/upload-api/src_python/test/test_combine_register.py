@@ -237,6 +237,23 @@ class TestResolveJobDistricts:
         assert set(_districts(rows)) == {"LA"}
         assert synthetic == set()
 
+    def test_corroborated_cover_header_establishes_short_district_boundary(self):
+        """A cover-page header can be the first half of corroboration even when
+        that page has no elector rows. This is the Stafford ECG transition:
+        page 63 and page 65 print ECG, while only pages 64-65 bear rows."""
+        rows = _rows([(64, "1"), (65, "2")])
+        synthetic, report = c._resolve_job_districts_with_report(
+            rows,
+            {"63": "ECG", "64": None, "65": "ECG"},
+            "ECF",
+        )
+
+        assert _districts(rows) == ["ECG", "ECG"]
+        assert synthetic == set()
+        assert report["trusted"] is True
+        assert report["accepted_districts"] == ["ECG"]
+        assert report["unresolved_leading_pages"] == 0
+
     def test_sub_numbered_electors_do_not_split(self):
         rows = _rows([(3, "47"), (3, "47/1"), (3, "48"), (4, "49"), (4, "50")])
         page_districts = {"3": "LA", "4": "LA"}

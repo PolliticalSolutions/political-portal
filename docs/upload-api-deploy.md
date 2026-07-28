@@ -168,6 +168,8 @@ Page headers are read at the production render size and, only when a code is
 missing or reduced to a two-character prefix, at half size as a fallback. A
 district boundary requires the same code on the next page or after exactly one
 unreadable page; a different readable intervening code invalidates the match.
+Corroboration uses every physical page header, including cover and transition
+pages without elector rows, before assigning the row-bearing pages.
 
 The row extractor locates each printed vertical column rule and accepts numeric
 candidates only from the narrow ENO band. It uses the strongest ordered run as
