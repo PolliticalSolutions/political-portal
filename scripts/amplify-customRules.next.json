@@ -1,5 +1,25 @@
 [
   {
+    "source": "</^/cart\\/?$/>",
+    "target": "/subscribe",
+    "status": "301"
+  },
+  {
+    "source": "</^/checkout/confirmation\\/?$/>",
+    "target": "/subscribe",
+    "status": "301"
+  },
+  {
+    "source": "</^/checkout\\/?$/>",
+    "target": "/subscribe",
+    "status": "301"
+  },
+  {
+    "source": "</^/subscriptions\\/?$/>",
+    "target": "/subscribe",
+    "status": "301"
+  },
+  {
     "source": "</^\\/$/>",
     "target": "/index.html",
     "status": "200"
@@ -7,6 +27,11 @@
   {
     "source": "</^/services\\/?$/>",
     "target": "/services/index.html",
+    "status": "200"
+  },
+  {
+    "source": "</^/subscribe\\/?$/>",
+    "target": "/subscribe/index.html",
     "status": "200"
   },
   {
@@ -20,13 +45,28 @@
     "status": "200"
   },
   {
-    "source": "</^/subscriptions\\/?$/>",
-    "target": "/subscriptions/index.html",
+    "source": "</^/campaign/volunteer\\/?$/>",
+    "target": "/campaign/volunteer/index.html",
     "status": "200"
   },
   {
     "source": "</^/enquire\\/?$/>",
     "target": "/enquire/index.html",
+    "status": "200"
+  },
+  {
+    "source": "</^/blog\\/?$/>",
+    "target": "/blog/index.html",
+    "status": "200"
+  },
+  {
+    "source": "</^/blog/2026-02-25-campaign-data-operations-baseline\\/?$/>",
+    "target": "/blog/2026-02-25-campaign-data-operations-baseline/index.html",
+    "status": "200"
+  },
+  {
+    "source": "</^/blog/2026-02-20-reducing-field-team-friction-better-handoffs\\/?$/>",
+    "target": "/blog/2026-02-20-reducing-field-team-friction-better-handoffs/index.html",
     "status": "200"
   },
   {
