@@ -1,5 +1,17 @@
 # Political Solutions — Design System & Visual Identity
-Last updated: May 2026
+Last updated: August 2026
+
+> **Revised 13 August 2026.** The colour, typography and logo sections were
+> rewritten to match the actual Political Solutions identity. The previous
+> version (May 2026) specified Proxima Nova, a different navy, a green CTA and
+> a logo that was never made — and contradicted itself on gold. Decks, Word
+> documents, the email signature and the Instagram cards have all been on the
+> identity below since August 2026; the website was the only holdout.
+> Everything outside those three sections is unchanged from May.
+>
+> **Source of truth for brand assets:** the `Brand/` folder of Paul's
+> knowledge base, and specifically `Brand/README - Logo usage.md`. If this
+> file and that one ever disagree, that one wins.
 
 ---
 
@@ -12,9 +24,9 @@ Political Solutions is a **professional intelligence platform** for Conservative
 
 ### Brand Personality
 
-**Primary:** Trusted and professional — commands confidence, never shouts for it.  
-**Secondary:** Authoritative — the data and analysis are serious; the design should reflect that.  
-**Tertiary:** Sharp and modern — not old-school Conservative, not stodgy; forward-thinking.  
+**Primary:** Trusted and professional — commands confidence, never shouts for it.
+**Secondary:** Authoritative — the data and analysis are serious; the design should reflect that.
+**Tertiary:** Sharp and modern — not old-school Conservative, not stodgy; forward-thinking.
 
 **Explicitly not:** Flashy, populist, over-animated, or politically garish. If it looks like a campaign leaflet or a generic SaaS template, it is wrong.
 
@@ -26,145 +38,135 @@ The platform serves Conservative professionals but presents as **neutral and pro
 
 ## Colour System
 
-The platform uses a **split scheme**: a light, clean marketing site and a dark, data-focused portal.
+The platform uses a **split scheme**: a light, clean marketing site and a dark, data-focused portal. Both draw on the same brand palette.
 
-### Brand Palette — The Five Values
+### Brand Palette
 
-These are the only brand colours. Everything else is utility.
+These are the only brand colours. Everything else is utility. They are the
+same values used by the deck kit, the document kit and the email signature —
+sampled from the source artwork, not estimated.
 
 | Token | Hex | Role |
 |---|---|---|
-| Deep Navy | `#0F2744` | Primary. Structure, authority, headers, nav. |
-| Mid Navy | `#2B4C7E` | Hover states, active elements, secondary surfaces. |
-| Slate | `#4A5C6E` | Second colour. Subheadings, labels, secondary UI. |
-| Near-white | `#F4F6F8` | Page backgrounds. Cool undertone — not warm. |
-| Utility Green | `#1A6B3C` | CTAs and success states only. Not a brand colour. |
+| Navy | `#101F36` | Primary. Structure, authority, headers, nav, dark backgrounds. |
+| Navy, deep | `#0C1729` | Darker stop for gradients and the portal base. |
+| Navy, mid | `#24384F` | Hover states, active elements, dividers on dark. |
+| Blue | `#0087DC` | The accent. CTAs, links, active states, data highlights. |
+| Blue, dark | `#005FA3` | CTA hover, table header fills. |
+| Blue, light | `#41A8EC` | Highlights on dark backgrounds, secondary chart series. |
+| Off-white | `#F5F7FA` | Page backgrounds; text on navy. |
+| Slate | `#5B6C82` | Secondary text on light backgrounds. |
+| Muted blue-grey | `#8DA0B8` | Secondary text on dark; captions, metadata. |
+| Hairline | `#E1E7EE` | Borders and dividers on light. |
 
-Gold is not used. It reads as aspirational-tacky, not authoritative. If something needs to feel premium, use contrast, spacing, and typography — not colour.
+**Blue is the accent, not green.** The old system used a utility green for
+CTAs. It was never a brand colour and it doesn't appear anywhere else in the
+identity. Brand blue does the job and ties the site to every other thing the
+business sends out.
+
+Gold is not used anywhere, on anything, including the logo. It reads as
+aspirational-tacky, not authoritative. If something needs to feel premium, use
+contrast, spacing and typography.
 
 ### Marketing Site (Light)
 
 ```css
---color-background:       #F4F6F8;   /* Cool near-white — calm, professional */
+--color-background:       #F5F7FA;   /* Cool off-white — calm, professional */
 --color-surface:          #FFFFFF;   /* Cards, panels */
---color-surface-raised:   #EBEef2;   /* Subtle panel variation */
---color-border:           #D8DDE3;   /* Borders, dividers */
+--color-surface-raised:   #F4F7FA;   /* Subtle panel variation */
+--color-border:           #E1E7EE;   /* Borders, dividers */
 
---color-text-primary:     #1A1A1A;   /* Near-black */
---color-text-secondary:   #4A5C6E;   /* Slate — secondary labels, body copy */
---color-text-muted:       #7A8A96;   /* Captions, metadata */
+--color-text-primary:     #101F36;   /* Navy — not a separate near-black */
+--color-text-secondary:   #5B6C82;   /* Slate — secondary labels, body copy */
+--color-text-muted:       #8DA0B8;   /* Captions, metadata */
 
---color-navy:             #0F2744;   /* Primary brand colour */
---color-navy-mid:         #2B4C7E;   /* Hover states, active elements */
---color-slate:            #4A5C6E;   /* Secondary accent */
---color-slate-light:      #E2E8ED;   /* Tinted slate backgrounds */
+--color-navy:             #101F36;   /* Primary brand colour */
+--color-navy-mid:         #24384F;   /* Hover states, active elements */
+--color-slate:            #5B6C82;   /* Secondary accent */
+--color-slate-light:      #E1E7EE;   /* Tinted backgrounds */
 
---color-cta:              #1A6B3C;   /* CTAs only */
---color-cta-hover:        #145530;
+--color-cta:              #0087DC;   /* Brand blue — CTAs */
+--color-cta-hover:        #005FA3;
 
 --color-danger:           #C0392B;
 --color-warning:          #C0670A;
 --color-success:          #1A6B3C;
---color-info:             #2B4C7E;
+--color-info:             #0087DC;
 ```
 
 ### Portal (Dark)
 
 ```css
---portal-bg:              #0D1117;   /* Near-black base */
---portal-surface:         #161B22;   /* Cards, panels */
---portal-surface-raised:  #1F2733;   /* Elevated panels, modals */
---portal-border:          #2A3441;   /* Subtle dividers */
+--portal-bg:              #0C1729;   /* Deep navy base */
+--portal-surface:         #101F36;   /* Cards, panels */
+--portal-surface-raised:  #1A2C46;   /* Elevated panels, modals */
+--portal-border:          #24384F;   /* Subtle dividers */
 --portal-border-strong:   #3A4D61;   /* Visible borders, table lines */
 
---portal-text-primary:    #E8EAF0;   /* Main text */
---portal-text-secondary:  #8A9BB0;   /* Secondary labels — cool, not warm grey */
+--portal-text-primary:    #F5F7FA;   /* Main text */
+--portal-text-secondary:  #8DA0B8;   /* Secondary labels */
 --portal-text-muted:      #526070;   /* Metadata, disabled */
 
---portal-navy:            #1E3A5F;   /* Active state backgrounds, highlighted rows */
+--portal-navy:            #24384F;   /* Active row backgrounds */
 --portal-slate:           #3A5068;   /* Softer secondary surfaces */
 
---portal-cta:             #2ECC71;   /* Green — brighter for dark bg */
---portal-cta-hover:       #27AE60;
+--portal-cta:             #0087DC;
+--portal-cta-hover:       #41A8EC;
 
 --portal-danger:          #E74C3C;
 --portal-warning:         #E67E22;
 --portal-success:         #2ECC71;
 
-/* Chart palette — cool, data-credible, no gold */
---portal-chart-1:         #4A90D9;   /* Blue */
---portal-chart-2:         #64B5A0;   /* Teal */
---portal-chart-3:         #2ECC71;   /* Green */
+/* Chart palette — brand blue leads, then cool neutrals. No gold. */
+--portal-chart-1:         #0087DC;   /* Brand blue */
+--portal-chart-2:         #41A8EC;   /* Light blue */
+--portal-chart-3:         #64B5A0;   /* Teal */
 --portal-chart-4:         #E74C3C;   /* Red */
---portal-chart-5:         #7F8FA6;   /* Slate-grey */
+--portal-chart-5:         #8DA0B8;   /* Muted blue-grey */
 ```
 
 ### Colour Rules
 
-- **Navy is for structure** — headers, nav, section anchors. Not for body text or decoration.
-- **Slate is the workhorse** — secondary text, labels, supporting UI elements. It does the quiet work.
-- **Green is functional, not decorative** — CTAs, success states, confirmation. That's it.
-- **No gold, ever** — if something needs to feel important, use weight, size, and spacing.
+- **Navy is for structure** — headers, nav, section anchors, dark panels.
+- **Blue is the accent and it is used sparingly** — CTAs, links, active states, the one thing on the page you want clicked. If everything is blue, nothing is.
+- **Slate is the workhorse** — secondary text, labels, supporting UI on light backgrounds. It does the quiet work.
+- **`#8DA0B8` is a dark-background colour.** It's designed to sit on navy. On white it is far too pale for body copy — use `#5B6C82` there. This trips people up.
+- **No gold, ever.**
 - **No purple, ever** — generic AI/SaaS cliché.
-- **No gradient meshes on navy** — flat is cleaner and more authoritative.
-- **Cool undertones throughout** — warm off-whites and beiges are out. This is a data platform, not a lifestyle brand.
+- **No gradient meshes on navy** — flat is cleaner and more authoritative. The one sanctioned gradient is the deck/cover background, a straight vertical `#101F36` → `#0C1729`.
+- **Cool undertones throughout** — warm off-whites and beiges are out.
+- **No hardcoded hexes in components.** Use the tokens. Hardcoded colours are how a palette drifts back after it's been fixed.
 
 ---
 
 ## Typography
 
-The platform uses **Proxima Nova** throughout. This is a licensed typeface — files must be self-hosted via `@font-face` in the CSS. Do not use Google Fonts fallbacks in production.
+The platform uses **Archivo** throughout. It is licensed under the SIL Open
+Font Licence 1.1 — free for web and commercial use, nothing to buy, no
+licence to track.
 
-**Font files available (licensed to Political Solutions):**
-- `Mark_Simonson_-_Proxima_Nova.otf` — Regular 400
-- `Mark_Simonson_-_Proxima_Nova_Semibold.otf` — Semibold 600
-- `Mark_Simonson_-_Proxima_Nova_Bold.otf` — Bold 700
-- `Mark_Simonson_-_Proxima_Nova_It.otf` — Italic 400
+**Load from Google Fonts.** The variable font is the right choice on the web.
 
-**Before deploying:** Convert all four `.otf` files to `.woff2` using [Transfonter](https://transfonter.org) (free, upload all four at once, tick "woff2", download). Place the resulting `.woff2` files in `/public/fonts/`. The filenames after conversion should match those in the `@font-face` declarations below exactly — rename if needed.
-
-```css
-/* Self-hosted — /public/fonts/ */
-@font-face {
-  font-family: 'Proxima Nova';
-  src: url('/fonts/Mark_Simonson_-_Proxima_Nova.woff2') format('woff2');
-  font-weight: 400;
-  font-style: normal;
-  font-display: swap;
-}
-@font-face {
-  font-family: 'Proxima Nova';
-  src: url('/fonts/Mark_Simonson_-_Proxima_Nova_Semibold.woff2') format('woff2');
-  font-weight: 600;
-  font-style: normal;
-  font-display: swap;
-}
-@font-face {
-  font-family: 'Proxima Nova';
-  src: url('/fonts/Mark_Simonson_-_Proxima_Nova_Bold.woff2') format('woff2');
-  font-weight: 700;
-  font-style: normal;
-  font-display: swap;
-}
-@font-face {
-  font-family: 'Proxima Nova';
-  src: url('/fonts/Mark_Simonson_-_Proxima_Nova_It.woff2') format('woff2');
-  font-weight: 400;
-  font-style: italic;
-  font-display: swap;
-}
-```
-
-**Preload the two most-used weights in `index.html` `<head>` for performance:**
 ```html
-<link rel="preload" href="/fonts/Mark_Simonson_-_Proxima_Nova.woff2" as="font" type="font/woff2" crossorigin>
-<link rel="preload" href="/fonts/Mark_Simonson_-_Proxima_Nova_Semibold.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;800&display=swap" />
 ```
 
-**System fallback stack (renders until fonts load):**
+If self-hosting is preferred, static cuts are in `Brand/fonts/` of the
+knowledge base. Note that those are named for Windows/Office (`Archivo
+ExtraBold` is its own family so Word will list it) — on the web you want the
+variable font and numeric weights.
+
+**Fallback stack:**
 ```css
-font-family: 'Proxima Nova', 'Gill Sans', 'Gill Sans MT', Calibri, 'Trebuchet MS', sans-serif;
+font-family: 'Archivo', 'Segoe UI', Helvetica, Arial, sans-serif;
 ```
+
+**Proxima Nova has been removed.** It is a commercial typeface, serving it as
+a webfont requires a webfont licence distinct from a desktop one, and it isn't
+the brand typeface. Delete the `.woff2` files from `public/fonts/`.
 
 ### Type Scale
 
@@ -182,34 +184,61 @@ font-family: 'Proxima Nova', 'Gill Sans', 'Gill Sans MT', Calibri, 'Trebuchet MS
 
 ### Type Rules
 
-- **Hero headings (h1):** `700`, tight tracking (`letter-spacing: -0.02em`), navy or near-black.
+- **Hero headings (h1):** `700`, tight tracking (`letter-spacing: -0.02em`), navy.
 - **Section headings (h2):** `600`, slight negative tracking (`-0.01em`).
 - **Subheadings (h3):** `600`, normal tracking.
 - **Body copy:** `400`, `1.6` line height, `--text-base`.
-- **Data tables:** `400` or `600` for headers, `--text-sm`, tighter line height (`1.3`).
+- **Data tables:** `400`, or `600` for headers, `--text-sm`, tighter line height (`1.3`).
 - **Labels and badges:** `600`, uppercase, `--text-xs`, tracked out (`letter-spacing: 0.08em`).
-- **Never use `font-weight: 800` or `900`** — too heavy for this brand register.
+- **Weight 800 is for the logo only** — and the logo is artwork, not live text, so in practice you never set it. Don't use 800 or 900 for headings; too heavy for this register.
 - **Never use decorative italics** for headings. Italics only for citations, legal text, or emphasis within body copy.
 
 ---
 
 ## Logo
 
-The current logo needs a full refresh. The new logo should:
+The logo exists and is finished. Do not redesign it, redraw it, or set the
+wordmark as live text.
 
-- Use the wordmark **"Political Solutions"** — no strapline at small sizes.
-- Optionally include a **monogram mark** (`PS`) for favicon, app icon, and portal header uses.
-- Be set in **Proxima Nova Bold** or a close geometric equivalent.
-- Use **navy (`#0F2744`)** as primary, with an optional **gold (`#C9A84C`)** accent on the mark only.
-- Have a **light version** (navy on white) and a **dark version** (white/gold on dark) — both required.
-- Avoid: shields, rosettes, flags, maps of Britain, compass roses, generic data iconography. These are clichés.
-- Aim for: clean, geometric, something that could sit on a professional's desk without embarrassment.
+**The mark** is a five-segment arc — the Commons benches and a swingometer in
+one shape. The two right-hand segments are brand blue and read as seats won.
+It is deliberately abstract: it belongs to a political business without being
+a picture of a ballot paper.
 
-Logo files needed:
-- `logo-light.svg` — for marketing site header
-- `logo-dark.svg` — for portal header, dark backgrounds
-- `logo-mark.svg` — monogram only, for favicon / compact uses
-- `favicon.ico` / `favicon.svg` — 32×32 minimum
+**The wordmark** is "Political Solutions" in Archivo ExtraBold, with the
+strapline "UK POLITICAL OPERATIONS PLATFORM" tracked to finish flush with the
+right edge of the wordmark.
+
+### Files
+
+All artwork has its text **converted to vector paths**, so it renders
+identically everywhere and cannot substitute to the wrong font. This matters:
+the original SVGs specified a font family that almost nothing has, and the
+wordmark was silently falling back to a default sans on any machine that
+opened them.
+
+| Use | File |
+|---|---|
+| Marketing site header | `ps-lockup-light-outlined.svg` |
+| Portal header, dark backgrounds | `ps-lockup-dark-outlined.svg` |
+| Anywhere under ~200px wide | `ps-lockup-notag-light-outlined.svg` / `-dark-` |
+| Mark alone (compact UI, app icon) | `ps-mark-primary.svg` / `ps-mark-reversed.svg` |
+| Favicon | `favicon.svg`, with PNG fallbacks |
+| Social preview | `og-image.png` (1200×630) |
+
+### Rules
+
+- **Set width or height, never both.** The full lockup is 4.5:1, the
+  no-strapline version 8.1:1. Setting both stretches it.
+- **Below about 200px wide, use the no-strapline version.** The strapline is
+  tracked to the wordmark's width, so at small sizes it renders under 6pt and
+  becomes a grey smear. Dropping it is better than shipping illegible type.
+- **Clear space:** at least the height of the arc on all sides.
+- **Minimum size:** 24px for the mark alone. Below that the segment gaps close up.
+- **Don't** add effects, gradients, outlines or drop shadows. Don't recolour
+  outside the palette. Don't stretch. Don't re-space the lockup.
+- **Don't** put "Ltd" anywhere near it — that belongs in the footer and on invoices.
+- There is **no monogram and no gold accent.** Both were in the old spec; neither exists.
 
 ---
 
@@ -267,12 +296,13 @@ Three variants only. No ghost buttons on dark backgrounds (illegible at small si
 }
 .btn-secondary:hover { background: var(--color-navy); color: #FFFFFF; }
 
-/* CTA — action green, used for the single most important action per page */
+/* CTA — brand blue, used for the single most important action per page */
 .btn-cta {
   background: var(--color-cta);
   color: #FFFFFF;
   /* Same padding, font as primary */
 }
+.btn-cta:hover { background: var(--color-cta-hover); }
 ```
 
 ### Cards
@@ -332,8 +362,8 @@ Three variants only. No ghost buttons on dark backgrounds (illegible at small si
 .badge-active    { background: #D4EDDA; color: #1A6B3C; }
 .badge-warning   { background: #FDECD5; color: #7D3D00; }
 .badge-danger    { background: #FDEDEC; color: #922B21; }
-.badge-neutral   { background: #E2E8ED; color: #4A5C6E; }
-.badge-info      { background: #D6E4F0; color: #0F2744; }
+.badge-neutral   { background: #E1E7EE; color: #5B6C82; }
+.badge-info      { background: #D6E9F8; color: #005FA3; }
 /* Portal variants use slightly brighter fills on dark bg */
 ```
 
@@ -341,15 +371,16 @@ Three variants only. No ghost buttons on dark backgrounds (illegible at small si
 
 **Marketing site nav:**
 - White or off-white background, full width.
-- Logo left, links right, single CTA button (navy or CTA green) at far right.
+- Logo left, links right, single CTA button at far right.
 - Links: `--text-sm`, `600`, navy, no underlines, no hover underlines — use colour shift only.
 - Sticky on scroll; add a `1px` bottom border `rgba(0,0,0,0.08)` on scroll.
+- Logo sizing: set the height (`clamp(28px, 3vw, 36px)`), let width follow.
 
 **Portal sidebar:**
 - Dark background (`--portal-bg`).
-- Logo top-left, monogram mark acceptable here.
+- Logo top-left — use `ps-lockup-notag-dark-outlined.svg`, or the mark alone if the sidebar collapses.
 - Nav groups with uppercase section labels (`--text-xs`, `600`, muted).
-- Active state: left border `3px solid var(--portal-accent)` + slightly lighter background.
+- Active state: left border `3px solid var(--portal-cta)` + slightly lighter background.
 - No icons unless they are unambiguous and necessary. Text-only is preferred.
 
 ---
@@ -372,7 +403,7 @@ Three variants only. No ghost buttons on dark backgrounds (illegible at small si
 - **Data density is a feature** — the portal is for professionals. Do not pad it out to feel more "consumer". Tables should be dense enough to be useful on a single screen.
 - **Empty states must be designed** — never show a blank white box. Empty states should explain what the section does and how to populate it.
 - **Loading states** — use skeleton placeholders, not spinners on every component.
-- **Alert and status banners** — stay at the top of the content area, below the page header. Navy or gold for informational; red for errors. No popups.
+- **Alert and status banners** — stay at the top of the content area, below the page header. Navy or blue for informational; red for errors. No popups.
 
 ---
 
@@ -397,14 +428,15 @@ Every public page must have:
 </Helmet>
 ```
 
-- OG image (`/og-image.png`): `1200×630px`, navy background, white wordmark, gold accent. Static file — not dynamically generated per page.
+- OG image (`/og-image.png`): `1200×630px`, navy background, reversed lockup, centred. Static file — not dynamically generated per page.
+- The JSON-LD organisation logo wants a **square** image (`/logo512.png`), which is a different asset from the social card. Keep them separate — `LOGO_PATH` for schema, `OG_IMAGE_PATH` for social.
 - Blog posts get individual OG images and article structured data.
 - Portal pages are `noindex` — already handled by `noindexPrefixes` in `seoRoutes.js`. Do not add meta robots tags manually.
 
 ### Performance
 
-- All images: WebP format, explicit `width` and `height` attributes, `loading="lazy"` except above-the-fold.
-- Proxima Nova fonts: `font-display: swap`, preload the two most common weights (`400`, `600`) in `<head>`.
+- All images: WebP format, explicit `width` and `height` attributes, `loading="lazy"` except above-the-fold. **Exception: the logo is SVG** — it's a few KB, scales perfectly, and shouldn't be rasterised.
+- Archivo: `display=swap`, loaded from Google Fonts with `preconnect`.
 - No render-blocking scripts.
 - Core Web Vitals targets: LCP < 2.5s, CLS < 0.1, FID < 100ms.
 
@@ -429,12 +461,12 @@ Political Solutions speaks like a senior professional — someone who knows thei
 
 **Be direct.** Lead with the point. No preamble, no "we're excited to announce", no fluffy mission statements. If the sentence can be shorter without losing meaning, make it shorter.
 
-> ✗ "Our comprehensive constituency intelligence platform provides campaign professionals with the data-driven insights they need to make informed strategic decisions."  
+> ✗ "Our comprehensive constituency intelligence platform provides campaign professionals with the data-driven insights they need to make informed strategic decisions."
 > ✓ "Every constituency. Every election. One platform."
 
 **Earn credibility, don't claim it.** Never write "world-class", "best-in-class", "cutting-edge", or "revolutionary". Show what the product does; let the reader decide.
 
-> ✗ "Our cutting-edge AI-powered analysis delivers world-class insights."  
+> ✗ "Our cutting-edge AI-powered analysis delivers world-class insights."
 > ✓ "Vulnerability scores across all 650 constituencies, updated after every election cycle."
 
 **Know the audience.** Users are Conservative agents, MPs' offices, and campaign managers. They know what a marked register is. They know what a swing is. Do not explain basic political concepts to them.
@@ -480,6 +512,9 @@ These are banned. If any of these exist on the site currently, they should be fi
 | Font weight 800+ in headings | Too heavy for this brand register |
 | All-caps body text | Unreadable at length |
 | Blue hyperlinks in body copy | Use navy underline, not browser default blue |
+| **Hardcoded hex values in components** | How a palette silently drifts back after it's been fixed |
+| **The wordmark set as live text** | It substitutes to the wrong font and nobody notices. Use the outlined SVG. |
+| **`#8DA0B8` as body text on white** | It's a dark-background colour. Use `#5B6C82`. |
 
 ---
 
@@ -487,50 +522,10 @@ These are banned. If any of these exist on the site currently, they should be fi
 
 - All CSS variables go in `:root {}` in `src/index.css` — this is the existing pattern, do not break it.
 - The codebase uses **pure CSS only** — no Tailwind, no CSS-in-JS. This rule does not change.
-- Proxima Nova font files will be provided by the user and placed in `/public/fonts/`. The `@font-face` declarations go in `src/index.css`.
+- Archivo loads from Google Fonts in `index.html`. There are no self-hosted font files; `public/fonts/` should be empty.
 - The portal uses a dark theme — CSS variables for portal should be scoped under a `.portal-layout` class or `[data-theme="dark"]` attribute set on `PortalLayout.jsx`.
 - Do not touch `src/context/PermissionsContext.jsx` or `src/lib/permissionsApi.js` during any visual refresh work.
 - `paul@politicalsolutions.uk` always has full admin access — this must remain true regardless of any changes to portal UI.
 - Component changes should be made to shared components in `src/components/` first, then verified on individual pages.
 - Any changes to `PortalLayout.jsx` (sidebar nav, header) must be tested with both admin and non-admin user states.
-
----
-
-## Prompt for Claude Code — Design Refresh Implementation
-
-Use this prompt when handing this task to Claude Code:
-
----
-
-> **Read `POLITICAL_SOLUTIONS_CONTEXT.md`, `CODEBASE_MAP.md`, and `POLITICAL_SOLUTIONS_DESIGN_SYSTEM.md` before doing anything else.**
->
-> Implement the Political Solutions design system refresh as defined in `POLITICAL_SOLUTIONS_DESIGN_SYSTEM.md`. This is a pure CSS and component-level visual refresh — no changes to business logic, routing, auth, permissions, Lambda functions, or Supabase queries.
->
-> **Scope:**
-> 1. Update all CSS custom properties in `src/index.css` to match the colour and spacing tokens in the design system file.
-> 2. Implement the split theme: marketing site uses light variables, portal uses dark variables scoped to `.portal-layout`.
-> 3. Update `src/components/Button.jsx` to implement the three-variant button system (primary, secondary, CTA).
-> 4. Update `src/components/Card.jsx` to match the card standards.
-> 5. Update `src/components/Badge.jsx` to match badge standards.
-> 6. Update the marketing site nav (Header component) to match nav layout principles.
-> 7. Update `PortalLayout.jsx` sidebar to match portal nav standards. Test with both admin and non-admin states.
-> 8. Add `@font-face` declarations for Proxima Nova to `src/index.css`. Use `font-display: swap`. Paul will place the `.woff2` files in `/public/fonts/` — placeholder declarations are fine until then; use the system fallback stack in the interim.
->
-> **Constraints:**
-> - Pure CSS only. No Tailwind, no CSS-in-JS, no inline style objects except for dynamic values.
-> - Do not modify: `PermissionsContext.jsx`, `permissionsApi.js`, any Lambda handlers, any Supabase query functions, `App.jsx` routing, or any auth files.
-> - Do not introduce any new npm packages.
-> - PowerShell for all terminal commands — no `&&` operators.
-> - Always target `ps-upload-api-prod` (API ID `77i4hpcez8`) if any backend work is required.
-> - `paul@politicalsolutions.uk` must retain full admin access throughout.
->
-> **Verify by:**
-> 1. Running `npm run dev` and checking the homepage, `/portal`, and at least one constituency detail page visually.
-> 2. Confirming the portal sidebar renders correctly for both admin and non-admin accounts.
-> 3. Confirming all three button variants render correctly across marketing and portal pages.
-> 4. Confirming font fallbacks display correctly before Proxima Nova files are added.
-> 5. Run `npm run build` — it must complete without errors.
-
----
-
-*End of design system file.*
+- Brand assets live in `src/assets/brand/` (SVG) and `public/` (favicons, OG card). The masters are in the `Brand/` folder of Paul's knowledge base — regenerate from there, don't edit the copies in the repo.

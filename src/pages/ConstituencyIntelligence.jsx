@@ -1,117 +1,179 @@
 import { Link } from "react-router-dom";
 import Button from "../components/Button.jsx";
-import Card from "../components/Card.jsx";
-import Footer from "../components/Footer.jsx";
-import campaignDataPng from "../assets/campaign-data.png";
-import campaignDataWebp from "../assets/campaign-data.webp";
-import campaignDataMobileWebp from "../assets/campaign-data-mobile.webp";
+import Footer from "../components/PublicFooter.jsx";
+
+const evidenceAreas = [
+  {
+    number: "01",
+    title: "Election history",
+    body: "Review recorded election results and compare the electoral history held for a constituency.",
+  },
+  {
+    number: "02",
+    title: "Demographic context",
+    body: "Use 2021 Census data alongside constituency election evidence.",
+  },
+  {
+    number: "03",
+    title: "Swing analysis",
+    body: "Review recorded swing between election pairs and compare it with national context.",
+  },
+  {
+    number: "04",
+    title: "Vulnerability and party-specific threat",
+    body:
+      "Review vulnerability scores and Reform UK, Liberal Democrat and Green Party threat indices.",
+  },
+];
+
+const evidenceSequence = [
+  { label: "Election history", className: "intelligence-hero__bar-fill--history" },
+  { label: "Demographic context", className: "intelligence-hero__bar-fill--demographic" },
+  { label: "Swing analysis", className: "intelligence-hero__bar-fill--swing" },
+  { label: "Vulnerability", className: "intelligence-hero__bar-fill--vulnerability" },
+  { label: "Threat analysis", className: "intelligence-hero__bar-fill--threat" },
+];
 
 export default function ConstituencyIntelligence() {
   return (
-    <div className="page">
-      <section className="section">
-        <div className="container hero">
-          <div>
-            <h1>Constituency Intelligence</h1>
-            <p className="muted">
-              Current data on every Conservative-held and target seat — built for associations and campaign
-              managers
+    <div className="page product-page intelligence-page">
+      <section
+        className="product-section intelligence-hero-section"
+        aria-labelledby="intelligence-hero-title"
+      >
+        <div className="container product-hero intelligence-hero">
+          <div className="product-hero__copy">
+            <p className="product-eyebrow">Constituency Intelligence</p>
+            <h1 id="intelligence-hero-title">Know the ground before you plan the campaign</h1>
+            <p className="product-hero__lead">
+              Bring election history, demographics, swing analysis, vulnerability scores and
+              party-specific threat indices into the decisions that shape your campaign.
             </p>
-            <div className="hero-actions">
-              <Button as={Link} to="/enquire?service=constituency-intelligence" variant="primary">
-                Request a briefing
+            <p className="product-hero__audience">
+              For Conservative associations and campaign teams comparing the constituencies they
+              are permitted to access.
+            </p>
+            <div className="product-actions">
+              <Button
+                as={Link}
+                to="/enquire?service=constituency-intelligence"
+                variant="primary"
+              >
+                Discuss your constituencies
               </Button>
-              <Button as={Link} to="/services" variant="secondary">
-                Back to services
-              </Button>
+              <Link className="product-text-link product-text-link--reversed" to="/services/election-support">
+                Explore campaign support <span aria-hidden="true">→</span>
+              </Link>
             </div>
           </div>
-          <div className="hero-visual services-hero-visual">
-            <picture>
-              <source
-                type="image/webp"
-                srcSet={`${campaignDataMobileWebp} 768w, ${campaignDataWebp} 1536w`}
-                sizes="(max-width: 768px) 768px, 1536px"
-              />
-              <img
-                className="hero-visual-image services-hero-image"
-                src={campaignDataPng}
-                alt="Campaign data and constituency analysis"
-                width={1536}
-                height={1024}
-                loading="eager"
-                decoding="async"
-              />
-            </picture>
-          </div>
-        </div>
-      </section>
 
-      <section className="section muted">
-        <div className="container stack">
-          <h2 className="section-title">What Constituency Intelligence covers</h2>
-          <div className="grid">
-            <Card title="Council composition data">
-              <p className="muted">
-                Up-to-date council control, ward-level results, and political balance for every local authority
-                in England and Wales. Track which councils have changed hands, which are under no overall
-                control, and how your target seats sit within their local government context.
-              </p>
-            </Card>
-            <Card title="By-election tracking">
-              <p className="muted">
-                Monitor parliamentary and local by-elections as they are called and completed. Constituency
-                Intelligence captures swing data, turnout changes, and vote share shifts so associations and
-                campaign managers can assess risk and opportunity in real time.
-              </p>
-            </Card>
-            <Card title="Electoral history">
-              <p className="muted">
-                Full general election results going back multiple cycles for every constituency, presented
-                alongside demographic context and current incumbency data. Compare seats, identify trends, and
-                brief candidates with accurate historical baselines.
-              </p>
-            </Card>
-          </div>
-        </div>
-      </section>
-
-      <section className="section">
-        <div className="container grid">
-          <Card title="Who it is for">
-            <div className="stack" style={{ gap: 8 }}>
-              <p className="muted" style={{ margin: 0 }}>
-                Campaign planners, researchers, association officers, and headquarters teams who need reliable
-                seat-level data without building their own research function.
-              </p>
-              <p className="muted" style={{ margin: 0 }}>
-                Access is provided through the Political Solutions portal on a subscription basis. Contact us
-                to confirm whether your association is covered and discuss onboarding.
-              </p>
+          <figure className="intelligence-hero__figure">
+            <div
+              className="intelligence-hero__plot"
+              role="img"
+              aria-label="Editorial summary of Constituency Intelligence evidence categories, not a product interface"
+            >
+              <div className="intelligence-hero__plot-head">
+                <span>Evidence category</span>
+                <span>Campaign context</span>
+              </div>
+              <ol>
+                {evidenceSequence.map((item, index) => (
+                  <li key={item.label}>
+                    <span className="intelligence-hero__number">
+                      {String(index + 1).padStart(2, "0")}
+                    </span>
+                    <strong>{item.label}</strong>
+                    <span className="intelligence-hero__bar" aria-hidden="true">
+                      <i className={item.className} />
+                    </span>
+                  </li>
+                ))}
+              </ol>
             </div>
-          </Card>
-          <Card title="Compliance note">
-            <p className="muted" style={{ margin: 0 }}>
-              Constituency Intelligence draws on publicly available electoral data and council records.
-              Clients remain responsible for how they use data outputs in their own campaign operations and
-              regulated spending decisions.
-            </p>
-          </Card>
+            <figcaption>
+              An editorial summary of evidence categories, not a product interface.
+            </figcaption>
+          </figure>
         </div>
       </section>
 
-      <section className="section">
-        <div className="container cta-section">
-          <div>
-            <h2>Ready to see what Constituency Intelligence covers for your seats?</h2>
+      <section className="product-section intelligence-evidence" aria-labelledby="intelligence-evidence-title">
+        <div className="container">
+          <header className="product-section-heading product-section-heading--wide">
+            <p className="product-eyebrow">Evidence in the workspace</p>
+            <h2 id="intelligence-evidence-title">Move from election history to campaign context</h2>
+            <p>
+              Start with recorded election results and demographic context, then review swing,
+              vulnerability and party-specific threat analysis at constituency level.
+            </p>
+          </header>
+
+          <ol className="intelligence-evidence__grid">
+            {evidenceAreas.map((area) => (
+              <li key={area.title}>
+                <span aria-hidden="true">{area.number}</span>
+                <h3>{area.title}</h3>
+                <p>{area.body}</p>
+              </li>
+            ))}
+          </ol>
+        </div>
+      </section>
+
+      <section className="product-section intelligence-role" aria-labelledby="intelligence-role-title">
+        <div className="container intelligence-role__layout">
+          <div className="intelligence-role__statement">
+            <p className="product-eyebrow">Role in campaign work</p>
+            <h2 id="intelligence-role-title">Evidence for the decisions made before polling day</h2>
           </div>
-          <div className="hero-actions">
-            <Button as={Link} to="/enquire?service=constituency-intelligence" variant="primary">
-              Request a briefing
+          <div className="intelligence-role__body">
+            <p>
+              Constituency Intelligence brings the constituency evidence held by Political
+              Solutions into one workspace for planning and comparison. It supports campaign
+              judgement; it does not replace separately scoped campaign management or promise an
+              electoral outcome.
+            </p>
+          </div>
+        </div>
+      </section>
+
+      <section className="product-section intelligence-access" aria-labelledby="intelligence-access-title">
+        <div className="container intelligence-access__panel">
+          <div>
+            <p className="product-eyebrow">Access</p>
+            <h2 id="intelligence-access-title">Access follows your organisation&apos;s permissions</h2>
+          </div>
+          <p>
+            Portal access is tied to the user&apos;s organisation and permitted constituencies.
+            Request a conversation to confirm coverage and onboarding for your team.
+          </p>
+        </div>
+      </section>
+
+      <section className="product-section product-closing" aria-labelledby="intelligence-closing-title">
+        <div className="container product-closing__panel">
+          <div>
+            <p className="product-eyebrow">Next step</p>
+            <h2 id="intelligence-closing-title">
+              Discuss the constituencies that matter to your campaign
+            </h2>
+            <p>
+              Tell us about your organisation, the relevant constituencies and who needs access. We
+              will confirm the appropriate next step.
+            </p>
+          </div>
+          <div className="product-actions product-closing__actions">
+            <Button
+              as={Link}
+              to="/enquire?service=constituency-intelligence"
+              variant="primary"
+            >
+              Discuss your constituencies
             </Button>
-            <Button as={Link} to="/services" variant="secondary">
-              View all services
-            </Button>
+            <Link className="product-text-link" to="/services/election-support">
+              Explore campaign support <span aria-hidden="true">→</span>
+            </Link>
           </div>
         </div>
       </section>

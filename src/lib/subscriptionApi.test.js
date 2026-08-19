@@ -57,19 +57,11 @@ describe("subscriptionApi", () => {
     expect(rows[0].evidence_status).toBe("fallback");
   });
 
-  it("posts payment-intent requests to the Stripe API", async () => {
-    vi.stubEnv("VITE_STRIPE_API_URL", "https://api.example.com/stripe");
-    global.fetch.mockResolvedValue({
-      ok: true,
-      json: () => Promise.resolve({ client_secret: "pi_secret" }),
-    });
-
-    const result = await createSubscriptionPaymentIntent({ association_id: "assoc-1" });
-    expect(result.client_secret).toBe("pi_secret");
-    expect(global.fetch).toHaveBeenCalledWith(
-      "https://api.example.com/stripe/create-payment-intent",
-      expect.objectContaining({ method: "POST" })
+  it("does not expose the retired one-time card payment route", () => {
+    expect(() => createSubscriptionPaymentIntent({ association_id: "assoc-1" })).toThrow(
+      "One-time card payments are retired. Use annual Stripe Checkout."
     );
+    expect(global.fetch).not.toHaveBeenCalled();
   });
 
   it("posts invoice requests to the Stripe API", async () => {

@@ -94,7 +94,8 @@ async function postStripeApi(path, payload) {
 }
 
 export function createSubscriptionPaymentIntent(payload) {
-  return postStripeApi("/create-payment-intent", payload);
+  void payload;
+  throw new Error("One-time card payments are retired. Use annual Stripe Checkout.");
 }
 
 export function requestSubscriptionInvoice(payload) {

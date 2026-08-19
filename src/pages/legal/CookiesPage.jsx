@@ -1,5 +1,5 @@
 import Card from "../../components/Card.jsx";
-import Footer from "../../components/Footer.jsx";
+import Footer from "../../components/PublicFooter.jsx";
 
 export default function CookiesPage() {
   return (

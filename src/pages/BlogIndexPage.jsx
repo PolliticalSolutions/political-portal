@@ -1,6 +1,6 @@
 import { Link } from "react-router-dom";
 import Button from "../components/Button.jsx";
-import Footer from "../components/Footer.jsx";
+import Footer from "../components/PublicFooter.jsx";
 import { getAllPosts } from "../blog/blogLoader.js";
 import { formatBlogDate } from "../blog/formatBlogDate.js";
 import { getBlogEffectiveDate } from "../blog/postDates.js";

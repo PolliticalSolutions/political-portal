@@ -2,7 +2,7 @@ import ReactMarkdown from "react-markdown";
 import { Link, useLocation, useParams } from "react-router-dom";
 import { Helmet } from "react-helmet-async";
 import Button from "../components/Button.jsx";
-import Footer from "../components/Footer.jsx";
+import Footer from "../components/PublicFooter.jsx";
 import { getPostBySlug } from "../blog/blogLoader.js";
 import { formatBlogDate } from "../blog/formatBlogDate.js";
 import { getBlogEffectiveDate } from "../blog/postDates.js";

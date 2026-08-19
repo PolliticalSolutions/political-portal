@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import Button from "../components/Button.jsx";
 import Card from "../components/Card.jsx";
-import Footer from "../components/Footer.jsx";
+import Footer from "../components/PublicFooter.jsx";
 import { listAssociationsWithPricing } from "../lib/subscriptionApi.js";
 import { calculateAssociationSubscriptionPricing, formatPenceToPounds } from "../lib/subscriptionPricing.js";
 

@@ -488,12 +488,6 @@ Resources:
               - cognito-idp:AdminSetUserPassword
             Resource: !Sub "arn:aws:cognito-idp:${AWS::Region}:${AWS::AccountId}:userpool/*"
       Events:
-        StripeCreatePaymentIntent:
-          Type: HttpApi
-          Properties:
-            ApiId: !Ref EnquiryApi
-            Path: /stripe/create-payment-intent
-            Method: POST
         StripeCreateInvoice:
           Type: HttpApi
           Properties:

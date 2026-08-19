@@ -1,5 +1,5 @@
 import { lazy, Suspense, useCallback, useEffect, useRef, useState } from "react";
-import { Link, NavLink, Navigate, Route, Routes } from "react-router-dom";
+import { Link, NavLink, Navigate, Route, Routes, useLocation } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { clearStoredSession, getStoredTokens, refreshTokens, startLogout } from "./lib/cognito.js";
 import { clearMeCache } from "./lib/uploadApi.js";
@@ -10,11 +10,8 @@ import IdleWarning from "./components/IdleWarning.jsx";
 import ProtectedRoute from "./components/ProtectedRoute.jsx";
 import Callback from "./pages/Callback.jsx";
 import Cart from "./pages/Cart.jsx";
-import CartEntry from "./pages/CartEntry.jsx";
 import Checkout from "./pages/Checkout.jsx";
-import CheckoutEntry from "./pages/CheckoutEntry.jsx";
 import CheckoutConfirmation from "./pages/CheckoutConfirmation.jsx";
-import CheckoutConfirmationEntry from "./pages/CheckoutConfirmationEntry.jsx";
 import Home from "./pages/Home.jsx";
 import Login from "./pages/Login.jsx";
 // Public pages — lazy split so Supabase and heavy deps only load when needed
@@ -77,8 +74,12 @@ const CookiesPage = lazy(() => import("./pages/legal/CookiesPage.jsx"));
 const PrivacyPage = lazy(() => import("./pages/legal/PrivacyPage.jsx"));
 const TermsPage = lazy(() => import("./pages/legal/TermsPage.jsx"));
 import brandLogo from "./assets/brand/political-solutions-logo.webp";
+import publicHeaderLockup from "./assets/brand/ps-lockup-light-outlined.svg";
+import publicHeaderCompactLockup from "./assets/brand/ps-lockup-notag-light-outlined.svg";
 import RouteSeo from "./seo/RouteSeo.jsx";
 import { usePageTracking, _devGaId } from "./lib/analytics.js";
+import { isPublicSitePath } from "./publicSite/publicRoutes.js";
+import "./public-site.css";
 
 function GaDebugBadge() {
   if (!import.meta.env.DEV) return null;
@@ -124,7 +125,7 @@ function NavLinkButton({ to, onClick, variant = "ghost", children, end = false }
   );
 }
 
-function TopNav({ authed, onLogout, cartCount }) {
+function LegacyTopNav({ authed, onLogout, cartCount }) {
   const [menuOpen, setMenuOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
   const closeMenu = () => setMenuOpen(false);
@@ -203,6 +204,116 @@ function TopNav({ authed, onLogout, cartCount }) {
   );
 }
 
+function PublicNavLink({ to, onClick, variant, children, end = false }) {
+  return (
+    <NavLink
+      to={to}
+      end={end}
+      onClick={onClick}
+      className={({ isActive }) =>
+        [
+          "public-nav__link",
+          variant ? `public-nav__link--${variant}` : "",
+          isActive ? "active" : "",
+        ]
+          .filter(Boolean)
+          .join(" ")
+      }
+    >
+      {children}
+    </NavLink>
+  );
+}
+
+function PublicTopNav({ authed, onLogout, cartCount }) {
+  const [menuOpen, setMenuOpen] = useState(false);
+  const [scrolled, setScrolled] = useState(false);
+  const closeMenu = () => setMenuOpen(false);
+
+  useEffect(() => {
+    const onScroll = () => setScrolled(window.scrollY > 4);
+    onScroll();
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => window.removeEventListener("scroll", onScroll);
+  }, []);
+
+  return (
+    <header className={`public-topbar${scrolled ? " public-topbar--scrolled" : ""}`}>
+      <div className="container public-topbar__inner">
+        <Link
+          className="public-topbar__brand"
+          to="/"
+          onClick={closeMenu}
+          aria-label="Political Solutions home"
+        >
+          <picture>
+            <source media="(max-width: 720px)" srcSet={publicHeaderCompactLockup} />
+            <img
+              className="public-topbar__logo"
+              src={publicHeaderLockup}
+              alt="Political Solutions"
+              height="54"
+              loading="eager"
+            />
+          </picture>
+        </Link>
+
+        <button
+          type="button"
+          className="public-topbar__toggle"
+          onClick={() => setMenuOpen((open) => !open)}
+          aria-expanded={menuOpen}
+          aria-controls="public-site-nav"
+        >
+          Menu
+        </button>
+
+        <div id="public-site-nav" className={`public-topbar__panel${menuOpen ? " open" : ""}`}>
+          <nav className="public-topbar__nav" aria-label="Primary">
+            <PublicNavLink to="/services" onClick={closeMenu}>
+              Products
+            </PublicNavLink>
+            <PublicNavLink to="/blog" onClick={closeMenu} end>
+              Blog
+            </PublicNavLink>
+            <PublicNavLink to="/enquire" onClick={closeMenu} end>
+              Contact
+            </PublicNavLink>
+          </nav>
+
+          <div className="public-topbar__actions">
+            <PublicNavLink to="/login" variant="utility" onClick={closeMenu} end>
+              Client login
+            </PublicNavLink>
+            {authed && (
+              <PublicNavLink to="/portal" variant="utility" onClick={closeMenu}>
+                Portal
+              </PublicNavLink>
+            )}
+            {cartCount > 0 && (
+              <PublicNavLink to="/cart" variant="utility" onClick={closeMenu}>
+                Cart <span className="public-nav__badge">{cartCount}</span>
+              </PublicNavLink>
+            )}
+            {authed && (
+              <button type="button" className="public-nav__button" onClick={onLogout}>
+                Log out
+              </button>
+            )}
+            <PublicNavLink
+              to="/enquire?service=platform-briefing"
+              variant="primary"
+              onClick={closeMenu}
+            >
+              Request a briefing
+            </PublicNavLink>
+          </div>
+        </div>
+      </div>
+    </header>
+  );
+}
+
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
@@ -215,6 +326,8 @@ const queryClient = new QueryClient({
 
 export default function App() {
   usePageTracking();
+  const location = useLocation();
+  const isPublicSite = isPublicSitePath(location.pathname);
   const { items } = useCart();
   // Start with empty session to match server-rendered HTML (no sessionStorage on server).
   // Populate from sessionStorage after hydration to avoid React error #418.
@@ -358,9 +471,14 @@ export default function App() {
 
   return (
     <QueryClientProvider client={queryClient}>
-    <div className="app">
-      <TopNav authed={authed} onLogout={handleLogout} cartCount={items.length} />
-      <main className="content">
+    <div className={`app${isPublicSite ? " public-site" : ""}`}>
+      {isPublicSite && <a className="skip-link" href="#public-content">Skip to content</a>}
+      {isPublicSite ? (
+        <PublicTopNav authed={authed} onLogout={handleLogout} cartCount={items.length} />
+      ) : (
+        <LegacyTopNav authed={authed} onLogout={handleLogout} cartCount={items.length} />
+      )}
+      <main className="content" id={isPublicSite ? "public-content" : undefined}>
         <div className="app-shell">
           <Routes>
             <Route path="/" element={<Home />} />
@@ -371,12 +489,9 @@ export default function App() {
             <Route path="/enquire" element={<Suspense fallback={null}><EnquirePage /></Suspense>} />
             <Route path="/blog" element={<Suspense fallback={null}><BlogIndexPage /></Suspense>} />
             <Route path="/blog/:slug" element={<Suspense fallback={null}><BlogPostPage /></Suspense>} />
-            <Route path="/cart" element={<CartEntry authed={authed} />} />
-            <Route path="/checkout" element={<CheckoutEntry authed={authed} />} />
-            <Route
-              path="/checkout/confirmation"
-              element={<CheckoutConfirmationEntry authed={authed} />}
-            />
+            <Route path="/cart" element={<Navigate to="/subscribe" replace />} />
+            <Route path="/checkout" element={<Navigate to="/subscribe" replace />} />
+            <Route path="/checkout/confirmation" element={<Navigate to="/subscribe" replace />} />
             <Route path="/subscribe" element={<Suspense fallback={null}><Subscribe /></Suspense>} />
             <Route path="/subscriptions" element={<Navigate to="/subscribe" replace />} />
             <Route path="/services" element={<Suspense fallback={null}><Services /></Suspense>} />

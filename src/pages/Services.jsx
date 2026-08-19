@@ -1,34 +1,84 @@
 import { Helmet } from "react-helmet-async";
 import { Link } from "react-router-dom";
 import Button from "../components/Button.jsx";
-import Card from "../components/Card.jsx";
-import Footer from "../components/Footer.jsx";
+import Footer from "../components/PublicFooter.jsx";
 import { buildFaqSchema, buildServicesSchema } from "../seo/structuredData.js";
-import servicesCampaignDataImage from "../assets/services-campaign-data.png";
-import servicesCampaignDataWebp from "../assets/services-campaign-data.webp";
-import servicesCampaignDataMobileWebp from "../assets/services-campaign-data-mobile.webp";
+
+const serviceLines = [
+  {
+    number: "01",
+    label: "Lead service",
+    name: "Campaigning, Training & Election Support",
+    description:
+      "Bring Political Solutions into a defined campaign job or an ongoing working relationship for campaign management, strategy, candidate coaching, association support and agreed delivery work. Scope, timing and price are confirmed before work begins.",
+    audience:
+      "For Conservative associations, candidates, councillors, council groups and campaign teams that need hands-on support.",
+    cta: "Explore campaign support",
+    to: "/services/election-support",
+  },
+  {
+    number: "02",
+    label: "Evidence",
+    name: "Constituency Intelligence",
+    description:
+      "Review election history, demographics, swing analysis, vulnerability scores and party-specific threat indices for the constituencies your organisation can access.",
+    audience:
+      "For associations and campaign teams comparing constituencies and planning from seat-level evidence.",
+    cta: "Explore Constituency Intelligence",
+    to: "/constituency-intelligence",
+  },
+  {
+    number: "03",
+    label: "Processing",
+    name: "Marked Register Processing",
+    description:
+      "Submit marked-register files through the portal for processing, monitor the batch and download any released result from the same workflow.",
+    audience:
+      "For agents, association officers and campaign teams handling marked-register returns.",
+    cta: "Enquire about processing",
+    to: "/enquire?service=marked-register",
+  },
+];
+
+const serviceBoundaries = [
+  {
+    title: "Campaign management and consultancy",
+    body:
+      "Campaigning, Training & Election Support is agreed directly with Political Solutions. It covers only the work, timing and responsibilities confirmed in the scope.",
+  },
+  {
+    title: "Constituency evidence",
+    body:
+      "Constituency Intelligence provides election and demographic evidence for permitted constituencies. Access follows the user's organisation and permissions.",
+  },
+  {
+    title: "Marked-register workflow",
+    body:
+      "Marked Register Processing handles file submission, processing status and any released result through the portal.",
+  },
+];
 
 const SERVICE_FAQS = [
   {
-    question: "Do subscriptions include election delivery?",
+    question: "Can Political Solutions support a campaign beyond the immediate election period?",
     answer:
-      "No. Subscriptions focus on capability, readiness, and operational tooling. Election and by-election support is a separate, chargeable service.",
+      "Yes. Political Solutions offers retained campaign planning, data and standing strategic support across the electoral cycle. The scope and commercial terms are agreed separately.",
   },
   {
-    question: "What data do you use?",
+    question: "Is campaign support included in a platform subscription?",
     answer:
-      "We work with lawful, client-provided data sources such as marked registers and agreed inputs, with validation and audit-ready processing.",
+      "No. Campaigning, Training & Election Support is scoped and charged separately. Political Solutions confirms the work and price before delivery begins.",
   },
   {
-    question: "Is the service UK-wide?",
+    question: "Can every user view every constituency?",
     answer:
-      "Yes. Political Solutions provides UK-wide services and support, with delivery tailored to your operational requirements.",
+      "No. Portal access is tied to the user's organisation and the constituencies assigned through its permissions.",
   },
 ];
 
 export default function Services() {
   return (
-    <div className="page">
+    <div className="page product-page services-page">
       <Helmet>
         {[buildServicesSchema(), buildFaqSchema(SERVICE_FAQS)].map((schema) => (
           <script key={schema["@type"]} type="application/ld+json">
@@ -36,129 +86,129 @@ export default function Services() {
           </script>
         ))}
       </Helmet>
-      <section className="section">
-        <div className="container hero">
+
+      <section className="product-section product-hero-section" aria-labelledby="services-hero-title">
+        <div className="container product-hero services-hero">
+          <div className="product-hero__copy">
+            <p className="product-eyebrow">Campaign services</p>
+            <h1 id="services-hero-title">Campaign support built on evidence, not assumption</h1>
+            <p className="product-hero__lead">
+              Political Solutions provides data-led campaign management and consultancy for
+              Conservative associations, candidates, councillors and council groups. The offer
+              brings together campaign planning and strategy, candidate coaching and association
+              support, with constituency intelligence and marked-register processing available as
+              distinct data capabilities.
+            </p>
+            <div className="product-actions">
+              <Button as={Link} to="/enquire?service=election-support" variant="primary">
+                Discuss your campaign
+              </Button>
+            </div>
+          </div>
+
+          <div className="services-hero__index" aria-hidden="true">
+            <div className="services-hero__index-label">Political Solutions / service index</div>
+            <ol>
+              <li className="services-hero__index-item services-hero__index-item--lead">
+                <span>01</span>
+                <strong>Campaign support</strong>
+                <small>Management · strategy · coaching</small>
+              </li>
+              <li className="services-hero__index-item">
+                <span>02</span>
+                <strong>Constituency evidence</strong>
+                <small>History · context · threat</small>
+              </li>
+              <li className="services-hero__index-item">
+                <span>03</span>
+                <strong>Register workflow</strong>
+                <small>Submit · process · release</small>
+              </li>
+            </ol>
+          </div>
+        </div>
+      </section>
+
+      <section className="product-section services-overview" aria-labelledby="services-overview-title">
+        <div className="container">
+          <header className="product-section-heading">
+            <p className="product-eyebrow">The offer</p>
+            <h2 id="services-overview-title">Start with the campaign job in front of you</h2>
+          </header>
+
+          <div className="services-list" data-testid="services-list">
+            {serviceLines.map((service) => (
+              <article className="services-list__item" key={service.name}>
+                <div className="services-list__marker">
+                  <span>{service.number}</span>
+                  <small>{service.label}</small>
+                </div>
+                <div className="services-list__content">
+                  <h3>{service.name}</h3>
+                  <p>{service.description}</p>
+                  <p className="services-list__audience">{service.audience}</p>
+                </div>
+                <Link className="product-text-link services-list__link" to={service.to}>
+                  {service.cta} <span aria-hidden="true">→</span>
+                </Link>
+              </article>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      <section className="product-section services-boundaries" aria-labelledby="services-boundaries-title">
+        <div className="container services-boundaries__layout">
+          <header className="product-section-heading">
+            <p className="product-eyebrow">Clear boundaries</p>
+            <h2 id="services-boundaries-title">Three distinct jobs, one evidence-led approach</h2>
+          </header>
+
+          <dl className="services-boundaries__list">
+            {serviceBoundaries.map((boundary, index) => (
+              <div key={boundary.title}>
+                <span aria-hidden="true">{String(index + 1).padStart(2, "0")}</span>
+                <dt>{boundary.title}</dt>
+                <dd>{boundary.body}</dd>
+              </div>
+            ))}
+          </dl>
+        </div>
+      </section>
+
+      <section className="product-section services-faq" aria-labelledby="services-faq-title">
+        <div className="container services-faq__layout">
+          <header className="product-section-heading">
+            <p className="product-eyebrow">Service questions</p>
+            <h2 id="services-faq-title">What sits inside each engagement</h2>
+          </header>
+
+          <dl className="services-faq__list">
+            {SERVICE_FAQS.map((faq) => (
+              <div key={faq.question}>
+                <dt>{faq.question}</dt>
+                <dd>{faq.answer}</dd>
+              </div>
+            ))}
+          </dl>
+        </div>
+      </section>
+
+      <section className="product-section product-closing" aria-labelledby="services-closing-title">
+        <div className="container product-closing__panel">
           <div>
-            <h1>Operational support for campaign teams that need clean delivery</h1>
-            <p className="muted">
-              Political Solutions provides three distinct products: Marked Register Processing, Constituency
-              Intelligence, and Campaigning, Training & Election Support for teams that need practical delivery
-              help alongside platform access.
+            <p className="product-eyebrow">Next step</p>
+            <h2 id="services-closing-title">Build the campaign before the final weeks</h2>
+            <p>
+              Tell us about the organisation, campaign or electoral challenge you are working on.
+              We will confirm whether campaign support, constituency intelligence,
+              marked-register processing or a combination is the right next step.
             </p>
           </div>
-          <div className="hero-visual services-hero-visual">
-            <picture>
-              <source
-                type="image/webp"
-                srcSet={`${servicesCampaignDataMobileWebp} 768w, ${servicesCampaignDataWebp} 1536w`}
-                sizes="(max-width: 768px) 768px, 1536px"
-              />
-              <img
-                className="hero-visual-image services-hero-image"
-                src={servicesCampaignDataImage}
-                alt="Team using data to plan a political campaign"
-                width={1536}
-                height={1024}
-                loading="eager"
-                decoding="async"
-              />
-            </picture>
-          </div>
-        </div>
-      </section>
-
-      <section className="section muted">
-        <div className="container stack">
-          <h2 className="section-title">Choose the product that matches the job</h2>
-          <div className="feature-grid feature-grid--equal" data-testid="services-card-grid">
-            <Card title="Marked Register Processing" className="product-card">
-              <div className="product-card__body">
-                <p className="muted">
-                  Upload marked register files through the portal and receive structured outputs your campaign
-                  team can use for follow-up, planning, and reporting.
-                </p>
-                <p className="product-card__meta">
-                  <strong>Who it is for:</strong> Associations, agents, candidates, and campaign teams handling
-                  marked register returns.
-                </p>
-              </div>
-              <div className="product-card__cta">
-                <Button as={Link} to="/subscriptions" variant="primary">
-                  View Marked Register plans
-                </Button>
-              </div>
-            </Card>
-
-            <Card title="Constituency Intelligence" className="product-card">
-              <div className="product-card__body">
-                <p className="muted">
-                  Review constituency winners, demographics, and historic election results in one searchable
-                  intelligence workspace.
-                </p>
-                <p className="product-card__meta">
-                  <strong>Who it is for:</strong> Campaign planners, researchers, association officers, and
-                  headquarters teams comparing seats.
-                </p>
-              </div>
-              <div className="product-card__cta">
-                <Button as={Link} to="/constituency-intelligence" variant="primary">
-                  Request a Constituency Intelligence briefing
-                </Button>
-              </div>
-            </Card>
-
-            <Card title="Campaigning, Training & Election Support" className="product-card">
-              <div className="product-card__body">
-                <p className="muted">
-                  Bring in practical support for by-election planning, volunteer training, field operations, and
-                  campaign delivery on a clearly scoped brief.
-                </p>
-                <p className="product-card__meta">
-                  <strong>Who it is for:</strong> Candidates, agents, association teams, and campaigns that need
-                  hands-on operational help.
-                </p>
-              </div>
-              <div className="product-card__cta">
-                <Button as={Link} to="/services/election-support" variant="primary">
-                  Request election support
-                </Button>
-              </div>
-            </Card>
-          </div>
-          <div data-testid="services-compliance-note">
-            <Card title="Compliance note" className="service-compliance-note">
-              <p className="muted">
-                Service packages provide capability, readiness, and operational tooling. Clients remain
-                responsible for compliance with electoral law and regulated spending. We do not provide statutory
-                electoral services.
-              </p>
-            </Card>
-          </div>
-        </div>
-      </section>
-
-      <section className="section">
-        <div className="container stack">
-          <h2 className="section-title">Frequently asked questions</h2>
-          <div className="grid">
-            <Card title="Do subscriptions include election delivery?">
-              <p className="muted">
-                No. Subscriptions focus on capability, readiness, and operational tooling. Election and
-                by-election support is a separate, chargeable service.
-              </p>
-            </Card>
-            <Card title="What data do you use?">
-              <p className="muted">
-                We work with lawful, client-provided data sources such as marked registers and agreed inputs,
-                with validation and audit-ready processing.
-              </p>
-            </Card>
-            <Card title="Is the service UK-wide?">
-              <p className="muted">
-                Yes. Political Solutions provides UK-wide services and support, with delivery tailored to your
-                operational requirements.
-              </p>
-            </Card>
+          <div className="product-actions product-closing__actions">
+            <Button as={Link} to="/enquire?service=election-support" variant="primary">
+              Discuss your campaign
+            </Button>
           </div>
         </div>
       </section>

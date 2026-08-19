@@ -16,4 +16,17 @@ describe("seoRoutes", () => {
       expect(route.description).toBeTruthy();
     });
   });
+
+  it("uses the approved conversion-page metadata", () => {
+    expect(seoRoutes.find((route) => route.path === "/enquire")).toMatchObject({
+      title: "Campaign support and data enquiries",
+      description:
+        "Discuss campaign management, constituency intelligence, marked-register processing or practical campaign support with Political Solutions.",
+    });
+    expect(seoRoutes.find((route) => route.path === "/subscribe")).toMatchObject({
+      title: "Annual association subscriptions",
+      description:
+        "Review annual Political Solutions association pricing, including VAT, and continue through Stripe Checkout or request an invoice.",
+    });
+  });
 });

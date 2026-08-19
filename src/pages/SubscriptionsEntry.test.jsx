@@ -6,7 +6,7 @@ import SubscriptionsEntry from "./SubscriptionsEntry.jsx";
 
 vi.mock("../lib/subscriptionApi.js", () => ({
   listAssociationsWithPricing: vi.fn(),
-  createSubscriptionPaymentIntent: vi.fn(),
+  createSubscriptionCheckoutSession: vi.fn(),
   requestSubscriptionInvoice: vi.fn(),
 }));
 
@@ -50,7 +50,11 @@ describe("SubscriptionsEntry", () => {
     );
 
     await waitFor(() => expect(listAssociationsWithPricing).toHaveBeenCalled());
-    expect(screen.getByRole("heading", { name: "Association subscriptions" })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Continue to checkout" })).toBeInTheDocument();
+    expect(
+      screen.getByRole("heading", { name: "Start an annual Political Solutions subscription" })
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: "Start annual Stripe subscription" })
+    ).toBeDisabled();
   });
 });

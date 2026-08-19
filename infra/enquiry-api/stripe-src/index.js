@@ -9,8 +9,11 @@ const {
   AdminSetUserPasswordCommand,
 } = require("@aws-sdk/client-cognito-identity-provider");
 const { SESv2Client, SendEmailCommand } = require("@aws-sdk/client-sesv2");
+const {
+  calculateAssociationPricePence,
+  buildAnnualCheckoutSessionParams,
+} = require("./checkout-pricing.js");
 
-const VAT_RATE = 0.2;
 const REGION = process.env.AWS_REGION || "eu-west-2";
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, { apiVersion: "2025-02-24.acacia" });
@@ -26,13 +29,6 @@ function json(statusCode, body) {
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(body),
   };
-}
-
-function calculateAssociationPricePence(constituencyCount) {
-  const count = Math.max(1, Number(constituencyCount) || 1);
-  const exVatPence = (500 + Math.max(0, count - 1) * 250) * 100;
-  const vatPence = Math.round(exVatPence * VAT_RATE);
-  return { exVatPence, vatPence, incVatPence: exVatPence + vatPence };
 }
 
 async function getAssociationWithPricing(associationId) {
@@ -180,29 +176,6 @@ async function sendWelcomeEmail(toAddress, associationName, constituencyNames) {
   );
 }
 
-async function createPaymentIntent(body) {
-  const association = await getAssociationWithPricing(body.association_id);
-  const customer = await findOrCreateStripeCustomer(body.user_email, body.customer_name);
-
-  const paymentIntent = await stripe.paymentIntents.create({
-    amount: association.amount_inc_vat_pence,
-    currency: "gbp",
-    customer: customer.id,
-    receipt_email: body.user_email,
-    metadata: {
-      association_id: association.id,
-      association_name: association.name,
-      user_email: body.user_email,
-    },
-  });
-
-  return json(200, {
-    client_secret: paymentIntent.client_secret,
-    amount: association.amount_inc_vat_pence,
-    association,
-  });
-}
-
 async function createInvoice(body) {
   const association = await getAssociationWithPricing(body.association_id);
   const customer = await findOrCreateStripeCustomer(body.user_email, body.customer_name);
@@ -235,47 +208,20 @@ async function createInvoice(body) {
 async function createCheckoutSession(body) {
   const association = await getAssociationWithPricing(body.association_id);
   const constituencyCount = Math.max(1, Number(body.constituency_count) || association.constituency_count || 1);
-  const pricing = calculateAssociationPricePence(constituencyCount);
 
   const customer = await findOrCreateStripeCustomer(body.user_email, body.customer_name);
   const siteUrl = process.env.SITE_URL || "https://www.politicalsolutions.uk";
 
-  const session = await stripe.checkout.sessions.create({
-    mode: "subscription",
-    customer: customer.id,
-    success_url: `${siteUrl.replace(/\/$/, "")}/portal?subscription=success`,
-    cancel_url: `${siteUrl.replace(/\/$/, "")}/subscribe?cancelled=true`,
-    line_items: [
-      {
-        price_data: {
-          currency: "gbp",
-          unit_amount: pricing.exVatPence,
-          // ASSUMPTION: subscriptions are monthly recurring until Paul confirms a one-off model.
-          recurring: { interval: "month" },
-          product_data: {
-            name: `${association.name} Political Solutions subscription`,
-            description: `${constituencyCount} constituency access before VAT`,
-          },
-        },
-        quantity: 1,
-      },
-    ],
-    subscription_data: {
-      metadata: {
-        association_id: association.id,
-        association_name: association.name,
-        cognito_sub: body.cognito_sub || "",
-        user_email: body.user_email || "",
-        constituency_count: String(constituencyCount),
-        amount_ex_vat_pence: String(pricing.exVatPence),
-      },
-    },
-    metadata: {
-      association_id: association.id,
-      cognito_sub: body.cognito_sub || "",
-      user_email: body.user_email || "",
-    },
-  });
+  const session = await stripe.checkout.sessions.create(
+    buildAnnualCheckoutSessionParams({
+      association,
+      constituencyCount,
+      customerId: customer.id,
+      siteUrl,
+      cognitoSub: body.cognito_sub || "",
+      userEmail: body.user_email || "",
+    })
+  );
 
   return json(200, { id: session.id, url: session.url });
 }
@@ -286,10 +232,11 @@ async function handleSubscriptionCreated(subscription) {
   const cognitoSub = metadata.cognito_sub;
   const userEmail = metadata.user_email || "";
   const amountExVatPence = Number(metadata.amount_ex_vat_pence || 0);
+  const amountIncVatPence = Number(metadata.amount_inc_vat_pence || 0);
 
   if (!associationId || !cognitoSub) return;
 
-  // ASSUMPTION: user_permissions grants association-level access; association_constituencies expands that to constituencies.
+  // Portal permission lookups expand association access through association_constituencies.
   await supabase.from("user_permissions").upsert(
     {
       cognito_sub: cognitoSub,
@@ -312,7 +259,7 @@ async function handleSubscriptionCreated(subscription) {
     status: "active",
     payment_method: "stripe",
     amount_ex_vat: amountExVatPence ? amountExVatPence / 100 : null,
-    amount_inc_vat: null,
+    amount_inc_vat: amountIncVatPence ? amountIncVatPence / 100 : null,
     currency: subscription.currency || "gbp",
     billing_period_start: new Date((subscription.current_period_start || Date.now() / 1000) * 1000)
       .toISOString()
@@ -446,9 +393,6 @@ exports.handler = async (event) => {
     const path = event.rawPath || event.path || "";
     const body = event.body ? JSON.parse(event.body) : {};
 
-    if (method === "POST" && path.endsWith("/create-payment-intent")) {
-      return createPaymentIntent(body);
-    }
     if (method === "POST" && path.endsWith("/create-invoice")) {
       return createInvoice(body);
     }

@@ -4,7 +4,7 @@ import { CardElement, Elements, useElements, useStripe } from "@stripe/react-str
 import { loadStripe } from "@stripe/stripe-js";
 import Button from "../components/Button.jsx";
 import Card from "../components/Card.jsx";
-import Footer from "../components/Footer.jsx";
+import Footer from "../components/PublicFooter.jsx";
 import { getRuntimeConfig } from "../config/runtimeConfig.js";
 import { createSubscriptionPaymentIntent, listAssociationsWithPricing } from "../lib/subscriptionApi.js";
 import { formatPenceToPounds } from "../lib/subscriptionPricing.js";

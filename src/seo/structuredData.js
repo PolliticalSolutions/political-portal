@@ -25,20 +25,18 @@ export const buildWebsiteSchema = () => ({
 export const buildServicesSchema = () => ({
   "@context": "https://schema.org",
   "@type": "Service",
-  name: "Political operations services",
+  name: "Data-led campaign management and consultancy",
   description:
-    "UK-wide marked register processing, data insights, subscription platform access, training, and operational support.",
+    "Campaign management and consultancy, constituency intelligence, and marked-register processing for Conservative associations and campaign teams.",
   provider: {
     "@type": "Organization",
-    name: SITE_LEGAL_NAME,
+    name: SITE_NAME,
     url: SITE_URL,
   },
-  areaServed: "GB",
   serviceType: [
-    "Marked register processing",
-    "Data and insight",
-    "Subscription platform",
     "Campaigning, Training & Election Support",
+    "Constituency Intelligence",
+    "Marked Register Processing",
   ],
 });
 
@@ -60,17 +58,18 @@ export const buildElectionSupportSchema = () => ({
   "@type": "Service",
   name: "Campaigning, Training & Election Support",
   description:
-    "UK-wide Campaigning, Training & Election Support for campaign operations, data coordination, and delivery planning.",
+    "Data-led campaign management, strategy, candidate coaching, association support, and practical delivery.",
   provider: {
     "@type": "Organization",
-    name: SITE_LEGAL_NAME,
+    name: SITE_NAME,
     url: SITE_URL,
   },
-  areaServed: "GB",
   serviceType: [
-    "Campaign operations support",
-    "Volunteer briefing and training",
-    "Data and print coordination",
-    "Field operations planning",
+    "Campaign management and strategy",
+    "Candidate coaching",
+    "Association and council-group support",
+    "Officer mentoring and volunteer briefings",
+    "Data coordination",
+    "Print logistics and delivery oversight",
   ],
 });

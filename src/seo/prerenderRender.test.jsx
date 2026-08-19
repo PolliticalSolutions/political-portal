@@ -27,20 +27,25 @@ describe("entry-server render", () => {
 
     const home = await render("/");
     const services = await render("/services");
+    const constituencyIntelligence = await render("/constituency-intelligence");
     const electionSupport = await render("/services/election-support");
 
     expect(home.appHtml).toBeTruthy();
     expect(services.appHtml).toBeTruthy();
+    expect(constituencyIntelligence.appHtml).toBeTruthy();
     expect(electionSupport.appHtml).toBeTruthy();
 
     expect(home.headHtml).toContain(
       "Marked register processing &amp; campaign data for UK political teams | Political Solutions"
     );
     expect(services.headHtml).toContain(
-      "Campaign data services — marked registers, intelligence &amp; operations support | Political Solutions"
+      "Data-led campaign management and consultancy | Political Solutions"
+    );
+    expect(constituencyIntelligence.headHtml).toContain(
+      "Constituency intelligence for campaign planning | Political Solutions"
     );
     expect(electionSupport.headHtml).toContain(
-      "Campaigning, training &amp; election support for UK associations | Political Solutions"
+      "Data-led political campaign management | Political Solutions"
     );
     expect(services.headHtml).toContain(`rel="canonical" href="${siteUrl}/services"`);
     expect(electionSupport.headHtml).toContain(
@@ -67,13 +72,13 @@ describe("entry-server render", () => {
     const finalHtml = injectApp(injectHead(template, headHtml), appHtml);
 
     expect(finalHtml).toContain(
-      "Campaign data services — marked registers, intelligence &amp; operations support | Political Solutions"
+      "Data-led campaign management and consultancy | Political Solutions"
     );
     expect(finalHtml).toContain(
       `rel="canonical" href="${siteUrl}/services"`
     );
     expect(finalHtml).toContain(
-      'name="description" content="Marked register processing, constituency data insights, and campaign operations support for UK associations. Subscription platform access included. Get started today."'
+      'name="description" content="Campaign management, strategy, candidate coaching and association support for Conservative associations and campaign teams."'
     );
     expect(finalHtml.match(/<title\b/g)?.length ?? 0).toBe(1);
     expect(finalHtml).not.toContain(

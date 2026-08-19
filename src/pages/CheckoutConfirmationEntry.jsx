@@ -1,7 +1,7 @@
 import { Link, useSearchParams } from "react-router-dom";
 import Button from "../components/Button.jsx";
 import Card from "../components/Card.jsx";
-import Footer from "../components/Footer.jsx";
+import Footer from "../components/PublicFooter.jsx";
 
 export default function CheckoutConfirmationEntry() {
   const [searchParams] = useSearchParams();

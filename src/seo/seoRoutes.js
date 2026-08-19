@@ -14,25 +14,25 @@ export const seoRoutes = [
   },
   {
     path: "/services",
-    title: "Campaign data services — marked registers, intelligence & operations support",
+    title: "Data-led campaign management and consultancy",
     description:
-      "Marked register processing, constituency data insights, and campaign operations support for UK associations. Subscription platform access included. Get started today.",
+      "Campaign management, strategy, candidate coaching and association support for Conservative associations and campaign teams.",
     changefreq: "monthly",
     priority: 0.8,
   },
   {
     path: "/constituency-intelligence",
-    title: "Constituency intelligence — council, by-election & electoral data for UK seats",
+    title: "Constituency intelligence for campaign planning",
     description:
-      "Current data on every Conservative-held and target seat: council composition, by-election results, and full electoral history. Built for UK associations and campaign managers.",
+      "Use election history, demographics, swing, vulnerability and party-specific threat analysis to inform planning for permitted constituencies.",
     changefreq: "monthly",
     priority: 0.8,
   },
   {
     path: "/services/election-support",
-    title: "Campaigning, training & election support for UK associations",
+    title: "Data-led political campaign management",
     description:
-      "Hands-on election support for campaign operations, data coordination, and delivery planning. UK-wide coverage, clear scope, and a separate chargeable engagement.",
+      "Discuss campaign management, strategy, candidate coaching, association support and practical delivery with Political Solutions.",
     changefreq: "monthly",
     priority: 0.7,
   },
@@ -46,17 +46,17 @@ export const seoRoutes = [
   },
   {
     path: "/subscribe",
-    title: "Subscribe to the campaign data platform — Stripe checkout",
+    title: "Annual association subscriptions",
     description:
-      "Select your association, choose card or invoice payment, and activate access to marked register processing, constituency intelligence, and the secure portal.",
+      "Review annual Political Solutions association pricing, including VAT, and continue through Stripe Checkout or request an invoice.",
     changefreq: "monthly",
     priority: 0.7,
   },
   {
     path: "/enquire",
-    title: "Enquire about campaign data services — get a response within one working day",
+    title: "Campaign support and data enquiries",
     description:
-      "Tell us what you need and which service you want to discuss. We review every enquiry and confirm the next step within one working day. No sales calls, no pressure.",
+      "Discuss campaign management, constituency intelligence, marked-register processing or practical campaign support with Political Solutions.",
     changefreq: "monthly",
     priority: 0.6,
   },

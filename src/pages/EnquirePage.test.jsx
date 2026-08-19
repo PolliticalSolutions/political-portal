@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { HelmetProvider } from "react-helmet-async";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -38,13 +38,13 @@ describe("EnquirePage", () => {
     );
 
     fireEvent.click(screen.getByRole("button", { name: "Send enquiry" }));
-    expect(screen.getByText("Name is required.")).toBeInTheDocument();
-    expect(screen.getByText("Email is required.")).toBeInTheDocument();
-    expect(screen.getByText("Organisation is required.")).toBeInTheDocument();
-    expect(screen.getByText("Message is required.")).toBeInTheDocument();
+    expect(screen.getByText("Enter your name.")).toBeInTheDocument();
+    expect(screen.getByText("Enter your email address.")).toBeInTheDocument();
+    expect(screen.getByText("Select an organisation.")).toBeInTheDocument();
+    expect(screen.getByText("Enter a message.")).toBeInTheDocument();
   });
 
-  it("shows the updated intro copy and what happens next card", () => {
+  it("shows the approved enquiry introduction and brief guidance", () => {
     renderWithHelmet(
       <MemoryRouter initialEntries={["/enquire"]}>
         <Routes>
@@ -55,12 +55,12 @@ describe("EnquirePage", () => {
 
     expect(
       screen.getByText(
-        "Tell us what you need, who it is for, and which service you want to discuss. We use this to route the enquiry properly and confirm the next step quickly. If your request is urgent, say so clearly in the message box."
+        "Tell us about the organisation, campaign job or data requirement you want to discuss. Choose any relevant services and include the context Political Solutions should review."
       )
     ).toBeInTheDocument();
     expect(
       screen.getByText(
-        "We review the enquiry, confirm whether it is for Marked Register Processing, Constituency Intelligence, Campaigning, Training & Election Support, or subscriptions, and then reply with the appropriate next step."
+        "Your enquiry is recorded with the contact details, organisation, service interests and message you provide. Political Solutions can then use that information to follow up on the appropriate next step."
       )
     ).toBeInTheDocument();
   });
@@ -135,7 +135,7 @@ describe("EnquirePage", () => {
       </MemoryRouter>
     );
 
-    expect(screen.getByLabelText("Message *")).toHaveValue(
+    expect(screen.getByLabelText("What would you like to discuss? *")).toHaveValue(
       "I'd like to request a platform briefing."
     );
     expect(screen.getByRole("checkbox", { name: "Constituency Intelligence" })).not.toBeChecked();
@@ -152,10 +152,10 @@ describe("EnquirePage", () => {
 
     fireEvent.change(screen.getByLabelText("Name *"), { target: { value: "Alex" } });
     fireEvent.change(screen.getByLabelText("Email *"), { target: { value: "alex@example.com" } });
-    fireEvent.change(screen.getByLabelText("Message *"), { target: { value: "Hello" } });
+    fireEvent.change(screen.getByLabelText("What would you like to discuss? *"), { target: { value: "Hello" } });
     fireEvent.click(screen.getByRole("button", { name: "Send enquiry" }));
 
-    expect(screen.getByText("Organisation is required.")).toBeInTheDocument();
+    expect(screen.getByText("Select an organisation.")).toBeInTheDocument();
     expect(insertEnquiry).not.toHaveBeenCalled();
   });
 
@@ -171,24 +171,33 @@ describe("EnquirePage", () => {
     fireEvent.change(screen.getByLabelText("Name *"), { target: { value: "Alex" } });
     fireEvent.change(screen.getByLabelText("Email *"), { target: { value: "alex@example.com" } });
     fireEvent.change(screen.getByLabelText("Organisation *"), { target: { value: "Big Federation" } });
-    fireEvent.change(screen.getByLabelText("Your role in the Association/Federation/Area/Region"), {
+    fireEvent.change(screen.getByLabelText("Your role"), {
       target: { value: "Campaign Manager" },
     });
     fireEvent.click(screen.getByRole("checkbox", { name: "Marked Register Processing" }));
     fireEvent.click(screen.getByRole("checkbox", { name: "Constituency Intelligence" }));
-    fireEvent.change(screen.getByLabelText("Message *"), {
+    fireEvent.click(
+      screen.getByRole("checkbox", { name: "Clerical services for your association or federation" })
+    );
+    fireEvent.click(screen.getByRole("checkbox", { name: "Something else" }));
+    fireEvent.change(screen.getByLabelText("What would you like to discuss? *"), {
       target: { value: "Please share pricing details." },
     });
 
     fireEvent.click(screen.getByRole("button", { name: "Send enquiry" }));
 
-    await screen.findByText("Thank you — we'll be in touch within one working day.");
+    await screen.findByText("Thank you. Your enquiry has been submitted.");
 
     expect(insertEnquiry).toHaveBeenCalledWith({
       name: "Alex",
       email: "alex@example.com",
       organisation: "Big Federation",
-      services_interested: ["Marked Register Processing", "Constituency Intelligence"],
+      services_interested: [
+        "Marked Register Processing",
+        "Constituency Intelligence",
+        "Clerical services for your association/federation",
+        "Anything else not listed?",
+      ],
       role: "Campaign Manager",
       message: "Please share pricing details.",
     });
@@ -208,12 +217,43 @@ describe("EnquirePage", () => {
     fireEvent.change(screen.getByLabelText("Name *"), { target: { value: "Alex" } });
     fireEvent.change(screen.getByLabelText("Email *"), { target: { value: "alex@example.com" } });
     fireEvent.change(screen.getByLabelText("Organisation *"), { target: { value: "Big Federation" } });
-    fireEvent.change(screen.getByLabelText("Message *"), { target: { value: "Hello" } });
+    fireEvent.change(screen.getByLabelText("What would you like to discuss? *"), { target: { value: "Hello" } });
 
     fireEvent.click(screen.getByRole("button", { name: "Send enquiry" }));
 
-    await screen.findByText(/Something went wrong/);
+    await screen.findByText(/We couldn't send your enquiry/);
     const emailLinks = screen.getAllByRole("link", { name: "paul@politicalsolutions.uk" });
     expect(emailLinks[0]).toHaveAttribute("href", "mailto:paul@politicalsolutions.uk");
+  });
+
+  it("disables the submit action and shows the in-progress label while sending", async () => {
+    let resolveInsert;
+    insertEnquiry.mockImplementationOnce(
+      () => new Promise((resolve) => {
+        resolveInsert = resolve;
+      })
+    );
+
+    renderWithHelmet(
+      <MemoryRouter initialEntries={["/enquire"]}>
+        <Routes>
+          <Route path="/enquire" element={<EnquirePage />} />
+        </Routes>
+      </MemoryRouter>
+    );
+
+    fireEvent.change(screen.getByLabelText("Name *"), { target: { value: "Alex" } });
+    fireEvent.change(screen.getByLabelText("Email *"), { target: { value: "alex@example.com" } });
+    fireEvent.change(screen.getByLabelText("Organisation *"), { target: { value: "Big Federation" } });
+    fireEvent.change(screen.getByLabelText("What would you like to discuss? *"), {
+      target: { value: "Please review this requirement." },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Send enquiry" }));
+
+    expect(screen.getByRole("button", { name: "Sending enquiry…" })).toBeDisabled();
+    await act(async () => {
+      resolveInsert();
+    });
+    await screen.findByText("Thank you. Your enquiry has been submitted.");
   });
 });

@@ -1,219 +1,262 @@
-import { useState } from "react";
 import { Link } from "react-router-dom";
 import Button from "../components/Button.jsx";
-import Card from "../components/Card.jsx";
-import Footer from "../components/Footer.jsx";
-import campaignDataPng from "../assets/campaign-data.png";
-import campaignDataWebp from "../assets/campaign-data.webp";
-import campaignDataMobileWebp from "../assets/campaign-data-mobile.webp";
+import Footer from "../components/PublicFooter.jsx";
+import heroImage from "../assets/homepage/home-hero.webp";
+import heroImageMobile from "../assets/homepage/home-hero-mobile.webp";
+import experienceImage from "../assets/homepage/home-experience.webp";
+import experienceImageMobile from "../assets/homepage/home-experience-mobile.webp";
 
-const trustItems = [
-  "Secure authentication and role-aware access are built into the platform.",
-  "Marked Register work is processed to an agreed scope before delivery starts.",
-  "Operational workflows support review, reporting, and audit-ready handover.",
-  "Election support is quoted separately so campaign teams know what is included.",
+const products = [
+  {
+    number: "01",
+    name: "Marked Register Processing",
+    description:
+      "Upload marked-register PDF or CSV files through the portal. Political Solutions processes them and supplies the result as a CSV download.",
+    audience: "For agents, association officers and teams handling marked-register returns.",
+    cta: "View subscription pricing",
+    to: "/subscribe",
+    className: "home-product home-product--register",
+  },
+  {
+    number: "02",
+    name: "Constituency Intelligence",
+    description:
+      "Review election results, demographics, swing analysis, vulnerability scores and party-specific threat indices in one constituency intelligence workspace.",
+    audience:
+      "For campaign managers, researchers, association officers and headquarters teams comparing seats.",
+    cta: "Explore Constituency Intelligence",
+    to: "/constituency-intelligence",
+    className: "home-product home-product--intelligence",
+  },
+  {
+    number: "03",
+    name: "Campaigning, Training & Election Support",
+    description:
+      "Request separately scoped support for campaign planning, volunteer briefings, data coordination, print logistics and delivery oversight.",
+    audience:
+      "For candidates, agents and association teams that need hands-on operational support.",
+    cta: "Discuss campaign support",
+    to: "/enquire?service=election-support",
+    className: "home-product home-product--support",
+  },
 ];
 
-const nextSteps = [
+const intelligenceEvidence = [
+  "Election history",
+  "Demographic context",
+  "Swing analysis",
+  "Vulnerability",
+  "Threat analysis",
+];
+
+const proofPoints = [
   {
-    title: "Choose the product that matches the job",
-    body: "Use Marked Register Processing for structured marked register outputs, Constituency Intelligence for seat-level analysis, and Campaigning, Training & Election Support when your team needs hands-on delivery help.",
+    label: "Portal workflow",
+    body: "Marked-register files are uploaded and Constituency Intelligence is accessed through the platform.",
   },
   {
-    title: "Confirm scope, access, and ownership",
-    body: "Subscriptions, portal access, and service work are scoped clearly so teams know who can use the platform and what they are buying.",
+    label: "Permission-based access",
+    body: "Portal access is tied to user and constituency permissions.",
   },
   {
-    title: "Work through one secure portal",
-    body: "Upload files, review outputs, and access constituency information in the same controlled environment.",
+    label: "Separately scoped support",
+    body: "Campaign support is agreed and charged separately from platform subscriptions.",
+  },
+];
+
+const processSteps = [
+  {
+    title: "Identify the work",
+    body: "Decide whether you need a processed marked register, constituency evidence or hands-on campaign support.",
+  },
+  {
+    title: "Choose the route",
+    body: "Subscribe online for Marked Register Processing. Request a briefing for Constituency Intelligence. Submit a brief for campaign support.",
+  },
+  {
+    title: "Confirm the detail",
+    body: "Confirm the organisation, relevant constituencies, access requirements and any work that needs a separate scope.",
   },
 ];
 
 export default function Home() {
-  const [visualLoaded, setVisualLoaded] = useState(true);
-
   return (
-    <div className="page">
-      <section className="section">
-        <div className="container hero">
-          <div>
-            <h1>Political data products for campaign teams that need clean delivery</h1>
-            <p>
-              Political Solutions provides three core products: Marked Register Processing for turning marked
-              register files into structured operational outputs, Constituency Intelligence for reviewing
-              constituency results and demographics, and Campaigning, Training & Election Support for teams
-              that need practical delivery help beyond software alone.
+    <div className="page home-page">
+      <section className="home-section home-hero-section" aria-labelledby="home-hero-title">
+        <div className="container home-hero">
+          <div className="home-hero__copy">
+            <h1 id="home-hero-title">Political data for campaign decisions</h1>
+            <p className="home-hero__lead">
+              Process marked registers, review constituency intelligence and request practical
+              campaign support through three distinct Political Solutions products.
             </p>
-            <div className="hero-actions">
-              <Button as={Link} to="/subscriptions" variant="primary">
-                View Marked Register plans
+            <div className="home-actions">
+              <Button
+                as={Link}
+                to="/enquire?service=platform-briefing"
+                variant="primary"
+              >
+                Request a briefing
               </Button>
-              <Button as={Link} to="/enquire?service=platform-briefing" variant="ghost">
-                Request a platform briefing
-              </Button>
+              <Link className="home-text-link" to="/services">
+                View products <span aria-hidden="true">→</span>
+              </Link>
             </div>
-            <p className="muted" style={{ marginTop: 16, maxWidth: "72ch" }}>
-              Built for candidates, agents, association officers, and campaign teams who need operationally
-              useful data tools rather than generic campaign software.
+            <p className="home-hero__audience">
+              For Conservative associations, campaign managers, agents and MPs&apos; offices.
             </p>
           </div>
-          <div className="hero-visual">
-            {visualLoaded ? (
-              <picture>
-                <source
-                  type="image/webp"
-                  srcSet={`${campaignDataMobileWebp} 768w, ${campaignDataWebp} 1536w`}
-                  sizes="(max-width: 768px) 768px, 1536px"
-                />
-                <img
-                  className="hero-visual-image"
-                  src={campaignDataPng}
-                  alt="Campaign data dashboard visual for UK political operations delivery"
-                  width={1536}
-                  height={1024}
-                  loading="eager"
-                  decoding="async"
-                  onError={() => setVisualLoaded(false)}
-                />
-              </picture>
-            ) : (
-              <div className="hero-visual-fallback" aria-hidden="true">
-                <div className="hero-visual-bars">
-                  <span />
-                  <span />
-                  <span />
-                </div>
-                <div className="hero-visual-chart">
-                  <span />
-                </div>
-              </div>
-            )}
+
+          <div className="home-hero__media">
+            <picture>
+              <source media="(max-width: 720px)" srcSet={heroImageMobile} />
+              <img
+                src={heroImage}
+                alt="Overhead view of fictional marked-register sheets, a navy folder, metal clip and blue pencil on an off-white work surface."
+                width="1536"
+                height="1024"
+                loading="eager"
+                decoding="async"
+                fetchPriority="high"
+              />
+            </picture>
           </div>
         </div>
       </section>
 
-      <section className="section surface">
-        <div className="container stack">
-          <div>
-            <h2 className="section-title">Choose the product that fits the job</h2>
-            <p className="muted" style={{ maxWidth: "72ch" }}>
-              Political Solutions is structured around three distinct operational offers so teams can move
-              directly to the right product instead of decoding a generic service list.
-            </p>
+      <section className="home-section home-products" aria-labelledby="home-products-title">
+        <div className="container">
+          <div className="home-section-heading">
+            <h2 id="home-products-title">Choose the product that matches the job</h2>
+            <p>Each product has a defined purpose and a clear next step.</p>
           </div>
-          <div className="feature-grid feature-grid--equal">
-            <Card title="Marked Register Processing" className="product-card">
-              <div className="product-card__body">
-                <p>
-                  Turn marked register PDFs, CSVs, and Excel (.xlsx) workbooks into structured outputs your
-                  campaign team can use quickly.
-                </p>
-                <p className="product-card__meta">
-                  <strong>Who it is for:</strong> Association officers, agents, candidates, and teams managing
-                  marked register returns.
-                </p>
-              </div>
-              <div className="product-card__cta">
-                <Button as={Link} to="/subscriptions" variant="primary">
-                  View Marked Register plans
-                </Button>
-              </div>
-            </Card>
-            <Card title="Constituency Intelligence" className="product-card">
-              <div className="product-card__body">
-                <p>
-                  Search constituency winners, election history, and demographic context in one secure portal
-                  workflow. Local Government Intelligence now includes an LGR tracker so associations can follow
-                  reorganisation, shadow authority changes, and council-level operational risk.
-                </p>
-                <p className="product-card__meta">
-                  <strong>Who it is for:</strong> Campaign planners, researchers, association leads, and
-                  headquarters teams comparing seats.
-                </p>
-              </div>
-              <div className="product-card__cta">
-                <Button as={Link} to="/constituency-intelligence" variant="primary">
-                  Request a Constituency Intelligence briefing
-                </Button>
-              </div>
-            </Card>
-            <Card title="Campaigning, Training & Election Support" className="product-card">
-              <div className="product-card__body">
-                <p>
-                  Bring in practical campaign support for training, by-election preparation, field planning, and
-                  delivery when your team needs more than software alone.
-                </p>
-                <p className="product-card__meta">
-                  <strong>Who it is for:</strong> Candidates, agents, association officers, and campaign teams
-                  that need operational support on a defined brief.
-                </p>
-              </div>
-              <div className="product-card__cta">
-                <Button as={Link} to="/services/election-support" variant="primary">
-                  Request election support
-                </Button>
-              </div>
-            </Card>
-          </div>
-        </div>
-      </section>
 
-      <section className="section muted">
-        <div className="container stack">
-          <div>
-            <h2 className="section-title">Why teams trust Political Solutions</h2>
-            <p className="muted" style={{ maxWidth: "72ch" }}>
-              The platform is designed for controlled delivery: clear scope, secure access, and operational
-              outputs that can be reviewed and handed over properly.
-            </p>
-          </div>
-          <div className="trust-strip">
-            {trustItems.map((item) => (
-              <div key={item} className="trust-item">
-                <span className="dot" aria-hidden="true" />
-                <span>{item}</span>
-              </div>
+          <div className="home-products__grid">
+            {products.map((product) => (
+              <article className={product.className} key={product.name}>
+                <span className="home-product__number" aria-hidden="true">
+                  {product.number}
+                </span>
+                <div className="home-product__content">
+                  <h3>{product.name}</h3>
+                  <p className="home-product__description">{product.description}</p>
+                  <p className="home-product__audience">{product.audience}</p>
+                  <Link className="home-product__link" to={product.to}>
+                    {product.cta} <span aria-hidden="true">→</span>
+                  </Link>
+                </div>
+              </article>
             ))}
           </div>
         </div>
       </section>
 
-      <section className="section">
-        <div className="container stack">
-          <div>
-            <h2 className="section-title">What happens next</h2>
-            <p className="muted" style={{ maxWidth: "72ch" }}>
-              Buyers should be able to understand the route from interest to delivery without guesswork.
+      <section className="home-section home-intelligence" aria-labelledby="home-intelligence-title">
+        <div className="container home-intelligence__layout">
+          <div className="home-intelligence__copy">
+            <h2 id="home-intelligence-title">Constituency evidence in one workspace</h2>
+            <p>
+              Move from election history and demographic context to swing, vulnerability and threat
+              analysis at constituency level.
             </p>
           </div>
-          <div className="steps">
-            {nextSteps.map((step, index) => (
-              <div key={step.title} className="step">
-                <div className="step-number">{index + 1}</div>
-                <h3>{step.title}</h3>
-                <p className="muted">{step.body}</p>
-              </div>
-            ))}
+
+          <figure className="home-intelligence__figure">
+            <ol
+              className="home-intelligence__sequence"
+              aria-label="Editorial summary of Constituency Intelligence evidence categories; not a product interface"
+            >
+              {intelligenceEvidence.map((item, index) => (
+                <li key={item}>
+                  <span>{String(index + 1).padStart(2, "0")}</span>
+                  <strong>{item}</strong>
+                </li>
+              ))}
+            </ol>
+            <figcaption>Constituency Intelligence in the Political Solutions portal.</figcaption>
+          </figure>
+        </div>
+      </section>
+
+      <section className="home-section home-experience" aria-labelledby="home-experience-title">
+        <div className="container home-experience__layout">
+          <div className="home-experience__media">
+            <picture>
+              <source media="(max-width: 720px)" srcSet={experienceImageMobile} />
+              <img
+                src={experienceImage}
+                alt="Close overhead view of a worn clipboard holding fictional register sheets with a navy pen, binder clips and blue tab on a deep-navy surface."
+                width="1536"
+                height="1024"
+                loading="lazy"
+                decoding="async"
+              />
+            </picture>
+          </div>
+
+          <div className="home-experience__copy">
+            <div className="home-section-heading">
+              <h2 id="home-experience-title">Built for controlled campaign work</h2>
+              <p>
+                Political Solutions is designed for Conservative associations, campaign managers
+                and MPs&apos; offices.
+              </p>
+            </div>
+
+            <dl className="home-proof-points">
+              {proofPoints.map((point) => (
+                <div key={point.label}>
+                  <dt>{point.label}</dt>
+                  <dd>{point.body}</dd>
+                </div>
+              ))}
+            </dl>
           </div>
         </div>
       </section>
 
-      <section className="section">
-        <div className="container cta-section">
+      <section className="home-section home-process" aria-labelledby="home-process-title">
+        <div className="container">
+          <div className="home-section-heading home-section-heading--wide">
+            <h2 id="home-process-title">Start with the job in front of you</h2>
+          </div>
+
+          <ol className="home-process__steps">
+            {processSteps.map((step, index) => (
+              <li key={step.title}>
+                <span className="home-process__number" aria-hidden="true">
+                  {String(index + 1).padStart(2, "0")}
+                </span>
+                <div>
+                  <h3>{step.title}</h3>
+                  <p>{step.body}</p>
+                </div>
+              </li>
+            ))}
+          </ol>
+        </div>
+      </section>
+
+      <section className="home-section home-closing" aria-labelledby="home-closing-title">
+        <div className="container home-closing__panel">
           <div>
-            <h2>Need to confirm the right product for your team?</h2>
-            <p className="muted" style={{ maxWidth: "72ch" }}>
-              We can confirm whether you need Marked Register Processing, Constituency Intelligence, or
-              Campaigning, Training & Election Support before any work is scoped.
+            <h2 id="home-closing-title">Not sure which product fits the job?</h2>
+            <p>
+              Tell us what you need. We will route your enquiry to the right product and confirm the
+              next step.
             </p>
           </div>
-          <div className="hero-actions">
-            <Button as={Link} to="/enquire" variant="primary">
-              Request a scoping call
+          <div className="home-actions home-closing__actions">
+            <Button
+              as={Link}
+              to="/enquire?service=platform-briefing"
+              variant="primary"
+            >
+              Request a briefing
             </Button>
-            <Button as={Link} to="/services" variant="secondary">
-              View services
-            </Button>
+            <Link className="home-text-link" to="/services">
+              View products <span aria-hidden="true">→</span>
+            </Link>
           </div>
         </div>
       </section>

@@ -1,5 +1,5 @@
 import Card from "../../components/Card.jsx";
-import Footer from "../../components/Footer.jsx";
+import Footer from "../../components/PublicFooter.jsx";
 import logo from "../../assets/brand/political-solutions-logo.png";
 
 export default function PrivacyPage() {

@@ -1,5 +1,4 @@
-import { fireEvent, render, screen } from "@testing-library/react";
-import { HelmetProvider } from "react-helmet-async";
+import { fireEvent, render, screen, within } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import ServiceSupport from "./ServiceSupport.jsx";
@@ -10,30 +9,33 @@ vi.mock("../lib/enquiriesApi.js", () => ({
 }));
 
 describe("ServiceSupport", () => {
-  const renderWithHelmet = (ui) => render(<HelmetProvider>{ui}</HelmetProvider>);
-
   beforeEach(() => {
     vi.clearAllMocks();
   });
 
-  it("renders the service support heading and hero CTA", () => {
-    renderWithHelmet(
+  it("renders the approved campaign-management hierarchy and secondary route", () => {
+    render(
       <MemoryRouter>
         <ServiceSupport />
       </MemoryRouter>
     );
 
     expect(
-      screen.getByRole("heading", { name: "Request Campaigning, Training & Election Support" })
+      screen.getByRole("heading", {
+        name: "Data-led campaign management across the electoral cycle",
+      })
     ).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: "Request election support" })).toHaveAttribute(
-      "href",
-      "/enquire?service=election-support"
-    );
+    expect(screen.getByRole("heading", { name: "Candidate coaching" })).toBeInTheDocument();
+    expect(
+      screen.getByRole("heading", { name: "Officer mentoring and volunteer briefings" })
+    ).toBeInTheDocument();
+    screen.getAllByRole("link", { name: "Use the general enquiry form" }).forEach((link) => {
+      expect(link).toHaveAttribute("href", "/enquire?service=election-support");
+    });
   });
 
-  it("submits the enquiry and shows inline success message", async () => {
-    renderWithHelmet(
+  it("submits an optional empty brief and shows the approved inline success message", async () => {
+    render(
       <MemoryRouter>
         <ServiceSupport />
       </MemoryRouter>
@@ -42,16 +44,39 @@ describe("ServiceSupport", () => {
     fireEvent.change(screen.getByLabelText("Name *"), { target: { value: "Alex Doe" } });
     fireEvent.change(screen.getByLabelText("Email *"), { target: { value: "alex@example.com" } });
     fireEvent.click(screen.getByRole("checkbox"));
-    fireEvent.click(screen.getByRole("button", { name: "Submit enquiry" }));
+    fireEvent.click(screen.getByRole("button", { name: "Send campaign-support enquiry" }));
 
-    await screen.findByText("Thank you — we'll be in touch within one working day.");
-    expect(screen.getByRole("heading", { name: "Request Campaigning, Training & Election Support" })).toBeInTheDocument();
+    await screen.findByText("Thank you. Your campaign-support enquiry has been sent.");
+    expect(insertEnquiry).toHaveBeenCalledWith({
+      name: "Alex Doe",
+      email: "alex@example.com",
+      organisation: "",
+      message: "",
+    });
   });
 
-  it("shows inline error message when Supabase insert fails", async () => {
+  it("associates validation errors with the required fields", () => {
+    render(
+      <MemoryRouter>
+        <ServiceSupport />
+      </MemoryRouter>
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "Send campaign-support enquiry" }));
+
+    expect(screen.getByLabelText("Name *")).toHaveAttribute("aria-invalid", "true");
+    expect(screen.getByLabelText("Email *")).toHaveAttribute("aria-invalid", "true");
+    expect(screen.getByRole("checkbox")).toHaveAttribute("aria-invalid", "true");
+    expect(screen.getByText("Name is required.")).toHaveAttribute(
+      "id",
+      "campaign-support-name-error"
+    );
+  });
+
+  it("shows the approved inline error message when the enquiry insert fails", async () => {
     insertEnquiry.mockRejectedValueOnce(new Error("Network error"));
 
-    renderWithHelmet(
+    render(
       <MemoryRouter>
         <ServiceSupport />
       </MemoryRouter>
@@ -60,10 +85,14 @@ describe("ServiceSupport", () => {
     fireEvent.change(screen.getByLabelText("Name *"), { target: { value: "Alex Doe" } });
     fireEvent.change(screen.getByLabelText("Email *"), { target: { value: "alex@example.com" } });
     fireEvent.click(screen.getByRole("checkbox"));
-    fireEvent.click(screen.getByRole("button", { name: "Submit enquiry" }));
+    fireEvent.click(screen.getByRole("button", { name: "Send campaign-support enquiry" }));
 
     await screen.findByText(/Something went wrong/);
-    const emailLinks = screen.getAllByRole("link", { name: "paul@politicalsolutions.uk" });
-    expect(emailLinks[0]).toHaveAttribute("href", "mailto:paul@politicalsolutions.uk");
+    const errorAlert = screen.getByRole("alert");
+    expect(errorAlert).toBeInTheDocument();
+    expect(within(errorAlert).getByRole("link", { name: "paul@politicalsolutions.uk" })).toHaveAttribute(
+      "href",
+      "mailto:paul@politicalsolutions.uk"
+    );
   });
 });
