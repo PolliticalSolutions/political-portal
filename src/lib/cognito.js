@@ -10,7 +10,7 @@ const preferredProdOrigin = "https://www.politicalsolutions.uk";
 
 const hasWindow = typeof window !== "undefined";
 const isDev =
-  (typeof import.meta !== "undefined" && Boolean(import.meta.env?.DEV)) ||
+  Boolean(import.meta.env.DEV) ||
   (typeof process !== "undefined" && process.env?.NODE_ENV !== "production");
 
 function getMissingCognitoEnvKeys() {
@@ -41,7 +41,7 @@ function base64UrlEncode(bytes) {
 }
 
 function isProductionBuild() {
-  if (typeof import.meta !== "undefined" && typeof import.meta.env?.PROD === "boolean") {
+  if (typeof import.meta.env.PROD === "boolean") {
     return import.meta.env.PROD;
   }
   if (typeof process !== "undefined" && typeof process.env?.NODE_ENV === "string") {
@@ -50,12 +50,12 @@ function isProductionBuild() {
   return false;
 }
 
-function readEnvValue(key) {
-  const source =
-    typeof import.meta !== "undefined" && import.meta.env
-      ? import.meta.env
-      : (typeof process !== "undefined" ? process.env : undefined);
-  const value = source ? source[key] : "";
+function readPublicOrigin() {
+  const processValue =
+    typeof process !== "undefined" && process.env
+      ? process.env.VITE_PUBLIC_ORIGIN
+      : undefined;
+  const value = import.meta.env.VITE_PUBLIC_ORIGIN ?? processValue;
   return typeof value === "string" ? value.trim() : "";
 }
 
@@ -66,7 +66,7 @@ function normalizeOrigin(origin) {
 
 export function resolveCanonicalOrigin({
   isProd = isProductionBuild(),
-  publicOrigin = readEnvValue("VITE_PUBLIC_ORIGIN"),
+  publicOrigin = readPublicOrigin(),
   currentOrigin = hasWindow ? window.location.origin : "",
   currentHostname = hasWindow ? window.location.hostname : "",
 } = {}) {
@@ -95,7 +95,7 @@ export function getRedirectUri() {
 export function getCanonicalRedirectTarget({
   isProd = isProductionBuild(),
   currentHref = hasWindow ? window.location.href : "",
-  publicOrigin = readEnvValue("VITE_PUBLIC_ORIGIN"),
+  publicOrigin = readPublicOrigin(),
 } = {}) {
   if (!isProd || !currentHref) return null;
   const currentUrl = new URL(currentHref);

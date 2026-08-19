@@ -1,4 +1,4 @@
-import { defineConfig } from "vite";
+import { defineConfig, loadEnv } from "vite";
 import react from "@vitejs/plugin-react";
 
 // Treat .geojson files as plain JSON modules so they can be directly imported
@@ -12,7 +12,17 @@ const geojsonPlugin = {
   },
 };
 
-export default defineConfig({
+export default defineConfig(({ mode }) => {
+  const env = loadEnv(mode, process.cwd(), "");
+  const serviceRoleKey =
+    process.env.VITE_SUPABASE_SERVICE_KEY || env.VITE_SUPABASE_SERVICE_KEY || "";
+  if (serviceRoleKey.trim()) {
+    throw new Error(
+      "Refusing to build: VITE_SUPABASE_SERVICE_KEY is a privileged server credential and cannot be exposed by a Vite client build."
+    );
+  }
+
+  return {
   plugins: [react(), geojsonPlugin],
   ssr: {
     noExternal: ["react-helmet-async"],
@@ -50,4 +60,5 @@ export default defineConfig({
     },
     disableConsoleIntercept: true,
   },
+  };
 });

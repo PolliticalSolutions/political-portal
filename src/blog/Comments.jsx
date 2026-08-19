@@ -1,7 +1,20 @@
 import Giscus from "@giscus/react";
 
-const readEnv = () =>
-  (typeof import.meta !== "undefined" && import.meta.env ? import.meta.env : process.env) || {};
+const readProcessEnv = (key) =>
+  typeof process !== "undefined" && process.env ? process.env[key] : undefined;
+
+const readEnv = () => ({
+  VITE_GISCUS_REPO:
+    import.meta.env.VITE_GISCUS_REPO ?? readProcessEnv("VITE_GISCUS_REPO"),
+  VITE_GISCUS_REPO_ID:
+    import.meta.env.VITE_GISCUS_REPO_ID ?? readProcessEnv("VITE_GISCUS_REPO_ID"),
+  VITE_GISCUS_CATEGORY:
+    import.meta.env.VITE_GISCUS_CATEGORY ?? readProcessEnv("VITE_GISCUS_CATEGORY"),
+  VITE_GISCUS_CATEGORY_ID:
+    import.meta.env.VITE_GISCUS_CATEGORY_ID ?? readProcessEnv("VITE_GISCUS_CATEGORY_ID"),
+  VITE_GISCUS_ENABLED:
+    import.meta.env.VITE_GISCUS_ENABLED ?? readProcessEnv("VITE_GISCUS_ENABLED"),
+});
 
 export const resolveGiscusConfig = (env = readEnv()) => {
   const repo = env.VITE_GISCUS_REPO || "";

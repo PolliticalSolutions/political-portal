@@ -7,7 +7,7 @@ const nodeEnv =
 const isDevBuild =
   nodeEnv
     ? nodeEnv !== "production"
-    : ((typeof import.meta !== "undefined" && Boolean(import.meta.env?.DEV)) || false);
+    : Boolean(import.meta.env.DEV);
 
 const formatMissingKeys = (missingKeys, devMode) => {
   if (!devMode) {

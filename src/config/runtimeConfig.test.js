@@ -61,6 +61,11 @@ describe("getRuntimeConfig", () => {
     expect(config.supabaseUrl).toBe("");
     expect(config.supabaseAnonKey).toBe("");
   });
+
+  it("does not expose a Supabase service-role configuration property", () => {
+    vi.stubEnv("VITE_SUPABASE_SERVICE_KEY", "must-not-be-exposed");
+    expect(getRuntimeConfig()).not.toHaveProperty("supabaseServiceKey");
+  });
 });
 
 describe("getSiteUrl / getApiBaseUrl", () => {

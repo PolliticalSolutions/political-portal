@@ -1,7 +1,14 @@
 const readEnv = (key) => {
-  const source =
-    typeof import.meta !== "undefined" && import.meta.env ? import.meta.env : process.env;
-  const value = source ? source[key] : undefined;
+  const viteValues = {
+    VITE_COGNITO_DOMAIN: import.meta.env.VITE_COGNITO_DOMAIN,
+    VITE_COGNITO_CLIENT_ID: import.meta.env.VITE_COGNITO_CLIENT_ID,
+    VITE_COGNITO_REDIRECT_URI: import.meta.env.VITE_COGNITO_REDIRECT_URI,
+    VITE_API_BASE_URL: import.meta.env.VITE_API_BASE_URL,
+    VITE_ENQUIRY_API_URL: import.meta.env.VITE_ENQUIRY_API_URL,
+  };
+  const processValue =
+    typeof process !== "undefined" && process.env ? process.env[key] : undefined;
+  const value = typeof viteValues[key] === "string" ? viteValues[key] : processValue;
   if (typeof value !== "string") return "";
   return value.trim();
 };
