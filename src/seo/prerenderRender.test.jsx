@@ -34,6 +34,14 @@ describe("entry-server render", () => {
     expect(services.appHtml).toBeTruthy();
     expect(constituencyIntelligence.appHtml).toBeTruthy();
     expect(electionSupport.appHtml).toBeTruthy();
+    expect(services.appHtml).toContain("Campaign support built on evidence, not assumption");
+    expect(constituencyIntelligence.appHtml).toContain(
+      "Know the ground before you plan the campaign"
+    );
+    expect(electionSupport.appHtml).toContain(
+      "Data-led campaign management across the electoral cycle"
+    );
+    expect(services.appHtml).not.toContain("renderToString&quot; which does not support Suspense");
 
     expect(home.headHtml).toContain(
       "Marked register processing &amp; campaign data for UK political teams | Political Solutions"
@@ -185,10 +193,8 @@ describe("entry-server render", () => {
     vi.stubEnv("VITE_GISCUS_CATEGORY_ID", "category-id");
 
     const post = await render("/blog/2026-02-25-campaign-data-operations-baseline");
-    // BlogPostPage is lazy-loaded (App.jsx:22), so SSR returns the Suspense
-    // fallback rather than full markdown content. The relevant assertion is
-    // that the giscus integration is not server-rendered when env vars are
-    // present — it must remain a client-only mount.
+    expect(post.appHtml).toContain("Building a campaign data operations baseline");
+    // The article is fully prerendered, while giscus remains a client-only mount.
     expect(post.appHtml).not.toContain("blog-giscus");
     expect(post.appHtml).not.toContain("giscus.app");
 
