@@ -1,10 +1,14 @@
 # Test-only dependencies for the marked-register Python handlers.
 # boto3 is provided by the Lambda runtime in production, so it is not in the
 # per-function requirements.txt; the unit tests need it to import the handler
-# modules (their boto3 clients are constructed at import time). OCR libraries
-# are intentionally omitted; the handlers guard those imports (OCR_AVAILABLE).
+# modules (their boto3 clients are constructed at import time). The committed
+# unit tests exercise OCR helpers directly, so their Python wrappers are needed
+# even though the external OCR executables are not invoked by the test suite.
 boto3
 pytest
+pdf2image
+pytesseract
+Pillow
 openpyxl==3.1.5
 et-xmlfile==2.0.0
 defusedxml==0.7.1
