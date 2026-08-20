@@ -15,17 +15,25 @@ describe("BlogIndexPage", () => {
     );
 
     expect(
-      screen.getByRole("heading", { name: "UK Campaign Operations Blog" }),
+      screen.getByRole("heading", { name: "Campaign operations, from evidence to delivery" }),
     ).toBeInTheDocument();
     expect(
       screen.getByText(
-        /Operational guidance for UK campaign professionals who need practical answers on data handling/
+        /Political Solutions publishes practical briefings on campaign planning/
       )
     ).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Campaign briefings" })).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "Building a campaign data operations baseline" })).toBeInTheDocument();
     expect(
       screen.getByRole("link", { name: "Reducing field-team friction with better handoffs" })
     ).toBeInTheDocument();
+    expect(screen.getByText("25 Feb 2026")).toBeInTheDocument();
+    expect(screen.getByRole("list", { name: /Topics for Building a campaign data operations baseline/ }))
+      .toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Discuss your campaign" })).toHaveAttribute(
+      "href",
+      "/enquire?service=election-support"
+    );
   });
 
   it("does not list draft posts", () => {
@@ -38,5 +46,20 @@ describe("BlogIndexPage", () => {
     );
 
     expect(screen.queryByText("Internal draft: volunteer rota quality checks")).not.toBeInTheDocument();
+  });
+
+  it("renders the approved empty state when no posts are published", () => {
+    render(
+      <HelmetProvider>
+        <MemoryRouter>
+          <BlogIndexPage postsOverride={[]} />
+        </MemoryRouter>
+      </HelmetProvider>
+    );
+
+    expect(
+      screen.getByRole("heading", { name: "No campaign briefings are published yet" })
+    ).toBeInTheDocument();
+    expect(screen.getByText("There are no published briefings to show.")).toBeInTheDocument();
   });
 });

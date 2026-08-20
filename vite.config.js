@@ -52,7 +52,7 @@ export default defineConfig(({ mode }) => {
     globals: true,
     environment: "jsdom",
     setupFiles: "./src/setupTests.js",
-    include: ["src/**/*.test.{js,jsx,ts,tsx}"],
+    include: ["src/**/*.test.{js,jsx,ts,tsx}", "scripts/**/*.test.{js,mjs}"],
     exclude: ["infra/enquiry-api/test/**", "node_modules/**", "dist/**"],
     pool: "vmThreads",
     alias: {

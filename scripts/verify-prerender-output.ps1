@@ -1,6 +1,6 @@
-X1|}:\WGF;[]=$ErrorActionPreference = "Stop"
+$ErrorActionPreference = "Stop"
 
-$routesJson = node --input-type=module -e "import { seoRoutes } from './src/seo/seoRoutes.js'; console.log(JSON.stringify(seoRoutes.map(r => r.path)))"
+$routesJson = node --input-type=module -e "import { getPrerenderRoutes } from './scripts/prerender-routes.mjs'; console.log(JSON.stringify(getPrerenderRoutes()))"
 $routes = $routesJson | ConvertFrom-Json
 
 $missing = @()

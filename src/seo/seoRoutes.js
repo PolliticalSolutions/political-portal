@@ -70,16 +70,16 @@ export const seoRoutes = [
   },
   {
     path: "/blog",
-    title: "UK campaign operations blog — marked registers, data & delivery",
+    title: "Campaign operations briefings",
     description:
-      "Practical guidance on marked register processing, constituency data workflows, and campaign delivery for UK political professionals. No generic commentary — just operational answers.",
+      "Practical briefings on campaign planning, constituency evidence, marked-register work and operational delivery for Conservative campaign professionals.",
     changefreq: "weekly",
     priority: 0.6,
   },
   {
     path: "/blog/:slug",
-    title: "Blog post",
-    description: "Article from Political Solutions.",
+    title: "Campaign briefing",
+    description: "Practical campaign operations guidance from Political Solutions.",
     noindex: true,
   },
   {
@@ -137,12 +137,13 @@ export const getSeoForPath = (pathname) => {
     const slug = normalized.slice("/blog/".length);
     const post = getPostBySlug(slug, { includeDrafts: true });
 
-    if (!post) {
+    if (!post || post.meta.draft) {
       return {
         ...defaultSeo,
         path: normalized,
-        title: "Post not found",
-        description: "This article is unavailable or has not been published.",
+        title: "Briefing unavailable",
+        description:
+          "This Political Solutions campaign briefing is unavailable or has not been published.",
         noindex: true,
       };
     }
@@ -152,7 +153,7 @@ export const getSeoForPath = (pathname) => {
       title: post.meta.title,
       description: post.meta.description,
       canonical: post.meta.canonical || `${SITE_URL}${normalized}`,
-      noindex: post.meta.draft,
+      noindex: false,
     };
   }
 

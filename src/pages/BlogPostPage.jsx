@@ -1,8 +1,8 @@
-import ReactMarkdown from "react-markdown";
 import { Link, useLocation, useParams } from "react-router-dom";
 import { Helmet } from "react-helmet-async";
 import Button from "../components/Button.jsx";
 import Footer from "../components/PublicFooter.jsx";
+import BlogMarkdown from "../blog/BlogMarkdown.jsx";
 import { getPostBySlug } from "../blog/blogLoader.js";
 import { formatBlogDate } from "../blog/formatBlogDate.js";
 import { getBlogEffectiveDate } from "../blog/postDates.js";
@@ -27,13 +27,13 @@ export default function BlogPostPage() {
 
   if (!post) {
     return (
-      <div className="page">
-        <section className="section">
-          <div className="container stack">
-            <h1>Post not found</h1>
-            <p className="muted">This article is unavailable or has not been published.</p>
+      <div className="page blog-page blog-post-page">
+        <section className="blog-section blog-unavailable">
+          <div className="container blog-unavailable__content">
+            <h1>Briefing unavailable</h1>
+            <p>This briefing does not exist or has not been published.</p>
             <Link className="blog-inline-link" to="/blog">
-              Back to blog
+              View all campaign briefings
             </Link>
           </div>
         </section>
@@ -63,62 +63,76 @@ export default function BlogPostPage() {
   };
 
   return (
-    <div className="page">
-      <section className="section">
-        <article className="container stack blog-post" aria-labelledby="blog-post-title">
-          <Helmet>
-            <script type="application/ld+json">{JSON.stringify(blogPostingJsonLd)}</script>
-          </Helmet>
-          <Link className="blog-inline-link" to="/blog">
-            Back to blog
-          </Link>
+    <div className="page blog-page blog-post-page">
+      <article aria-labelledby="blog-post-title">
+        <section className="blog-section blog-article-hero">
+          <div className="container blog-post">
+            <Helmet>
+              <script type="application/ld+json">{JSON.stringify(blogPostingJsonLd)}</script>
+            </Helmet>
+            <Link className="blog-inline-link" to="/blog">
+              <span aria-hidden="true">←</span> All campaign briefings
+            </Link>
 
-          <header className="blog-post-header stack" style={{ gap: 8 }}>
-            <div className="blog-post-header__meta">
-              <span className="blog-post-header__label">Operational briefing</span>
-              <p className="muted blog-meta">
-                {formatBlogDate(publishedDate)} | {post.meta.author}
-              </p>
-            </div>
-            <h1 id="blog-post-title">{post.meta.title}</h1>
-            <p className="blog-post-header__description">{post.meta.description}</p>
-            {post.meta.tags.length > 0 && (
-              <div className="blog-tags" aria-label="Tags">
-                {post.meta.tags.map((tag) => (
-                  <span key={`${post.slug}-${tag}`} className="badge">
-                    {tag}
-                  </span>
-                ))}
+            <header className="blog-post-header">
+              <div className="blog-post-header__meta">
+                <span className="blog-post-header__label">Campaign briefing</span>
+                <dl className="blog-post-meta">
+                  <div>
+                    <dt>Published</dt>
+                    <dd>
+                      <time dateTime={publishedDate}>{formatBlogDate(publishedDate)}</time>
+                    </dd>
+                  </div>
+                  <div>
+                    <dt>By</dt>
+                    <dd>{post.meta.author}</dd>
+                  </div>
+                </dl>
               </div>
+              <h1 id="blog-post-title">{post.meta.title}</h1>
+              <p className="blog-post-header__description">{post.meta.description}</p>
+              {post.meta.tags.length > 0 && (
+                <div className="blog-post-topics">
+                  <span>Topics</span>
+                  <ul aria-label={`Topics for ${post.meta.title}`}>
+                    {post.meta.tags.map((tag) => (
+                      <li key={`${post.slug}-${tag}`}>{tag}</li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+            </header>
+          </div>
+        </section>
+
+        <section className="blog-section blog-article-body">
+          <div className="container blog-reading-column">
+            <BlogMarkdown content={post.content} />
+
+            {post.meta.canonical && (
+              <aside className="blog-original-publication" aria-label="Original publication">
+                <span>Original publication</span>
+                <a className="blog-inline-link" href={post.meta.canonical}>
+                  View the original article
+                </a>
+              </aside>
             )}
-          </header>
 
-          <div className="blog-markdown">
-            <ReactMarkdown>{post.content}</ReactMarkdown>
+            <Comments slug={post.slug} />
           </div>
+        </section>
+      </article>
 
-          {post.meta.canonical && (
-            <p className="muted">
-              Originally published at{" "}
-              <a className="blog-inline-link" href={post.meta.canonical}>
-                {post.meta.canonical}
-              </a>
-              .
-            </p>
-          )}
-
-          <Comments slug={post.slug} />
-        </article>
-      </section>
-
-      <section className="section">
-        <div className="container cta-section">
+      <section className="blog-section blog-closing" aria-labelledby="blog-post-closing-title">
+        <div className="container blog-closing__panel">
           <div>
-            <h2>Ready to talk campaign delivery?</h2>
+            <h2 id="blog-post-closing-title">Apply this briefing to your campaign</h2>
+            <p>Discuss the campaign job, data requirement or delivery challenge you need to resolve.</p>
           </div>
-          <div className="hero-actions">
-            <Button as={Link} to="/enquire?service=platform-briefing" variant="primary">
-              Request a briefing
+          <div className="blog-closing__action">
+            <Button as={Link} to="/enquire?service=election-support" variant="primary">
+              Discuss your campaign
             </Button>
           </div>
         </div>
