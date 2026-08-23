@@ -1,0 +1,13 @@
+{
+  "schema_version": 1,
+  "label": "stafford-audley-chesterton-deployed-head-20260819",
+  "source_commit": "ccb4cfd4da314407fe17c46799eb37d8a353c379",
+  "source_document_count": 9,
+  "source_set_sha256": "175485f6420b1a317059d1984fcb15ffa685dd609315c0872c4f63336279026e",
+  "ocr_manifest_sha256": "ade5082467e4dfa1a24ccc6a3e1f575067e354747b78291ab8e3f6f6d33f16d0",
+  "metrics": {
+    "rows_before_deduplication": 9696,
+    "rows_after_deduplication": 9642,
+    "voted_y": 1888
+  }
+}
