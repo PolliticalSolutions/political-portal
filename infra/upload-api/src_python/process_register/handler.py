@@ -220,21 +220,40 @@ _ALWAYS_NOT_IN_PERSON_CODES = frozenset({"A"})
 _LOCAL_ELECTION_EXCLUDED_CODES = frozenset({"E", "F"})
 _PARLIAMENTARY_ELECTION_EXCLUDED_CODES = frozenset({"B", "E", "G", "L"})
 
-# Header patterns that identify a page's polling district. Shared by the page-1
-# metadata parse (_extract_metadata) and the per-page detection (§6.2).
+# Header patterns that identify a page's polling district. Manchester-area
+# registers commonly print "Register of Electors - <code>" and some authorities
+# hyphenate the code for display (for example R-NB). The parser canonicalises
+# those printed forms back to the compact district key used by the workbook.
+_PRINTED_DISTRICT_CODE = (
+    r"[A-Z0-9]{1,8}"
+    r"(?:[^\S\r\n]*[-–—][^\S\r\n]*[A-Z0-9]{1,8}){0,3}"
+)
 _DISTRICT_PATTERNS = [
-    r"Polling\s+District\s+([A-Z0-9]{2,8})",
-    r"(?:Council|Borough|Hamlets)\s*-\s*([A-Z0-9]{2,8})\b",
-    r"Electors\s+([A-Z0-9]{2,8})-\d+\s+to",
-    r"\(([A-Z0-9]{2,8})-\d+\s*/\s*[A-Z0-9]+-\d+\)",
+    rf"Polling\s+District\s+({_PRINTED_DISTRICT_CODE})",
+    rf"Register\s+of\s+Electors\s*[-–—:]\s*"
+    rf"([A-Z0-9]{{1,8}}?(?:[^\S\r\n]*[-–—][^\S\r\n]*"
+    rf"[A-Z0-9]{{1,8}}){{0,3}})"
+    rf"(?=\r?\n|UK(?:\s*PGE\b|\s+Parliamentary\b)|"
+    rf"\s+(?![-–—])|\(|$)",
+    rf"(?:Council|Borough|Hamlets)\s*[-–—]\s*"
+    rf"([A-Z0-9]{{1,8}}?(?:[^\S\r\n]*[-–—][^\S\r\n]*"
+    rf"[A-Z0-9]{{1,8}}){{0,3}})"
+    rf"(?=\r?\n|UK(?:\s*PGE\b|\s+Parliamentary\b)|"
+    rf"\s+(?![-–—])|\(|$)",
+    rf"Electors\s+({_PRINTED_DISTRICT_CODE})\s*[-–—]\s*\d+\s+to",
+    rf"\(\s*({_PRINTED_DISTRICT_CODE})\s*[-–—]\s*\d+(?:\s*/\s*\d+)?"
+    rf"\s*/\s*{_PRINTED_DISTRICT_CODE}\s*[-–—]\s*\d+",
 ]
 
 # Printed register declarations appear on both the cover ("Electors NAA-1 to
 # NAA-926") and content-page headers ("(NAA-1 / NAA-926)"). Keep this parse
 # separate from elector-row extraction: these are small, printed header bands,
 # not voter rows or handwritten marks.
-_DECLARED_CODE = r"[A-Z0-9]{2,8}"
-_DECLARED_NUMBER = r"(?:\d{1,3}(?:,\d{3})+|\d{1,7})"
+_DECLARED_CODE = _PRINTED_DISTRICT_CODE
+_DECLARED_NUMBER = (
+    r"(?:\d{1,3}(?:,\d{3})+|\d{1,7}(?:\s+\d{1,3})*|[IL])"
+    r"(?:\s*/\s*\d{1,4})?"
+)
 _DECLARED_RANGE_PATTERNS = [
     rf"\bElectors?\s*:?\s*({_DECLARED_CODE})\s*[-–—]\s*({_DECLARED_NUMBER})"
     rf"\s+to\s+({_DECLARED_CODE})\s*[-–—]\s*({_DECLARED_NUMBER})",
@@ -273,27 +292,93 @@ _HEADER_NON_DISTRICT_TOKENS = frozenset({
     "STATION",
     "UNKNOWN",
     "WARD",
+    "UK",
+    "PARLIAMENTARY",
 })
+
+
+def _normalise_printed_district_code(value):
+    """Return one compact district key from a tightly matched header token."""
+    candidate = re.sub(r"[^A-Z0-9]+", "", str(value or "").upper())
+    if (
+        2 <= len(candidate) <= 8
+        and re.search(r"[A-Z]", candidate)
+        and candidate not in _HEADER_NON_DISTRICT_TOKENS
+    ):
+        return candidate
+    return None
+
+
+def _printed_district_codes_ocr_confusable(left, right):
+    """Allow only same-length OCR substitutions between repeated range codes."""
+    left = _normalise_printed_district_code(left)
+    right = _normalise_printed_district_code(right)
+    if not left or not right or len(left) != len(right):
+        return False
+    return all(
+        a == b
+        or {a, b} in (
+            {"O", "0"},
+            {"S", "5"},
+            {"I", "1"},
+            {"1", "7"},
+        )
+        for a, b in zip(left, right)
+    )
 
 
 def _extract_declared_ranges(text):
     """Return unique printed district/range declarations found in OCR text.
 
     A declaration is accepted only when the district code is printed at both
-    ends and agrees case-insensitively. This intentionally rejects looser number
-    pairs that commonly occur elsewhere on a register page.
+    ends and agrees case-insensitively or differs only by a tightly scoped OCR
+    substitution. This intentionally rejects looser number pairs that commonly
+    occur elsewhere on a register page.
     """
     ranges = []
     seen = set()
     for pattern in _DECLARED_RANGE_PATTERNS:
         for match in re.finditer(pattern, text or "", re.IGNORECASE):
             start_code, start_text, end_code, end_text = match.groups()
-            district = start_code.upper()
-            if end_code.upper() != district:
+            district = _normalise_printed_district_code(start_code)
+            end_district = _normalise_printed_district_code(end_code)
+            if (
+                not district
+                or (
+                    end_district != district
+                    and not _printed_district_codes_ocr_confusable(
+                        district,
+                        end_district,
+                    )
+                )
+            ):
                 continue
             try:
-                start = int(start_text.replace(",", ""))
-                end = int(end_text.replace(",", ""))
+                start_main = (
+                    re.sub(
+                        r"\s+",
+                        "",
+                        start_text.split("/", 1)[0].replace(",", ""),
+                    ).upper()
+                )
+                end_main = (
+                    re.sub(
+                        r"\s+",
+                        "",
+                        end_text.split("/", 1)[0].replace(",", ""),
+                    ).upper()
+                )
+                # A single printed 1 at the start of a strict repeated-code
+                # declaration is commonly OCR'd as I or l. Never apply this to
+                # elector rows or to multi-character numeric fields.
+                if start_main in {"I", "L"}:
+                    start_main = "1"
+                if end_main in {"I", "L"}:
+                    end_main = "1"
+                if len(start_main) > 7 or len(end_main) > 7:
+                    continue
+                start = int(start_main)
+                end = int(end_main)
             except (TypeError, ValueError):
                 continue
             if start < 1 or end < start:
@@ -306,16 +391,106 @@ def _extract_declared_ranges(text):
     return ranges
 
 
+def _maximum_declared_elector_number(*range_groups):
+    """Return the exact parser ceiling from the strongest range evidence.
+
+    Callers pass page declarations first and the cover declaration last. A
+    readable cover is independent, document-level evidence and takes precedence
+    over a noisy per-page result for the same district. A PDF can contain more
+    than one district, though, so a repeated-code page declaration for a
+    district absent from the cover must remain eligible to raise the ceiling.
+    """
+    valid_groups = []
+    for ranges in range_groups:
+        valid = []
+        for item in ranges or []:
+            try:
+                district = _normalise_printed_district_code(
+                    item.get("district")
+                )
+                start = int(item.get("start"))
+                end = int(item.get("end"))
+            except (AttributeError, TypeError, ValueError):
+                continue
+            if district and 1 <= start <= end <= 999999:
+                valid.append((district, end))
+        valid_groups.append(valid)
+
+    if not valid_groups:
+        return None
+
+    cover_ranges = valid_groups[-1]
+    cover_districts = {
+        district for district, _end in cover_ranges
+    }
+    ends = [end for _district, end in cover_ranges]
+    for page_ranges in valid_groups[:-1]:
+        for district, end in page_ranges:
+            cover_match = any(
+                district == cover_district
+                or _printed_district_codes_ocr_confusable(
+                    district,
+                    cover_district,
+                )
+                for cover_district in cover_districts
+            )
+            if not cover_match:
+                ends.append(end)
+    return max(ends) if ends else None
+
+
 def _extract_polling_district_from_text(text, declared_ranges=None):
-    """Preserve existing district patterns, then use a declaration as fallback."""
+    """Resolve a district, preferring one unique repeated range declaration."""
+    candidate = None
     for pattern in _DISTRICT_PATTERNS:
         match = re.search(pattern, text or "", re.IGNORECASE)
         if match:
-            return match.group(1)
+            candidate = _normalise_printed_district_code(match.group(1))
+            if candidate:
+                break
     declared_ranges = (
         _extract_declared_ranges(text) if declared_ranges is None else declared_ranges
     )
-    return declared_ranges[0]["district"] if declared_ranges else None
+    declared_districts = {
+        _normalise_printed_district_code(item.get("district"))
+        for item in declared_ranges or []
+        if isinstance(item, dict)
+    }
+    declared_districts.discard(None)
+    if len(declared_districts) == 1:
+        declared_district = next(iter(declared_districts))
+
+        def edit_distance(left, right):
+            previous = list(range(len(right) + 1))
+            for left_index, left_char in enumerate(left, start=1):
+                current = [left_index]
+                for right_index, right_char in enumerate(right, start=1):
+                    current.append(min(
+                        current[-1] + 1,
+                        previous[right_index] + 1,
+                        previous[right_index - 1]
+                        + (left_char != right_char),
+                    ))
+                previous = current
+            return previous[-1]
+
+        # A declaration prints the same code at both numeric endpoints. That
+        # independent repetition is stronger evidence than a looser heading
+        # token that is a compatible truncation or has gained one OCR glyph.
+        if (
+            not candidate
+            or candidate == declared_district
+            or (
+                min(len(candidate), len(declared_district)) >= 2
+                and (
+                    candidate.startswith(declared_district)
+                    or declared_district.startswith(candidate)
+                )
+            )
+            or edit_distance(candidate, declared_district) <= 1
+        ):
+            return declared_district
+    return candidate
 
 
 def _classify_pdf_vote_type(text):
@@ -350,12 +525,8 @@ def _extract_polling_district_from_tokens(tokens):
         if district_index is None:
             continue
         for candidate in normalised[district_index + 1:district_index + 4]:
-            if (
-                2 <= len(candidate) <= 8
-                and re.search(r"[A-Z]", candidate)
-                and candidate not in _HEADER_NON_DISTRICT_TOKENS
-            ):
-                return candidate
+            if district := _normalise_printed_district_code(candidate):
+                return district
     return None
 
 
@@ -502,7 +673,162 @@ def _has_voting_mark(line_text, dash_chars=""):
     return False
 
 
-def _extract_elector_entry(line, context_prev_num=0):
+def _numeric_edit_distance(left, right):
+    """Return the Levenshtein distance between two short numeric readings."""
+    left = str(left)
+    right = str(right)
+    previous = list(range(len(right) + 1))
+    for left_index, left_char in enumerate(left, start=1):
+        current = [left_index]
+        for right_index, right_char in enumerate(right, start=1):
+            current.append(min(
+                current[-1] + 1,
+                previous[right_index] + 1,
+                previous[right_index - 1] + (left_char != right_char),
+            ))
+        previous = current
+    return previous[-1]
+
+
+def _recover_range_bound_eno_candidate(
+        candidate, previous_main, previous_elector, pending_strikethroughs,
+        maximum_elector_number):
+    """Repair one anchored ENO token only from strict local sequence evidence."""
+    if maximum_elector_number is None:
+        return None
+    candidate = str(candidate or "").strip()
+    if not re.fullmatch(r"\d+(?:/\d+)?", candidate):
+        return None
+    candidate_parts = candidate.split("/", 1)
+    candidate_main = int(candidate_parts[0])
+    candidate_sub = int(candidate_parts[1]) if len(candidate_parts) > 1 else 0
+
+    if candidate_sub and previous_elector:
+        previous_parts = str(previous_elector).split("/", 1)
+        try:
+            previous_elector_main = int(previous_parts[0])
+            previous_sub = (
+                int(previous_parts[1]) if len(previous_parts) > 1 else 0
+            )
+        except ValueError:
+            previous_elector_main = 0
+            previous_sub = -1
+        expected_sub = previous_sub + 1
+        if (
+            previous_elector_main == previous_main
+            and 1 <= previous_main <= maximum_elector_number
+            and _numeric_edit_distance(candidate_main, previous_main) <= 1
+            and (
+                candidate_sub == expected_sub
+                or (expected_sub == 1 and candidate_sub == 4)
+            )
+        ):
+            return f"{previous_main}/{expected_sub}"
+
+    if candidate_sub:
+        return None
+    if previous_main <= 0:
+        return (
+            str(candidate_main)
+            if 1 <= candidate_main <= maximum_elector_number
+            else None
+        )
+
+    expected_main = previous_main + pending_strikethroughs + 1
+    if (
+        expected_main <= maximum_elector_number
+        and _numeric_edit_distance(candidate_main, expected_main) <= 2
+    ):
+        return str(expected_main)
+    return None
+
+
+def _recover_bracketed_strikethrough_entries(entries, diagnostics=None):
+    """Number explicit struck rows only when adjacent anchors prove the run."""
+    recovered = list(entries)
+    index = 0
+    while index < len(recovered):
+        if not (
+            recovered[index].get("is_strikethrough")
+            and recovered[index].get("main_num") is None
+        ):
+            index += 1
+            continue
+        run_start = index
+        while (
+            index < len(recovered)
+            and recovered[index].get("is_strikethrough")
+            and recovered[index].get("main_num") is None
+        ):
+            index += 1
+        run_end = index
+        previous = recovered[run_start - 1] if run_start else None
+        following = recovered[run_end] if run_end < len(recovered) else None
+        if not previous or not following:
+            continue
+        previous_main = previous.get("main_num")
+        following_main = following.get("main_num")
+        run_length = run_end - run_start
+        if (
+            previous_main is None
+            or following_main is None
+            or following_main != previous_main + run_length + 1
+        ):
+            continue
+        for offset, entry_index in enumerate(
+                range(run_start, run_end), start=1):
+            elector_num = previous_main + offset
+            recovered[entry_index] = {
+                **recovered[entry_index],
+                "elector_num": str(elector_num),
+                "main_num": elector_num,
+                "voted": True,
+                "is_strikethrough": False,
+                "eno_sequence_repaired": True,
+            }
+            if diagnostics is not None:
+                diagnostics["explicit_strikethrough_rows_inferred"] += 1
+    return recovered
+
+
+def _repair_duplicate_successor_around_supplement(entries, diagnostics=None):
+    """Repair n+2,n+1/1,n+2 when the first n+2 is a damaged base n+1."""
+    repaired = [dict(entry) for entry in entries]
+    for index in range(1, len(repaired) - 2):
+        previous = repaired[index - 1]
+        candidate = repaired[index]
+        supplement = repaired[index + 1]
+        repeated = repaired[index + 2]
+        previous_number = str(previous.get("elector_num") or "")
+        candidate_number = str(candidate.get("elector_num") or "")
+        supplement_number = str(supplement.get("elector_num") or "")
+        repeated_number = str(repeated.get("elector_num") or "")
+        if "/" in previous_number or "/" in candidate_number:
+            continue
+        try:
+            previous_main = int(previous_number)
+            candidate_main = int(candidate_number)
+            supplement_main = int(supplement_number.split("/", 1)[0])
+            repeated_main = int(repeated_number)
+        except ValueError:
+            continue
+        if (
+            candidate_main == previous_main + 2
+            and supplement_main == previous_main + 1
+            and "/" in supplement_number
+            and repeated_main == candidate_main
+        ):
+            repaired[index]["elector_num"] = str(previous_main + 1)
+            repaired[index]["main_num"] = previous_main + 1
+            repaired[index]["eno_sequence_repaired"] = True
+            if diagnostics is not None:
+                diagnostics["eno_sequence_numbers_repaired"] += 1
+    return repaired
+
+
+def _extract_elector_entry(
+        line, context_prev_num=0, maximum_elector_number=None,
+        context_prev_elector=""):
     line = line.strip()
     if not line or len(line) < 5:
         return None, None
@@ -590,7 +916,106 @@ def _extract_elector_entry(line, context_prev_num=0):
                 main_num = c
                 elector_num = f"{main_num}/{sub_num}" if sub_num else str(main_num)
 
-    if main_num > 2000 or main_num < 1:
+    # A main number outside the independently printed document range is never a
+    # valid high supplement. Apply only the two source-proven, tightly bounded
+    # OCR shapes here. A slash row may contain one duplicated leading digit
+    # before the exact preceding base (5577/1 after 577). An ordinary row may
+    # read a leading printed 1 as 7/9 while every following digit is unchanged
+    # (9760 after 1759). General edit-distance recovery is intentionally unsafe:
+    # dates and house numbers can otherwise be pulled into the register sequence.
+    if (
+        maximum_elector_number is not None
+        and main_num > maximum_elector_number
+        and context_prev_num > 0
+    ):
+        main_text = str(main_num)
+        preceding_text = str(context_prev_num)
+        next_text = str(context_prev_num + 1)
+        repaired_main = None
+        if (
+            sub_num
+            and len(main_text) == len(preceding_text) + 1
+            and main_text[0] == main_text[1]
+            and main_text[1:] == preceding_text
+        ):
+            repaired_main = context_prev_num
+        elif (
+            not sub_num
+            and len(main_text) == len(next_text)
+            and next_text.startswith("1")
+            and main_text[0] in {"7", "9"}
+            and main_text[1:] == next_text[1:]
+        ):
+            repaired_main = context_prev_num + 1
+        if repaired_main is not None:
+            main_num = repaired_main
+            elector_num = (
+                f"{main_num}/{sub_num}" if sub_num else str(main_num)
+            )
+
+    # Four-or-more digit suffixes in this batch were all OCR token merges. Keep
+    # a genuinely long suffix only when it is the exact next suffix for the same
+    # base. Otherwise recover a contaminated token from a prefix that is exactly
+    # next in that printed run. A composite such as 1464/1461 is instead the
+    # ordinary next row when its suffix is that next main number.
+    if sub_num >= 1000:
+        if (
+            context_prev_num > 0
+            and sub_num == context_prev_num + 1
+            and 0 < main_num - sub_num <= 25
+        ):
+            main_num = sub_num
+            sub_num = 0
+            elector_num = str(main_num)
+        else:
+            previous_parts = str(context_prev_elector or "").split("/", 1)
+            try:
+                previous_main = int(previous_parts[0])
+                previous_sub = (
+                    int(previous_parts[1]) if len(previous_parts) > 1 else 0
+                )
+            except (TypeError, ValueError):
+                previous_main = 0
+                previous_sub = -1
+            expected_sub = previous_sub + 1
+            suffix_text = str(sub_num)
+            matching_prefix = next(
+                (
+                    suffix_text[:length]
+                    for length in range(1, len(suffix_text) + 1)
+                    if int(suffix_text[:length]) == expected_sub
+                ),
+                None,
+            )
+            if previous_main == main_num and matching_prefix is not None:
+                sub_num = expected_sub
+            elif (
+                previous_main == main_num
+                and previous_sub == 0
+                and len(suffix_text) == 4
+                and suffix_text[0] != "0"
+                and int(suffix_text[1:]) >= 100
+                and int(suffix_text[1:]) % 100 == 0
+            ):
+                # A four-digit suffix immediately after the same printed base
+                # can be a small slash supplement joined to a neighbouring
+                # round-hundred token (for example 4 + 600 -> 4600). The
+                # repeated base, ENO anchoring, one-digit supplement, and
+                # round-hundred tail are independent positive evidence. Keep
+                # this narrower than general suffix-prefix recovery so dates,
+                # house numbers, and genuinely long suffixes stay rejected.
+                sub_num = int(suffix_text[0])
+            else:
+                return None, None
+            elector_num = f"{main_num}/{sub_num}"
+
+    if (
+        main_num < 1
+        or (
+            maximum_elector_number is not None
+            and main_num > maximum_elector_number
+        )
+    ):
         return None, None
     if not re.search(r"[A-Za-z]{2,}", rest):
         return None, None
@@ -782,6 +1207,20 @@ def _filter_monotonic_elector_entries(
             original_index for original_index, _entry in numbered
         }
 
+    # Earlier, stricter reconciliation helpers can commit an exact number to
+    # a spatially anchored printed row. Preserve those rows through the more
+    # general repair passes without changing which chain supplied the anchors.
+    committed_repaired_values = {
+        index: (str(entry["elector_num"]), int(entry["main_num"]))
+        for index, entry in enumerate(readable_entries)
+        if (
+            entry.get("eno_sequence_repaired") is True
+            and entry.get("main_num") is not None
+            and entry.get("eno_anchored") is True
+            and "/" not in str(entry.get("elector_num") or "")
+        )
+    }
+
     if not spatial_mode:
         filtered = [
             entry
@@ -797,23 +1236,6 @@ def _filter_monotonic_elector_entries(
             diagnostics["out_of_sequence_rows_excluded"] += excluded
         return filtered
 
-    def digit_distance(left, right):
-        """Small Levenshtein distance for OCR-damaged numeric tokens."""
-        left = str(left)
-        right = str(right)
-        previous = list(range(len(right) + 1))
-        for left_index, left_char in enumerate(left, start=1):
-            current = [left_index]
-            for right_index, right_char in enumerate(right, start=1):
-                current.append(min(
-                    current[-1] + 1,
-                    previous[right_index] + 1,
-                    previous[right_index - 1]
-                    + (left_char != right_char),
-                ))
-            previous = current
-        return previous[-1]
-
     selected = sorted(
         (
             index,
@@ -821,7 +1243,9 @@ def _filter_monotonic_elector_entries(
         )
         for index in selected_numbered_positions
     )
-    kept_positions = set(selected_numbered_positions)
+    kept_positions = (
+        set(selected_numbered_positions) | set(committed_repaired_values)
+    )
     repaired_positions = set()
 
     # When two reliable primary anchors bracket exactly one printed candidate
@@ -853,7 +1277,7 @@ def _filter_monotonic_elector_entries(
             if (
                 len(candidates) != gap - 1
                 or any(
-                    digit_distance(
+                    _numeric_edit_distance(
                         readable_entries[candidate_index]["main_num"],
                         expected,
                     ) > 2
@@ -904,7 +1328,7 @@ def _filter_monotonic_elector_entries(
             candidate = readable_entries[candidate_index]
             best = None
             for offset in range(expected_cursor, len(expected)):
-                distance = digit_distance(
+                distance = _numeric_edit_distance(
                     candidate["main_num"],
                     expected[offset],
                 )
@@ -945,7 +1369,7 @@ def _filter_monotonic_elector_entries(
             candidate = readable_entries[candidate_index]
             expected = first_num - 1
             if (
-                digit_distance(candidate["main_num"], expected) <= 1
+                _numeric_edit_distance(candidate["main_num"], expected) <= 1
                 or candidate.get("eligibility_reason")
                 == "excluded_eligibility"
             ):
@@ -954,6 +1378,12 @@ def _filter_monotonic_elector_entries(
                 candidate["eno_sequence_repaired"] = True
                 kept_positions.add(candidate_index)
                 repaired_positions.add(candidate_index)
+
+    # The general passes above may use a committed row while repairing its
+    # neighbours, but the earlier high-confidence reading itself is final.
+    for index, (elector_num, main_num) in committed_repaired_values.items():
+        readable_entries[index]["elector_num"] = elector_num
+        readable_entries[index]["main_num"] = main_num
 
     primary_values = [number for _index, number in selected]
     primary_min = min(primary_values, default=0)
@@ -1056,19 +1486,33 @@ def _ocr_column_line_records(image):
             ),
             None,
         )
+        eno_candidate = None
+        if first_numeric and first_numeric["left"] <= maximum_eno_left:
+            candidate_match = re.match(
+                r"^[^\d]{0,2}(\d+(?:\s*/\s*\d+)?)(?=\D|$)",
+                first_numeric["text"],
+            )
+            if candidate_match:
+                eno_candidate = re.sub(
+                    r"\s*/\s*",
+                    "/",
+                    candidate_match.group(1),
+                )
         records.append({
             "text": text,
             "eno_anchored": bool(
                 first_numeric
                 and first_numeric["left"] <= maximum_eno_left
             ),
+            "eno_candidate": eno_candidate,
         })
     return records
 
 
 def _process_column(image, col_start, col_end, context_start_num=0,
                     inference_diagnostics=None, row_eligibility_filter=None,
-                    excluded_codes=None):
+                    excluded_codes=None, maximum_elector_number=None,
+                    recover_anchored_strikethrough_numbers=False):
     if row_eligibility_filter is None:
         row_eligibility_filter = _row_eligibility_filter_enabled()
     excluded_codes = set(excluded_codes or _ALWAYS_NOT_IN_PERSON_CODES)
@@ -1080,6 +1524,8 @@ def _process_column(image, col_start, col_end, context_start_num=0,
 
     readable = []
     prev_num = context_start_num
+    prev_elector = str(context_start_num) if context_start_num else ""
+    pending_strikethroughs = 0
     for line_record in line_records:
         line = line_record["text"].strip()
         if not line or len(line) < 3:
@@ -1088,7 +1534,45 @@ def _process_column(image, col_start, col_end, context_start_num=0,
             if inference_diagnostics is not None:
                 inference_diagnostics["removed_elector_rows_excluded"] += 1
             continue
-        elector_num, voted = _extract_elector_entry(line, prev_num)
+        elector_num, voted = _extract_elector_entry(
+            line,
+            prev_num,
+            maximum_elector_number=maximum_elector_number,
+            context_prev_elector=prev_elector,
+        )
+        if (
+            elector_num
+            and "/" in elector_num
+            and recover_anchored_strikethrough_numbers
+        ):
+            elector_num = (
+                _recover_range_bound_eno_candidate(
+                    line_record.get("eno_candidate") or elector_num,
+                    prev_num,
+                    prev_elector,
+                    pending_strikethroughs,
+                    maximum_elector_number,
+                )
+                or elector_num
+            )
+        if (
+            not elector_num
+            and recover_anchored_strikethrough_numbers
+            and line_record.get("eno_anchored") is True
+            and line_record.get("eno_candidate")
+        ):
+            elector_num = _recover_range_bound_eno_candidate(
+                line_record["eno_candidate"],
+                prev_num,
+                prev_elector,
+                pending_strikethroughs,
+                maximum_elector_number,
+            )
+            if elector_num:
+                voted = bool(
+                    _is_likely_strikethrough(line)
+                    or _has_voting_mark(line)
+                )
         if elector_num:
             eligibility_code = None
             eligibility_reason = None
@@ -1126,6 +1610,8 @@ def _process_column(image, col_start, col_end, context_start_num=0,
                     }
                 )
                 prev_num = main_num
+                prev_elector = elector_num
+                pending_strikethroughs = 0
             except ValueError:
                 pass
         elif _is_likely_strikethrough(line):
@@ -1139,12 +1625,22 @@ def _process_column(image, col_start, col_end, context_start_num=0,
                     "eno_anchored": line_record["eno_anchored"],
                 }
             )
+            pending_strikethroughs += 1
 
     if row_eligibility_filter:
         readable = _filter_monotonic_elector_entries(
             readable,
             diagnostics=inference_diagnostics,
         )
+        if recover_anchored_strikethrough_numbers:
+            readable = _repair_duplicate_successor_around_supplement(
+                readable,
+                diagnostics=inference_diagnostics,
+            )
+            readable = _recover_bracketed_strikethrough_entries(
+                readable,
+                diagnostics=inference_diagnostics,
+            )
 
     entries = _infer_missing_entries(
         readable, context_start_num, diagnostics=inference_diagnostics,
@@ -1238,7 +1734,9 @@ def _find_column_divider(image, minimum_ratio, maximum_ratio):
 
 
 def _process_page(image, context_num=0, ncols=None, inference_diagnostics=None,
-                  row_eligibility_filter=None, excluded_codes=None):
+                  row_eligibility_filter=None, excluded_codes=None,
+                  maximum_elector_number=None,
+                  recover_anchored_strikethrough_numbers=False):
     w = image.size[0]
     # Column layout is a property of the register's print format and is fixed for
     # the whole document, so the caller may pass a cached ncols (detected once per
@@ -1258,6 +1756,8 @@ def _process_page(image, context_num=0, ncols=None, inference_diagnostics=None,
             col_entries, _ = _process_column(
                 image, start, end, 0, inference_diagnostics,
                 row_eligibility_filter, excluded_codes,
+                maximum_elector_number,
+                recover_anchored_strikethrough_numbers,
             )
             entries.extend(col_entries)
         last_num = context_num
@@ -1266,10 +1766,14 @@ def _process_page(image, context_num=0, ncols=None, inference_diagnostics=None,
         left, left_last = _process_column(
             image, 0, divider, 0, inference_diagnostics,
             row_eligibility_filter, excluded_codes,
+            maximum_elector_number,
+            recover_anchored_strikethrough_numbers,
         )
         right, right_last = _process_column(
             image, divider, w, 0, inference_diagnostics,
             row_eligibility_filter, excluded_codes,
+            maximum_elector_number,
+            recover_anchored_strikethrough_numbers,
         )
         entries = left + right
         last_num = max(left_last, right_last) if left_last and right_last else (left_last or right_last or 0)
@@ -1298,6 +1802,48 @@ def _extract_metadata(image):
     # truth when spacing or a typographic dash defeats those older patterns.
     polling_district = _extract_polling_district_from_text(text, declared_ranges)
     return election_date, polling_district or "Unknown", vote_type, declared_ranges
+
+
+def _extract_metadata_with_orientation(image):
+    """Return cover metadata plus a source-proven whole-document rotation.
+
+    A small number of scanner exports store every page upside down. Tesseract
+    can still recover isolated row numbers from those pages while missing the
+    printed district headers entirely, producing a dangerously incomplete
+    register. Preserve the original orientation whenever it yields a district.
+    Otherwise, accept a 180-degree fallback only when it recovers both a valid
+    district and independent cover evidence (a date or declared range).
+    """
+    metadata = _extract_metadata(image)
+    if metadata[1] != "Unknown":
+        return metadata, 0
+
+    rotated = image.transpose(Image.Transpose.ROTATE_180)
+    try:
+        rotated_metadata = _extract_metadata(rotated)
+    finally:
+        rotated.close()
+
+    if (
+        rotated_metadata[1] != "Unknown"
+        and (rotated_metadata[0] or rotated_metadata[3])
+    ):
+        return rotated_metadata, 180
+    return metadata, 0
+
+
+def _apply_document_page_rotation(image, rotation_degrees):
+    """Rotate one rendered page using the cover-proven document orientation."""
+    if rotation_degrees != 180:
+        return image
+    rotated = image.transpose(Image.Transpose.ROTATE_180)
+    image.close()
+    return rotated
+
+
+def _page_has_trusted_row_context(rotation_degrees, declared_ranges):
+    """Require page-local range evidence only for recovered upside-down scans."""
+    return not rotation_degrees or bool(declared_ranges)
 
 
 def _ocr_page_header_crop(header):
@@ -1521,20 +2067,27 @@ def _is_marked_postal_report_header(row):
     )
 
 
-def _is_pv_marked_register_header(row):
-    """Recognise either exact approved postal-vote marked-register profile."""
+def _is_pv_marked_register_header(row, *, allow_extra=False):
+    """Recognise an approved postal-vote marked-register profile.
+
+    CSV remains limited to the two exact, established profiles. XLSX may carry
+    additional presentation/export columns, but only when every required
+    heading is present exactly once. Those extra cells remain structurally
+    bounded and are never retained.
+    """
     normalised = [
         _normalise_csv_header(value)
         for value in row
     ]
     header_set = frozenset(normalised)
-    return (
-        len(header_set) == len(normalised)
-        and header_set in {
-            _PV_MARKED_REGISTER_REQUIRED_HEADERS,
-            _PV_MARKED_REGISTER_HEADERS,
-        }
-    )
+    if len(header_set) != len(normalised):
+        return False
+    if allow_extra:
+        return _PV_MARKED_REGISTER_REQUIRED_HEADERS.issubset(header_set)
+    return header_set in {
+        _PV_MARKED_REGISTER_REQUIRED_HEADERS,
+        _PV_MARKED_REGISTER_HEADERS,
+    }
 
 
 def _valid_pv_receipt_date(value):
@@ -2049,7 +2602,10 @@ def _parse_tabular_rows(
     report_allowed=True,
 ):
     """Dispatch a canonical string-row iterator to one supported schema."""
-    if _is_pv_marked_register_header(headers):
+    if _is_pv_marked_register_header(
+        headers,
+        allow_extra=(source_format == "xlsx"),
+    ):
         return _parse_pv_marked_register_rows(
             reader,
             headers,
@@ -2319,18 +2875,40 @@ def _trim_trailing_blank_cells(values):
     return values[:end]
 
 
+def _xlsx_row_cells(worksheet, *, min_row, max_row=None):
+    """Iterate rows without trusting a missing OOXML dimension declaration.
+
+    Some valid exports omit ``<dimension>`` entirely. In read-only mode
+    openpyxl then exposes no max row/column, so bounding iteration from those
+    attributes silently reduces the sheet to A1. Resetting dimensions and
+    omitting the unknown bounds makes the streaming reader use the actual cell
+    references instead.
+    """
+    dimensions_known = (
+        worksheet.max_row is not None
+        and worksheet.max_column is not None
+    )
+    if not dimensions_known:
+        worksheet.reset_dimensions()
+
+    options = {
+        "min_row": min_row,
+        "min_col": 1,
+    }
+    if max_row is not None:
+        options["max_row"] = max_row
+    if dimensions_known:
+        options["max_col"] = max(int(worksheet.max_column), 1)
+    return worksheet.iter_rows(**options)
+
+
 def _xlsx_header_candidate(worksheet):
     """Inspect row one only and return a schema name without logging values."""
-    scan_columns = min(
-        max(int(worksheet.max_column or 1), 1),
-        257,
-    )
     cells = next(
-        worksheet.iter_rows(
+        _xlsx_row_cells(
+            worksheet,
             min_row=1,
             max_row=1,
-            min_col=1,
-            max_col=scan_columns,
         ),
         (),
     )
@@ -2338,12 +2916,17 @@ def _xlsx_header_candidate(worksheet):
         _xlsx_cell_to_text(cell, reject_unsafe=False)
         for cell in cells
     ])
+    if len(values) > XLSX_MAX_COLUMNS:
+        raise XlsxInputError(
+            "XLSX_TOO_MANY_COLUMNS",
+            "The Excel workbook exceeds the configured column limit.",
+        )
     if (
         len(values) <= 9
         and _is_marked_postal_report_title(values + [""] * (9 - len(values)))
     ):
         return "report"
-    if _is_pv_marked_register_header(values):
+    if _is_pv_marked_register_header(values, allow_extra=True):
         return "pv_marked"
 
     normalised = {
@@ -2358,12 +2941,15 @@ def _xlsx_header_candidate(worksheet):
 
 def _xlsx_data_rows(worksheet, expected_width):
     """Yield canonical rows, padding sparse cells and flagging overflow safely."""
-    max_column = max(int(worksheet.max_column or 1), 1)
+    if expected_width > XLSX_MAX_COLUMNS:
+        raise XlsxInputError(
+            "XLSX_TOO_MANY_COLUMNS",
+            "The Excel workbook exceeds the configured column limit.",
+        )
     for physical_row, cells in enumerate(
-        worksheet.iter_rows(
+        _xlsx_row_cells(
+            worksheet,
             min_row=2,
-            min_col=1,
-            max_col=max_column,
         ),
         start=2,
     ):
@@ -2371,6 +2957,11 @@ def _xlsx_data_rows(worksheet, expected_width):
             raise XlsxInputError(
                 "XLSX_TOO_MANY_ROWS",
                 "The Excel workbook exceeds the configured row limit.",
+            )
+        if len(cells) > XLSX_MAX_COLUMNS:
+            raise XlsxInputError(
+                "XLSX_TOO_MANY_COLUMNS",
+                "The Excel workbook exceeds the configured column limit.",
             )
         values = [_xlsx_cell_to_text(cell) for cell in cells]
         overflow = any(
@@ -2463,23 +3054,28 @@ def _parse_uploaded_xlsx(xlsx_path, constituency_name, election_date):
                 "XLSX_WORKSHEET_HIDDEN",
                 "The supported marked-register worksheet must be visible.",
             )
-        if int(worksheet.max_column or 1) > XLSX_MAX_COLUMNS:
+        if (
+            worksheet.max_column is not None
+            and int(worksheet.max_column) > XLSX_MAX_COLUMNS
+        ):
             raise XlsxInputError(
                 "XLSX_TOO_MANY_COLUMNS",
                 "The Excel workbook exceeds the configured column limit.",
             )
-        if int(worksheet.max_row or 1) > XLSX_MAX_PHYSICAL_ROWS:
+        if (
+            worksheet.max_row is not None
+            and int(worksheet.max_row) > XLSX_MAX_PHYSICAL_ROWS
+        ):
             raise XlsxInputError(
                 "XLSX_TOO_MANY_ROWS",
                 "The Excel workbook exceeds the configured row limit.",
             )
 
         header_cells = next(
-            worksheet.iter_rows(
+            _xlsx_row_cells(
+                worksheet,
                 min_row=1,
                 max_row=1,
-                min_col=1,
-                max_col=max(int(worksheet.max_column or 1), 1),
             ),
             (),
         )
@@ -2487,6 +3083,11 @@ def _parse_uploaded_xlsx(xlsx_path, constituency_name, election_date):
             _xlsx_cell_to_text(cell)
             for cell in header_cells
         ])
+        if len(headers) > XLSX_MAX_COLUMNS:
+            raise XlsxInputError(
+                "XLSX_TOO_MANY_COLUMNS",
+                "The Excel workbook exceeds the configured column limit.",
+            )
         if schema == "report":
             if len(headers) > 9:
                 raise XlsxInputError(
@@ -2528,7 +3129,8 @@ def _parse_uploaded_xlsx(xlsx_path, constituency_name, election_date):
 
 def _ocr_serial(pdf_path, total_pages, constituency_name, election_date,
                 polling_district, vote_type, inference_diagnostics=None,
-                row_eligibility_filter=None, excluded_codes=None):
+                row_eligibility_filter=None, excluded_codes=None,
+                cover_declared_ranges=None, page_rotation_degrees=0):
     """Original serial page-by-page OCR path, preserved unchanged for the
     CHUNK_PAGES=0 rollback switch (§10)."""
     if total_pages == 0:
@@ -2553,13 +3155,35 @@ def _ocr_serial(pdf_path, total_pages, constituency_name, election_date,
         if not page_images:
             continue
 
-        img = page_images[0]
-        entries, _ = _process_page(
-            img,
-            inference_diagnostics=inference_diagnostics,
-            row_eligibility_filter=row_eligibility_filter,
-            excluded_codes=excluded_codes,
+        img = _apply_document_page_rotation(
+            page_images[0],
+            page_rotation_degrees,
         )
+        _district, page_ranges = _extract_page_header(img)
+        if not _page_has_trusted_row_context(
+            page_rotation_degrees,
+            page_ranges,
+        ):
+            # Scanner bundles can repeat covers and street indexes between tiny
+            # districts. Once an upside-down document has been recovered from
+            # cover evidence, only a page with its own strict repeated-code
+            # range may contribute elector rows. This prevents dates and
+            # polling-station numbers on later covers from becoming electors.
+            entries = []
+        else:
+            entries, _ = _process_page(
+                img,
+                inference_diagnostics=inference_diagnostics,
+                row_eligibility_filter=row_eligibility_filter,
+                excluded_codes=excluded_codes,
+                maximum_elector_number=_maximum_declared_elector_number(
+                    page_ranges,
+                    cover_declared_ranges,
+                ),
+                recover_anchored_strikethrough_numbers=bool(
+                    page_rotation_degrees
+                ),
+            )
         all_entries.extend(entries)
         del img, page_images  # free memory; image file not persisted
 
@@ -2579,7 +3203,8 @@ def _ocr_serial(pdf_path, total_pages, constituency_name, election_date,
 def _ocr_chunk(pdf_path, page_start, page_end, total_pages, constituency_name,
                election_date, polling_district, vote_type,
                inference_diagnostics=None, row_eligibility_filter=None,
-               excluded_codes=None):
+               excluded_codes=None, cover_declared_ranges=None,
+               page_rotation_degrees=0):
     """Parallel OCR of one page range. Detects column layout once for the chunk,
     OCRs the remaining pages concurrently, tags every row with its source page,
     and records each page's detected polling district and declared elector range.
@@ -2614,16 +3239,33 @@ def _ocr_chunk(pdf_path, page_start, page_end, total_pages, constituency_name,
     ncols = None
     first_imgs = _render_page(pdf_path, detect_page, grayscale)
     if first_imgs:
-        img0 = first_imgs[0]
+        img0 = _apply_document_page_rotation(
+            first_imgs[0],
+            page_rotation_degrees,
+        )
         try:
             ncols = _detect_columns(img0)
+            district, declared_ranges = _extract_page_header(img0)
             page_inference_diagnostics = _new_inference_diagnostics()
-            entries0, _ = _process_page(
-                img0, ncols=ncols,
-                inference_diagnostics=page_inference_diagnostics,
-                row_eligibility_filter=row_eligibility_filter,
-                excluded_codes=excluded_codes,
-            )
+            if not _page_has_trusted_row_context(
+                page_rotation_degrees,
+                declared_ranges,
+            ):
+                entries0 = []
+            else:
+                entries0, _ = _process_page(
+                    img0, ncols=ncols,
+                    inference_diagnostics=page_inference_diagnostics,
+                    row_eligibility_filter=row_eligibility_filter,
+                    excluded_codes=excluded_codes,
+                    maximum_elector_number=_maximum_declared_elector_number(
+                        declared_ranges,
+                        cover_declared_ranges,
+                    ),
+                    recover_anchored_strikethrough_numbers=bool(
+                        page_rotation_degrees
+                    ),
+                )
             if inference_diagnostics is not None:
                 _merge_inference_diagnostics(
                     inference_diagnostics, page_inference_diagnostics
@@ -2631,7 +3273,6 @@ def _ocr_chunk(pdf_path, page_start, page_end, total_pages, constituency_name,
             for e in entries0:
                 e["page"] = detect_page
             page_entries[detect_page] = entries0
-            district, declared_ranges = _extract_page_header(img0)
             page_districts[detect_page] = district
             page_declared_ranges[detect_page] = declared_ranges
         finally:
@@ -2641,18 +3282,34 @@ def _ocr_chunk(pdf_path, page_start, page_end, total_pages, constituency_name,
         imgs = _render_page(pdf_path, page_num, grayscale)
         if not imgs:
             return page_num, [], None, [], _new_inference_diagnostics()
-        img = imgs[0]
+        img = _apply_document_page_rotation(
+            imgs[0],
+            page_rotation_degrees,
+        )
         try:
+            district, declared_ranges = _extract_page_header(img)
             page_inference_diagnostics = _new_inference_diagnostics()
-            entries, _ = _process_page(
-                img, ncols=ncols,
-                inference_diagnostics=page_inference_diagnostics,
-                row_eligibility_filter=row_eligibility_filter,
-                excluded_codes=excluded_codes,
-            )
+            if not _page_has_trusted_row_context(
+                page_rotation_degrees,
+                declared_ranges,
+            ):
+                entries = []
+            else:
+                entries, _ = _process_page(
+                    img, ncols=ncols,
+                    inference_diagnostics=page_inference_diagnostics,
+                    row_eligibility_filter=row_eligibility_filter,
+                    excluded_codes=excluded_codes,
+                    maximum_elector_number=_maximum_declared_elector_number(
+                        declared_ranges,
+                        cover_declared_ranges,
+                    ),
+                    recover_anchored_strikethrough_numbers=bool(
+                        page_rotation_degrees
+                    ),
+                )
             for e in entries:
                 e["page"] = page_num
-            district, declared_ranges = _extract_page_header(img)
             return (
                 page_num, entries, district, declared_ranges,
                 page_inference_diagnostics,
@@ -2723,14 +3380,33 @@ def ocr_pdf(pdf_path, constituency_name, election_name, election_date_override="
     first_pages = convert_from_path(
         pdf_path, dpi=150, first_page=1, last_page=1, poppler_path=POPPLER_PATH
     )
-    ocr_election_date, polling_district, vote_type, declared_ranges = (
-        _extract_metadata(first_pages[0])
-        if first_pages else (None, "Unknown", "In Person", [])
-    )
+    page_rotation_degrees = 0
+    if first_pages:
+        (
+            (
+                ocr_election_date,
+                polling_district,
+                vote_type,
+                declared_ranges,
+            ),
+            page_rotation_degrees,
+        ) = _extract_metadata_with_orientation(first_pages[0])
+        cover_image = _apply_document_page_rotation(
+            first_pages[0],
+            page_rotation_degrees,
+        )
+    else:
+        (
+            ocr_election_date,
+            polling_district,
+            vote_type,
+            declared_ranges,
+        ) = (None, "Unknown", "In Person", [])
+        cover_image = None
     row_eligibility_filter = _row_eligibility_filter_enabled()
     row_rules = (
-        _extract_cover_row_rules(first_pages[0])
-        if row_eligibility_filter and first_pages
+        _extract_cover_row_rules(cover_image)
+        if row_eligibility_filter and cover_image is not None
         else {
             "election_family": "unknown",
             "excluded_in_person_codes": sorted(_ALWAYS_NOT_IN_PERSON_CODES),
@@ -2752,17 +3428,25 @@ def ocr_pdf(pdf_path, constituency_name, election_name, election_date_override="
         "vote_type": vote_type,
         "declared_ranges": declared_ranges,
         "row_eligibility_rules": row_rules,
+        "page_rotation_degrees": page_rotation_degrees,
     }
     inference_diagnostics = _new_inference_diagnostics()
 
     total_pages = _count_pages(pdf_path)
 
     if page_start is None:
+        rotation_kwargs = (
+            {"page_rotation_degrees": page_rotation_degrees}
+            if page_rotation_degrees
+            else {}
+        )
         if row_eligibility_filter:
             rows = _ocr_serial(
                 pdf_path, total_pages, constituency_name, election_date,
                 polling_district, vote_type, inference_diagnostics,
                 row_eligibility_filter=True, excluded_codes=excluded_codes,
+                cover_declared_ranges=declared_ranges,
+                **rotation_kwargs,
             )
         else:
             # Preserve the historical call shape for the default-off path and
@@ -2770,6 +3454,7 @@ def ocr_pdf(pdf_path, constituency_name, election_name, election_date_override="
             rows = _ocr_serial(
                 pdf_path, total_pages, constituency_name, election_date,
                 polling_district, vote_type, inference_diagnostics,
+                **rotation_kwargs,
             )
         meta["inference_diagnostics"] = inference_diagnostics
         logger.info(
@@ -2798,11 +3483,18 @@ def ocr_pdf(pdf_path, constituency_name, election_name, election_date_override="
         logger.info("OCR complete (serial): %d entries extracted", len(rows))
         return rows, meta, {}, {}
 
+    rotation_kwargs = (
+        {"page_rotation_degrees": page_rotation_degrees}
+        if page_rotation_degrees
+        else {}
+    )
     rows, page_districts, page_declared_ranges = _ocr_chunk(
         pdf_path, page_start, page_end, total_pages, constituency_name,
         election_date, polling_district, vote_type, inference_diagnostics,
         row_eligibility_filter=row_eligibility_filter,
         excluded_codes=excluded_codes,
+        cover_declared_ranges=declared_ranges,
+        **rotation_kwargs,
     )
     meta["inference_diagnostics"] = inference_diagnostics
     logger.info(

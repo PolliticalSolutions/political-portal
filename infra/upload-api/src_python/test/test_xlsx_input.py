@@ -2,6 +2,7 @@
 
 import io
 import json
+import re
 import zipfile
 from datetime import date
 from pathlib import Path
@@ -64,6 +65,30 @@ def _workbook_bytes(workbook):
     workbook.save(buffer)
     workbook.close()
     return buffer.getvalue()
+
+
+def _without_first_worksheet_dimension(workbook_bytes):
+    """Return a synthetic valid XLSX whose first sheet omits <dimension>."""
+    source = io.BytesIO(workbook_bytes)
+    output = io.BytesIO()
+    dimension_removed = False
+    with (
+        zipfile.ZipFile(source, "r") as input_archive,
+        zipfile.ZipFile(output, "w") as output_archive,
+    ):
+        for member in input_archive.infolist():
+            payload = input_archive.read(member.filename)
+            if member.filename == "xl/worksheets/sheet1.xml":
+                payload, replacements = re.subn(
+                    br"<dimension\b[^>]*/>",
+                    b"",
+                    payload,
+                    count=1,
+                )
+                dimension_removed = replacements == 1
+            output_archive.writestr(member, payload)
+    assert dimension_removed
+    return output.getvalue()
 
 
 def _populate_flat_sheet(
@@ -363,6 +388,76 @@ class TestXlsxParsing:
         }]
         assert meta["csv_schema"] == "pv_marked_register_v1"
 
+    def test_expanded_pv_export_without_dimension_is_streamed_safely(
+        self, tmp_path
+    ):
+        extra_headers = [
+            f"ExtendedExportField{index:02d}"
+            for index in range(1, 80)
+        ]
+        headers = PV_MARKED_HEADERS + extra_headers
+        source_row = _pv_marked_row(
+            elector_number="4DWF-2090/4",
+            status="1",
+            receipt_date="09/07/2026 21:14:05",
+        )
+        workbook_bytes = _workbook_bytes(
+            _pv_marked_workbook(
+                source_row + [""] * len(extra_headers),
+                headers=headers,
+            )
+        )
+        path = tmp_path / "expanded-no-dimension.xlsx"
+        path.write_bytes(
+            _without_first_worksheet_dimension(workbook_bytes)
+        )
+
+        read_only = openpyxl.load_workbook(path, read_only=True)
+        try:
+            assert read_only.active.max_row is None
+            assert read_only.active.max_column is None
+        finally:
+            read_only.close()
+
+        rows, meta = h._parse_uploaded_xlsx(path, "Test", "Date")
+
+        assert len(headers) == 109
+        assert rows == [{
+            "election_date": "Date",
+            "constituency": "Test",
+            "polling_district": "4DWF",
+            "elector_number": "2090/4",
+            "voted": "Y",
+            "postal_vote": "Y",
+        }]
+        assert meta["csv_schema"] == "pv_marked_register_v1"
+        assert meta["rows_read"] == 1
+
+    def test_expanded_pv_profile_remains_xlsx_only(self):
+        headers = PV_MARKED_HEADERS + ["ExtendedExportField"]
+
+        assert not h._is_pv_marked_register_header(headers)
+        assert h._is_pv_marked_register_header(
+            headers,
+            allow_extra=True,
+        )
+
+    def test_expanded_pv_profile_rejects_duplicate_headings(self, tmp_path):
+        headers = PV_MARKED_HEADERS + ["ElectorNo"]
+        path = _save_workbook(
+            tmp_path,
+            _pv_marked_workbook(
+                _pv_marked_row() + [""],
+                headers=headers,
+            ),
+        )
+
+        with pytest.raises(
+            h.XlsxInputError,
+            match="XLSX_HEADER_UNRECOGNISED",
+        ):
+            h._parse_uploaded_xlsx(path, "Test", "Date")
+
     @pytest.mark.parametrize(
         ("row_overrides", "expected_detail", "private_value"),
         [
@@ -589,6 +684,34 @@ class TestXlsxParsing:
         if limit_name == "XLSX_MAX_WORKSHEETS":
             workbook.create_sheet("Notes")
         path = _save_workbook(tmp_path, workbook)
+        monkeypatch.setattr(h, limit_name, limit_value)
+
+        with pytest.raises(h.XlsxInputError) as exc:
+            h._parse_uploaded_xlsx(path, "Test", "Date")
+
+        assert exc.value.code == expected_code
+
+    @pytest.mark.parametrize(
+        ("limit_name", "limit_value", "expected_code"),
+        [
+            ("XLSX_MAX_COLUMNS", 2, "XLSX_TOO_MANY_COLUMNS"),
+            ("XLSX_MAX_PHYSICAL_ROWS", 1, "XLSX_TOO_MANY_ROWS"),
+        ],
+    )
+    def test_missing_dimension_stream_still_enforces_sheet_limits(
+        self,
+        tmp_path,
+        monkeypatch,
+        limit_name,
+        limit_value,
+        expected_code,
+    ):
+        path = tmp_path / "missing-dimension-limit.xlsx"
+        path.write_bytes(
+            _without_first_worksheet_dimension(
+                _workbook_bytes(_flat_workbook())
+            )
+        )
         monkeypatch.setattr(h, limit_name, limit_value)
 
         with pytest.raises(h.XlsxInputError) as exc:
