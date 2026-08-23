@@ -29,4 +29,12 @@ describe("seoRoutes", () => {
         "Review annual Political Solutions association pricing, including VAT, and continue through Stripe Checkout or request an invoice.",
     });
   });
+
+  it("uses the approved blog-index metadata", () => {
+    expect(seoRoutes.find((route) => route.path === "/blog")).toMatchObject({
+      title: "Campaign operations briefings",
+      description:
+        "Practical briefings on campaign planning, constituency evidence, marked-register work and operational delivery for Conservative campaign professionals.",
+    });
+  });
 });

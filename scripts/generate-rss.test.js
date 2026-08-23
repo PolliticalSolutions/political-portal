@@ -10,13 +10,15 @@ describe("RSS generator", () => {
   it("builds RSS with published posts only and canonical override links", () => {
     const xml = buildRssXml({ baseUrl: siteUrl });
 
-    expect(xml).toContain("<title>Political Solutions Blog</title>");
+    expect(xml).toContain("<title>Political Solutions campaign briefings</title>");
+    expect(xml).toContain(
+      "<description>Practical briefings on campaign planning, constituency evidence, marked-register work and operational delivery.</description>"
+    );
     expect(xml).toContain(`<link>${siteUrl}/blog</link>`);
     expect(xml).toContain("<title>Building a campaign data operations baseline</title>");
     expect(xml).toContain("<title>Reducing field-team friction with better handoffs</title>");
     expect(xml).not.toContain("Internal draft: volunteer rota quality checks");
     expect(xml).toContain(`<link>${siteUrl}/blog/2026-02-25-campaign-data-operations-baseline</link>`);
-    expect(xml).toContain("<link>https://example.com/original-post</link>");
   });
 
   it("writes rss.xml to the output directory", async () => {

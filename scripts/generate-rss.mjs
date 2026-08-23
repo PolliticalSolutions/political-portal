@@ -18,10 +18,10 @@ const escapeXml = (value) =>
 const toItemLink = (post, baseUrl) => post.meta.canonical || `${baseUrl}/blog/${post.slug}`;
 
 export const buildRssXml = ({ baseUrl = DEFAULT_SITE_URL, posts = getPublishedBlogPosts() } = {}) => {
-  const channelTitle = "Political Solutions Blog";
+  const channelTitle = "Political Solutions campaign briefings";
   const channelLink = `${baseUrl}/blog`;
   const channelDescription =
-    "Operational insights on campaign delivery, political data workflows, and execution best practice.";
+    "Practical briefings on campaign planning, constituency evidence, marked-register work and operational delivery.";
 
   const items = posts
     .map((post) => {

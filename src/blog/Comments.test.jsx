@@ -22,11 +22,11 @@ describe("Comments", () => {
 
     render(<Comments slug="example-slug" envOverride={env} />);
 
-    expect(screen.getByRole("heading", { name: "Comments" })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Discussion" })).toBeInTheDocument();
     expect(screen.getByTestId("giscus-mock")).toHaveAttribute("data-term", "example-slug");
     expect(
       screen.getByText(
-        /Comments are powered by GitHub Discussions \(Giscus\)\. This may set cookies or local storage via GitHub to remember your preferences\./
+        /Discussion is provided through GitHub Discussions\. GitHub may use cookies or local storage to remember your preferences\./
       )
     ).toBeInTheDocument();
   });

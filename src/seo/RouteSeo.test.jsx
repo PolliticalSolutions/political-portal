@@ -55,6 +55,10 @@ describe("RouteSeo", () => {
     renderRouteSeo("/blog");
     await waitFor(() => {
       expect(document.querySelector("meta[name='robots']")?.content).toBe("index,follow");
+      expect(document.title).toBe("Campaign operations briefings | Political Solutions");
+      expect(document.querySelector("meta[name='description']")?.content).toBe(
+        "Practical briefings on campaign planning, constituency evidence, marked-register work and operational delivery for Conservative campaign professionals."
+      );
       expect(document.querySelector("link[rel='canonical']")?.getAttribute("href")).toBe(
         "https://politicalsolutions.uk/blog"
       );
@@ -65,6 +69,8 @@ describe("RouteSeo", () => {
     renderRouteSeo("/blog/2026-02-24-draft-post");
     await waitFor(() => {
       expect(document.querySelector("meta[name='robots']")?.content).toBe("noindex, nofollow");
+      expect(document.title).toBe("Briefing unavailable | Political Solutions");
+      expect(document.title).not.toContain("Internal draft");
     });
   });
 
@@ -72,6 +78,7 @@ describe("RouteSeo", () => {
     renderRouteSeo("/blog/not-a-real-post");
     await waitFor(() => {
       expect(document.querySelector("meta[name='robots']")?.content).toBe("noindex, nofollow");
+      expect(document.title).toBe("Briefing unavailable | Political Solutions");
     });
   });
 });

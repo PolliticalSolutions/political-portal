@@ -48,10 +48,8 @@ export default function Comments({ slug, envOverride }) {
   }
 
   return (
-    <section className="blog-comments" aria-label="Comments">
-      <h2 className="section-title" style={{ marginBottom: 12 }}>
-        Comments
-      </h2>
+    <section className="blog-comments" aria-label="Discussion">
+      <h2>Discussion</h2>
       <Giscus
         id="blog-giscus"
         repo={config.repo}
@@ -67,9 +65,9 @@ export default function Comments({ slug, envOverride }) {
         lang="en"
         loading="lazy"
       />
-      <p className="helper" style={{ marginTop: 10 }}>
-        Comments are powered by GitHub Discussions (Giscus). This may set cookies or local
-        storage via GitHub to remember your preferences.
+      <p className="blog-comments__privacy">
+        Discussion is provided through GitHub Discussions. GitHub may use cookies or local
+        storage to remember your preferences.
       </p>
     </section>
   );
