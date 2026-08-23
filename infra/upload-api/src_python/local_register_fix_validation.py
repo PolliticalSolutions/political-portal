@@ -1,19 +1,22 @@
 """Run the revised marked-register pipeline and persist aggregate evidence only.
 
-The selected PDFs are processed inside a network-disabled local container.
-Elector rows and OCR text exist only in memory and are never printed or written
-to disk. The JSON report contains document indexes, counts, district codes, and
+Selected PDFs are processed inside a network-disabled local container and
+supported XLSX inputs are parsed in the same isolated validation run. Elector
+rows and OCR text exist only in memory and are never printed or written to disk.
+The JSON report contains document indexes, counts, district codes, and
 quality-gate results; it deliberately excludes paths, filenames, elector
 numbers, names, addresses, and raw OCR text.
 """
 
 import argparse
+from concurrent.futures import ThreadPoolExecutor
 from collections import Counter
 from datetime import datetime, timezone
 import json
 import logging
 import os
 from pathlib import Path
+import re
 import sys
 import time
 
@@ -33,6 +36,26 @@ def _safe_row_summary(rows):
     district_counts = base.combine._count_districts(rows)
     voted_y = sum(row.get("voted") == "Y" for row in rows)
     postal_y = sum(row.get("postal_vote") == "Y" for row in rows)
+    format_counts = Counter()
+    for row in rows:
+        elector = str(row.get("elector_number") or "").strip()
+        match = re.fullmatch(r"([1-9]\d*)(?:/(\d+))?", elector)
+        if not match:
+            format_counts["invalid"] += 1
+            continue
+        if match.group(2) is None:
+            format_counts["base_only"] += 1
+            continue
+        format_counts["slash_subnumber"] += 1
+        suffix = int(match.group(2))
+        if suffix >= 1000:
+            format_counts["suffix_1000_plus"] += 1
+        elif suffix >= 100:
+            format_counts["suffix_100_to_999"] += 1
+        elif suffix >= 10:
+            format_counts["suffix_10_to_99"] += 1
+        else:
+            format_counts["suffix_0_to_9"] += 1
     return {
         "rows": len(rows),
         "voted_y": voted_y,
@@ -41,6 +64,18 @@ def _safe_row_summary(rows):
         "postal_n": len(rows) - postal_y,
         "polling_district_count": len(district_counts),
         "polling_district_row_counts": dict(sorted(district_counts.items())),
+        "elector_number_format": {
+            key: format_counts[key]
+            for key in (
+                "base_only",
+                "slash_subnumber",
+                "suffix_0_to_9",
+                "suffix_10_to_99",
+                "suffix_100_to_999",
+                "suffix_1000_plus",
+                "invalid",
+            )
+        },
     }
 
 
@@ -116,7 +151,8 @@ def _safe_duplicate_shape(rows):
     return district_reports
 
 
-def _process_document(pdf_path, document_index, chunk_pages):
+def _process_document(
+        pdf_path, document_index, chunk_pages, election_name="Local validation"):
     started = time.monotonic()
     total_pages = base.process._count_pages(str(pdf_path))
     if total_pages < 1:
@@ -131,7 +167,7 @@ def _process_document(pdf_path, document_index, chunk_pages):
             base.process.ocr_pdf(
                 str(pdf_path),
                 constituency_name="Local validation",
-                election_name="Local validation",
+                election_name=election_name,
                 page_start=page_start,
                 page_end=page_end,
             )
@@ -177,6 +213,7 @@ def _process_document(pdf_path, document_index, chunk_pages):
             rows,
             page_districts,
             seed_district,
+            Path(pdf_path).name,
         )
     )
     resolution["source"] = f"Document {document_index}"
@@ -184,6 +221,7 @@ def _process_document(pdf_path, document_index, chunk_pages):
     trusted_ranges, range_issues = base.combine.resolve_declared_ranges(
         cover_declared_ranges,
         page_declared_ranges,
+        canonical_districts=resolution["accepted_districts"],
     )
     unique_rows = base.combine._dedupe_rows(rows)
     range_reports, validation_issues = (
@@ -221,7 +259,33 @@ def _process_document(pdf_path, document_index, chunk_pages):
     return rows, summary, resolution
 
 
-def run_validation(pdf_paths, output_path, chunk_pages=20, workers=6):
+def _process_tabular_document(xlsx_path, document_index):
+    """Parse one workbook and retain only aggregate validation evidence."""
+    started = time.monotonic()
+    rows, meta = base.process._parse_uploaded_xlsx(
+        xlsx_path,
+        constituency_name="Local validation",
+        election_date="Local validation",
+    )
+    for row in rows:
+        # Production represents both CSV and XLSX tabular inputs as the
+        # cross-source "csv" class when combining them with PDF rows.
+        row["_source_type"] = "csv"
+    summary = {
+        "document": document_index,
+        "source_format": "xlsx",
+        "schema": str(meta.get("csv_schema") or "(unknown)"),
+        "elapsed_seconds": round(time.monotonic() - started, 1),
+    }
+    summary.update(_safe_row_summary(rows))
+    return rows, summary
+
+
+def run_validation(
+        pdf_paths, output_path, chunk_pages=20, workers=6,
+        xlsx_paths=None, document_workers=1,
+        election_name="Local validation"):
+    xlsx_paths = list(xlsx_paths or [])
     base._configure_local_binaries()
     settings = {
         base.process.EVIDENCE_ONLY_GAP_INFERENCE_FLAG: "true",
@@ -242,16 +306,31 @@ def run_validation(pdf_paths, output_path, chunk_pages=20, workers=6):
         started = time.monotonic()
         all_rows = []
         documents = []
+        tabular_documents = []
         resolutions = []
-        for index, pdf_path in enumerate(pdf_paths, start=1):
-            rows, summary, resolution = _process_document(
+        indexed_paths = list(enumerate(pdf_paths, start=1))
+        def process_indexed(item):
+            index, pdf_path = item
+            return _process_document(
                 Path(pdf_path),
                 index,
                 chunk_pages,
+                election_name=election_name,
             )
+
+        with ThreadPoolExecutor(max_workers=document_workers) as executor:
+            processed = executor.map(process_indexed, indexed_paths)
+        for rows, summary, resolution in processed:
             all_rows.extend(rows)
             documents.append(summary)
             resolutions.append(resolution)
+        for offset, xlsx_path in enumerate(xlsx_paths, start=1):
+            rows, summary = _process_tabular_document(
+                Path(xlsx_path),
+                len(documents) + offset,
+            )
+            all_rows.extend(rows)
+            tabular_documents.append(summary)
 
         pre_dedupe_count = len(all_rows)
         source_counts = base.combine._dedupe_source_counts(all_rows)
@@ -270,7 +349,9 @@ def run_validation(pdf_paths, output_path, chunk_pages=20, workers=6):
             resolutions,
         )
         aggregate = {
-            "document_count": len(documents),
+            "document_count": len(documents) + len(tabular_documents),
+            "pdf_document_count": len(documents),
+            "xlsx_document_count": len(tabular_documents),
             "page_count": sum(item["page_count"] for item in documents),
             "rows_before_deduplication": pre_dedupe_count,
             "rows_after_deduplication": len(unique_rows),
@@ -298,8 +379,14 @@ def run_validation(pdf_paths, output_path, chunk_pages=20, workers=6):
                 "skip_pages": 2,
                 "chunk_pages": chunk_pages,
                 "ocr_workers": workers,
+                "document_workers": document_workers,
                 "evidence_only_gap_inference": True,
                 "row_eligibility_filter": True,
+                "election_family": (
+                    base.process._extract_cover_row_rules_from_text(
+                        election_name
+                    )["election_family"]
+                ),
                 "district_header_minimum_pct": 20,
                 "deduplication_warning_pct": 2,
                 "network_access": False,
@@ -308,6 +395,7 @@ def run_validation(pdf_paths, output_path, chunk_pages=20, workers=6):
             "ocr_runtime": runtime,
             "aggregate": aggregate,
             "documents": documents,
+            "tabular_documents": tabular_documents,
         }
         output_path.parent.mkdir(parents=True, exist_ok=True)
         output_path.write_text(
@@ -326,15 +414,32 @@ def _parser():
             "aggregate quality report."
         )
     )
-    parser.add_argument("--pdf", action="append", required=True, type=Path)
+    parser.add_argument("--pdf", action="append", default=[], type=Path)
+    parser.add_argument("--xlsx", action="append", default=[], type=Path)
     parser.add_argument("--output", required=True, type=Path)
     parser.add_argument("--chunk-pages", type=int, default=20)
     parser.add_argument("--workers", type=int, default=6)
+    parser.add_argument("--document-workers", type=int, default=1)
+    parser.add_argument(
+        "--election-name",
+        required=True,
+        help=(
+            "Election label supplied to production. It is used only for the "
+            "same election-family eligibility fallback and is not written to "
+            "the aggregate report."
+        ),
+    )
     return parser
 
 
 def main(argv=None):
     args = _parser().parse_args(argv)
+    if not args.pdf and not args.xlsx:
+        print(
+            "Validation failed: select at least one PDF or XLSX input.",
+            file=sys.stderr,
+        )
+        return 2
     if any(
         not path.is_file() or path.suffix.lower() != ".pdf"
         for path in args.pdf
@@ -344,7 +449,16 @@ def main(argv=None):
             file=sys.stderr,
         )
         return 2
-    if args.chunk_pages < 1 or args.workers < 1:
+    if any(
+        not path.is_file() or path.suffix.lower() != ".xlsx"
+        for path in args.xlsx
+    ):
+        print(
+            "Validation failed: every --xlsx input must be a readable XLSX file.",
+            file=sys.stderr,
+        )
+        return 2
+    if args.chunk_pages < 1 or args.workers < 1 or args.document_workers < 1:
         print(
             "Validation failed: chunk pages and workers must be positive.",
             file=sys.stderr,
@@ -358,6 +472,9 @@ def main(argv=None):
             args.output,
             chunk_pages=args.chunk_pages,
             workers=args.workers,
+            document_workers=args.document_workers,
+            xlsx_paths=args.xlsx,
+            election_name=args.election_name,
         )
     except Exception as exc:
         print(

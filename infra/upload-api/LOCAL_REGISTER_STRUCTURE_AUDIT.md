@@ -43,12 +43,17 @@ production-equivalent pass over the original PDFs:
 
 ```powershell
 & .\infra\upload-api\local_trial\run-fix-validation.ps1 `
-  -InputPath "C:\full\path\to\folder"
+  -InputPath "C:\full\path\to\folder" `
+  -ElectionName "The exact election label submitted with the batch"
 ```
 
-This uses the production 600 dpi colour OCR settings, evidence-only gap
-inference, two-scale fallback for missing or clipped page-header codes, and
-row-eligibility filtering. The row extractor locates the printed vertical
+This uses the production 600 dpi colour OCR settings, evidence-only row
+recovery that never creates an elector solely from a numeric gap, two-scale
+fallback for missing or clipped page-header codes, and row-eligibility
+filtering. Always pass the exact election label from the batch:
+it selects the same aggregate election-family eligibility fallback used by
+production when a cover legend is unreadable. The label itself is not written
+to the aggregate report. The row extractor locates the printed vertical
 column rules, requires numeric candidates to begin inside the narrow ENO band,
 repairs OCR-damaged ordinary numbers only where readable anchors support the
 repair, and preserves spatially anchored high-number and slash-number late
@@ -57,7 +62,9 @@ rejected. It processes full pages, so it takes materially longer than the
 header audit. The same privacy boundary applies: Docker networking is disabled,
 the source folder is read-only, and elector rows remain in memory. The saved
 report contains only aggregate counts and the final `PASS` or `WITHHOLD`
-quality-gate decision.
+quality-gate decision. When the selected folder also contains supported XLSX
+inputs, they are parsed in the same isolated run and included in the aggregate
+cross-source deduplication, vote, and postal-vote totals.
 
 Do not release a result unless:
 
