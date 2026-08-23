@@ -1,0 +1,6 @@
+**
+!Dockerfile
+!assemble_layer.py
+!versions.env
+!.sources/
+!.sources/**

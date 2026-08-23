@@ -54,7 +54,12 @@ s3 = boto3.client("s3", region_name=REGION)
 ses = boto3.client("ses", region_name=REGION)
 
 CSV_COLUMNS = ["Election Date", "Constituency", "Polling District", "Elector Number", "Voted", "Postal Vote"]
-_UNTRUSTED_DISTRICT_LABELS = frozenset({"", "DISTRICT", "DIVISION", "UNKNOWN"})
+_UNTRUSTED_DISTRICT_LABELS = frozenset({
+    "", "DISTRICT", "DIVISION", "STATION", "UNKNOWN",
+})
+_SOURCE_FILENAME_NON_DISTRICT_TOKENS = _UNTRUSTED_DISTRICT_LABELS | frozenset({
+    "MARKED", "PDF", "POLLING", "REGISTER",
+})
 
 
 # ── DynamoDB helpers ──────────────────────────────────────────────────────────
@@ -76,8 +81,20 @@ def get_all_batch_jobs(batch_id):
     # GSI query cannot surface them), but filter here too for defence in depth —
     # a tracker treated as a real job would fail its output lookup and be counted
     # as a failed file (§5.3).
-    return [j for j in items
-            if not j.get("jobId", "").startswith(("BATCH_TRACKER#", "JOB_CHUNKS#"))]
+    jobs = [
+        job
+        for job in items
+        if not job.get("jobId", "").startswith(
+            ("BATCH_TRACKER#", "JOB_CHUNKS#")
+        )
+    ]
+    return sorted(
+        jobs,
+        key=lambda job: (
+            str(job.get("filename") or "").casefold(),
+            str(job.get("jobId") or ""),
+        ),
+    )
 
 
 def update_job_batch_completion(
@@ -275,7 +292,8 @@ def _normalise_declared_range(value):
     return district, start, end
 
 
-def resolve_declared_ranges(cover_ranges, page_declared_ranges):
+def resolve_declared_ranges(
+        cover_ranges, page_declared_ranges, canonical_districts=None):
     """Choose file ranges only after independent declaration corroboration.
 
     Cover declarations must agree exactly with the unique modal range read from
@@ -284,9 +302,31 @@ def resolve_declared_ranges(cover_ranges, page_declared_ranges):
     same declaration appears on at least two pages. Returns
     (trusted_ranges_by_district, issues). No extracted row is changed or dropped.
     """
+    canonical_districts = [
+        _trusted_district_code(value)
+        for value in (canonical_districts or [])
+        if _trusted_district_code(value)
+    ]
+
+    def canonicalise(candidate):
+        if not candidate:
+            return None
+        district, start, end = candidate
+        matches = [
+            value
+            for value in canonical_districts
+            if (
+                value == district
+                or _district_codes_ocr_confusable(value, district)
+            )
+        ]
+        if len(matches) == 1:
+            district = matches[0]
+        return district, start, end
+
     cover_by_district = {}
     for value in cover_ranges or []:
-        candidate = _normalise_declared_range(value)
+        candidate = canonicalise(_normalise_declared_range(value))
         if candidate:
             cover_by_district.setdefault(candidate[0], set()).add(candidate)
 
@@ -296,7 +336,7 @@ def resolve_declared_ranges(cover_ranges, page_declared_ranges):
             values = [values]
         page_candidates = set()
         for value in values or []:
-            candidate = _normalise_declared_range(value)
+            candidate = canonicalise(_normalise_declared_range(value))
             if candidate:
                 page_candidates.add(candidate)
         for candidate in page_candidates:
@@ -464,7 +504,98 @@ def _trusted_district_code(value):
     )
 
 
-def _resolve_job_districts_with_report(rows, page_districts, seed_district):
+def _single_filename_district_candidate(source_name):
+    """Return one unambiguous code token from a source filename, if present."""
+    stem = os.path.splitext(os.path.basename(str(source_name or "")))[0].upper()
+    candidates = []
+    for token in re.findall(r"[A-Z0-9]{2,8}", stem):
+        if (
+            re.search(r"[A-Z]", token)
+            and token not in _SOURCE_FILENAME_NON_DISTRICT_TOKENS
+            and token not in candidates
+        ):
+            candidates.append(token)
+    return candidates[0] if len(candidates) == 1 else ""
+
+
+def _district_codes_ocr_confusable(left, right):
+    """Recognise tightly scoped OCR substitutions in printed district codes."""
+    left = _trusted_district_code(left)
+    right = _trusted_district_code(right)
+    if not left or not right:
+        return False
+
+    def same_length_confusable(first, second):
+        return len(first) == len(second) and all(
+            a == b
+            or {a, b} in (
+                {"O", "0"},
+                {"S", "5"},
+                {"I", "1"},
+                {"1", "7"},
+            )
+            for a, b in zip(first, second)
+        )
+
+    if same_length_confusable(left, right):
+        return True
+    if abs(len(left) - len(right)) != 1:
+        return False
+    longer, shorter = (
+        (left, right) if len(left) > len(right) else (right, left)
+    )
+    return any(
+        character in {"O", "0", "Q", "S", "5", "7"}
+        and same_length_confusable(
+            longer[:index] + longer[index + 1:],
+            shorter,
+        )
+        for index, character in enumerate(longer)
+    )
+
+
+def _district_codes_alternating_ocr_near_duplicate(left, right):
+    """Recognise extra OCR shapes only inside proven alternating page runs."""
+    if _district_codes_ocr_confusable(left, right):
+        return True
+    left = _trusted_district_code(left)
+    right = _trusted_district_code(right)
+    if not left or not right:
+        return False
+
+    def same_length_near_duplicate(first, second):
+        return len(first) == len(second) and all(
+            a == b
+            or {a, b} in (
+                {"O", "0"},
+                {"S", "5"},
+                {"S", "3"},
+                {"I", "1"},
+                {"1", "7"},
+                {"Z", "2"},
+            )
+            for a, b in zip(first, second)
+        )
+
+    if same_length_near_duplicate(left, right):
+        return True
+    if abs(len(left) - len(right)) != 1:
+        return False
+    longer, shorter = (
+        (left, right) if len(left) > len(right) else (right, left)
+    )
+    return any(
+        character in {"O", "0", "Q", "S", "5", "7", "Z"}
+        and same_length_near_duplicate(
+            longer[:index] + longer[index + 1:],
+            shorter,
+        )
+        for index, character in enumerate(longer)
+    )
+
+
+def _resolve_job_districts_with_report(
+        rows, page_districts, seed_district, source_name=""):
     """Assign a polling_district to every row of one job from the per-page header
     map and return both synthetic labels and trust diagnostics.
 
@@ -509,6 +640,240 @@ def _resolve_job_districts_with_report(rows, page_districts, seed_district):
             continue
         rows_by_page.setdefault(page, []).append(row)
 
+    # A single code token in the source filename is supporting evidence only,
+    # never a district boundary by itself. Reconcile short OCR-noise runs only
+    # when at least two row-bearing pages independently print the exact filename
+    # code and the noisy run touches that exact evidence. Long runs remain
+    # distinct so a genuine, similarly named second district cannot be erased.
+    row_pages = sorted(rows_by_page)
+    filename_candidate = _single_filename_district_candidate(source_name)
+    seed_candidate = _trusted_district_code(seed_district)
+    row_header_codes = [headers.get(page) for page in row_pages]
+    if (
+        filename_candidate
+        and row_header_codes.count(filename_candidate) >= 2
+    ):
+        index = 0
+        while index < len(row_pages):
+            code = row_header_codes[index]
+            if (
+                code == filename_candidate
+                or not _district_codes_ocr_confusable(
+                    code, filename_candidate
+                )
+            ):
+                index += 1
+                continue
+            run_end = index
+            while (
+                run_end < len(row_pages)
+                and row_header_codes[run_end] != filename_candidate
+                and _district_codes_ocr_confusable(
+                    row_header_codes[run_end], filename_candidate
+                )
+            ):
+                run_end += 1
+            touches_exact_evidence = (
+                (
+                    index > 0
+                    and row_header_codes[index - 1] == filename_candidate
+                )
+                or (
+                    run_end < len(row_pages)
+                    and row_header_codes[run_end] == filename_candidate
+                )
+            )
+            if run_end - index <= 2 and touches_exact_evidence:
+                for page in row_pages[index:run_end]:
+                    headers[page] = filename_candidate
+                row_header_codes[index:run_end] = [
+                    filename_candidate
+                ] * (run_end - index)
+            index = run_end
+
+    # Reconcile near-duplicate codes only when their page sequence proves OCR
+    # alternation rather than one genuine contiguous district boundary. This
+    # handles headers where the same printed code is repeatedly read as variants
+    # such as DENNE3/DENNES, DENNE2/DENNEZ2, or DENNE5/DENNES5. A simple A→B
+    # transition remains untouched; a family is canonicalised only after one of
+    # its members reappears in a later run (A→B→A or stronger evidence).
+    code_counts = Counter(code for code in row_header_codes if code)
+    remaining_codes = set(code_counts)
+    while remaining_codes:
+        component = {remaining_codes.pop()}
+        expanded = True
+        while expanded:
+            expanded = False
+            for candidate in list(remaining_codes):
+                if any(
+                    _district_codes_alternating_ocr_near_duplicate(
+                        candidate,
+                        member,
+                    )
+                    for member in component
+                ):
+                    component.add(candidate)
+                    remaining_codes.remove(candidate)
+                    expanded = True
+        if len(component) < 2:
+            continue
+
+        family_sequence = [
+            code for code in row_header_codes if code in component
+        ]
+        family_runs = []
+        for code in family_sequence:
+            if not family_runs or family_runs[-1] != code:
+                family_runs.append(code)
+        if (
+            len(family_runs) < 3
+            or not any(family_runs.count(code) > 1 for code in component)
+        ):
+            continue
+
+        numeric_s_positions = {}
+        for code in component:
+            numeric_s_positions[code] = sum(
+                1
+                for other in component
+                for left_char, right_char in zip(code, other)
+                if left_char in {"3", "5"} and right_char == "S"
+            )
+
+        canonical = min(
+            component,
+            key=lambda code: (
+                code != filename_candidate,
+                len(code),
+                -numeric_s_positions[code],
+                -code_counts[code],
+                code != seed_candidate,
+                code,
+            ),
+        )
+        for page in list(headers):
+            if headers[page] in component:
+                headers[page] = canonical
+        row_header_codes = [
+            canonical if code in component else code
+            for code in row_header_codes
+        ]
+        if seed_candidate in component:
+            seed_candidate = canonical
+
+    # The cover and the first row-bearing page are independent printed
+    # evidence. When their codes agree (allowing only the tight OCR
+    # substitutions above), accept that opening district immediately. This is
+    # required for genuine one-page supplemental districts; filename text is
+    # not involved and a later boundary still requires normal corroboration.
+    opening_district = ""
+    opening_from_seed = False
+    if row_pages:
+        first_header = headers.get(row_pages[0])
+        def only_o_zero_confusable(left, right):
+            left = _trusted_district_code(left)
+            right = _trusted_district_code(right)
+            return (
+                bool(left and right)
+                and len(left) == len(right)
+                and left.replace("0", "O") == right.replace("0", "O")
+            )
+
+        filename_o_zero_supported = (
+            filename_candidate
+            and only_o_zero_confusable(seed_candidate, filename_candidate)
+            and sum(
+                code == filename_candidate
+                or only_o_zero_confusable(code, filename_candidate)
+                for code in row_header_codes
+            ) >= 2
+            and (
+                first_header == filename_candidate
+                or only_o_zero_confusable(
+                    first_header, filename_candidate
+                )
+            )
+        )
+        filename_cover_supported = (
+            filename_candidate
+            and row_header_codes.count(filename_candidate) >= 2
+            and (
+                seed_candidate == filename_candidate
+                or _district_codes_ocr_confusable(
+                    seed_candidate, filename_candidate
+                )
+            )
+            and (
+                first_header == filename_candidate
+                or _district_codes_ocr_confusable(
+                    first_header, filename_candidate
+                )
+            )
+        )
+        if filename_cover_supported or filename_o_zero_supported:
+            opening_district = filename_candidate
+            opening_from_seed = True
+        elif (
+            seed_candidate
+            and (
+                first_header == seed_candidate
+                or _district_codes_ocr_confusable(
+                    first_header, seed_candidate
+                )
+            )
+        ):
+            opening_district = seed_candidate
+            opening_from_seed = True
+        elif filename_candidate and first_header == filename_candidate:
+            # Filename evidence never stands alone: it must agree exactly with
+            # the independently OCR'd first row-page header.
+            opening_district = filename_candidate
+
+        if opening_district:
+            for page in row_pages:
+                page_header = headers.get(page)
+                if (
+                    page_header == opening_district
+                    or (
+                        opening_from_seed
+                        and _district_codes_ocr_confusable(
+                            page_header, opening_district
+                        )
+                    )
+                ):
+                    headers[page] = opening_district
+                    continue
+                break
+
+    # If the exact cover code recurs on at least two row pages and every other
+    # printed code in the document is merely an OCR-confusable rendering of it,
+    # there is no evidenced boundary. Canonicalise the alternating variants,
+    # including non-row transition pages, to prevent a phantom district.
+    cover_canonical = opening_district or seed_candidate
+    if opening_from_seed and cover_canonical and row_pages:
+        last_row_page_for_seed = row_pages[-1]
+        physical_codes = [
+            headers[page]
+            for page in sorted(headers)
+            if page <= last_row_page_for_seed and headers[page]
+        ]
+        exact_seed_row_pages = sum(
+            headers.get(page) == cover_canonical for page in row_pages
+        )
+        if (
+            exact_seed_row_pages >= 2
+            and physical_codes
+            and all(
+                code == cover_canonical
+                or _district_codes_ocr_confusable(code, cover_canonical)
+                for code in physical_codes
+            )
+        ):
+            for page in list(headers):
+                if page <= last_row_page_for_seed and headers[page]:
+                    headers[page] = cover_canonical
+            opening_district = cover_canonical
+
     # Establish boundary events from every physical page header, including
     # cover/transition pages that contain no elector rows. Short districts can
     # otherwise disappear when their first corroborating header is on a cover
@@ -526,10 +891,74 @@ def _resolve_job_districts_with_report(rows, page_districts, seed_district):
         if corroborated:
             corroborated_headers[page] = header
 
-    current_district = _trusted_district_code(seed_district)
-    accepted_districts = set()
-    first_accepted_page = None
-    row_pages = sorted(rows_by_page)
+    # A cover-derived seed can safely establish one unreadable opening row
+    # page when the next district header is independently repeated. This is a
+    # common cover/transition layout: the first row page omits (or loses) its
+    # header, then the same exact cover code is printed on two following pages.
+    # Keep the exception deliberately narrow: exactly one leading row page,
+    # an exact seed/header match, and either a blank leading header or one of
+    # two observed single-page OCR shapes: up to two inserted glyphs, or a
+    # lone T/1 substitution. Other one-page codes remain a blocking boundary.
+    if not opening_district and seed_candidate and row_pages:
+        def opening_header_matches_seed_noise(header, seed):
+            header = _trusted_district_code(header)
+            seed = _trusted_district_code(seed)
+            if not header or header == seed:
+                return True
+            if len(header) == len(seed):
+                differences = [
+                    (left, right)
+                    for left, right in zip(header, seed)
+                    if left != right
+                ]
+                return len(differences) == 1 and set(
+                    differences[0]
+                ) == {"T", "1"}
+            if len(header) - len(seed) not in {1, 2}:
+                return False
+            cursor = 0
+            for character in header:
+                if cursor < len(seed) and character == seed[cursor]:
+                    cursor += 1
+            return cursor == len(seed)
+
+        first_supported = next(
+            (
+                (page, header)
+                for page, header in sorted(corroborated_headers.items())
+                if row_pages[0] <= page <= row_pages[-1]
+            ),
+            None,
+        )
+        if first_supported:
+            support_page, support_header = first_supported
+            leading_row_pages = [
+                page for page in row_pages if page < support_page
+            ]
+            prior_headers = [
+                headers.get(page)
+                for page in range(row_pages[0], support_page)
+            ]
+            if (
+                len(leading_row_pages) == 1
+                and support_header == seed_candidate
+                and all(
+                    opening_header_matches_seed_noise(
+                        header, seed_candidate
+                    )
+                    for header in prior_headers
+                )
+            ):
+                opening_district = support_header
+                opening_from_seed = True
+
+    current_district = opening_district or seed_candidate
+    accepted_districts = (
+        {opening_district} if opening_district else set()
+    )
+    first_accepted_page = (
+        row_pages[0] if opening_district else None
+    )
     last_row_page = row_pages[-1] if row_pages else -1
 
     for page in sorted(set(row_pages) | {
@@ -607,12 +1036,14 @@ def _resolve_job_districts_with_report(rows, page_districts, seed_district):
     }
 
 
-def resolve_job_districts(rows, page_districts, seed_district):
+def resolve_job_districts(rows, page_districts, seed_district,
+                          source_name=""):
     """Backward-compatible district resolver returning synthetic labels only."""
     synthetic_labels, _report = _resolve_job_districts_with_report(
         rows,
         page_districts,
         seed_district,
+        source_name,
     )
     return synthetic_labels
 
@@ -642,57 +1073,73 @@ def _dedupe_rows(rows):
     Elector numbers reset per polling district, so elector_number alone would
     collapse distinct electors. For a PDF row matched to an absent-voter CSV
     row, classification flags are combined independently: evidence from either
-    source is retained. Repeated rows within one source retain the established
-    first-occurrence behaviour.
+    source is retained. Repeated rows within one source use positive-evidence
+    merging too: a visible vote/postal mark wins over a missed mark. Grouping,
+    source preference and field selection are deterministic, so DynamoDB query
+    order cannot change the delivered workbook.
     """
-    by_key = {}
-    source_rows_by_key = {}
-    out = []
+    grouped = {}
     for row in rows:
         key = _dedupe_key(row)
         if not key[1]:
             continue
         source = str(row.get("_source_type") or "unknown").strip().lower()
-        existing = by_key.get(key)
-        if existing is None:
-            existing = dict(row)
-            existing["polling_district"] = key[0]
-            existing["elector_number"] = key[1]
-            by_key[key] = existing
-            source_rows_by_key[key] = {source: row}
-            out.append(existing)
-            continue
+        grouped.setdefault(key, {}).setdefault(source, []).append(row)
 
-        source_rows = source_rows_by_key[key]
-        if source in source_rows:
-            continue
-        source_rows[source] = row
+    def stable_row_key(row):
+        return json.dumps(
+            {
+                str(key): str(value)
+                for key, value in sorted(row.items())
+            },
+            sort_keys=True,
+            separators=(",", ":"),
+        )
 
-        # Only the explicitly supported PDF + absent-voter CSV pairing may
-        # enrich a row. Unknown or future source types retain first-row-wins.
-        if not {"pdf", "csv"}.issubset(source_rows):
-            continue
-        pdf_row = source_rows["pdf"]
-        csv_row = source_rows["csv"]
-        existing["voted"] = (
-            "Y"
-            if "Y" in {
-                str(pdf_row.get("voted") or "").strip().upper(),
-                str(csv_row.get("voted") or "").strip().upper(),
-            }
-            else "N"
+    out = []
+    for key, source_rows in grouped.items():
+        preferred_source = (
+            "pdf"
+            if "pdf" in source_rows
+            else "csv"
+            if "csv" in source_rows
+            else min(source_rows)
         )
-        existing["postal_vote"] = (
-            "Y"
-            if "Y" in {
-                str(pdf_row.get("postal_vote") or "").strip().upper(),
-                str(csv_row.get("postal_vote") or "").strip().upper(),
-            }
-            else "N"
+        supported_sources = (
+            ("pdf", "csv")
+            if {"pdf", "csv"}.issubset(source_rows)
+            else (preferred_source,)
         )
+        candidate_rows = [
+            row
+            for source in supported_sources
+            for row in source_rows[source]
+        ]
+        existing = dict(min(
+            source_rows[preferred_source],
+            key=stable_row_key,
+        ))
+        existing["polling_district"] = key[0]
+        existing["elector_number"] = key[1]
+        for field in ("voted", "postal_vote"):
+            existing[field] = (
+                "Y"
+                if any(
+                    str(row.get(field) or "").strip().upper() == "Y"
+                    for row in candidate_rows
+                )
+                else "N"
+            )
         for field in ("election_date", "constituency"):
-            if not existing.get(field) and row.get(field):
-                existing[field] = row[field]
+            values = sorted({
+                str(row.get(field) or "").strip()
+                for row in candidate_rows
+                if str(row.get(field) or "").strip()
+            })
+            if values:
+                existing[field] = values[0]
+        out.append(existing)
+    out.sort(key=_sort_key)
     return out
 
 
@@ -1320,6 +1767,7 @@ def handler(event, context):
                         job_rows,
                         page_districts,
                         seed_district,
+                        source_name,
                     )
                 )
                 synthetic_labels_all |= synthetic_labels
@@ -1352,7 +1800,11 @@ def handler(event, context):
         # so diagnostics match the unique rows that can reach the final result.
         if job_source_types != {"csv"}:
             trusted_ranges, range_issues = resolve_declared_ranges(
-                cover_declared_ranges, page_declared_ranges
+                cover_declared_ranges,
+                page_declared_ranges,
+                canonical_districts=resolution_report[
+                    "accepted_districts"
+                ],
             )
             validation_rows = _dedupe_rows(job_rows)
             range_reports, validation_issues = validate_rows_against_declared_ranges(

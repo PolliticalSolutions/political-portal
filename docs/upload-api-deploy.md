@@ -164,12 +164,23 @@ label may remain, and within-source deduplication must not exceed 2%. A failed
 gate records `QUALITY_REVIEW_REQUIRED`, sends a notice-only email, and does not
 upload or expose a customer result.
 
+See `infra/upload-api/LOCAL_REGISTER_STRUCTURE_AUDIT.md` for the privacy-safe
+local workflow and `docs/marked-register-assurance.md` for the separate
+source-fidelity and destination-compatibility requirements.
+
 Page headers are read at the production render size and, only when a code is
 missing or reduced to a two-character prefix, at half size as a fallback. A
 district boundary requires the same code on the next page or after exactly one
 unreadable page; a different readable intervening code invalidates the match.
 Corroboration uses every physical page header, including cover and transition
 pages without elector rows, before assigning the row-bearing pages.
+
+Manchester-area `Register of Electors - <code>` headers and display-hyphenated
+codes are canonicalised to the compact workbook key. A source filename may
+reconcile an `O`/`0` OCR variant only when it contains one unambiguous code, the
+first row-bearing page prints that exact code, and another row-bearing page
+independently prints the same code or its `O`/`0` variant. The filename never
+creates a boundary by itself.
 
 The row extractor locates each printed vertical column rule and accepts numeric
 candidates only from the narrow ENO band. It uses the strongest ordered run as
@@ -189,11 +200,15 @@ Before deploying marked-register changes:
 
    ```powershell
    & .\infra\upload-api\local_trial\run-fix-validation.ps1 `
-     -InputPath "C:\full\path\to\folder"
+     -InputPath "C:\full\path\to\folder" `
+     -ElectionName "The exact election label submitted with the batch"
    ```
 
 2. Require `aggregate.quality_gate` to be `PASS`. Review the aggregate district
    and vote-type counts; the report contains no filenames or elector data.
+   Confirm `settings.election_family` matches the production contest. A
+   validation run that omits the batch's election label is not
+   production-equivalent for eligibility-code handling.
 
 3. Run the focused regression suites:
 
@@ -201,9 +216,17 @@ Before deploying marked-register changes:
    python -m pytest `
      infra/upload-api/src_python/test/test_process_register.py `
      infra/upload-api/src_python/test/test_combine_register.py `
+     infra/upload-api/src_python/test/test_defect_d_row_eligibility.py `
+     infra/upload-api/src_python/test/test_xlsx_input.py `
+     infra/upload-api/src_python/test/test_local_register_fix_validation.py `
      infra/upload-api/src_python/test/test_local_register_structure_audit.py `
+     infra/upload-api/src_python/test/test_process_dlq_recovery.py `
+     infra/upload-api/src_python/test/test_process_settlement.py `
+     infra/upload-api/src_python/test/test_district_provenance_audit.py `
      -q
-   npm run test:api -- infra/upload-api/test/handler.test.mjs
+   npm run test:api -- `
+     infra/upload-api/test/handler.test.mjs `
+     infra/upload-api/test/template-runtime.test.mjs
    npm run test:run -- src/pages/portal/Uploads.test.jsx
    ```
 
@@ -247,11 +270,16 @@ Do not directly redrive the entire standard-queue DLQ: duplicate submissions can
 leave several messages for the same splitter job and would multiply the OCR
 work. Use the deduplicating recovery tool instead:
 
-1. Inspect the plan without changing either queue:
+1. Inspect the plan without enqueuing or deleting messages:
 
    ```bash
    python infra/upload-api/src_python/process_dlq_recovery.py
    ```
+
+   A dry run still receives the bounded DLQ snapshot and immediately releases
+   it, so message visibility changes briefly. Do not use a production queue as
+   a test target; validate the tool with
+   `test_process_dlq_recovery.py` and use it live only for an approved recovery.
 
 2. Correlate the listed job IDs with `ProcessRegisterFunction` CloudWatch logs.
    The tool only proposes replay for `PENDING`/`QUEUED` jobs whose source object
@@ -268,7 +296,9 @@ work. Use the deduplicating recovery tool instead:
 The tool sends one copy of each logical message to `ProcessQueue` before
 deleting its DLQ copies. If deletion fails after the send, processing may be
 duplicated but the work is not lost. Splitter messages are deduplicated per job;
-different chunk messages for the same job remain separate.
+different chunk messages for the same job remain separate. Snapshot and apply
+failures release only receipts that have not already been deleted; any cleanup
+failure is reported with the number of messages still unsettled.
 
 ## Throttling + 429s
 - Default stage throttling: 20 rps, burst 40.

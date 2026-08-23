@@ -307,10 +307,12 @@ def test_column_line_records_distinguish_eno_from_name_column_date(
         {
             "text": "843 Sample, Elector",
             "eno_anchored": True,
+            "eno_candidate": "843",
         },
         {
             "text": "12/06/2025 Sample, Elector",
             "eno_anchored": False,
+            "eno_candidate": None,
         },
     ]
 

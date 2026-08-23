@@ -46,3 +46,23 @@ scripts/listener/__pycache__/
 # Local marked-register trial output is aggregate-only but remains operational
 # evidence and must never be committed.
 infra/upload-api/local-trial-output/
+
+# Reproducible OCR layer build inputs/outputs and downloaded rollback artifact.
+infra/upload-api/.ocr-artifacts/
+infra/upload-api/ocr_layer/__pycache__/
+infra/upload-api/ocr_layer/.sources/
+infra/upload-api/ocr_layer/out/
+infra/upload-api/tesseract-layer*.zip
+
+# Local agent, document-rendering, and private audit workspaces.
+/.codex-tmp/
+/.tmp/
+/tmp/
+/output/
+/outputs/
+/supabase/.temp/
+
+# Reproducible Python and SAM packaging output.
+__pycache__/
+*.py[cod]
+infra/upload-api/packaged-template.yaml

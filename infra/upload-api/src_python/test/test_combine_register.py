@@ -106,6 +106,20 @@ class TestResolveDeclaredRanges:
         assert trusted["NAB"]["start"] == 50
         assert issues == []
 
+    def test_declared_range_code_is_canonicalised_to_accepted_district(self):
+        pages = {
+            "3": [{"district": "40MD", "start": 1985, "end": 4007}],
+            "4": [{"district": "40MD", "start": 1985, "end": 4007}],
+        }
+        trusted, issues = c.resolve_declared_ranges(
+            [],
+            pages,
+            canonical_districts=["4OMD"],
+        )
+        assert trusted["4OMD"]["start"] == 1985
+        assert trusted["4OMD"]["end"] == 4007
+        assert issues == []
+
     def test_single_header_without_cover_is_not_trusted(self):
         pages = {"8": [{"district": "NAB", "start": 50, "end": 400}]}
         trusted, issues = c.resolve_declared_ranges([], pages)
@@ -116,6 +130,94 @@ class TestResolveDeclaredRanges:
         trusted, issues = c.resolve_declared_ranges([], {})
         assert trusted == {}
         assert "No declared elector range" in issues[0]
+
+    def test_station_is_never_a_trusted_district_label(self):
+        rows = _rows([(3, "1")], seed="STATION")
+        _, report = c._resolve_job_districts_with_report(
+            rows,
+            {3: "STATION", 4: "STATION"},
+            "STATION",
+        )
+        assert report["trusted"] is False
+        assert report["accepted_districts"] == []
+        assert report["rows_with_untrusted_district"] == 1
+
+
+class TestFilenameCorroboratedOcrRepair:
+    def test_exact_pages_and_short_confusable_run_use_filename_code(self):
+        rows = _rows([
+            (3, "1"), (4, "2"), (5, "3"), (6, "4"),
+        ], seed="")
+        _, report = c._resolve_job_districts_with_report(
+            rows,
+            {3: "4OMA", 4: "4OMA", 5: "40MA", 6: "40MA"},
+            "",
+            "186 4OMA.pdf",
+        )
+
+        assert report["trusted"] is True
+        assert report["accepted_districts"] == ["4OMA"]
+        assert _districts(rows) == ["4OMA", "4OMA", "4OMA", "4OMA"]
+
+    def test_filename_never_creates_a_boundary_without_exact_first_header(self):
+        rows = _rows([(3, "1"), (4, "2")], seed="")
+        _, report = c._resolve_job_districts_with_report(
+            rows,
+            {3: "40MA", 4: "40MA"},
+            "",
+            "186 4OMA.pdf",
+        )
+
+        assert report["accepted_districts"] == ["40MA"]
+        assert _districts(rows) == ["40MA", "40MA"]
+
+    def test_multiple_filename_codes_disable_repair(self):
+        rows = _rows([(3, "1"), (4, "2")], seed="")
+        _, report = c._resolve_job_districts_with_report(
+            rows,
+            {3: "4OMA", 4: "40MA"},
+            "",
+            "186 4OMA 40MA.pdf",
+        )
+
+        assert report["trusted"] is False
+        assert report["accepted_districts"] == []
+
+    def test_short_inserted_glyph_run_is_repaired_from_exact_page_evidence(self):
+        rows = _rows([
+            (3, "1"), (4, "2"), (5, "3"), (6, "4"),
+        ], seed="")
+        _, report = c._resolve_job_districts_with_report(
+            rows,
+            {3: "4QOMA", 4: "4QOMA", 5: "4OMA", 6: "4OMA"},
+            "",
+            "186 4OMA.pdf",
+        )
+
+        assert report["trusted"] is True
+        assert report["accepted_districts"] == ["4OMA"]
+        assert _districts(rows) == ["4OMA", "4OMA", "4OMA", "4OMA"]
+
+    def test_long_confusable_run_remains_a_separate_boundary(self):
+        rows = _rows([
+            (3, "1"), (4, "2"), (5, "3"),
+            (6, "4"), (7, "5"), (8, "6"),
+        ], seed="")
+        _, report = c._resolve_job_districts_with_report(
+            rows,
+            {
+                3: "4OMA", 4: "4OMA", 5: "4OMA",
+                6: "40MA", 7: "40MA", 8: "40MA",
+            },
+            "",
+            "186 4OMA.pdf",
+        )
+
+        assert report["trusted"] is True
+        assert report["accepted_districts"] == ["40MA", "4OMA"]
+        assert _districts(rows) == [
+            "4OMA", "4OMA", "4OMA", "40MA", "40MA", "40MA",
+        ]
 
 
 class TestValidateRowsAgainstDeclaredRanges:
@@ -358,6 +460,67 @@ class TestResolveJobDistricts:
         assert report["accepted_districts"] == ["ECA"]
         assert set(_districts(rows)) == {"ECA"}
 
+    def test_repeated_header_validates_one_unreadable_opening_row_page(self):
+        rows = _rows([(3, "1"), (4, "2"), (5, "3")])
+        _synthetic, report = c._resolve_job_districts_with_report(
+            rows,
+            {"3": None, "4": "ECA", "5": "ECA"},
+            "ECA",
+        )
+
+        assert report["trusted"] is True
+        assert report["accepted_districts"] == ["ECA"]
+        assert report["unresolved_leading_pages"] == 0
+        assert set(_districts(rows)) == {"ECA"}
+
+    def test_conflicting_opening_header_is_not_validated_by_later_seed(self):
+        rows = _rows([(3, "1"), (4, "2"), (5, "3")])
+        _synthetic, report = c._resolve_job_districts_with_report(
+            rows,
+            {"3": "ECB", "4": "ECA", "5": "ECA"},
+            "ECA",
+        )
+
+        assert report["trusted"] is False
+        assert report["unresolved_leading_pages"] == 1
+        assert any("leading page" in issue for issue in report["issues"])
+
+    def test_inserted_glyphs_on_one_opening_header_use_repeated_seed(self):
+        rows = _rows([(3, "1"), (4, "2"), (5, "3")])
+        _synthetic, report = c._resolve_job_districts_with_report(
+            rows,
+            {"3": "3VWWRD", "4": "3WRD", "5": "3WRD"},
+            "3WRD",
+        )
+
+        assert report["trusted"] is True
+        assert report["unresolved_leading_pages"] == 0
+        assert set(_districts(rows)) == {"3WRD"}
+
+    def test_t_one_noise_on_one_opening_header_uses_repeated_seed(self):
+        rows = _rows([(3, "1"), (4, "2"), (5, "3")])
+        _synthetic, report = c._resolve_job_districts_with_report(
+            rows,
+            {"3": "THAF", "4": "1HAF", "5": "1HAF"},
+            "1HAF",
+        )
+
+        assert report["trusted"] is True
+        assert report["unresolved_leading_pages"] == 0
+        assert set(_districts(rows)) == {"1HAF"}
+
+    def test_genuine_similar_one_page_code_remains_a_blocker(self):
+        rows = _rows([(3, "1"), (4, "2"), (5, "3")])
+        _synthetic, report = c._resolve_job_districts_with_report(
+            rows,
+            {"3": "1HAH", "4": "1HAF", "5": "1HAF"},
+            "1HAF",
+        )
+
+        assert report["trusted"] is False
+        assert report["unresolved_leading_pages"] == 1
+        assert any("leading page" in issue for issue in report["issues"])
+
     def test_single_uncorroborated_header_is_not_trusted(self):
         rows = _rows([(3, "1"), (4, "2"), (5, "3")])
         _synthetic, report = c._resolve_job_districts_with_report(
@@ -370,6 +533,175 @@ class TestResolveJobDistricts:
         assert report["accepted_districts"] == []
         assert report["rows_with_untrusted_district"] == 3
         assert any("within the next two pages" in issue for issue in report["issues"])
+
+    def test_cover_and_first_row_header_accept_one_page_district(self):
+        rows = _rows([(3, "1")])
+        _synthetic, report = c._resolve_job_districts_with_report(
+            rows,
+            {"3": "AUD2A"},
+            "AUD2A",
+        )
+
+        assert report["trusted"] is True
+        assert report["accepted_districts"] == ["AUD2A"]
+        assert report["unresolved_leading_pages"] == 0
+
+    def test_cover_canonicalises_s_as_five_on_opening_run(self):
+        rows = _rows([(3, "1"), (4, "2"), (5, "3")])
+        _synthetic, report = c._resolve_job_districts_with_report(
+            rows,
+            {"3": "DENNES", "4": "DENNE5", "5": "DENNES5"},
+            "DENNE5",
+        )
+
+        assert report["trusted"] is True
+        assert report["accepted_districts"] == ["DENNE5"]
+        assert set(_districts(rows)) == {"DENNE5"}
+
+    def test_repeated_cover_code_canonicalises_alternating_long_ocr_noise(self):
+        rows = _rows([(page, str(page)) for page in range(3, 10)])
+        _synthetic, report = c._resolve_job_districts_with_report(
+            rows,
+            {
+                "3": "DENNES",
+                "4": "DENNES5",
+                "5": "DENNE5",
+                "6": "DENNES",
+                "7": "DENNE5",
+                "8": "DENNES5",
+                "9": "DENNE5",
+            },
+            "DENNE5",
+        )
+
+        assert report["trusted"] is True
+        assert report["accepted_districts"] == ["DENNE5"]
+        assert set(_districts(rows)) == {"DENNE5"}
+
+    def test_alternating_three_as_s_noise_uses_source_digit_code(self):
+        rows = _rows([(page, str(page)) for page in range(3, 12)])
+        _synthetic, report = c._resolve_job_districts_with_report(
+            rows,
+            {
+                "3": "AUD2A",
+                "4": "AUD2A",
+                "5": "DENNE3",
+                "6": "DENNE3",
+                "7": "DENNES",
+                "8": "DENNES",
+                "9": "DENNE3",
+                "10": "DENNES",
+                "11": "DENNE3",
+            },
+            "AUD2A",
+            "246 AUD2A.pdf",
+        )
+
+        assert report["trusted"] is True
+        assert report["accepted_districts"] == ["AUD2A", "DENNE3"]
+        assert "DENNES" not in set(_districts(rows))
+
+    def test_alternating_inserted_z_noise_uses_shorter_source_code(self):
+        rows = _rows([(page, str(page)) for page in range(3, 9)])
+        _synthetic, report = c._resolve_job_districts_with_report(
+            rows,
+            {
+                "3": "DENNE2",
+                "4": "DENNE2",
+                "5": "DENNEZ2",
+                "6": "DENNEZ2",
+                "7": "DENNE2",
+                "8": "DENNE2",
+            },
+            "DENNE2",
+            "249 DENNE2.pdf",
+        )
+
+        assert report["trusted"] is True
+        assert report["accepted_districts"] == ["DENNE2"]
+        assert set(_districts(rows)) == {"DENNE2"}
+
+    def test_alternating_inserted_s_noise_repairs_unreliable_cover_seed(self):
+        rows = _rows([(page, str(page)) for page in range(3, 11)])
+        _synthetic, report = c._resolve_job_districts_with_report(
+            rows,
+            {
+                "3": "DENNES5",
+                "4": "DENNES5",
+                "5": "DENNE5",
+                "6": "DENNE5",
+                "7": "DENNES",
+                "8": "DENNES",
+                "9": "DENNE5",
+                "10": "DENNE5",
+            },
+            "DENNES5",
+            "251 DEN 1.pdf",
+        )
+
+        assert report["trusted"] is True
+        assert report["accepted_districts"] == ["DENNE5"]
+        assert set(_districts(rows)) == {"DENNE5"}
+
+    def test_one_contiguous_near_duplicate_boundary_is_preserved(self):
+        rows = _rows([(page, str(page)) for page in range(3, 7)])
+        _synthetic, report = c._resolve_job_districts_with_report(
+            rows,
+            {
+                "3": "DENNE3",
+                "4": "DENNE3",
+                "5": "DENNES",
+                "6": "DENNES",
+            },
+            "DENNE3",
+        )
+
+        assert report["trusted"] is True
+        assert report["accepted_districts"] == ["DENNE3", "DENNES"]
+        assert _districts(rows) == ["DENNE3", "DENNE3", "DENNES", "DENNES"]
+
+    def test_filename_and_first_header_can_correct_noisy_cover_seed(self):
+        rows = _rows([(3, "1"), (4, "2")])
+        _synthetic, report = c._resolve_job_districts_with_report(
+            rows,
+            {"3": "DENNE1", "4": "DENNE1"},
+            "DENNEI",
+            "248 DENNE1.pdf",
+        )
+
+        assert report["trusted"] is True
+        assert report["accepted_districts"] == ["DENNE1"]
+        assert set(_districts(rows)) == {"DENNE1"}
+
+    def test_cover_and_repeated_exact_code_repair_one_as_seven(self):
+        rows = _rows([(3, "1"), (4, "2"), (5, "3"), (6, "4")])
+        _synthetic, report = c._resolve_job_districts_with_report(
+            rows,
+            {
+                "3": "DENNE7",
+                "4": "DENNE1",
+                "5": "DENNE71",
+                "6": "DENNE1",
+            },
+            "DENNE1",
+        )
+
+        assert report["trusted"] is True
+        assert report["accepted_districts"] == ["DENNE1"]
+        assert set(_districts(rows)) == {"DENNE1"}
+
+    def test_filename_cover_and_repeated_headers_repair_all_o_as_zero(self):
+        rows = _rows([(3, "1"), (4, "2"), (5, "3")])
+        _synthetic, report = c._resolve_job_districts_with_report(
+            rows,
+            {"3": "40MD", "4": "40MD", "5": "40MD"},
+            "40MD",
+            "192 4OMD.pdf",
+        )
+
+        assert report["trusted"] is True
+        assert report["accepted_districts"] == ["4OMD"]
+        assert set(_districts(rows)) == {"4OMD"}
 
     def test_low_header_coverage_is_not_trusted_even_with_one_good_run(self):
         rows = _rows([(page, str(page)) for page in range(3, 18)])
@@ -407,7 +739,7 @@ class TestDedupeRows:
         rows = [{"polling_district": "LA", "elector_number": ""}]
         assert c._dedupe_rows(rows) == []
 
-    def test_same_source_conflict_preserves_first_pdf_row(self):
+    def test_same_source_conflict_retains_positive_mark_evidence(self):
         rows = [
             {
                 "polling_district": "LA", "elector_number": "1",
@@ -419,8 +751,22 @@ class TestDedupeRows:
             },
         ]
         out = c._dedupe_rows(rows)
-        assert out[0]["voted"] == "N"
-        assert out[0]["postal_vote"] == "N"
+        assert out[0]["voted"] == "Y"
+        assert out[0]["postal_vote"] == "Y"
+
+    def test_same_source_conflict_is_order_independent(self):
+        unmarked = {
+            "polling_district": "LA", "elector_number": "1",
+            "voted": "N", "postal_vote": "N", "_source_type": "pdf",
+        }
+        marked = {
+            "polling_district": "LA", "elector_number": "1",
+            "voted": "Y", "postal_vote": "Y", "_source_type": "pdf",
+        }
+        forward = c._dedupe_rows([unmarked, marked])
+        reverse = c._dedupe_rows([marked, unmarked])
+        assert c.build_csv(forward) == c.build_csv(reverse)
+        assert (forward[0]["voted"], forward[0]["postal_vote"]) == ("Y", "Y")
 
     def test_pdf_vote_and_csv_postal_status_are_merged_independently(self):
         rows = [
