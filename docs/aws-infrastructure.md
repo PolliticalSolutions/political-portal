@@ -159,6 +159,8 @@ SAM CLI on Windows requires PowerShell:
 & "C:\Program Files\Amazon\AWSSAMCLI\bin\sam.cmd" deploy ...
 ```
 
+Or use `scripts/deploy-upload-api.ps1`, which wraps the same `sam build` / `sam deploy --config-env prod` flow with preflight checks (AWS credentials, clean working tree via `git stash`, `git pull`) and refuses to deploy unless the PR #33 pconCode fix (prod profile in `samconfig.toml`, no `PCON_REQUIRED` in `handler.mjs`) is present in the working tree.
+
 ### enquiry-api (production)
 
 ```sh
