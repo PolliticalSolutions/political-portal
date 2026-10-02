@@ -19,3 +19,4 @@ export const DEFAULT_DESCRIPTION =
   "UK political operations platform for marked register processing, data insights, and compliant campaign operations support.";
 export const CONTACT_EMAIL = "paul@politicalsolutions.uk";
 export const LOGO_PATH = "/logo512.png";
+export const OG_IMAGE_PATH = "/og-image.png";

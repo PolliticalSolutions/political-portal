@@ -4,6 +4,7 @@ const PUBLIC_STATIC_PATHS = new Set([
   "/constituency-intelligence",
   "/services/election-support",
   "/enquire",
+  "/conference",
   "/subscribe",
   "/subscriptions",
   "/cart",

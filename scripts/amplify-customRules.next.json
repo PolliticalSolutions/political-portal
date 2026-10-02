@@ -1,5 +1,10 @@
 [
   {
+    "source": "</^/conference\\/?$/>",
+    "target": "/conference/index.html",
+    "status": "200"
+  },
+  {
     "source": "</^/cart\\/?$/>",
     "target": "/subscribe",
     "status": "301"

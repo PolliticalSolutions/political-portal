@@ -17,6 +17,11 @@ Parameters:
   FromEmail:
     Type: String
     Description: SES-verified sender email address.
+  ConferenceEmailEnabled:
+    Type: String
+    Default: "false"
+    AllowedValues: ["true", "false"]
+    Description: Enable only after verifying SES domain alignment and notification delivery.
   FrontendBaseUrl:
     Type: String
     Default: https://www.politicalsolutions.uk
@@ -188,6 +193,49 @@ Conditions:
   AlarmActionsEnabled: !Not [!Equals [!Ref AlarmTopicArn, ""]]
 
 Resources:
+  ConferenceFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: src/
+      Handler: conference-handler.handler
+      Runtime: nodejs22.x
+      Timeout: 12
+      MemorySize: 256
+      Environment:
+        Variables:
+          ALLOWED_ORIGINS: !Join [",", !Ref AllowedOrigins]
+          SUPABASE_URL: !Ref SupabaseUrl
+          SUPABASE_SERVICE_ROLE_KEY: !Ref SupabaseServiceRoleKey
+          FROM_EMAIL: !Ref FromEmail
+          CONFERENCE_EMAIL_ENABLED: !Ref ConferenceEmailEnabled
+      Policies:
+        - Statement:
+            Effect: Allow
+            Action: ses:SendEmail
+            Resource: !Sub "arn:aws:ses:${AWS::Region}:${AWS::AccountId}:identity/*"
+      Events:
+        ConferenceVisit:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref EnquiryApi
+            Path: /conference/visit
+            Method: POST
+        ConferenceLead:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref EnquiryApi
+            Path: /conference/leads
+            Method: POST
+        RetentionCleanup:
+          Type: Schedule
+          Properties:
+            Schedule: rate(1 hour)
+            Input: '{"source":"aws.events","detail":{"task":"conference-cleanup"}}'
+  ConferenceLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub "/aws/lambda/${ConferenceFunction}"
+      RetentionInDays: 14
   EnquiryApi:
     Type: AWS::Serverless::HttpApi
     Properties:

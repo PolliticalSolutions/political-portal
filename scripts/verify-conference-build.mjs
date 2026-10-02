@@ -1,0 +1,26 @@
+import assert from "node:assert/strict";
+import { readFile } from "node:fs/promises";
+
+const html = await readFile("dist/conference/index.html", "utf8");
+assert(html.includes("Paul Startin, Political Solutions</title>"));
+assert(html.includes('name="robots" content="noindex, nofollow"'));
+assert(html.includes('property="og:image" content="https://politicalsolutions.uk/og-image.png"'));
+assert(html.includes('name="twitter:image" content="https://politicalsolutions.uk/og-image.png"'));
+assert(html.includes('href="https://politicalsolutions.uk/conference"'));
+assert(html.includes('class="conference-form"'));
+assert(html.includes('method="post"'));
+assert(html.includes('href="tel:+447525167856"'));
+assert(html.includes('class="conference-bio"'));
+assert(html.includes('href="https://www.linkedin.com/in/paulstartin/"'));
+assert(html.includes("Archivo Conference"));
+assert(!html.includes('class="public-topbar'));
+assert(!html.includes('class="cookie-banner'));
+assert(!html.includes("Proxima_Nova.woff2\" as=\"font"));
+assert(!html.includes("vendor-supabase"));
+assert(!html.includes("googletagmanager"));
+assert(!html.match(/<script[^>]*src="\/assets\/main-/));
+assert(!(await readFile("dist/sitemap.xml", "utf8")).includes("/conference"));
+const home = await readFile("dist/index.html", "utf8");
+assert(home.includes("Political data for campaign decisions"));
+assert(!home.includes('class="conference-form"'));
+console.log("PASS: dedicated conference HTML contains complete copy, safe form, contacts, exact crawler-visible metadata and noindex; no public nav, portal/analytics preload or sitemap entry; homepage preserved.");

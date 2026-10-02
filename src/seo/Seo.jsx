@@ -22,13 +22,14 @@ export default function Seo({
   robots,
   noindex = false,
   jsonLd,
+  image = LOGO_PATH,
 }) {
   const normalizedPath = normalizePath(path);
   const canonicalUrl = canonical || `${SITE_URL}${normalizedPath}`;
   const finalTitle = title || SITE_NAME;
   const robotsValue = noindex ? "noindex, nofollow" : robots;
   const jsonLdEntries = normalizeJsonLd(jsonLd);
-  const socialImageUrl = `${SITE_URL}${LOGO_PATH}`;
+  const socialImageUrl = `${SITE_URL}${image}`;
   const socialImageAlt = `${SITE_NAME} logo`;
 
   return (

@@ -20,7 +20,7 @@ export const getPrerenderRoutes = () => {
       continue;
     }
 
-    if (getSeoForPath(routePath).noindex) {
+    if (getSeoForPath(routePath).noindex && !getSeoForPath(routePath).prerender) {
       continue;
     }
 

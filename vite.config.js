@@ -29,6 +29,7 @@ export default defineConfig(({ mode }) => {
   },
   build: {
     rollupOptions: {
+      input: { main: "index.html", conference: "conference.html" },
       output: {
         manualChunks(id) {
           if (id.includes("node_modules/@supabase")) return "vendor-supabase";

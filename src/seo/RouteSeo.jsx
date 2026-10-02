@@ -10,7 +10,8 @@ export default function RouteSeo() {
 
   return (
     <Seo
-      title={formatTitle(routeSeo.title)}
+      title={routeSeo.exactTitle ? routeSeo.title : formatTitle(routeSeo.title)}
+      image={routeSeo.image}
       description={routeSeo.description}
       path={routeSeo.path}
       canonical={routeSeo.canonical}
