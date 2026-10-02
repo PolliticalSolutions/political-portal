@@ -10,7 +10,6 @@ assert(html.includes('href="https://politicalsolutions.uk/conference"'));
 assert(html.includes('class="conference-form"'));
 assert(html.includes('method="post"'));
 assert(html.includes('href="tel:+447525167856"'));
-assert(html.includes('class="conference-bio"'));
 assert(html.includes('href="https://www.linkedin.com/in/paulstartin/"'));
 assert(html.includes("Archivo Conference"));
 assert(!html.includes('class="public-topbar'));

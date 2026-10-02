@@ -93,7 +93,7 @@ export function ConferenceForm({ session }) {
         <input id="conference-name" name="name" autoComplete="name" required maxLength={100} />
       </div>
       <div className="conference-field">
-        <label htmlFor="conference-organisation">Association or organisation <span>(optional)</span></label>
+        <label htmlFor="conference-organisation">Organisation <span>(optional)</span></label>
         <input id="conference-organisation" name="organisation" autoComplete="organization" maxLength={200} />
       </div>
       <div className="conference-field">
@@ -114,7 +114,7 @@ export function ConferenceForm({ session }) {
       </label>
       <label className="conference-check">
         <input type="checkbox" name="followupConsent" />
-        <span>Paul may also email me about relevant campaign services and next conference season for up to 12 months. <span className="conference-optional">Optional. Withdraw at any time.</span></span>
+        <span>Paul may also email me about relevant Political Solutions services and next conference season for up to 12 months. <span className="conference-optional">Optional. Withdraw at any time.</span></span>
       </label>
       <div aria-live="polite" aria-atomic="true">
         {error && <div className="conference-error" ref={errorRef} tabIndex={-1}><p>{error}</p><ConferenceContacts /></div>}
@@ -140,14 +140,9 @@ export default function ConferencePage({ kicker = CONFERENCE_KICKER }) {
         {kicker && <p className="conference-kicker">{kicker}</p>}
         <h1>Paul Startin</h1>
         <p className="conference-standfirst">Political Solutions</p>
-        <p>If we have just met, this is the short version.</p>
+        <p>Tell me about your project and I will come back to you.</p>
       </header>
       <ConferenceFormBoundary><ConferenceForm session={session} /></ConferenceFormBoundary>
-      <div className="conference-bio">
-        <p>Campaigns are won and lost on the ground, in the data. I have run them. Staffordshire Area Chairman from 2022 to 2025 and Area Deputy Chairman (Political) until September 2026. Legal agent. Campaign manager on the Cheshire and Warrington mayoral campaign. In Keighley and Ilkley we defended five councillors and gained six more. In Worth Valley we held the seat on 52 per cent against a Reform campaign that threw everything at it.</p>
-        <p>Political Solutions is what came out of that. Marked register processing that turns a scanned register into usable data in hours rather than weeks. Constituency intelligence that tells you where your vote actually is. And campaign management when an association needs someone who has done it before.</p>
-        <p>Tell me what you are working on and I will come back to you.</p>
-      </div>
       <ConferenceContacts />
       <Link className="conference-more" to="/" reloadDocument>More about what we do</Link>
     </article>

@@ -44,7 +44,7 @@ export default function PrivacyPage() {
                     Please do not include other people’s personal information or confidential voter information.
                   </p>
                   <p className="muted">
-                    Only if you separately opt in may Paul also email you about relevant campaign services and the
+                    Only if you separately opt in may Paul also email you about relevant Political Solutions services and the
                     next conference season. This is optional and does not affect your enquiry. We keep conference
                     enquiries for up to 12 months from submission, then delete them. You can withdraw either consent
                     at any time by emailing <a href="mailto:paul@politicalsolutions.uk">paul@politicalsolutions.uk</a>;

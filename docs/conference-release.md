@@ -4,9 +4,10 @@
 
 Public URL: `https://politicalsolutions.uk/conference`. Paul Startin, 07525 167 856,
 paul@politicalsolutions.uk. Controller: Startin Sales Solutions Ltd T/A Political Solutions.
-The form precedes the long biography. Existing copy and Archivo artwork/typeface are retained.
+The page invites enquiries about any project, without a biography or list of services.
+Existing Archivo artwork/typeface are retained.
 The only conference label to edit annually is `CONFERENCE_KICKER` in `src/pages/ConferencePage.jsx`;
-an empty string hides it. The historical dates in the biography remain separate.
+an empty string hides it.
 
 No portal/auth/upload handler is changed. A separate Lambda handler serves two new paths on the
 existing enquiry API. Supabase remains server-only. Direct QR visits use a dedicated, prerendered
@@ -87,7 +88,7 @@ the `conference_notification_failed` CloudWatch events. Notifications are best-e
 ## Consent, retention and withdrawals
 
 - Required unticked consent covers handling the enquiry and any political affiliation voluntarily shared.
-- A separate OPTIONAL unticked box covers future campaign-service/conference email for up to 12 months.
+- A separate OPTIONAL unticked box covers future Political Solutions service/conference email for up to 12 months.
   Do not use an enquiry-only record for those follow-up emails. Both choices and consent wording version
   `2026-10-02-v1` are saved server-side with the submission timestamp. Bump the version when wording changes.
 - All enquiry records expire 12 calendar months after submission, not after last contact. An hourly

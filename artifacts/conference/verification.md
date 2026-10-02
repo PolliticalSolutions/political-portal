@@ -2,6 +2,14 @@
 
 Checked 2 October 2026 against the isolated branch and production build.
 
+Paul's subsequent copy review removed the biography/service paragraphs and changed the invitation
+to discuss any project. The organisation label, optional follow-up wording and page description
+were broadened consistently. The six existing conference component/API-client tests and the
+production build/HTML verification pass after that change; the preview server returns HTTP 200.
+The Lighthouse figures and `mobile-390.webp` below are the earlier audit capture, before this copy
+reduction. The screenshot is superseded as a representation of the current page. Browser automation
+was blocked from refreshing localhost, so no replacement screenshot or new Lighthouse result is claimed.
+
 | Check | Result |
 |---|---|
 | Frontend suite | 96 files, 417 tests passed |

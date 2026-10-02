@@ -8,7 +8,7 @@ export const seoRoutes = [
     path: "/conference",
     title: "Paul Startin, Political Solutions",
     exactTitle: true,
-    description: "Campaign data and campaign management for Conservative associations, agents and MPs' offices.",
+    description: "Get in touch with Paul Startin at Political Solutions to discuss your project.",
     image: OG_IMAGE_PATH,
     noindex: true,
     prerender: true,
