@@ -44,7 +44,7 @@
 .conference-field textarea { resize: vertical; }
 .conference-check { display: flex; align-items: flex-start; gap: var(--ds-space-3); font-size: var(--text-sm); line-height: 1.5; cursor: pointer; }
 .public-site .conference-check input { flex: 0 0 20px; width: 20px; height: 20px; margin: 2px 0 0; accent-color: var(--color-cta-hover); }
-.conference-check a, .conference-contacts a, .conference-more { color: var(--color-navy); text-decoration: underline; text-underline-offset: 3px; }
+.conference-check a, .conference-contacts a { color: var(--color-navy); text-decoration: underline; text-underline-offset: 3px; }
 .conference-trap { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
 .public-site .conference-send { width: 100%; min-height: 48px; background: var(--color-cta-hover); color: var(--color-surface); border-color: var(--color-cta-hover); font-size: 16px; text-transform: none; letter-spacing: normal; }
 .public-site .conference-send:hover { background: var(--color-navy); border-color: var(--color-navy); }
@@ -55,7 +55,7 @@
 .conference-page > .conference-contacts { margin-top: var(--ds-space-8); padding-top: var(--ds-space-6); border-top: 1px solid var(--color-border); }
 .conference-contacts { display: grid; justify-items: start; gap: var(--ds-space-2); font-style: normal; }
 .conference-contacts a { overflow-wrap: anywhere; padding-block: var(--ds-space-2); }
-.conference-more { display: inline-block; margin-top: var(--ds-space-6); font-size: var(--text-sm); padding-block: var(--ds-space-2); }
+.conference-contact-grid { grid-template-columns: minmax(0, 2fr) minmax(0, 3fr); column-gap: var(--ds-space-4); align-items: start; }
 .conference-status { padding-block: var(--ds-space-4); }
 .conference-status .conference-contacts { margin-top: var(--ds-space-4); }
 .conference-error { border: 1px solid var(--color-danger); padding: var(--ds-space-4); border-radius: var(--radius-sm); }

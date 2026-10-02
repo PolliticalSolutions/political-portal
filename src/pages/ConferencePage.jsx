@@ -5,12 +5,13 @@ import { createConferenceSession } from "../lib/conferenceApi.js";
 
 export const CONFERENCE_KICKER = "Conservative Party Conference, Birmingham, 4 to 7 October 2026";
 
-export function ConferenceContacts() {
+export function ConferenceContacts({ includeMore = false }) {
   return (
-    <address className="conference-contacts">
+    <address className={`conference-contacts${includeMore ? " conference-contact-grid" : ""}`}>
       <a href="tel:+447525167856">07525 167 856</a>
       <a href="mailto:paul@politicalsolutions.uk">paul@politicalsolutions.uk</a>
       <a href="https://www.linkedin.com/in/paulstartin/">Paul on LinkedIn</a>
+      {includeMore && <Link to="/" reloadDocument>More about what we do</Link>}
     </address>
   );
 }
@@ -143,8 +144,7 @@ export default function ConferencePage({ kicker = CONFERENCE_KICKER }) {
         <p>Tell me about your project and I will come back to you.</p>
       </header>
       <ConferenceFormBoundary><ConferenceForm session={session} /></ConferenceFormBoundary>
-      <ConferenceContacts />
-      <Link className="conference-more" to="/" reloadDocument>More about what we do</Link>
+      <ConferenceContacts includeMore />
     </article>
   );
 }

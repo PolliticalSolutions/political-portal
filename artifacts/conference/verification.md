@@ -6,6 +6,7 @@ Paul's subsequent copy review removed the biography/service paragraphs and chang
 to discuss any project. The organisation label, optional follow-up wording and page description
 were broadened consistently. The six existing conference component/API-client tests and the
 production build/HTML verification pass after that change; the preview server returns HTTP 200.
+The four bottom links are subsequently grouped into a two-by-two grid with consistent spacing.
 The Lighthouse figures and `mobile-390.webp` below are the earlier audit capture, before this copy
 reduction. The screenshot is superseded as a representation of the current page. Browser automation
 was blocked from refreshing localhost, so no replacement screenshot or new Lighthouse result is claimed.
