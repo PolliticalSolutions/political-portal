@@ -38,15 +38,17 @@ function trackPageView(path) {
 
 export function usePageTracking() {
   const location = useLocation();
+  const conference = /^\/conference\/?$/.test(location.pathname);
 
   useEffect(() => {
-    initAnalytics();
-  }, []);
+    // Conference uses first-party aggregate counts, without analytics cookies.
+    if (!conference) initAnalytics();
+  }, [conference]);
 
   useEffect(() => {
-    if (!_initialised) return;
+    if (conference || !_initialised) return;
     trackPageView(location.pathname);
-  }, [location]);
+  }, [location, conference]);
 }
 
 /** GA_ID exposed for the dev debug badge — do not use in production logic. */

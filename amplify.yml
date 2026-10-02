@@ -17,6 +17,12 @@ frontend:
     paths:
       - node_modules/**/*
   redirects:
+    - source: /conference
+      target: /conference/index.html
+      status: 200
+    - source: /conference/
+      target: /conference/index.html
+      status: 200
     - source: </^[^.]+$|\.(?!(css|gif|ico|jpg|js|json|png|svg|txt|webmanifest|woff|woff2|ttf|eot|map|webp|xml|pdf|geojson)$)([^.]+$)/>
       target: /index.html
       status: 200

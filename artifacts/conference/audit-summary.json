@@ -1,0 +1,28 @@
+{
+  "scores": {
+    "performance": 97,
+    "accessibility": 100
+  },
+  "metrics": {
+    "first-contentful-paint": "1.7 s",
+    "largest-contentful-paint": "2.5 s",
+    "total-blocking-time": "0 ms",
+    "cumulative-layout-shift": "0",
+    "interactive": "2.5 s"
+  },
+  "timestamp": "2026-10-02T13:35:24.100Z",
+  "requests": [
+    "http://localhost:4173/conference",
+    "http://localhost:4173/fonts/archivo-regular.woff2",
+    "http://localhost:4173/fonts/archivo-semibold.woff2",
+    "http://localhost:4173/fonts/archivo-bold.woff2",
+    "http://localhost:4173/assets/conference-Bp6V9BIw.js",
+    "http://localhost:4173/assets/index-CuoPbJoU.js",
+    "http://localhost:4173/assets/vendor-react-CNNoSWLg.js",
+    "http://localhost:4173/assets/ConferencePage-CuHCn7G0.js",
+    "http://localhost:4173/assets/ps-lockup-notag-light-outlined-CpZkhjEW.svg",
+    "http://localhost:5181/conference/visit",
+    "http://localhost:5181/conference/visit",
+    "http://localhost:4173/favicon-32.png"
+  ]
+}

@@ -1,9 +1,18 @@
-import { SITE_URL } from "./seoConfig.js";
+import { SITE_URL, OG_IMAGE_PATH } from "./seoConfig.js";
 import { getPostBySlug } from "../blog/blogLoader.js";
 
 export const siteUrl = SITE_URL;
 
 export const seoRoutes = [
+  {
+    path: "/conference",
+    title: "Paul Startin, Political Solutions",
+    exactTitle: true,
+    description: "Get in touch with Paul Startin at Political Solutions to discuss your project.",
+    image: OG_IMAGE_PATH,
+    noindex: true,
+    prerender: true,
+  },
   {
     path: "/",
     title: "Marked register processing & campaign data for UK political teams",
@@ -114,7 +123,7 @@ export const normalizePath = (path) => {
   return path.endsWith("/") ? path.slice(0, -1) : path;
 };
 
-export const defaultSeo = seoRoutes[0];
+export const defaultSeo = seoRoutes.find((route) => route.path === "/");
 
 const noindexPrefixes = ["/portal"];
 const noindexRoutes = new Set([

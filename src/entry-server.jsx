@@ -3,6 +3,8 @@ import { prerenderToNodeStream } from "react-dom/static";
 import { MemoryRouter } from "react-router-dom";
 import { HelmetProvider } from "react-helmet-async";
 import App from "./App.jsx";
+import ConferenceShell from "./publicSite/ConferenceShell.jsx";
+import RouteSeo from "./seo/RouteSeo.jsx";
 import { CartProvider } from "./cart/cartStore.jsx";
 import ConfigErrorScreen from "./components/ConfigErrorScreen.jsx";
 import ErrorBoundary from "./components/ErrorBoundary.jsx";
@@ -59,7 +61,7 @@ export async function render(url) {
       <MemoryRouter initialEntries={[url]}>
         <CartProvider>
           <ErrorBoundary>
-            <App />
+            {/^\/conference\/?$/.test(url) ? <><ConferenceShell /><RouteSeo /></> : <App />}
           </ErrorBoundary>
         </CartProvider>
       </MemoryRouter>

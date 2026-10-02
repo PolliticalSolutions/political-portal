@@ -14,6 +14,16 @@ const distDir = path.resolve("dist");
 const ssrEntry = path.resolve("dist-ssr", "entry-server.js");
 
 const template = await fs.readFile(path.join(distDir, "index.html"), "utf-8");
+let conferenceTemplate = await fs.readFile(path.join(distDir, "conference.html"), "utf-8");
+// The QR page reuses the site's CSS, inlined into its small HTML response to
+// avoid a render-blocking round trip on conference Wi-Fi and mobile data.
+for (const [tag] of conferenceTemplate.matchAll(/<link\b[^>]*rel="stylesheet"[^>]*>/g)) {
+  const href = tag.match(/href="(\/assets\/[^\"]+)"/)?.[1];
+  if (href) {
+    const css = await fs.readFile(path.join(distDir, href.slice(1)), "utf-8");
+    conferenceTemplate = conferenceTemplate.replace(tag, `<style>${css}</style>`);
+  }
+}
 const { render } = await import(pathToFileURL(ssrEntry).href);
 
 const normalizeRoute = (routePath) => {
@@ -45,7 +55,8 @@ await Promise.all(
   routesToRender.map(async (routePathValue) => {
     const routePath = normalizeRoute(routePathValue);
     const { appHtml, headHtml } = await render(routePath);
-    const html = injectApp(injectHead(template, headHtml), appHtml);
+    const routeTemplate = routePath === "/conference" ? conferenceTemplate : template;
+    const html = injectApp(injectHead(routeTemplate, headHtml), appHtml);
 
     const outputPath =
       routePath === "/"
@@ -56,3 +67,4 @@ await Promise.all(
     await fs.writeFile(outputPath, html, "utf-8");
   })
 );
+await fs.unlink(path.join(distDir, "conference.html"));

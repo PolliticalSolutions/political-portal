@@ -19,6 +19,7 @@ const BlogIndexPage = lazy(() => import("./pages/BlogIndexPage.jsx"));
 const BlogPostPage = lazy(() => import("./pages/BlogPostPage.jsx"));
 const ConstituencyIntelligence = lazy(() => import("./pages/ConstituencyIntelligence.jsx"));
 const EnquirePage = lazy(() => import("./pages/EnquirePage.jsx"));
+const ConferencePage = lazy(() => import("./pages/ConferencePage.jsx"));
 const ServiceSupport = lazy(() => import("./pages/ServiceSupport.jsx"));
 const Services = lazy(() => import("./pages/Services.jsx"));
 const Subscribe = lazy(() => import("./pages/Subscribe.jsx"));
@@ -80,6 +81,7 @@ import RouteSeo from "./seo/RouteSeo.jsx";
 import { usePageTracking, _devGaId } from "./lib/analytics.js";
 import { isPublicSitePath } from "./publicSite/publicRoutes.js";
 import "./public-site.css";
+import "./pages/ConferencePage.css";
 
 function GaDebugBadge() {
   if (!import.meta.env.DEV) return null;
@@ -328,6 +330,7 @@ export default function App() {
   usePageTracking();
   const location = useLocation();
   const isPublicSite = isPublicSitePath(location.pathname);
+  const isConference = /^\/conference\/?$/.test(location.pathname);
   const { items } = useCart();
   // Start with empty session to match server-rendered HTML (no sessionStorage on server).
   // Populate from sessionStorage after hydration to avoid React error #418.
@@ -471,13 +474,13 @@ export default function App() {
 
   return (
     <QueryClientProvider client={queryClient}>
-    <div className={`app${isPublicSite ? " public-site" : ""}`}>
+    <div className={`app${isPublicSite ? " public-site" : ""}${isConference ? " conference-site" : ""}`}>
       {isPublicSite && <a className="skip-link" href="#public-content">Skip to content</a>}
-      {isPublicSite ? (
+      {!isConference && (isPublicSite ? (
         <PublicTopNav authed={authed} onLogout={handleLogout} cartCount={items.length} />
       ) : (
         <LegacyTopNav authed={authed} onLogout={handleLogout} cartCount={items.length} />
-      )}
+      ))}
       <main className="content" id={isPublicSite ? "public-content" : undefined}>
         <div className="app-shell">
           <Routes>
@@ -487,6 +490,7 @@ export default function App() {
             <Route path="/signup" element={<SignUp />} />
             <Route path="/verify" element={<Verify />} />
             <Route path="/enquire" element={<Suspense fallback={null}><EnquirePage /></Suspense>} />
+            <Route path="/conference" element={<Suspense fallback={null}><ConferencePage /></Suspense>} />
             <Route path="/blog" element={<Suspense fallback={null}><BlogIndexPage /></Suspense>} />
             <Route path="/blog/:slug" element={<Suspense fallback={null}><BlogPostPage /></Suspense>} />
             <Route path="/cart" element={<Navigate to="/subscribe" replace />} />
@@ -754,7 +758,7 @@ export default function App() {
           onLogout={handleLogout}
         />
       )}
-      <CookieNotice />
+      {!isConference && <CookieNotice />}
       <GaDebugBadge />
     </div>
     </QueryClientProvider>

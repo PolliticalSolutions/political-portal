@@ -1,4 +1,16 @@
 customHeaders:
+  - pattern: '/conference'
+    headers:
+      - key: X-Robots-Tag
+        value: noindex, nofollow
+      - key: Cache-Control
+        value: public, max-age=0, s-maxage=60, must-revalidate
+  - pattern: '/conference/**'
+    headers:
+      - key: X-Robots-Tag
+        value: noindex, nofollow
+      - key: Cache-Control
+        value: public, max-age=0, s-maxage=60, must-revalidate
   - pattern: '**/*'
     headers:
       - key: Strict-Transport-Security
